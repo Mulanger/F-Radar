@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "design-reference",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/serve-design.mjs", "5050"],
+      "port": 5050
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "@fastighetsradar/web"],
+      "port": 3000
+    },
+    {
+      "name": "web-prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start", "-w", "@fastighetsradar/web"],
+      "port": 3000
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "@fastighetsradar/api"],
+      "port": 4000
+    }
+  ]
+}

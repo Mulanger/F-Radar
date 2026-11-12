@@ -1,0 +1,32 @@
+# Local development services (IMPLEMENTATION.md §18).
+# Credentials below are LOCAL DEV ONLY and match .env.example.
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: fastighetsradar
+      POSTGRES_PASSWORD: local_dev_password
+      POSTGRES_DB: fastighetsradar
+      TZ: UTC
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fastighetsradar -d fastighetsradar"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:

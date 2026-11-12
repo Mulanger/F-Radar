@@ -1,0 +1,38 @@
+{
+  "name": "fastighetsradar",
+  "private": true,
+  "version": "0.1.0",
+  "description": "FastighetsRadar – adressbaserad bevakning av svensk offentlig data (monorepo)",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "dev": "npm run dev -w @fastighetsradar/web",
+    "dev:web": "npm run dev -w @fastighetsradar/web",
+    "dev:api": "npm run dev -w @fastighetsradar/api",
+    "design:reference": "node scripts/serve-design.mjs 5050",
+    "build": "npm run build -w @fastighetsradar/api && npm run build -w @fastighetsradar/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:migrate": "npm run migrate -w @fastighetsradar/db",
+    "db:status": "npm run migrate:status -w @fastighetsradar/db",
+    "services:up": "docker compose up -d",
+    "services:down": "docker compose down"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^22.20.5",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.14.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.2",
+    "vitest": "^5.1.0"
+  }
+}
