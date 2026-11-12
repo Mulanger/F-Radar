@@ -8,15 +8,22 @@ import { NextResponse } from 'next/server';
  */
 const isPublicRoute = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)', '/onboarding(.*)']);
 const isDemoRoute = createRouteMatcher(['/demo(.*)']);
+// API route handlers enforce auth themselves and answer 401 JSON instead of an HTML redirect.
+const isApiRoute = createRouteMatcher(['/api(.*)']);
 
-export default clerkMiddleware(async (auth, req) => {
-  if (isDemoRoute(req)) {
-    // Fixture dashboard for design comparison – only when explicitly enabled.
-    if (process.env.FASTIGHETSRADAR_DEMO_ENABLED !== 'true') return new NextResponse('Not found', { status: 404 });
-    return;
-  }
-  if (!isPublicRoute(req)) await auth.protect();
-});
+export default clerkMiddleware(
+  async (auth, req) => {
+    if (isDemoRoute(req)) {
+      // Fixture dashboard for design comparison – only when explicitly enabled.
+      if (process.env.FASTIGHETSRADAR_DEMO_ENABLED !== 'true') return new NextResponse('Not found', { status: 404 });
+      return;
+    }
+    if (isApiRoute(req)) return;
+    if (!isPublicRoute(req)) await auth.protect();
+  },
+  // Keep users on our own branded pages instead of the Clerk-hosted Account Portal.
+  { signInUrl: '/sign-in', signUpUrl: '/sign-up' },
+);
 
 export const config = {
   matcher: [

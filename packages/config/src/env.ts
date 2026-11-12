@@ -128,9 +128,23 @@ export class EnvValidationError extends Error {
   }
 }
 
+/**
+ * Clerk key selection. A complete DEVELOPMENT pair (NEXT_PUBLIC_CLERK_DEVELOPMENT_KEY=pk_test_…,
+ * CLERK_SECRET=sk_test_…) takes precedence over the standard (production) names. Production keys
+ * only work on their configured domain; development keys work on localhost and the pod URL.
+ */
+export function selectClerkKeys(source: Record<string, string | undefined>): Record<string, string | undefined> {
+  const devPk = source.NEXT_PUBLIC_CLERK_DEVELOPMENT_KEY?.trim();
+  const devSk = source.CLERK_SECRET?.trim();
+  if (devPk?.startsWith('pk_test_') && devSk?.startsWith('sk_test_')) {
+    return { ...source, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: devPk, CLERK_SECRET_KEY: devSk };
+  }
+  return source;
+}
+
 /** Parse and validate environment variables. Throws EnvValidationError with all issues. */
 export function loadServerEnv(source: Record<string, string | undefined> = process.env): ServerEnv {
-  const result = ServerEnvSchema.safeParse(source);
+  const result = ServerEnvSchema.safeParse(selectClerkKeys(source));
   if (!result.success) {
     throw new EnvValidationError(
       result.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),

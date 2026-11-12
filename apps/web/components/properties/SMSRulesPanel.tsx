@@ -25,7 +25,7 @@ export const SMSRulesPanel = forwardRef<
           <span style={{ fontSize: 13, color: C.text2 }}>{sms.label}</span>
           <Toggle size="lg" on={sms.on} disabled={!d.avail.alerts} onToggle={onToggleSms} label={`SMS alerts for ${d.name}`} />
           <button
-            title="Rule editor is implemented with the alert-rules API (Agent 2)"
+            title="Alert rule editing arrives in a later phase"
             style={{ height: 36, padding: '0 14px', borderRadius: 18, background: C.white, border: '1px solid rgba(20,23,26,0.1)', fontSize: 13, cursor: 'pointer', color: C.ink }}
           >
             Edit rules

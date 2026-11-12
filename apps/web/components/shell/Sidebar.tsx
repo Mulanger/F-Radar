@@ -44,7 +44,8 @@ export function Sidebar() {
   const allOk = !isDemo && portfolio.sources.length > 0 && portfolio.sources.every((s) => s.status === 'ok');
   const lastSync = portfolio.sources.map((s) => s.lastSuccessAt).filter(Boolean).sort().pop() ?? null;
   // Live mode: list only sources that actually deliver data; never imply "live" otherwise.
-  const connected = portfolio.sources.filter((s) => s.status === 'ok' || s.status === 'degraded');
+  const NON_MONITORING = ['geoapify_geocoding', 'lantmateriet_address', 'sms_46elks'];
+  const connected = portfolio.sources.filter((s) => !NON_MONITORING.includes(s.sourceId) && (s.status === 'ok' || s.status === 'degraded'));
   const chips = isDemo ? portfolio.sources : connected;
 
   return (

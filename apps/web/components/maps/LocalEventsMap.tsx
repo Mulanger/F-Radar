@@ -60,7 +60,7 @@ export function LocalEventsMap({ d }: { d: DetailVM }) {
     group.addLayer(L.marker([lat, lon], { icon: pinIcon(L, sevHx, 22), title: d.name }));
     map.flyTo([lat, lon], 14, { duration: 0.8 });
     // Redraw only when the property (or its data) changes.
-  }, [d.id, d.events.length, d.hex, d.floodExposure, loaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [d.id, d.name, d.lat, d.lon, d.events.length, d.hex, d.floodExposure, loaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div style={{ ...card, flex: '1.3 1 460px', minHeight: 420, position: 'relative', overflow: 'hidden', background: C.mapBg }}>

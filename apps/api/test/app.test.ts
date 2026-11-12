@@ -21,13 +21,13 @@ describe('API bootstrap', () => {
     expect(res.headers['x-request-id']).toBeTruthy();
   });
 
-  it('GET /health/ready reports skipped dependencies as degraded, not failed', async () => {
+  it('GET /health/ready is ready when configured probes pass (unconfigured ones are skipped)', async () => {
     const res = await app.inject({ method: 'GET', url: '/health/ready' });
     expect(res.statusCode).toBe(200);
     const body = ReadinessResponseSchema.parse(res.json());
     expect(body.checks.database!.status).toBe('ok');
     expect(body.checks.redis!.status).toBe('skipped');
-    expect(body.status).toBe('degraded');
+    expect(body.status).toBe('ready');
   });
 
   it('GET /v1/sources/status never exposes secrets and never claims ok', async () => {

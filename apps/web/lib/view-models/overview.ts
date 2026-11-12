@@ -216,7 +216,10 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
       smsW: ready ? (smsN / Math.max(1, smsMax)) * 100 + '%' : '0%',
       smsSub: `${smsProps.length} of ${list.length} properties with SMS enabled`,
     },
-    legend: STATUS_ORDER.map((k) => ({ key: k, label: SEV[k].label, c: SEV[k].c, n: counts[k] })),
+    legend: [
+      ...STATUS_ORDER.map((k) => ({ key: k as string, label: SEV[k].label, c: SEV[k].c, n: counts[k] })),
+      ...(notAssessed ? [{ key: 'unknown', label: SEV.unknown.label, c: SEV.unknown.c, n: notAssessed }] : []),
+    ],
     feed,
     rows,
     donut,

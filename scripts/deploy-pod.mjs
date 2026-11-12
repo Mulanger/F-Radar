@@ -45,8 +45,11 @@ const pod = (await api('GET', `/pods/${ALLOWED_POD}`)).data;
 if (pod.name !== ALLOWED_POD || pod.plan_slug !== 'build') throw new Error(`Unexpected pod state: ${pod.name}/${pod.plan_slug}`);
 const appUrl = `https://${pod.domain}`;
 
-const pk = local.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
-const sk = local.CLERK_SECRET_KEY ?? '';
+// Development pair (NEXT_PUBLIC_CLERK_DEVELOPMENT_KEY + CLERK_SECRET) wins when complete – see selectClerkKeys().
+const devPair = local.NEXT_PUBLIC_CLERK_DEVELOPMENT_KEY?.startsWith('pk_test_') && local.CLERK_SECRET?.startsWith('sk_test_');
+const pk = (devPair ? local.NEXT_PUBLIC_CLERK_DEVELOPMENT_KEY : local.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) ?? '';
+const sk = (devPair ? local.CLERK_SECRET : local.CLERK_SECRET_KEY) ?? '';
+console.log('Clerk instance for this deployment:', pk.startsWith('pk_test_') ? 'development' : 'production');
 if (!pk || !sk) throw new Error('Clerk keys missing in .env');
 if ((pk.startsWith('pk_live_') || sk.startsWith('sk_live_')) && !args.has('--allow-live-clerk')) {
   throw new Error('Production Clerk keys only work on their configured domain, not on ' + appUrl + '. Use development keys or pass --allow-live-clerk.');

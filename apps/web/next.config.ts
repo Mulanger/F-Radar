@@ -9,6 +9,18 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const rootEnv = path.join(repoRoot, '.env');
 if (existsSync(rootEnv)) process.loadEnvFile(rootEnv);
 
+// Clerk instance selection: when a DEVELOPMENT key pair is present (NEXT_PUBLIC_CLERK_DEVELOPMENT_KEY +
+// CLERK_SECRET), it takes precedence over the production pair for this phase. Mirrors
+// `selectClerkKeys` in packages/config. Values are never logged.
+{
+  const devPk = process.env.NEXT_PUBLIC_CLERK_DEVELOPMENT_KEY;
+  const devSk = process.env.CLERK_SECRET;
+  if (devPk?.startsWith('pk_test_') && devSk?.startsWith('sk_test_')) {
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = devPk;
+    process.env.CLERK_SECRET_KEY = devSk;
+  }
+}
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Internal workspace packages ship TypeScript source.

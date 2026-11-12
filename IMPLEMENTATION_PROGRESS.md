@@ -1,5 +1,170 @@
 # FastighetsRadar – Implementation progress
 
+> Newest phase first. Agent 1's report (design migration & foundation) follows below.
+
+---
+
+# Agent 2 – Infrastructure, Clerk, PostgreSQL & property onboarding
+
+**Date:** 2026-11-12 · **Branch:** `agent2/clerk-postgres-onboarding` · **Live:** https://f-radar.fr-2.instapods.app
+
+## 1. Work completed
+
+| Area | Result | Verified how |
+|---|---|---|
+| InstaPods pod | `f-radar` created (Build plan, EU, Node.js 22). `vaktskolan` only listed, never touched | REST API reads; helper hard-refuses any other pod name |
+| PostgreSQL | Managed service **PostgreSQL 16.15**, localhost/Unix socket only, auto-generated credentials | `ss -ltn` (127.0.0.1/::1:5432), service API |
+| PostGIS | **3.4.2 installed and functional** (`postgresql-16-postgis-3` from Ubuntu, inside our pod, enabled by local superuser) | `PostGIS_Version()`, geography distance, point-in-polygon, real-DB tests |
+| Migrations | `0001` + `0002` applied to `fastighetsradar`; re-run = no-op | migrate CLI on the pod, real-DB tests on `fastighetsradar_test` |
+| Clerk | Sign-up, sign-in, sign-out (UserButton), protected routes (`proxy.ts`), branded auth pages, organization onboarding + switcher | Live: user registered and created org; isolation test org created via switcher |
+| Server-side auth | Fastify verifies Clerk session JWTs itself; organization from verified claims only | Unit + real-DB tests; live traffic (0 auth errors) |
+| Property CRUD | Add (Geoapify), view, rename, address change, pin correction, delete, switch | Live UI in Chrome + DB row inspection |
+| Geoapify | Real adapter: debounce/cancel, cache, retry/backoff, budget, Sweden filter, attribution | Contract tests + live smoke test + live UI autocomplete |
+| Dashboard | Overview & detail show the organization's real properties; monitoring shows explicit "not connected" | Live UI checks; view-model tests |
+| Trafikverket | Key recognised, integration **disabled** (`key present, disabled` in API config log) | Pod logs; no traffic API called |
+| Deployment | Next.js public (nginx/HTTPS), Fastify private 127.0.0.1:4000, systemd restart, secrets via env API | `ss`, curl from outside, health checks |
+
+## 2. Files created or modified
+
+**New:** `apps/api/src/{auth.ts,portfolio.ts,rate-limit.ts,routes/customer.ts}`, `apps/api/test/auth.test.ts`,
+`apps/web/proxy.ts`, `apps/web/app/{sign-in,sign-up,onboarding,demo,api/app/[...path]}/**`,
+`apps/web/components/auth/AuthFrame.tsx`, `apps/web/components/properties/{PropertyEditorDialog,PropertyEditorHost}.tsx`,
+`apps/web/components/dashboard/EmptyPortfolio.tsx`, `apps/web/components/maps/LocationPickerMap.tsx`,
+`apps/web/lib/server/internal-api.ts`, `apps/web/lib/design/clerk-appearance.ts`,
+`packages/domain/src/api.ts`, `packages/db/src/properties.ts`, `packages/db/migrations/0002_clerk_tenancy_properties.sql`,
+`packages/integrations/test/geoapify.test.ts`, `tests/integration/real-db.test.ts`, `tsup.deploy.config.ts`,
+`deploy/pod/index.js`, `scripts/{instapods.mjs,deploy-pod.mjs,check-no-secrets.mjs,smoke-geoapify.mts}`,
+`docs/decisions/0002-auth-tenancy-deployment.md`.
+
+**Modified:** `apps/api/src/{app.ts,main.ts,routes/health.ts}`, `apps/web/app/{layout.tsx,(dashboard)/**}`,
+`apps/web/next.config.ts`, `apps/web/lib/{data/portfolio.ts,state/dashboard-state.tsx,view-models/*}`,
+`apps/web/components/{shell/*,dashboard/*,properties/*,maps/LocalEventsMap.tsx,ui/Toggle.tsx}`,
+`apps/web/test/view-models.test.ts`, `packages/config/src/env.ts`, `packages/domain/src/{entities.ts,index.ts}`,
+`packages/db/src/{index.ts,migrations.ts}`, `packages/integrations/src/{geoapify/index.ts,types.ts,registry.ts}`,
+`apps/api/test/app.test.ts`, `eslint.config.mjs`, `.gitignore`, `.env.example`, `README.md`, `docs/sources.md`,
+`docs/implementation-progress.md`, `package.json`/`package-lock.json` (Clerk SDKs).
+
+## 3. InstaPods
+
+| Item | Value |
+|---|---|
+| Pod name / id | `f-radar` / `f0630977661da075867bee0ee31eb9d1` |
+| URL | https://f-radar.fr-2.instapods.app |
+| Plan | **build** (confirmed via API; no resize/upgrade performed) |
+| Region / server | `eu` / `instapods-fr-2` |
+| Runtime | Node.js 22 (`nodejs` preset), Ubuntu 24.04, systemd unit `app` (`Restart=on-failure`) |
+| Resources observed | ~217 MB RAM used of ~1.9 GB visible (plan: 1 GB effective), disk 2.3 GB / 24 GB |
+| Other pods | `vaktskolan` (launch, running) – never targeted; `scripts/instapods.mjs` refuses every pod name except `f-radar` |
+| Paid changes | Only the authorized Build pod. No domains, upgrades or extra services |
+
+## 4. Database
+
+* **PostgreSQL 16.15** (InstaPods service, `localhost:5432`, peer auth over `/var/run/postgresql`).
+* **PostGIS 3.4.2 (GEOS, PROJ)** – not part of the managed service; installed with `sudo apt-get install postgresql-16-postgis-3`
+  inside our pod (the `instapod` user has passwordless sudo in its own container) and enabled per database by the
+  local `postgres` superuser. Re-provisioning the pod requires repeating this step (documented below).
+* Databases: `fastighetsradar` (app), `fastighetsradar_test` (destructive tests only; the suite refuses any DB not ending in `_test`).
+* Connection pooling: `pg.Pool` (max 10) in the single API process. No PgBouncer (not needed at this scale; not provided by the service).
+* **Migration results:** `0001_init.sql`, `0002_clerk_tenancy_properties.sql` applied; second run "Database is up to date"; checksums recorded.
+* Schema highlights (0002): `organizations.clerk_org_id` (unique, format-checked), properties with confirmed `location` and
+  original `geocoded_location` (both `geography(Point,4326)`), geocoding metadata, `position_source`, audit columns
+  (`created_by/updated_by` = Clerk user ids, `updated_at` triggers), Sweden bounding-box CHECK, `property_monitoring`
+  (SMS off by default), indexes `idx_properties_org`, `idx_properties_org_created`, GIST `idx_properties_location`.
+
+## 5. Clerk integration status
+
+* SDKs: `@clerk/nextjs` 7.9.25 (Next 16 `proxy.ts` + `clerkMiddleware`), `@clerk/backend` 3.27 (Fastify).
+* **Instance in use: DEVELOPMENT** (`adjusted-moray-6291`). Organizations enabled via Backend API with owner approval;
+  `force_organization_selection=true` (no personal accounts).
+* Pages: `/sign-in`, `/sign-up`, `/onboarding` (OrganizationList), styled to the dashboard design language.
+  Header: Clerk `UserButton` (profile, sign-out) + `OrganizationSwitcher`.
+* The production instance (`clerk.f-radar.se`) is **not usable yet**: its DNS records do not exist and Organizations are disabled
+  there. Not modified.
+
+## 6. Organization isolation strategy
+
+1. `proxy.ts` requires a session for all dashboard pages; the dashboard layout additionally requires an active organization.
+2. The browser only talks to Next.js. `/api/app/*` is an allowlisted proxy (no open proxy), with same-origin checks on writes.
+3. Fastify verifies the Clerk JWT itself (signature, expiry, `azp`) and takes `org_id` only from the verified claims.
+4. Every repository query filters `organization_id = <internal id resolved from the verified Clerk org>`.
+5. No org → 403 `organization-required`; other org's property → 404 (no existence oracle).
+Verified by: unit tests (forged token, smuggled org ids), the real-DB suite (repo + API), and live: from a second organization, GET/PATCH/DELETE of
+the first org's property and its detail page all returned 404 and the rows were unchanged.
+
+## 7. Geoapify status
+
+Implemented and live. Key read server-side only (never in browser bundles – release secret scan clean). Live smoke
+test: "Sveavägen 42, Stockholm" → building-level match 59.33677, 18.06270. In the UI: autocomplete, selection, map
+confirmation, manual pin correction (46.4 m shift stored as `manual_adjusted`), attribution shown. Fallback when the key/quota fails:
+"Place the pin manually". Stored properties are never re-geocoded.
+
+## 8. Tests executed
+
+| Suite | Result |
+|---|---|
+| Vitest (unit/contract, no network) | **8 files, 66 tests passed** (incl. Agent 1's 47) |
+| Real PostgreSQL/PostGIS (`node --test`, inside pod, `fastighetsradar_test`) | **7/7 passed**: PostGIS, clean migrate + repeatability, tables/FKs/indexes, constraints, CRUD + geography query, repo isolation, API end-to-end isolation & persistence |
+| Geoapify live smoke test | passed (1 credit) |
+| ESLint / typecheck (6 workspaces) | clean |
+| Production build (tsup bundles + Next standalone) | passed; release secret scan clean (1 676 files) |
+| Deployed health | `/health/ready` = ready (database ok, postgis 3.4.2; redis skipped – not used yet), web 200 |
+| Exposure checks (from internet) | `/overview` → 307 to own `/sign-in`; `/api/app/*` unauth → 401 JSON; unknown API path → 404; cross-site POST → 403; `/demo` → 404; Fastify/Postgres bound to localhost |
+| Live browser (owner's Chrome session) | Registration + org creation (by owner); overview/detail with real data; add 2 properties via Geoapify; pin correction; switcher prev/next; local map centred (pin offset 0,0); rename; delete; second org isolation; data present after service restart |
+| Design regression | `/demo/overview` (fixtures) renders identically to Agent 1's verified design |
+
+## 9. Deployment status
+
+Deployed (release from branch `agent2/clerk-postgres-onboarding`). Process layout on the pod:
+`/home/instapod/app/index.js` (supervisor) → `web/apps/web/server.js` (0.0.0.0:3000, `--max-old-space-size=384`) and
+`api/main.mjs` (127.0.0.1:4000, 192 MB). Previous release in `/home/instapod/app.prev`.
+Runtime env set on the pod (names only): `APP_URL, CLERK_AUTHORIZED_PARTIES, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY,
+GEOCODING_PROVIDER, GEOAPIFY_API_KEY, TRAFIKVERKET_API_KEY, TRAFIKVERKET_ENABLED=false, DATABASE_URL (socket, no password),
+FASTIGHETSRADAR_INTERNAL_API_URL, FASTIGHETSRADAR_DEMO_ENABLED=false, SMS_ENABLED=false, SMS_DRY_RUN=true, LOG_LEVEL, TZ`.
+Logs: `node scripts/instapods.mjs logs 200 app`.
+
+### Re-provisioning PostGIS on a fresh pod
+```
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postgresql-16-postgis-3
+sudo -u postgres createdb -O instapod fastighetsradar
+sudo -u postgres psql -d fastighetsradar -c "CREATE EXTENSION IF NOT EXISTS postgis; CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+```
+
+### Running the real-PostgreSQL tests
+Build `npx tsup --config tsup.deploy.config.ts`, upload `dist-deploy/tests/real-db.test.mjs` + `packages/db/migrations/` to
+`/home/instapod/fr-ci`, then inside the pod:
+`TEST_DATABASE_URL="postgresql:///fastighetsradar_test?host=/var/run/postgresql" FASTIGHETSRADAR_MIGRATIONS_DIR=/home/instapod/fr-ci/migrations node --test real-db.test.mjs`
+
+## 10. Missing configuration
+
+* **Production Clerk**: DNS for `clerk.f-radar.se` (and accounts.f-radar.se etc.), a custom domain on the pod, Organizations enabled on that instance, then swap keys and `CLERK_AUTHORIZED_PARTIES`.
+* Map tile provider/key (`NEXT_PUBLIC_MAP_TILE_URL`) – maps still show CARTO's "API KEY REQUIRED" watermark.
+* `CLERK_JWT_KEY` (optional, enables networkless token verification).
+* Redis (not needed until the worker/collector phase).
+
+## 11. Outstanding issues / not verified
+
+1. **An explicit logout → login cycle was not observed by the agent** (the agent may not enter credentials on Clerk; please sign out and back in once to confirm). The agent is not permitted to enter
+   credentials on Clerk. Persistence itself is verified: rows survive reloads, organization switches and a full service restart,
+   and the real-DB suite re-reads data through a fresh API instance.
+2. The Sweden check is a bounding box (points in e.g. Oslo or Copenhagen pass). A precise national-boundary polygon check is a future improvement.
+3. `createRouteMatcher` is deprecated in Clerk 7.9 (warning only). Pages/handlers already enforce auth themselves; migrate when Clerk removes it.
+4. Fixture "demo" route is off on the pod; local only.
+5. No Playwright E2E yet (browser checks were manual via Claude in Chrome).
+6. Adding an SSH key to the pod for a DB tunnel was blocked by the agent's permission guard; tests therefore run inside the pod via the exec API.
+7. Test data in the live dev instance: organizations "Kevins org" (1 property "Sveavägen 42") and "Isolation Test Org" (no properties). Remove if unwanted.
+8. Building facts (type/floors/units) are not collected yet; the 3D view uses a neutral default and is labelled an illustration.
+
+## 12. Recommended next phase
+
+Phase 4 per IMPLEMENTATION.md §19: SMHI SNOW1gv1 forecasts + SMHI warnings + Krisinformation adapters with a collector
+in a new `apps/worker` (BullMQ needs Redis – consider a lightweight in-process scheduler first on the Build plan), mapping into the existing
+`PropertySnapshot` contract so the "not connected" panels light up per source. In parallel: production Clerk domain setup
+and a licensed tile provider.
+
+---
+
+# Agent 1 – Design preservation & application foundation
+
 **Phase covered:** Agent 1 – design preservation & application foundation (IMPLEMENTATION.md Phase 0 + Phase 1)
 **Date:** 2026-11-12
 **Next owner:** Agent 2

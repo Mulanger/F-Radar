@@ -14,7 +14,8 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
         <span
           style={{
             display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '5px 10px', borderRadius: 12,
-            background: isDemo ? 'oklch(0.95 0.05 80)' : 'oklch(0.95 0.035 155)', color: isDemo ? 'oklch(0.45 0.1 70)' : 'oklch(0.45 0.11 155)',
+            background: isDemo ? 'oklch(0.95 0.05 80)' : vm.avail.warnings || vm.avail.events ? 'oklch(0.95 0.035 155)' : C.chip,
+            color: isDemo ? 'oklch(0.45 0.1 70)' : vm.avail.warnings || vm.avail.events ? 'oklch(0.45 0.11 155)' : C.text3,
           }}
         >
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', animation: 'frBreath 2s infinite' }} />

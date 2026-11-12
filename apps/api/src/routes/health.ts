@@ -43,7 +43,8 @@ export function registerHealthRoutes(app: FastifyInstance, opts: HealthOptions) 
     const critical = opts.critical ?? [];
     const statuses = Object.entries(checks);
     const notReady = statuses.some(([n, c]) => critical.includes(n) && c.status === 'error');
-    const degraded = statuses.some(([, c]) => c.status === 'error' || c.status === 'degraded' || c.status === 'skipped');
+    // Unconfigured optional dependencies (`skipped`, e.g. Redis before the worker phase) do not degrade readiness.
+    const degraded = statuses.some(([, c]) => c.status === 'error' || c.status === 'degraded');
     const body: ReadinessResponse = {
       status: notReady ? 'not_ready' : degraded ? 'degraded' : 'ready',
       version: opts.version,

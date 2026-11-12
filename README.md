@@ -2,28 +2,32 @@
 
 Adressbaserad bevakning av svensk offentlig data för fastighetsportföljer.
 Plan: [`IMPLEMENTATION.md`](IMPLEMENTATION.md) · Progress: [`IMPLEMENTATION_PROGRESS.md`](IMPLEMENTATION_PROGRESS.md) ·
-Architecture: [`docs/decisions/0001-architecture.md`](docs/decisions/0001-architecture.md)
+Architecture: [`0001`](docs/decisions/0001-architecture.md), [`0002 auth/tenancy/deployment`](docs/decisions/0002-auth-tenancy-deployment.md)
 
-> The dashboard currently runs in **demo mode**: every value comes from labelled fixtures copied
-> from the approved design. No public API is called and no SMS can be sent.
+**Live (development Clerk instance):** https://f-radar.fr-2.instapods.app
+
+> Customers sign in with Clerk, create/select an organization and register properties by Swedish
+> address (Geoapify). Public-data monitoring (SMHI, Krisinformation, Trafikverket …) is **not connected
+> yet** – the dashboard says so explicitly instead of showing values. No SMS can be sent.
 
 ## Layout
 
 ```text
-apps/web            Next.js dashboard (Portfolio Overview, Property Detail)
-apps/api            Fastify API (health, source status)
-packages/domain     Zod schemas, types, formatters, demo fixtures
-packages/config     Server env validation, data-mode, SMS safety
-packages/integrations  Source manifest + adapter interfaces/stubs (Geoapify, SMHI, …)
-packages/db         PostGIS SQL migrations + runner
+apps/web              Next.js 16 (App Router): dashboard, Clerk auth, /api/app BFF proxy
+apps/api              Fastify API (private): Clerk token verification, properties, portfolio, geocoding
+packages/domain       Zod schemas/types, formatters, demo fixtures (/demo only)
+packages/config       Server env validation, Clerk key selection, SMS safety gate
+packages/integrations Source manifest + adapters (Geoapify implemented; others are stubs)
+packages/db           PostGIS SQL migrations, runner, tenant-scoped property repository
+deploy/pod/index.js   Process supervisor for the InstaPods pod
+scripts/              instapods.mjs (API helper, f-radar only), deploy-pod.mjs, check-no-secrets.mjs, serve-design.mjs
+tests/integration/    Real PostgreSQL/PostGIS suite (runs inside the pod)
 FastighetsRadar dashboard complete/   Approved design export – untouched reference
 ```
 
-## Requirements
+## Run locally
 
-Node.js ≥ 20.11 (developed on 24), npm ≥ 10. Docker for PostgreSQL/PostGIS + Redis (optional for the dashboard).
-
-## Commands
+Requirements: Node.js ≥ 20.11 (developed on 24), npm ≥ 10. PostgreSQL 16 + PostGIS via Docker for the API.
 
 ```bash
 npm install
@@ -33,36 +37,68 @@ npm install
 cp .env.example .env
 ```
 
+Fill in the Clerk development pair (`NEXT_PUBLIC_CLERK_DEVELOPMENT_KEY`, `CLERK_SECRET`) and `GEOAPIFY_API_KEY`.
+
 ```bash
-npm run dev            # web on http://localhost:3000 (demo mode)
+npm run services:up
 ```
 
 ```bash
-npm run dev:api        # API on http://localhost:4000 (/health/live, /health/ready, /v1/sources/status)
+npm run db:migrate
 ```
 
 ```bash
-npm run design:reference   # original prototype on http://localhost:5050 for visual comparison
+npm run dev:api
 ```
 
 ```bash
-npm run services:up    # PostGIS + Redis via docker compose
+npm run dev
 ```
 
-```bash
-npm run db:migrate     # apply SQL migrations (needs DATABASE_URL + running PostGIS)
-```
+Open http://localhost:3000 (sign-up → create organization → Add Property). The design reference with
+fixtures is at http://localhost:3000/demo/overview when `FASTIGHETSRADAR_DEMO_ENABLED=true`.
 
 ```bash
-npm test               # vitest (no network)
+npm run design:reference
+```
+
+## Quality gates
+
+```bash
+npm test
 ```
 
 ```bash
 npm run lint && npm run typecheck && npm run build
 ```
 
-## Data modes
+Real-database integration suite (inside the pod, against `fastighetsradar_test` only): see
+`IMPLEMENTATION_PROGRESS.md` → "Running the real-PostgreSQL tests".
 
-`FASTIGHETSRADAR_DATA_MODE=demo` (default) renders the design with fixtures from
-`packages/domain/src/fixtures`. `live` reads only from the API and shows an explicit
-"unavailable" state until the portfolio endpoints exist – it never falls back to fixtures.
+## Deploy to InstaPods (`f-radar` only)
+
+Requires `INSTAPOD_TOKEN` in `.env`. The scripts refuse to touch any other pod.
+
+```bash
+node scripts/deploy-pod.mjs
+```
+
+The script builds (tsup bundles + Next.js standalone), assembles `.deploy/release`, scans it for secrets,
+uploads to `/home/instapod/app-next`, runs migrations, swaps `app` ↔ `app-next` (previous release kept in
+`app.prev`), sets only the required runtime env vars, restarts the `app` service and health-checks.
+
+Useful operations (on Git Bash set `MSYS_NO_PATHCONV=1`):
+
+```bash
+node scripts/instapods.mjs logs 200 app
+```
+
+```bash
+node scripts/instapods.mjs exec -- sudo systemctl restart app
+```
+
+```bash
+node scripts/instapods.mjs exec -- sh -c "cd /home/instapod && rm -rf app.bad && mv app app.bad && mv app.prev app && sudo systemctl restart app"
+```
+
+(the last command rolls back to the previous release)
