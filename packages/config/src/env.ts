@@ -49,6 +49,16 @@ export const ServerEnvSchema = z.object({
   AUTH_SECRET: optionalString,
   AUTH_PROVIDER: optionalString,
 
+  /** Clerk (auth provider, decision 2026-11-12). Secret key is server-only. */
+  CLERK_SECRET_KEY: optionalString,
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: optionalString,
+  /** Optional PEM public key for networkless JWT verification (Clerk Dashboard → API keys). */
+  CLERK_JWT_KEY: optionalString,
+  /** Comma-separated origins allowed as the token `azp` (defaults to APP_URL). */
+  CLERK_AUTHORIZED_PARTIES: optionalString,
+  /** Internal URL the Next.js server uses to reach Fastify (never public). */
+  FASTIGHETSRADAR_INTERNAL_API_URL: z.string().url().default('http://127.0.0.1:4000'),
+
   GEOCODING_PROVIDER: z.enum(['geoapify', 'manual']).default('geoapify'),
   GEOAPIFY_API_KEY: optionalString,
   GEOAPIFY_AUTOCOMPLETE_URL: z.string().url().default('https://api.geoapify.com/v1/geocode/autocomplete'),
@@ -132,6 +142,8 @@ export function loadServerEnv(source: Record<string, string | undefined> = proce
 /** Names of env vars that hold secrets – used for log redaction. */
 export const SECRET_ENV_KEYS = [
   'AUTH_SECRET',
+  'CLERK_SECRET_KEY',
+  'CLERK_JWT_KEY',
   'GEOAPIFY_API_KEY',
   'TRAFIKVERKET_API_KEY',
   'LANTMATERIET_CLIENT_SECRET',
@@ -141,6 +153,21 @@ export const SECRET_ENV_KEYS = [
   'DATABASE_URL',
   'REDIS_URL',
 ] as const satisfies ReadonlyArray<keyof ServerEnv>;
+
+/** Origins accepted as Clerk `azp`. */
+export function clerkAuthorizedParties(env: ServerEnv): string[] {
+  const list = (env.CLERK_AUTHORIZED_PARTIES ?? env.APP_URL)
+    .split(',')
+    .map((s) => s.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+  return [...new Set(list)];
+}
+
+/** Clerk instance type derived from the key prefix (never logs the key). */
+export function clerkInstanceType(env: ServerEnv): 'development' | 'production' | 'missing' {
+  const k = env.CLERK_SECRET_KEY ?? '';
+  return k.startsWith('sk_test_') ? 'development' : k.startsWith('sk_live_') ? 'production' : 'missing';
+}
 
 export type SmsMode = 'disabled' | 'dry_run' | 'live';
 

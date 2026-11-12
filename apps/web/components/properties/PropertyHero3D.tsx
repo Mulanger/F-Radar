@@ -37,7 +37,7 @@ export function PropertyHero3D({ d, isDemo }: { d: DetailVM; isDemo: boolean }) 
       <ThreeScene config={config} />
       <div style={{ position: 'absolute', top: 20, left: 22, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 20, ...glass(0.6, 14), fontSize: 12, color: C.text2 }}>
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: d.c, animation: 'frBreath 2s infinite' }} />
-        {isDemo ? 'Illustrative property twin' : 'Property twin (illustration)'} · {d.area}
+        {isDemo ? 'Illustrative property twin' : 'Illustration – not a model of the real building'} · {d.area}
       </div>
       <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
         {panel(`Water level · ${d.water.body}`, d.water.level, d.water.trend, d.water.fc)}

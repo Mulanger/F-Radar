@@ -4,7 +4,8 @@ import { useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { buildDetailVM } from '@/lib/view-models/detail';
-import { C } from '@/lib/design/tokens';
+import { C, FONT_MONO } from '@/lib/design/tokens';
+import { usePropertyEditor } from './PropertyEditorHost';
 import { IconArrowLeft, IconSliders } from '../ui/icons';
 import { PropertySwitcher } from './PropertySwitcher';
 import { PropertyHero3D } from './PropertyHero3D';
@@ -29,6 +30,7 @@ export function PropertyDetail() {
   const params = useParams<{ propertyId?: string }>();
   const ds = useDashboard();
   const smsRef = useRef<HTMLDivElement>(null);
+  const editor = usePropertyEditor();
   const id = params?.propertyId ? decodeURIComponent(params.propertyId) : undefined;
   const s = ds.property(id);
   if (!s) return null;
@@ -72,13 +74,23 @@ export function PropertyDetail() {
           <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 13.5, color: C.text3, flexWrap: 'wrap' }}>
             <span>{d.address}</span>
             <span style={{ color: C.sep }}>·</span>
-            <span>{d.type} · {d.floors} floors · {d.units}</span>
+            <span>{d.buildingLine}</span>
+            <span style={{ color: C.sep }}>·</span>
+            <span title={d.positionNote} style={{ fontFamily: FONT_MONO, fontSize: 12.5 }}>{d.lat.toFixed(5)}, {d.lon.toFixed(5)}</span>
             <span style={{ color: C.sep }}>·</span>
             <span>{isDemo ? 'Demo snapshot' : 'Updated'} {d.updatedAt}</span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <PropertySwitcher d={d} onSwitch={switchTo} />
+          {editor.enabled && (
+            <button
+              onClick={() => editor.openEdit(s)}
+              style={{ height: 44, display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px', borderRadius: 22, background: C.white, border: '1px solid rgba(20,23,26,0.08)', fontSize: 13.5, cursor: 'pointer', color: C.ink }}
+            >
+              Edit property
+            </button>
+          )}
           <button
             onClick={ds.goOverview}
             style={{ height: 44, display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px', borderRadius: 22, background: C.white, border: '1px solid rgba(20,23,26,0.08)', fontSize: 13.5, cursor: 'pointer', color: C.ink }}

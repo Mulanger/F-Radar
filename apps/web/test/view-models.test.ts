@@ -1,10 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+// Clerk server helpers are mocked: the loader must only forward the session token.
+const authMock = vi.fn();
+vi.mock('@clerk/nextjs/server', () => ({ auth: () => authMock() }));
 import type { Portfolio, PropertySnapshot } from '@fastighetsradar/domain';
 import { demoPortfolio } from '@fastighetsradar/domain/fixtures';
 import { buildOverviewVM } from '@/lib/view-models/overview';
 import { buildDetailVM } from '@/lib/view-models/detail';
 import { chartOf, smooth } from '@/lib/view-models/chart';
-import { loadPortfolio } from '@/lib/data/portfolio';
+import { loadDemoPortfolio, loadLivePortfolio } from '@/lib/data/portfolio';
 
 const ui = {
   ready: true,
@@ -119,18 +123,88 @@ describe('missing data is never rendered as a normal value', () => {
   });
 });
 
-describe('data loader', () => {
-  it('serves labelled demo fixtures in demo mode', async () => {
-    delete process.env.FASTIGHETSRADAR_DATA_MODE;
-    const r = await loadPortfolio();
+describe('data loaders', () => {
+  afterEach(() => {
+    delete process.env.FASTIGHETSRADAR_DEMO_ENABLED;
+    vi.unstubAllGlobals();
+  });
+
+  it('serve demo fixtures only when the demo is explicitly enabled', async () => {
+    expect((await loadDemoPortfolio()).status).toBe('unavailable');
+    process.env.FASTIGHETSRADAR_DEMO_ENABLED = 'true';
+    const r = await loadDemoPortfolio();
     expect(r.status).toBe('ok');
     if (r.status === 'ok') expect(r.portfolio.origin).toBe('demo_fixture');
   });
-  it('never falls back to fixtures in live mode', async () => {
-    process.env.FASTIGHETSRADAR_DATA_MODE = 'live';
-    const r = await loadPortfolio();
-    expect(r.status).toBe('unavailable');
-    delete process.env.FASTIGHETSRADAR_DATA_MODE;
+
+  it('live loader forwards the Clerk token and never falls back to fixtures', async () => {
+    process.env.FASTIGHETSRADAR_DEMO_ENABLED = 'true'; // even with demo enabled
+    authMock.mockResolvedValue({ userId: 'user_1', getToken: async () => 'tok' });
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ title: 'Unauthorized' }), { status: 401 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const r = await loadLivePortfolio();
+    expect(r).toMatchObject({ status: 'unavailable', mode: 'live', code: 'unauthenticated' });
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('http://127.0.0.1:4000/v1/portfolio');
+    expect(new Headers(init.headers).get('authorization')).toBe('Bearer tok');
+  });
+
+  it('live loader rejects payloads that do not match the Portfolio contract', async () => {
+    authMock.mockResolvedValue({ userId: 'user_1', getToken: async () => 'tok' });
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ properties: 'nope' }), { status: 200 })));
+    expect(await loadLivePortfolio()).toMatchObject({ status: 'unavailable', code: 'api_error' });
+  });
+
+  it('maps 403 to organization_required', async () => {
+    authMock.mockResolvedValue({ userId: 'user_1', getToken: async () => 'tok' });
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 403 })));
+    expect(await loadLivePortfolio()).toMatchObject({ status: 'unavailable', code: 'organization_required' });
+  });
+});
+
+describe('live portfolio without connected sources', () => {
+  const live: Portfolio = {
+    ...demoPortfolio,
+    origin: 'live',
+    feed: [],
+    upcoming: [],
+    narrative: null,
+    demoTrends: null,
+    segments: [],
+    sources: [{ sourceId: 'smhi_forecast', label: 'SMHI', status: 'not_implemented', lastSuccessAt: null, lastCheckedAt: null, freshness: 'unknown', errorCode: null }],
+    properties: [
+      {
+        ...byName('Götgården'),
+        property: { ...byName('Götgården').property, origin: 'live', status: 'unknown', building: null },
+        metrics: [],
+        forecast: null,
+        warnings: [],
+        events: [],
+        alertRules: [],
+        activeAlertCount: 0,
+        demoRisk: null,
+        flood: { ...byName('Götgården').flood, mapped: { ...byName('Götgården').flood.mapped, exposureClass: 'unknown' }, waterBody: null },
+      },
+    ],
+  };
+
+  it('marks every monitoring panel as not connected instead of normal', () => {
+    const vm = buildOverviewVM(live, ui);
+    expect(vm.avail).toEqual({ weather: false, warnings: false, events: false, air: false, flood: false, alerts: false });
+    expect(vm.healthPct).toBeNull();
+    expect(vm.kpi.barLabel).toBe('1 not assessed yet · no public-data sources connected');
+    expect(vm.rows[0]!.status).toBe('Unknown');
+    const d = buildDetailVM(live, live.properties[0]!, { ready: true, metric: 'temp', smsOn: false, isRuleOn: (_i, f) => f });
+    expect(d.avail.warnings).toBe(false);
+    expect(d.buildingLine).toBe('Building details not provided');
+    expect(d.floors).toBe(6);
+    expect(d.water.hasLevel).toBe(false);
+    expect(d.sms.rules).toEqual([]);
+    expect(d.timeline).toEqual([]);
+  });
+
+  it('demo fixtures keep the full design', () => {
+    expect(buildOverviewVM(demoPortfolio, ui).avail.warnings).toBe(true);
   });
 });
 

@@ -33,7 +33,7 @@ export function PortfolioHero3D({ vm, isDemo }: { vm: OverviewVM; isDemo: boolea
       <div style={{ position: 'absolute', top: 22, left: 24, display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 300 }}>
         <div style={{ display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 20, ...glass(0.6, 14), fontSize: 12, color: C.text2 }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: isDemo ? C.demo : C.live, animation: 'frBreath 2.4s ease-in-out infinite' }} />
-          {isDemo ? 'Demo portfolio twin' : 'Live portfolio twin'} · {h.count} properties
+          {isDemo ? 'Demo portfolio twin' : 'Portfolio illustration'} · {h.count} properties
         </div>
         {vm.narrative && (
           <>

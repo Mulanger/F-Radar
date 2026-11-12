@@ -1,4 +1,27 @@
-import type { MetricKey, PropertySnapshot } from '@fastighetsradar/domain';
+import type { MetricKey, Portfolio, PropertySnapshot, SourceId } from '@fastighetsradar/domain';
+
+/**
+ * Whether any of the given sources currently delivers data. Demo fixtures count as
+ * available (they are labelled demo). Live data is available only when a source reports `ok`;
+ * otherwise panels must say "not connected" instead of showing empty-but-normal values.
+ */
+export function sourceAvailable(p: Portfolio, ids: SourceId[]): boolean {
+  if (p.origin === 'demo_fixture') return true;
+  return p.sources.some((s) => ids.includes(s.sourceId) && s.status === 'ok');
+}
+
+export function availability(p: Portfolio) {
+  return {
+    weather: sourceAvailable(p, ['smhi_forecast', 'smhi_observations']),
+    warnings: sourceAvailable(p, ['smhi_warnings', 'krisinformation']),
+    events: sourceAvailable(p, ['krisinformation', 'trafikverket']),
+    air: sourceAvailable(p, ['air_quality']),
+    flood: sourceAvailable(p, ['mcf_flood', 'smhi_oceanography']),
+    /** Alert/rule engine + SMS (Phase 8). Only the labelled demo shows rule states. */
+    alerts: p.origin === 'demo_fixture',
+  };
+}
+export type Availability = ReturnType<typeof availability>;
 import { isDisplayableValue } from '@fastighetsradar/domain';
 
 /**

@@ -32,17 +32,20 @@ function PendingLink({ icon, label, badge }: { icon: React.ReactNode; label: str
 
 export function Sidebar() {
   const pathname = usePathname() ?? '';
-  const { portfolio, selectedId, mode, openProperty, goOverview } = useDashboard();
+  const { portfolio, selectedId, mode, basePath, openProperty, goOverview } = useDashboard();
   const nav = (fn: () => void) => (e: React.MouseEvent) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
     e.preventDefault();
     fn();
   };
-  const isOverview = !pathname.startsWith('/properties');
+  const isOverview = !pathname.startsWith(`${basePath}/properties`);
   const totalAlerts = portfolio.properties.reduce((a, s) => a + s.activeAlertCount, 0);
   const isDemo = mode === 'demo';
   const allOk = !isDemo && portfolio.sources.length > 0 && portfolio.sources.every((s) => s.status === 'ok');
   const lastSync = portfolio.sources.map((s) => s.lastSuccessAt).filter(Boolean).sort().pop() ?? null;
+  // Live mode: list only sources that actually deliver data; never imply "live" otherwise.
+  const connected = portfolio.sources.filter((s) => s.status === 'ok' || s.status === 'degraded');
+  const chips = isDemo ? portfolio.sources : connected;
 
   return (
     <aside
@@ -62,13 +65,13 @@ export function Sidebar() {
 
       <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }} aria-label="Main">
         <div style={sectionLabel}>Monitor</div>
-        <Link href="/overview" onClick={nav(goOverview)} aria-current={isOverview ? 'page' : undefined} style={{ ...navItem, ...(isOverview ? navOn : navOff) }}>
+        <Link href={`${basePath}/overview`} onClick={nav(goOverview)} aria-current={isOverview ? 'page' : undefined} style={{ ...navItem, ...(isOverview ? navOn : navOff) }}>
           <IconDashboard />
           Dashboard
         </Link>
         <Link
-          href={`/properties/${encodeURIComponent(selectedId)}`}
-          onClick={nav(() => openProperty(selectedId))}
+          href={selectedId ? `${basePath}/properties/${encodeURIComponent(selectedId)}` : `${basePath}/overview`}
+          onClick={nav(() => (selectedId ? openProperty(selectedId) : goOverview()))}
           aria-current={!isOverview ? 'page' : undefined}
           style={{ ...navItem, ...(!isOverview ? navOn : navOff) }}
         >
@@ -79,7 +82,7 @@ export function Sidebar() {
         <PendingLink
           icon={<IconAlert />}
           label="Alerts"
-          badge={<span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: '#fff', background: 'oklch(0.6 0.18 28)', borderRadius: 20, padding: '2px 7px' }}>{totalAlerts}</span>}
+          badge={totalAlerts > 0 ? <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: '#fff', background: 'oklch(0.6 0.18 28)', borderRadius: 20, padding: '2px 7px' }}>{totalAlerts}</span> : undefined}
         />
         <PendingLink icon={<IconMap />} label="Map View" />
         <PendingLink icon={<IconAnalytics />} label="Analytics" />
@@ -92,15 +95,16 @@ export function Sidebar() {
         <div style={{ borderRadius: 18, padding: 14, background: C.white, border: '1px solid rgba(20,23,26,0.05)', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600 }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: isDemo ? C.demo : allOk ? C.live : 'oklch(0.6 0.15 55)', animation: 'frBreath 2.4s ease-in-out infinite' }} />
-            {isDemo ? 'Demo data · not live' : allOk ? 'All sources live' : 'Some sources unavailable'}
+            {isDemo ? 'Demo data · not live' : allOk ? 'All sources live' : connected.length ? 'Some sources unavailable' : 'Public data not connected'}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {portfolio.sources.map((s) => (
+            {chips.length === 0 && <span style={{ fontSize: 11.5, color: C.text3 }}>SMHI, Krisinformation and Trafikverket arrive in the next phase.</span>}
+            {chips.map((s) => (
               <span key={s.sourceId} style={monoChip} title={`${s.label}: ${s.status}`}>{s.label}</span>
             ))}
           </div>
           <div style={{ fontSize: 11.5, color: C.text4 }}>
-            {isDemo ? `Fixture snapshot ${formatClock(portfolio.generatedAt)} · no sync` : `Last sync ${formatClock(lastSync)}`}
+            {isDemo ? `Fixture snapshot ${formatClock(portfolio.generatedAt)} · no sync` : lastSync ? `Last sync ${formatClock(lastSync)}` : 'No data synced yet'}
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { EnvValidationError, loadServerEnv } from '@fastighetsradar/config';
+import { EnvValidationError, clerkInstanceType, loadServerEnv } from '@fastighetsradar/config';
 import { checkDatabase, createPool } from '@fastighetsradar/db';
 import { buildApp } from './app';
 import type { ReadinessProbe } from './routes/health';
@@ -26,7 +26,8 @@ async function main() {
     };
   }
 
-  const app = await buildApp(env, { probes });
+  const app = await buildApp(env, { probes, db: pool, criticalProbes: pool ? ['database'] : [] });
+  app.log.info({ clerk: clerkInstanceType(env), geocoding: env.GEOAPIFY_API_KEY ? 'configured' : 'missing', trafikverket: env.TRAFIKVERKET_API_KEY ? (env.TRAFIKVERKET_ENABLED ? 'enabled' : 'key present, disabled') : 'missing' }, 'configuration');
 
   const shutdown = async (signal: string) => {
     app.log.info({ signal }, 'Shutting down');

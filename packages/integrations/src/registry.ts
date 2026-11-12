@@ -17,7 +17,7 @@ export const ADAPTER_IMPLEMENTATION: Record<Exclude<SourceId, 'demo_other'>, Ada
   mcf_flood: 'interface_only',
   scb: 'interface_only',
   trafikverket: 'interface_only',
-  geoapify_geocoding: 'interface_only',
+  geoapify_geocoding: 'implemented', // contract tests + live smoke test 2026-11-12
   lantmateriet_address: 'interface_only',
   boverket_energy: 'interface_only',
   sms_46elks: 'interface_only',

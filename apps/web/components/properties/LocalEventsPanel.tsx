@@ -23,7 +23,12 @@ export function LocalEventsPanel({ d }: { d: DetailVM }) {
           </div>
         ))}
       </div>
-      {d.noEvents && <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: C.text3, borderRadius: 14, background: '#F8F9F8' }}>No disruptions reported nearby</div>}
+      {!d.avail.events && (
+        <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: C.text3, borderRadius: 14, background: '#F8F9F8' }}>
+          Event sources (Krisinformation, Trafikverket) are not connected yet – nearby events cannot be shown.
+        </div>
+      )}
+      {d.avail.events && d.noEvents && <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: C.text3, borderRadius: 14, background: '#F8F9F8' }}>No disruptions reported nearby</div>}
       {d.events.map((e) => (
         <div key={e.id} style={{ display: 'flex', gap: 12, padding: '12px 0', borderTop: '1px solid rgba(20,23,26,0.05)' }}>
           <span style={{ flexShrink: 0, alignSelf: 'flex-start', fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 7, background: e.bg, color: e.c }}>{e.kind}</span>

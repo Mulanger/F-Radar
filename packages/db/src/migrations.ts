@@ -12,7 +12,10 @@ import { fileURLToPath } from 'node:url';
  * applied migration are detected instead of silently ignored.
  */
 
-export const MIGRATIONS_DIR = resolve(fileURLToPath(new URL('.', import.meta.url)), '..', 'migrations');
+// Overridable for bundled deployments where the module path differs from the source tree.
+export const MIGRATIONS_DIR = process.env.FASTIGHETSRADAR_MIGRATIONS_DIR
+  ? resolve(process.env.FASTIGHETSRADAR_MIGRATIONS_DIR)
+  : resolve(fileURLToPath(new URL('.', import.meta.url)), '..', 'migrations');
 const FILE_PATTERN = /^(\d{4})_[a-z0-9_]+\.sql$/;
 
 export interface MigrationFile {

@@ -12,6 +12,9 @@ export default tseslint.config(
       '**/next-env.d.ts',
       // Untouched design reference – never linted or modified.
       'FastighetsRadar dashboard complete/**',
+      'dist-deploy/**',
+      '.deploy/**',
+      'deploy/pod/**',
     ],
   },
   js.configs.recommended,

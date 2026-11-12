@@ -10,10 +10,12 @@ const COLS = 'minmax(210px,1.8fr) 112px minmax(190px,1.3fr) 150px 96px 130px 92p
 
 export function PropertyStatusTable({
   vm,
+  smsInteractive,
   onOpen,
   onToggleSms,
 }: {
   vm: OverviewVM;
+  smsInteractive: boolean;
   onOpen: (id: string) => void;
   onToggleSms: (s: PropertySnapshot) => void;
 }) {
@@ -61,7 +63,7 @@ export function PropertyStatusTable({
                 <span style={{ fontSize: 12, color: C.text3 }}>{r.rain} mm · {r.wind} m/s · {r.hum}%</span>
               </div>
               <div role="cell">
-                <span style={{ fontSize: 12, padding: '3px 8px', borderRadius: 8, background: r.wBg, color: r.wFg }}>{r.warn}</span>
+                <span style={{ fontSize: 12, padding: '3px 8px', borderRadius: 8, background: r.wBg, color: r.wFg }}>{vm.avail.warnings ? r.warn : '—'}</span>
               </div>
               <div role="cell" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5 }}>
                 <span style={{ display: 'flex', gap: 2 }}>
@@ -71,7 +73,7 @@ export function PropertyStatusTable({
                 </span>
                 {r.flood}
               </div>
-              <div role="cell" style={{ fontSize: 12.5, color: C.text2 }}>{r.nearby}</div>
+              <div role="cell" style={{ fontSize: 12.5, color: C.text2 }}>{vm.avail.events ? r.nearby : '—'}</div>
               <div role="cell" style={{ fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: r.aqC }} />
                 {r.aq}
@@ -84,7 +86,7 @@ export function PropertyStatusTable({
                 <span style={{ fontFamily: FONT_MONO, fontSize: 12, width: 22, textAlign: 'right' }}>{r.risk}</span>
               </div>
               <div role="cell">
-                <Toggle on={r.smsOn} onToggle={() => onToggleSms(r.snapshot)} label={`SMS alerts for ${r.name}`} />
+                <Toggle on={r.smsOn} disabled={!smsInteractive} onToggle={() => onToggleSms(r.snapshot)} label={`SMS alerts for ${r.name}`} />
               </div>
               <IconChevronRight stroke={C.text4} />
             </div>

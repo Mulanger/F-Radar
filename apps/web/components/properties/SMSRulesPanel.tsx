@@ -19,11 +19,11 @@ export const SMSRulesPanel = forwardRef<
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <div style={cardTitle}>SMS Alert Rules</div>
-          <div style={cardSub}>{sms.sub}</div>
+          <div style={cardSub}>{d.avail.alerts ? sms.sub : 'SMS alerts arrive in a later phase · no SMS is sent'}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 13, color: C.text2 }}>{sms.label}</span>
-          <Toggle size="lg" on={sms.on} onToggle={onToggleSms} label={`SMS alerts for ${d.name}`} />
+          <Toggle size="lg" on={sms.on} disabled={!d.avail.alerts} onToggle={onToggleSms} label={`SMS alerts for ${d.name}`} />
           <button
             title="Rule editor is implemented with the alert-rules API (Agent 2)"
             style={{ height: 36, padding: '0 14px', borderRadius: 18, background: C.white, border: '1px solid rgba(20,23,26,0.1)', fontSize: 13, cursor: 'pointer', color: C.ink }}
@@ -33,6 +33,11 @@ export const SMSRulesPanel = forwardRef<
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', opacity: sms.op, transition: 'opacity .3s' }}>
+        {sms.rules.length === 0 && (
+          <div style={{ padding: '16px 0', borderTop: '1px solid rgba(20,23,26,0.05)', fontSize: 13, color: C.text3 }}>
+            No alert rules yet. Rule configuration and SMS delivery are implemented in a later phase.
+          </div>
+        )}
         {sms.rules.map((r) => (
           <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 0', borderTop: '1px solid rgba(20,23,26,0.05)' }}>
             <div style={{ width: 34, height: 34, borderRadius: 11, background: C.page, display: 'grid', placeItems: 'center', fontFamily: FONT_MONO, fontSize: 11, color: C.text2 }}>{r.code}</div>

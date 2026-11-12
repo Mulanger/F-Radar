@@ -22,7 +22,7 @@ export function PortfolioAnalytics({ vm }: { vm: OverviewVM }) {
             </svg>
             <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
               <div>
-                <div style={{ fontSize: 30, fontWeight: 500, letterSpacing: '-0.03em' }}>{vm.healthPct}%</div>
+                <div style={{ fontSize: 30, fontWeight: 500, letterSpacing: '-0.03em' }}>{vm.healthPct === null ? '—' : `${vm.healthPct}%`}</div>
                 <div style={{ fontSize: 11.5, color: C.text4 }} title="Share of properties with status Normal">healthy</div>
               </div>
             </div>

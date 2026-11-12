@@ -60,6 +60,9 @@ export interface AddressSuggestion {
   postcode?: string;
   street?: string;
   housenumber?: string;
+  municipality?: string;
+  county?: string;
+  resultType?: string;
   /** 0–1 where provided by the upstream. */
   confidence?: number;
   precision: 'building' | 'street' | 'approximate';

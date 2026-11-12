@@ -11,11 +11,13 @@ export function Toggle({
   onToggle,
   label,
   size = 'sm',
+  disabled = false,
 }: {
   on: boolean;
   onToggle: (e: React.MouseEvent | React.KeyboardEvent) => void;
   label: string;
   size?: 'sm' | 'lg';
+  disabled?: boolean;
 }) {
   const lg = size === 'lg';
   const w = lg ? 42 : 34;
@@ -27,6 +29,8 @@ export function Toggle({
       role="switch"
       aria-checked={on}
       aria-label={label}
+      disabled={disabled}
+      title={disabled ? 'Not available yet' : undefined}
       onClick={(e) => {
         e.stopPropagation();
         onToggle(e);
@@ -37,7 +41,8 @@ export function Toggle({
         borderRadius: h / 2,
         background: on ? C.toggleOn : C.toggleOff,
         position: 'relative',
-        cursor: 'pointer',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.55 : 1,
         transition: 'background .25s',
         border: 'none',
         padding: 0,

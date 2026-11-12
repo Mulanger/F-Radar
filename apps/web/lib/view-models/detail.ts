@@ -4,7 +4,7 @@ import { SEV, WL, type SeverityStyle } from '../design/tokens';
 import type { ChartMetric } from '../state/dashboard-state';
 import { chartOf } from './chart';
 import { eventCounts, rulesFor, type RuleView } from './rules';
-import { forecastValues, metricValue, riskSeverity, show } from './snapshot';
+import { availability, forecastValues, metricValue, riskSeverity, show } from './snapshot';
 
 /**
  * Property Detail view-model – port of the prototype's `renderVals()` detail section.
@@ -113,14 +113,25 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
   const factorLabels = ['Weather', 'Water', 'Crisis', 'Traffic', 'Air'] as const;
   const fac = s.demoRisk ? [s.demoRisk.factors.weather, s.demoRisk.factors.water, s.demoRisk.factors.crisis, s.demoRisk.factors.traffic, s.demoRisk.factors.air] : null;
 
+  const avail = availability(portfolio);
+  // Building facts are customer-provided; absent in Phase 2. The 3D scene then uses a neutral default.
+  const b = p.building;
+  const buildingLine = b ? `${b.type} · ${b.floors} floors · ${b.unitsLabel}` : 'Building details not provided';
+
   return {
     id: p.id,
+    avail,
+    origin: p.origin,
+    buildingLine,
+    lat: p.location.lat,
+    lon: p.location.lon,
+    positionNote: p.geocode.provider === 'manual_pin' ? 'Manual pin' : p.geocode.precision === 'building' ? 'Address point (Geoapify)' : 'Approximate address point',
     name: p.name,
     address: p.address,
     area: p.area,
-    type: p.building.type,
-    floors: p.building.floors,
-    units: p.building.unitsLabel,
+    type: b?.type ?? '',
+    floors: b?.floors ?? 6,
+    units: b?.unitsLabel ?? '',
     status: st.label,
     c: st.c,
     bg: st.bg,
@@ -216,6 +227,7 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
       trend: s.flood.waterBody?.trendLabel ?? '—',
       dist: fdist === null ? '—' : fdist < 100 ? fdist + ' m · inside buffer' : fdist >= 1000 ? (fdist / 1000).toFixed(1) + ' km away' : fdist + ' m away',
       thTop: (1 - levelToFill(60)) * 100 + '%',
+      hasLevel: lvl !== null,
       // Derived demo labels from the prototype. Live mode needs a documented method before showing these.
       surface: rain24 === null ? '—' : rain24 > 15 ? 'Likely' : rain24 > 10 ? 'Possible' : 'Unlikely',
       basement: flood === 'High' ? 'Elevated' : flood === 'Medium' ? 'Moderate' : flood === 'Low' ? 'Low' : '—',

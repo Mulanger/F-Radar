@@ -3,7 +3,7 @@ import { formatClock, formatLongDate } from '@fastighetsradar/domain';
 import { C, SEV, STATUS_ORDER, WL } from '../design/tokens';
 import { smooth } from './chart';
 import { rulesFor, eventCounts } from './rules';
-import { isOfficialLevel, metricValue, n0, riskSeverity, show } from './snapshot';
+import { availability, isOfficialLevel, metricValue, n0, riskSeverity, show } from './snapshot';
 
 /**
  * Portfolio Overview view-model – a faithful port of the prototype's `renderVals()`
@@ -160,8 +160,16 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
   const riskSevKey = avgRisk === null ? null : riskSeverity(avgRisk);
   const upcomingTone = { monitor: SEV.monitor.c, critical: SEV.critical.c, warning: SEV.warning.c, cold: 'oklch(0.6 0.1 265)' };
 
+  const avail = availability(portfolio);
+  const assessed = STATUS_ORDER.reduce((a, k) => a + counts[k], 0);
+  const notAssessed = list.length - assessed;
+
   return {
     list,
+    avail,
+    isEmpty: portfolio.properties.length === 0,
+    assessed,
+    notAssessed,
     dateLine: `${formatLongDate(portfolio.generatedAt)} · ${portfolio.regionLabel}${portfolio.origin === 'demo_fixture' ? ' · Demo data' : ''}`,
     updatedAt: formatClock(portfolio.generatedAt),
     narrative: portfolio.narrative,
@@ -182,7 +190,10 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     kpi: {
       total: list.length,
       bar: STATUS_ORDER.filter((k) => counts[k]).map((k) => ({ key: k, w: (counts[k] / n) * 100 + '%', c: SEV[k].c })),
-      barLabel: STATUS_ORDER.map((k) => counts[k] + ' ' + SEV[k].label.toLowerCase()).join(' · '),
+      barLabel:
+        notAssessed === list.length && list.length > 0
+          ? `${list.length} not assessed yet · no public-data sources connected`
+          : STATUS_ORDER.map((k) => counts[k] + ' ' + SEV[k].label.toLowerCase()).join(' · ') + (notAssessed ? ` · ${notAssessed} not assessed` : ''),
       alerts: totalAlerts,
       spark,
       alertsDelta: portfolio.demoTrends?.alertsDeltaLabel ?? null,
@@ -209,7 +220,8 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     feed,
     rows,
     donut,
-    healthPct: Math.round((counts.normal / n) * 100),
+    /** Null when no property has an assessed status (never 0 % or 100 % by default). */
+    healthPct: assessed ? Math.round((counts.normal / assessed) * 100) : null,
     health: STATUS_ORDER.map((k) => ({ key: k, label: SEV[k].label, c: SEV[k].c, n: counts[k], pct: Math.round((counts[k] / n) * 100) + '%' })),
     cats: catsRaw.map((c) => ({ ...c, w: ready ? (c.n / catMax) * 100 + '%' : '0%' })),
     upcoming: portfolio.upcoming.map((u) => ({ ...u, c: upcomingTone[u.tone] })),

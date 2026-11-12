@@ -10,6 +10,7 @@ import { PortfolioMap } from '../maps/PortfolioMap';
 import { AlertFeed } from './AlertFeed';
 import { PropertyStatusTable } from './PropertyStatusTable';
 import { PortfolioAnalytics, UpcomingConditions } from './PortfolioAnalytics';
+import { EmptyPortfolio } from './EmptyPortfolio';
 
 /** Page 1 – Portfolio Overview (`/overview`). */
 export function PortfolioOverview() {
@@ -64,7 +65,7 @@ export function PortfolioOverview() {
         <AlertFeed vm={vm} isDemo={isDemo} onOpen={(id) => ds.openProperty(id)} />
       </div>
 
-      <PropertyStatusTable vm={vm} onOpen={(id) => ds.openProperty(id)} onToggleSms={ds.toggleSms} />
+      {vm.isEmpty ? <EmptyPortfolio /> : <PropertyStatusTable vm={vm} smsInteractive={ds.smsInteractive} onOpen={(id) => ds.openProperty(id)} onToggleSms={ds.toggleSms} />}
 
       <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         <PortfolioAnalytics vm={vm} />

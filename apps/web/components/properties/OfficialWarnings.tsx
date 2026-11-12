@@ -16,9 +16,17 @@ export function OfficialWarnings({ d }: { d: DetailVM }) {
           <div style={cardTitle}>Official Warnings</div>
           <div style={cardSub}>SMHI · Krisinformation</div>
         </div>
-        <span style={{ fontFamily: FONT_MONO, fontSize: 12, color: C.text3 }}>{d.warnN} active</span>
+        <span style={{ fontFamily: FONT_MONO, fontSize: 12, color: C.text3 }}>{d.avail.warnings ? `${d.warnN} active` : 'not connected'}</span>
       </div>
-      {d.noWarnings && (
+      {!d.avail.warnings && (
+        <div style={{ flex: 1, display: 'grid', placeItems: 'center', textAlign: 'center', padding: 20, borderRadius: 16, background: '#F8F9F8' }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 500, color: C.text2 }}>Warnings unavailable</div>
+            <div style={{ fontSize: 12, color: C.text3, marginTop: 4 }}>SMHI and Krisinformation are not connected yet. This does not mean there are no warnings.</div>
+          </div>
+        </div>
+      )}
+      {d.avail.warnings && d.noWarnings && (
         <div style={{ flex: 1, display: 'grid', placeItems: 'center', textAlign: 'center', padding: 20, borderRadius: 16, background: 'oklch(0.97 0.02 155)' }}>
           <div>
             <div style={{ fontSize: 14, fontWeight: 500, color: 'oklch(0.45 0.11 155)' }}>No active warnings</div>

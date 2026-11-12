@@ -18,11 +18,15 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
           }}
         >
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', animation: 'frBreath 2s infinite' }} />
-          {isDemo ? 'Demo' : 'Live'}
+          {isDemo ? 'Demo' : vm.avail.warnings || vm.avail.events ? 'Live' : 'Not connected'}
         </span>
       </div>
       <div style={{ overflowY: 'auto', overflowX: 'hidden', flex: 1, paddingRight: 12, paddingLeft: 10, marginLeft: -10, display: 'flex', flexDirection: 'column' }}>
-        {vm.feed.length === 0 && <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: C.text3 }}>No events for the selected properties</div>}
+        {vm.feed.length === 0 && (
+          <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: C.text3 }}>
+            {vm.avail.warnings || vm.avail.events ? 'No events for the selected properties' : 'Public-data event sources are not connected yet. Events will appear here once SMHI, Krisinformation and Trafikverket are integrated.'}
+          </div>
+        )}
         {vm.feed.map((f) => (
           <div
             key={f.id}

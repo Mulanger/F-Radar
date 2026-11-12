@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "pg": "^8.23.1",
-    "@fastighetsradar/config": "*"
+    "@fastighetsradar/config": "*",
+    "@fastighetsradar/domain": "*"
   },
   "devDependencies": {
     "@types/pg": "^8.23.1",

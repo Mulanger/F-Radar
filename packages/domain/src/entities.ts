@@ -41,12 +41,14 @@ export const PropertySchema = z.object({
     precision: z.enum(['building', 'street', 'approximate', 'unknown']),
     confirmedAt: IsoDateTimeSchema.nullable(),
   }),
-  /** Descriptive, customer-provided building facts (not fetched from any register). */
-  building: z.object({
-    type: z.string(),
-    floors: z.number().int().positive(),
-    unitsLabel: z.string(),
-  }),
+  /** Descriptive, customer-provided building facts (not fetched from any register). Null = not provided. */
+  building: z
+    .object({
+      type: z.string(),
+      floors: z.number().int().positive(),
+      unitsLabel: z.string(),
+    })
+    .nullable(),
   status: PropertyStatusSchema,
   statusReason: z.string().nullable().optional(),
   origin: DataOriginSchema,

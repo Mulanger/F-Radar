@@ -9,3 +9,9 @@ coverage/
 npm-debug.log*
 .DS_Store
 Thumbs.db
+
+# Agent 2 deployment artifacts
+dist-deploy/
+.deploy/
+.ci-bundle/
+ci-bundle.tar.gz
