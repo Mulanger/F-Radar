@@ -200,7 +200,7 @@ async function runForecasts(ctx: JobContext): Promise<JobResult> {
       referenceTime: f.referenceTime,
       createdTime: f.createdTime,
       grid: f.gridPoint,
-      series: { v: 1, steps: f.steps },
+      series: { v: 2, steps: f.steps },
     });
     ref = f.referenceTime;
     ok++;

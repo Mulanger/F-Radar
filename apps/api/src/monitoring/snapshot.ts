@@ -17,7 +17,7 @@ import type {
   WarningLevel,
   WeatherForecast,
 } from '@fastighetsradar/domain';
-import { assessPropertyRisk, formatWeekdayClock } from '@fastighetsradar/domain';
+import { assessPropertyRisk, formatWeekdayClock, forecastInformation, WEATHER_WATER } from '@fastighetsradar/domain';
 import type { OrgContextRow, OrgEventRow, OrgForecastRow, OrgMonitoringData, OrgObservationRow } from '@fastighetsradar/db';
 import {
   AIR_PHENOMENA,
@@ -86,7 +86,7 @@ function provenance(sourceId: SourceId, dataClass: Provenance['dataClass'], sour
 
 export function forecastSteps(row: OrgForecastRow | undefined): ForecastStep[] {
   const s = row?.series as { v?: number; steps?: ForecastStep[] } | undefined;
-  return Array.isArray(s?.steps) ? s!.steps : [];
+  return Array.isArray(s?.steps) ? s.steps.map(x => ({ ...x, precipitationMin: x.precipitationMin ?? null, precipitationMedian: x.precipitationMedian ?? null, frozenPartPercent: x.frozenPartPercent ?? null, frozenProbability: x.frozenProbability ?? null, precipitationType: x.precipitationType ?? null })) : [];
 }
 
 function forecastMetrics(propertyId: string, row: OrgForecastRow | undefined, now: Date): EnvironmentalMetric[] {
@@ -125,7 +125,7 @@ function forecastMetrics(propertyId: string, row: OrgForecastRow | undefined, no
   ].filter((x) => x.value !== null);
 }
 
-function buildForecast(propertyId: string, row: OrgForecastRow | undefined, now: Date): WeatherForecast | null {
+export function buildForecast(propertyId: string, row: OrgForecastRow | undefined, now: Date): WeatherForecast | null {
   if (!row) return null;
   const steps = forecastSteps(row);
   const from = now.getTime() - 3_600_000;
@@ -144,9 +144,20 @@ function buildForecast(propertyId: string, row: OrgForecastRow | undefined, now:
     availability: age > FORECAST_USABLE_S ? 'stale' : 'ok',
     geo: { match: 'point_grid', distanceMeters: n(row.distance_m), note: 'SMHI SNOW1gv1 modellpunkt' },
     origin: 'live',
+    days: Array.from({ length: 5 }, (_, i) => {
+      const start = new Date(now.getTime() + i * 24 * 3_600_000);
+      const end = new Date(start.getTime() + 24 * 3_600_000);
+      const day = steps.filter(s => Date.parse(s.time) > start.getTime() && Date.parse(s.intervalStart ?? s.time) < end.getTime());
+      const total = (key: 'precipitationMean' | 'precipitationMin' | 'precipitationMax') => precipitationTotal(steps.map(s => ({ ...s, precipitationMean: s[key] })), start, 24);
+      const complete = total('precipitationMean') !== null;
+      const extreme = (key: 'airTemperature' | 'windGust', max: boolean) => complete && day.length && day.every(s => s[key] != null) ? (max ? Math.max : Math.min)(...day.map(s => s[key]!)) : null;
+      const mean = total('precipitationMean');
+      const frozen = precipitationTotal(steps.map(s => ({ ...s, precipitationMean: s.precipitationMean === 0 ? 0 : s.precipitationMean != null && s.frozenPartPercent != null ? s.precipitationMean * s.frozenPartPercent / 100 : null })), start, 24);
+      return { from: start.toISOString(), to: end.toISOString(), temperatureMin: extreme('airTemperature', false), temperatureMax: extreme('airTemperature', true), precipitationMean: mean, precipitationMin: total('precipitationMin'), precipitationMax: total('precipitationMax'), windGustMax: extreme('windGust', true), snowPercent: mean != null && mean > 0 && frozen != null ? Math.round(frozen / mean * 100) : null };
+    }),
     series: [
       { metricKey: 'weather.air_temperature', unit: '°C', points: pts((s) => s.airTemperature) },
-      { metricKey: 'weather.precipitation_1h', unit: 'mm', intervalNote: 'mm per prognosintervall (1 h), medelvärde', points: pts((s) => s.precipitationMean) },
+      { metricKey: 'weather.precipitation_1h', unit: 'mm', intervalNote: 'mm per prognosintervall (1 h), medelvärde', points: window.map(s => ({ validAt: s.time, value: s.precipitationMean, min: s.precipitationMin, max: s.precipitationMax })) },
       { metricKey: 'weather.wind_speed', unit: 'm/s', points: pts((s) => s.windSpeed) },
       { metricKey: 'weather.relative_humidity', unit: '%', points: pts((s) => s.relativeHumidity) },
     ],
@@ -438,6 +449,9 @@ export function buildFeed(changes: Array<{ id: string; property_id: string; sour
 export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForecastRow[], now: Date): UpcomingCondition[] {
   const out: UpcomingCondition[] = [];
   for (const s of snapshots) {
+    const row = forecasts.find(f => f.property_id === s.property.id);
+    if (!row || now.getTime() - row.fetched_at.getTime() > WEATHER_WATER.forecastUsableHours * 3_600_000) continue;
+    for (const info of forecastInformation(forecastSteps(row), now)) out.push({ id: info.key + '-' + s.property.id, label: info.label, where: s.property.name, when: formatWeekdayClock(info.at), validAt: info.at, sourceId: 'smhi_forecast', value: info.value, explanation: info.explanation, tone: info.tone, origin: 'live' });
     const steps = forecastSteps(forecasts.find((f) => f.property_id === s.property.id)).filter((x) => Date.parse(x.time) > now.getTime() && Date.parse(x.time) <= now.getTime() + 24 * 3_600_000);
     if (!steps.length) continue;
     const gust = steps.reduce<ForecastStep | null>((a, b) => ((b.windGust ?? -1) > (a?.windGust ?? -1) ? b : a), null);
@@ -453,5 +467,6 @@ export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForec
       out.push({ id: `frost-${s.property.id}`, label: 'Minusgrader (prognos)', where: s.property.name, when: formatWeekdayClock(cold.time), value: `${cold.airTemperature.toFixed(0)}°`, tone: 'cold', origin: 'live' });
     }
   }
-  return out.slice(0, 8);
+  const rank = { critical: 0, warning: 1, monitor: 2, cold: 3 };
+  return out.sort((a,b) => rank[a.tone] - rank[b.tone] || (a.validAt ?? '').localeCompare(b.validAt ?? '')).slice(0, 8);
 }

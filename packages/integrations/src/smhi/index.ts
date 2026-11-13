@@ -50,6 +50,11 @@ export interface ForecastStep {
   relativeHumidity: number | null;
   /** mm over the interval (mean of the ensemble/deterministic mean). */
   precipitationMean: number | null;
+  precipitationMin: number | null;
+  precipitationMedian: number | null;
+  frozenPartPercent: number | null;
+  frozenProbability: number | null;
+  precipitationType: number | null;
   precipitationMax: number | null;
   precipitationProbability: number | null;
   thunderProbability: number | null;
@@ -86,6 +91,11 @@ export function parseSmhiForecast(raw: unknown): PointForecast | null {
       windDirection: v('wind_from_direction'),
       relativeHumidity: v('relative_humidity'),
       precipitationMean: v('precipitation_amount_mean'),
+      precipitationMin: v('precipitation_amount_min'),
+      precipitationMedian: v('precipitation_amount_median'),
+      frozenPartPercent: v('precipitation_frozen_part') !== null && v('precipitation_frozen_part')! >= 0 ? v('precipitation_frozen_part') : null,
+      frozenProbability: v('probability_of_frozen_precipitation'),
+      precipitationType: v('predominant_precipitation_type_at_surface'),
       precipitationMax: v('precipitation_amount_max'),
       precipitationProbability: v('probability_of_precipitation'),
       thunderProbability: v('thunderstorm_probability'),
@@ -115,17 +125,17 @@ export function precipitationTotal(steps: ForecastStep[], from: Date, hours = 24
   const a = from.getTime();
   const b = a + hours * 3_600_000;
   let total = 0;
-  let covered = 0;
-  for (const s of steps) {
+  let cursor = a;
+  for (const s of [...steps].sort((x, y) => x.time.localeCompare(y.time))) {
     const end = Date.parse(s.time);
     const start = end - stepHours(s) * 3_600_000;
     const overlap = Math.min(end, b) - Math.max(start, a);
     if (overlap <= 0) continue;
-    if (s.precipitationMean === null) return null;
+    if (s.precipitationMean == null || Math.max(start, a) !== cursor) return null;
     total += s.precipitationMean * (overlap / (end - start));
-    covered += overlap;
+    cursor = Math.min(end, b);
   }
-  if (covered < (b - a) * 0.95) return null;
+  if (cursor !== b) return null;
   return Math.round(total * 10) / 10;
 }
 

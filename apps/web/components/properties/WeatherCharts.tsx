@@ -31,6 +31,10 @@ export function WeatherCharts({ d, isDemo, onMetric }: { d: DetailVM; isDemo: bo
           ))}
         </div>
       </div>
+      {d.precipitationIntervals.length > 0 && d.tabs.find(t => t.active)?.key === 'rain' && <details style={{ fontSize: 12, color: C.text3 }}>
+        <summary>Osäkerhetsintervall för nederbörd · {d.forecastSource}</summary>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, marginTop: 10 }}>{d.precipitationIntervals.map(p => <span key={p.at}>{p.at}: {p.text}</span>)}</div>
+      </details>}
       {!ch ? (
         <div style={{ height: 220, display: 'grid', placeItems: 'center', fontSize: 13, color: C.text3, borderRadius: 16, background: '#F8F9F8' }}>
           Prognos otillgänglig för den här fastigheten

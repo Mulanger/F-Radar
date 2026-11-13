@@ -7,7 +7,7 @@ import type { JobRow, OrgMonitoringData, Queryable } from '@fastighetsradar/db';
 import { buildApp } from '../src/app';
 import { MonitoringBus } from '../src/monitoring/bus';
 import { MonitoringService } from '../src/monitoring/service';
-import { buildFeed, buildPropertySnapshot, buildUpcoming } from '../src/monitoring/snapshot';
+import { buildFeed, buildPropertySnapshot, buildUpcoming, forecastSteps } from '../src/monitoring/snapshot';
 import { freshnessOf, resolveRuntimeStatuses } from '../src/monitoring/status';
 import { nextRunSeconds } from '../src/monitoring/jobs';
 import type { AuthVerifier } from '../src/auth';
@@ -187,6 +187,14 @@ describe('property snapshot from stored data', () => {
     old.forecasts[0]!.fetched_at = new Date(NOW.getTime() - 7 * 3_600_000);
     const s = buildPropertySnapshot(record, 'o', old, statuses, NOW);
     expect(s.metrics.filter((m) => m.kind === 'forecast')).toHaveLength(0);
+  });
+
+  it('reads old v1 and new v2 forecast storage without inventing missing fields', () => {
+    const row = data().forecasts[0]!;
+    expect(forecastSteps(row)[0]).toMatchObject({ precipitationMin: null, frozenPartPercent: null });
+    const v2 = { ...row, series: { v: 2, steps: [{ ...steps[0], precipitationMin: 0.5, frozenPartPercent: 30 }] } };
+    expect(forecastSteps(v2)[0]).toMatchObject({ precipitationMin: 0.5, frozenPartPercent: 30 });
+    expect(forecastSteps(undefined)).toEqual([]);
   });
 
   it('builds feed items and forecast-derived upcoming conditions', () => {

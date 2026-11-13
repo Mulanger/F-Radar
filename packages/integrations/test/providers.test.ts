@@ -57,6 +57,14 @@ describe('SMHI SNOW1gv1 point forecast', () => {
     expect(parseSmhiForecast(raw)!.steps[0]!.airTemperature).toBeNull();
   });
 
+  it('parses the additional ensemble and frozen fields, including sentinels', () => {
+    const raw = fx('smhi-snow1g-point.json');
+    Object.assign(raw.timeSeries[0].data, { precipitation_amount_min: 1, precipitation_amount_median: 2, precipitation_frozen_part: 70, probability_of_frozen_precipitation: 80, predominant_precipitation_type_at_surface: 3 });
+    expect(parseSmhiForecast(raw)!.steps[0]).toMatchObject({ precipitationMin: 1, precipitationMedian: 2, frozenPartPercent: 70, frozenProbability: 80, precipitationType: 3 });
+    for (const key of ['precipitation_amount_min', 'precipitation_amount_median', 'precipitation_frozen_part', 'probability_of_frozen_precipitation', 'predominant_precipitation_type_at_surface']) raw.timeSeries[0].data[key] = 9999;
+    expect(parseSmhiForecast(raw)!.steps[0]).toMatchObject({ precipitationMin: null, precipitationMedian: null, frozenPartPercent: null, frozenProbability: null, precipitationType: null });
+  });
+
   it('sums interval precipitation over 24 h and refuses partial coverage', () => {
     const steps = [0, 1, 2].map((h) => ({ ...f.steps[0]!, intervalStart: new Date(Date.UTC(2026, 10, 13, h)).toISOString(), time: new Date(Date.UTC(2026, 10, 13, h + 1)).toISOString(), precipitationMean: 1.5 }));
     expect(precipitationTotal(steps, new Date('2026-11-13T00:00:00Z'), 3)).toBe(4.5);

@@ -96,6 +96,15 @@ export type EnvironmentalMetric = z.infer<typeof EnvironmentalMetricSchema>;
 export const ForecastPointSchema = z.object({
   validAt: IsoDateTimeSchema,
   value: z.number().nullable(),
+  min: z.number().nullable().optional(),
+  max: z.number().nullable().optional(),
+});
+
+export const ForecastDaySchema = z.object({
+  from: IsoDateTimeSchema, to: IsoDateTimeSchema,
+  temperatureMin: z.number().nullable(), temperatureMax: z.number().nullable(),
+  precipitationMean: z.number().nullable(), precipitationMin: z.number().nullable(), precipitationMax: z.number().nullable(),
+  windGustMax: z.number().nullable(), snowPercent: z.number().nullable(),
 });
 
 export const ForecastSeriesSchema = z.object({
@@ -117,6 +126,7 @@ export const WeatherForecastSchema = z.object({
   geo: GeographicRelevanceSchema,
   origin: DataOriginSchema,
   series: z.array(ForecastSeriesSchema),
+  days: z.array(ForecastDaySchema).optional(),
 });
 export type WeatherForecast = z.infer<typeof WeatherForecastSchema>;
 
@@ -341,6 +351,9 @@ export const UpcomingConditionSchema = z.object({
   when: z.string(),
   value: z.string(),
   tone: z.enum(['monitor', 'critical', 'warning', 'cold']),
+  explanation: z.string().optional(),
+  sourceId: SourceIdSchema.optional(),
+  validAt: IsoDateTimeSchema.optional(),
   origin: DataOriginSchema,
 });
 export type UpcomingCondition = z.infer<typeof UpcomingConditionSchema>;

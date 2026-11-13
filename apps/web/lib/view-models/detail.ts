@@ -1,3 +1,4 @@
+import { forecastDaysVM, precipitationIntervalsVM } from './weather-information';
 import type { Portfolio, PropertySnapshot, PropertyStatus } from '@fastighetsradar/domain';
 import { formatClock, formatDistance, formatNumber, formatWeekdayClock } from '@fastighetsradar/domain';
 import { riskLevelOf, type GeographicEvent } from '@fastighetsradar/domain';
@@ -156,6 +157,8 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
     prevId: all[(idx - 1 + all.length) % all.length]!.property.id,
     nextId: all[(idx + 1) % all.length]!.property.id,
     updatedAt: formatClock(portfolio.generatedAt),
+    forecastDays: forecastDaysVM(s), precipitationIntervals: precipitationIntervalsVM(s),
+    forecastSource: s.forecast ? 'SMHI · modellkörning ' + formatWeekdayClock(s.forecast.issuedAt ?? s.forecast.fetchedAt) + (p.origin === 'demo_fixture' ? ' · demo' : '') : 'SMHI · ej tillgänglig',
     temp: show(temp),
     feels: show(feels),
     rain: show(rain24),

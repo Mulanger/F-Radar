@@ -146,3 +146,7 @@ The approved design's demo data references "SLB-analys", "Radar", "Stockholm Vat
 | SGU HYPE | https://www.sgu.se/grundvatten/grundvattennivaer/ | none | OGC API Features v1 | percentiles 0–100 (`fyllnadsgrad_*`, `grundvattensituation_*`), −1 = n/a | 4×4 km model area | per property every 12 h | CC BY 4.0 – "Källa: SGU" | fixtures ✔, live ✔ |
 | MCF flood mapping | https://www.mcf.se/sv/verktyg--tjanster/oversvamningsportalen/ | none | WFS 2.0 (GeoServer) | scenario layer hit/miss, `beginlifespanversion` | mapped watercourse polygons, probed at 15 m–1 km | per property weekly / on move | "Källa: MCF Översvämningsportalen" (terms to confirm) | fixtures ✔, live ✔ |
 | SCB | https://www.scb.se/vara-tjanster/oppna-data/pxwebapi/pxwebapi-v2/ | none | PxWebApi 2.3.2 | persons, inv/km², km² (TAB628) | municipality | per property weekly | CC0 – "Källa: SCB" | fixtures ✔, live ✔ |
+
+## Prognosfält och kommande dygn (2026-11-13)
+
+SMHI-serier sparas som v2; v1 läses med null för nya fält. Informativa trösklar och fem rullande dygn dokumenteras i ADR 0004. Riskindex v1 och SMS-regler är oförändrade.

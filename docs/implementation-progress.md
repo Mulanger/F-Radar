@@ -11,3 +11,7 @@ at the repository root.
 | 2.5 – Geoapify maps & stabilization | Agent 2.5 | Done – Geoapify `positron` tiles live, regression verified, ready for Phase 3 | Tile referer restriction not enforced by provider (monitor usage) |
 | 3 – Geo engine, public data & monitoring | Agent 3 | Done – 9 providers collected centrally, PostGIS matching, live SSE dashboard on f-radar | smhi_oceanography not implemented; SGU observed stations partial |
 | 4 – SMS rules and simulated delivery | Agent 4 | Done — application 1cd74ae deployed to f-radar; 132 regression + 21 DB + 9 live tests pass | Real sending deliberately locked; future verification channel/account activation separate |
+
+## Prognosfält och kommande dygn (2026-11-13)
+
+SMHI-serier sparas som v2; v1 läses med null för nya fält. Informativa trösklar och fem rullande dygn dokumenteras i ADR 0004. Riskindex v1 och SMS-regler är oförändrade.

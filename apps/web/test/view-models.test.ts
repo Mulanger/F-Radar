@@ -1,3 +1,4 @@
+import { forecastDaysVM } from '@/lib/view-models/weather-information';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // Clerk server helpers are mocked: the loader must only forward the session token.
@@ -223,5 +224,14 @@ describe('chart helpers', () => {
     expect(c.mx).toBe(3);
     expect(c.area.endsWith('L100,50 L0,50 Z')).toBe(true);
     expect(chartOf([], 100, 50).line).toBe('');
+  });
+});
+
+describe('five-day forecast view-model', () => {
+  it('formats days and keeps gaps unavailable', () => {
+    const s = structuredClone(demoPortfolio.properties[0]!);
+    s.forecast!.days = [{ from: '2026-11-13T00:00:00Z', to: '2026-11-14T00:00:00Z', temperatureMin: -2, temperatureMax: 4, precipitationMean: null, precipitationMin: null, precipitationMax: null, windGustMax: 12, snowPercent: null }];
+    expect(forecastDaysVM(s)[0]).toMatchObject({ rain: 'Ej tillgänglig', interval: 'Osäkerhetsintervall ej tillgängligt', snow: 'Ej tillgänglig' });
+    s.forecast!.availability = 'stale'; expect(forecastDaysVM(s)).toEqual([]);
   });
 });

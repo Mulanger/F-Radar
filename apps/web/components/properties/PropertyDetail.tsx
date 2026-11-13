@@ -1,5 +1,7 @@
 'use client';
 
+import { ForecastDays } from './ForecastDays';
+
 import { useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
@@ -127,6 +129,8 @@ export function PropertyDetail() {
         <WeatherCharts d={d} isDemo={isDemo} onMetric={ds.setMetric} />
         <WaterRiskPanel d={d} />
       </div>
+
+      <ForecastDays d={d} />
 
       {d.live && <MonitoringContextPanel d={d} />}
 

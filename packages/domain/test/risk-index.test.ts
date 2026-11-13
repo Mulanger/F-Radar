@@ -1,3 +1,4 @@
+import { forecastInformation } from '../src';
 import { describe, expect, it } from 'vitest';
 import {
   assessPropertyRisk,
@@ -171,6 +172,8 @@ describe('assessPropertyRisk', () => {
       snap(),
       ...demoPortfolio.properties,
     ];
+    const conditions = forecastInformation(Array.from({ length: 48 }, (_, i) => ({ time: new Date(Date.UTC(2026, 10, 13, i+1)).toISOString(), intervalStart: new Date(Date.UTC(2026, 10, 13, i)).toISOString(), precipitationMean: 16, frozenPartPercent: 100, thunderProbability: 40, airTemperature: i % 2 ? -1 : 1 })), new Date('2026-11-13T00:00:00Z'));
+    expect(conditions.flatMap(x => [x.label, x.value, x.explanation]).join(' ')).not.toMatch(/\bkris|fara|akut|katastrof|allvarlig|kritisk/i);
     for (const s of samples) {
       const r = assessPropertyRisk(s, all);
       const own = [r.summary, ...r.factors.flatMap((x) => [x.short, x.reason])].join(' ')
