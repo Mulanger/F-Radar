@@ -34,6 +34,7 @@ export interface SourceManifest {
 }
 
 const REVIEWED = '2026-11-12';
+const VERIFIED = '2026-11-13';
 
 export const SOURCE_MANIFEST: Record<Exclude<SourceId, 'demo_other'>, SourceManifest> = {
   smhi_forecast: {
@@ -41,24 +42,24 @@ export const SOURCE_MANIFEST: Record<Exclude<SourceId, 'demo_other'>, SourceMani
     docsUrl: 'https://opendata.smhi.se/metfcst/snow1gv1/', access: 'public', commercialReuseReviewed: false,
     attributionText: 'Källa: SMHI', dataKind: 'forecast', geographicPrecision: 'point_grid',
     coverageNote: 'Model point forecast; not an indoor or building-specific value.',
-    updatePolicy: 'unknown (initial internal proposal: every 15–30 min)', retentionPolicy: 'Until superseded + short debug margin',
-    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_SMHI_FORECAST_ENABLED', reviewedAt: REVIEWED,
+    updatePolicy: 'Model run hourly (Cache-Control max-age=3600); collected every 60 min per property point', retentionPolicy: 'Latest run only (superseded on refresh)',
+    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_SMHI_FORECAST_ENABLED', reviewedAt: VERIFIED,
   },
   smhi_warnings: {
     id: 'smhi_warnings', authority: 'SMHI', label: 'SMHI vädervarningar (IBWW)',
     docsUrl: 'https://opendata.smhi.se/warnings/', access: 'public', commercialReuseReviewed: false,
     attributionText: 'Källa: SMHI – oförändrad officiell varning', dataKind: 'warning', geographicPrecision: 'polygon',
     coverageNote: 'Official impact-based warnings; special attribution and unaltered presentation terms apply.',
-    updatePolicy: 'unknown (initial internal proposal: every 5–10 min)', retentionPolicy: 'Until expired/cancelled + short timeline',
-    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_SMHI_WARNINGS_ENABLED', reviewedAt: REVIEWED,
+    updatePolicy: 'Event-driven; collected every 5 min (whole country, one request)', retentionPolicy: 'Active + 7 days after end',
+    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_SMHI_WARNINGS_ENABLED', reviewedAt: VERIFIED,
   },
   smhi_observations: {
     id: 'smhi_observations', authority: 'SMHI', label: 'SMHI MetObs',
     docsUrl: 'https://opendata.smhi.se/metobs/examples', access: 'public', commercialReuseReviewed: false,
     attributionText: 'Källa: SMHI', dataKind: 'observation', geographicPrecision: 'station',
     coverageNote: 'Station may be far from the property; distance and observation time must be shown.',
-    updatePolicy: 'Per station/parameter', retentionPolicy: 'Short window for charts only',
-    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_SMHI_OBSERVATIONS_ENABLED', reviewedAt: REVIEWED,
+    updatePolicy: 'Hourly per station; latest-hour sets collected every 30 min (6 parameters)', retentionPolicy: 'Latest value per station/parameter; stations silent > 2 days dropped',
+    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_SMHI_OBSERVATIONS_ENABLED', reviewedAt: VERIFIED,
   },
   smhi_oceanography: {
     id: 'smhi_oceanography', authority: 'SMHI', label: 'SMHI oceanografi (havsvattenstånd)',
@@ -73,40 +74,40 @@ export const SOURCE_MANIFEST: Record<Exclude<SourceId, 'demo_other'>, SourceMani
     docsUrl: 'https://www.krisinformation.se/om-krisinformation.se/oppen-data/', access: 'public', commercialReuseReviewed: false,
     attributionText: 'Källa: Krisinformation.se', dataKind: 'event', geographicPrecision: 'county',
     coverageNote: 'Area is often county-level; must be labelled regional information, not a local incident.',
-    updatePolicy: 'unknown (initial internal proposal: every 10–15 min)', retentionPolicy: 'Until expired + short timeline',
-    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_KRISINFORMATION_ENABLED', reviewedAt: REVIEWED,
+    updatePolicy: 'Event-driven; news + VMA collected every 10 min', retentionPolicy: 'Active + 7 days after removal from the feed',
+    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_KRISINFORMATION_ENABLED', reviewedAt: VERIFIED,
   },
   air_quality: {
     id: 'air_quality', authority: 'Naturvårdsverket / SMHI datavärd luft', label: 'Luftkvalitet',
     docsUrl: 'https://www.naturvardsverket.se/amnesomraden/luft/statistik--utslapp-och-halter/luftkvaliteten-i-realtid-och-preliminar-statistik/webbtjanster-luftkvalitetsdata/',
     access: 'public', commercialReuseReviewed: false, attributionText: 'Källa: Naturvårdsverket / SMHI', dataKind: 'observation',
     geographicPrecision: 'station', coverageNote: 'Sparse stations; real-time values may be preliminary. No building AQI without a documented method.',
-    updatePolicy: 'Roughly hourly where reported', retentionPolicy: 'Short window',
-    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_AIR_QUALITY_ENABLED', reviewedAt: REVIEWED,
+    updatePolicy: 'Hourly where reported; collected every 60 min (4 pollutants, sequential, slow endpoint)', retentionPolicy: 'Latest value per station/pollutant',
+    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_AIR_QUALITY_ENABLED', reviewedAt: VERIFIED,
   },
   sgu_groundwater: {
     id: 'sgu_groundwater', authority: 'SGU', label: 'SGU grundvatten',
     docsUrl: 'https://www.sgu.se/produkter-och-tjanster/geologiska-data/grundvatten--geologiska-data/grundvattennivaer/',
     access: 'public', commercialReuseReviewed: false, attributionText: 'Källa: SGU', dataKind: 'observation', geographicPrecision: 'mixed',
     coverageNote: 'Regional 4×4 km HYPE model must not be presented as a basement measurement.',
-    updatePolicy: 'Daily/weekly depending on dataset', retentionPolicy: 'Latest value + short history',
-    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_SGU_ENABLED', reviewedAt: REVIEWED,
+    updatePolicy: 'HYPE model daily values, published with a few days lag; collected every 12 h', retentionPolicy: 'Latest value per property area',
+    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_SGU_ENABLED', reviewedAt: VERIFIED,
   },
   mcf_flood: {
     id: 'mcf_flood', authority: 'MCF Översvämningsportalen', label: 'MCF översvämningskartering',
-    docsUrl: 'https://www.mcf.se/sv/verktyg--tjanster/oversvamningsportalen/', access: 'legal_review', commercialReuseReviewed: false,
+    docsUrl: 'https://www.mcf.se/sv/verktyg--tjanster/oversvamningsportalen/', access: 'public', commercialReuseReviewed: false,
     attributionText: 'Källa: MCF Översvämningsportalen', dataKind: 'static', geographicPrecision: 'polygon',
     coverageNote: 'Static scenarios (e.g. 100-year flow), never a current water level. Layers must be inventoried per region.',
-    updatePolicy: 'Scheduled check for dataset revisions', retentionPolicy: 'Imported layer versions',
-    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'MCF_FLOOD_ENABLED', reviewedAt: REVIEWED,
+    updatePolicy: 'Static dataset (version 20260909); each property re-checked weekly and when its pin moves', retentionPolicy: 'Latest result per property',
+    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'MCF_FLOOD_ENABLED', reviewedAt: VERIFIED,
   },
   scb: {
     id: 'scb', authority: 'SCB', label: 'SCB PxWebApi v2',
     docsUrl: 'https://www.scb.se/vara-tjanster/oppna-data/pxwebapi/pxwebapi-v2/', access: 'public', commercialReuseReviewed: false,
     attributionText: 'Källa: SCB', dataKind: 'statistics', geographicPrecision: 'municipality',
     coverageNote: 'Context only; 30 calls/10 s per IP, max 150 000 cells per request.',
-    updatePolicy: 'On new publications', retentionPolicy: 'Long cache, versioned by table/year',
-    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_SCB_ENABLED', reviewedAt: REVIEWED,
+    updatePolicy: 'Annual publication (TAB628); re-checked every 7 days', retentionPolicy: 'Latest period per property municipality',
+    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_SCB_ENABLED', reviewedAt: VERIFIED,
   },
   trafikverket: {
     id: 'trafikverket', authority: 'Trafikverket', label: 'Trafikverket öppna API',
@@ -114,8 +115,8 @@ export const SOURCE_MANIFEST: Record<Exclude<SourceId, 'demo_other'>, SourceMani
     licenseUrl: 'https://www.trafikverket.se/e-tjanster/trafikverkets-oppna-api-for-trafikinformation/',
     attributionText: 'Källa: Trafikverket (CC0)', dataKind: 'event', geographicPrecision: 'mixed',
     coverageNote: 'Nearby traffic event ≠ blocked access to the building.',
-    updatePolicy: 'Per current documentation and quotas', retentionPolicy: 'Until resolved + short timeline',
-    displayPermitted: false, alertsPermitted: false, requiredSecrets: ['TRAFIKVERKET_API_KEY'], enableFlag: 'TRAFIKVERKET_ENABLED', reviewedAt: REVIEWED,
+    updatePolicy: 'Situations queried within 2 km of each property every 5 min (≤ 20 points per request)', retentionPolicy: 'Active + 7 days after end',
+    displayPermitted: false, alertsPermitted: false, requiredSecrets: ['TRAFIKVERKET_API_KEY'], enableFlag: 'TRAFIKVERKET_ENABLED', reviewedAt: VERIFIED,
   },
   geoapify_geocoding: {
     id: 'geoapify_geocoding', authority: 'Geoapify', label: 'Geoapify adressökning',

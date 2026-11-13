@@ -84,7 +84,9 @@ export const ServerEnvSchema = z.object({
     .default('https://api.sgu.se/oppnadata/grundvattennivaer-sgu-hype-omraden/ogc/features/v1'),
   SCB_PXWEB_V2_BASE_URL: z.string().url().default('https://statistikdatabasen.scb.se'),
 
-  MCF_FLOOD_ENABLED: bool(false),
+  MCF_FLOOD_ENABLED: bool(true),
+  /** Phase 3 in-process collector scheduler (API process). Off in tests unless set. */
+  MONITORING_SCHEDULER_ENABLED: bool(false),
   MCF_GIS_DATASET_MANIFEST: optionalString,
 
   TRAFIKVERKET_ENABLED: bool(false),

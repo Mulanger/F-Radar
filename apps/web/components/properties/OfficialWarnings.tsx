@@ -21,16 +21,18 @@ export function OfficialWarnings({ d }: { d: DetailVM }) {
       {!d.avail.warnings && (
         <div style={{ flex: 1, display: 'grid', placeItems: 'center', textAlign: 'center', padding: 20, borderRadius: 16, background: '#F8F9F8' }}>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 500, color: C.text2 }}>Warnings unavailable</div>
-            <div style={{ fontSize: 12, color: C.text3, marginTop: 4 }}>SMHI and Krisinformation are not connected yet. This does not mean there are no warnings.</div>
+            <div style={{ fontSize: 14, fontWeight: 500, color: C.text2 }}>{d.live ? 'Varningar otillgängliga' : 'Warnings unavailable'}</div>
+            <div style={{ fontSize: 12, color: C.text3, marginTop: 4 }}>
+              {d.live ? 'SMHI och Krisinformation har inte kunnat hämtas. Det betyder inte att varningar saknas.' : 'SMHI and Krisinformation are not connected yet. This does not mean there are no warnings.'}
+            </div>
           </div>
         </div>
       )}
       {d.avail.warnings && d.noWarnings && (
         <div style={{ flex: 1, display: 'grid', placeItems: 'center', textAlign: 'center', padding: 20, borderRadius: 16, background: 'oklch(0.97 0.02 155)' }}>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 500, color: 'oklch(0.45 0.11 155)' }}>No active warnings</div>
-            <div style={{ fontSize: 12, color: C.text3, marginTop: 4 }}>Nothing issued for this area</div>
+            <div style={{ fontSize: 14, fontWeight: 500, color: 'oklch(0.45 0.11 155)' }}>{d.live ? 'Inga aktiva varningar' : 'No active warnings'}</div>
+            <div style={{ fontSize: 12, color: C.text3, marginTop: 4 }}>{d.live ? 'Inget utfärdat som omfattar fastighetens läge' : 'Nothing issued for this area'}</div>
           </div>
         </div>
       )}
@@ -42,13 +44,14 @@ export function OfficialWarnings({ d }: { d: DetailVM }) {
           </div>
           <div style={{ fontSize: 12.5, color: C.text2, lineHeight: 1.5, textWrap: 'pretty' }}>{w.summary}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', fontSize: 11.5, color: C.text4 }}>
-            <span>From <b style={{ fontWeight: 500, color: C.text2 }}>{w.start}</b></span>
-            <span>To <b style={{ fontWeight: 500, color: C.text2 }}>{w.end}</b></span>
+            <span>{d.live ? 'Från' : 'From'} <b style={{ fontWeight: 500, color: C.text2 }}>{w.start}</b></span>
+            <span>{d.live ? 'Till' : 'To'} <b style={{ fontWeight: 500, color: C.text2 }}>{d.live && w.end === 'Until further notice' ? 'Tills vidare' : w.end}</b></span>
             <span>{w.src}</span>
             <span>{w.region}</span>
           </div>
         </div>
       ))}
+      {d.live && <div style={{ fontSize: 11, color: C.text4, lineHeight: 1.45 }}>{d.live.warningsLine} · Officiell text visas oförändrad.</div>}
     </div>
   );
 }

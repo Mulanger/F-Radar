@@ -72,7 +72,9 @@ export function EnvironmentalMetrics({ d, isDemo }: { d: DetailVM; isDemo: boole
           <div style={{ position: 'absolute', top: -4, left: d.aqLeft, width: 4, height: 16, marginLeft: -2, borderRadius: 2, background: C.ink, border: '2px solid #fff', transition: 'left 1s' }} />
         </div>
         <div style={foot}>PM2.5 {d.pm} µg/m³ · NO₂ {d.no2} µg/m³</div>
+        {d.live && <div style={{ ...foot, fontSize: 10.5 }}>{d.live.airLine} · inget index beräknas</div>}
       </div>
+      {d.live && <div style={{ gridColumn: '1 / -1', fontSize: 11, color: C.text4 }}>{d.live.forecastLine}. Temperatur, nederbörd, vind och fuktighet ovan är prognosvärden för aktuell timme – inte mätningar.</div>}
     </div>
   );
 }

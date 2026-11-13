@@ -15,3 +15,5 @@ dist-deploy/
 .deploy/
 .ci-bundle/
 ci-bundle.tar.gz
+.ci/
+.ci.tar.gz

@@ -338,7 +338,7 @@ function buildSnapshot(p: RawProperty): PropertySnapshot {
       origin: 'demo_fixture',
       series: [
         { metricKey: 'weather.air_temperature', unit: '°C', points: pts(series.temp) },
-        { metricKey: 'weather.precipitation_24h', unit: 'mm', intervalNote: 'mm per hour (synthetic)', points: pts(series.rain) },
+        { metricKey: 'weather.precipitation_1h', unit: 'mm', intervalNote: 'mm per hour (synthetic)', points: pts(series.rain) },
         { metricKey: 'weather.wind_speed', unit: 'm/s', points: pts(series.wind) },
         { metricKey: 'weather.relative_humidity', unit: '%', points: pts(series.hum) },
       ],

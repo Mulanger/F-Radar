@@ -9,8 +9,7 @@ import {
   geoapifyAdapter,
   redactGeoapifyUrl,
   resolveSourceStatuses,
-  smhiForecastAdapter,
-  trafikverketAdapter,
+  fetchTrafikverketNear,
   type AdapterContext,
 } from '../src';
 
@@ -48,7 +47,9 @@ describe('resolveSourceStatuses', () => {
     expect(byId.geoapify_geocoding!.status).toBe('pending_access');
     expect(byId.boverket_energy!.status).toBe('disabled');
     expect(byId.lantmateriet_address!.status).toBe('disabled');
-    expect(byId.smhi_forecast!.status).toBe('not_implemented');
+    // Implemented + configured, but never 'ok' before a real collector run succeeds.
+    expect(byId.smhi_forecast!.status).toBe('degraded');
+    expect(byId.smhi_oceanography!.status).toBe('not_implemented');
 
     const tv = resolveSourceStatuses(loadServerEnv({ TRAFIKVERKET_ENABLED: 'true' })).find((s) => s.sourceId === 'trafikverket');
     expect(tv!.status).toBe('pending_access');
@@ -60,11 +61,11 @@ describe('resolveSourceStatuses', () => {
   });
 });
 
-describe('adapter stubs', () => {
-  it('do not call the network and report not_implemented / access_required', async () => {
+describe('gated adapters', () => {
+  it('do not call the network without key/flag and report access_required / disabled', async () => {
     const c = ctx();
-    expect(await smhiForecastAdapter.getPointForecast({ propertyId: 'p', location: { lat: 59.3, lon: 18 } }, c)).toMatchObject({ ok: false, error: 'not_implemented' });
-    expect(await trafikverketAdapter.fetchActive(c)).toMatchObject({ ok: false, error: 'access_required' });
+    expect(await fetchTrafikverketNear([{ lat: 59.3, lon: 18 }], c)).toMatchObject({ ok: false, error: 'access_required' });
+    expect(await fetchTrafikverketNear([{ lat: 59.3, lon: 18 }], ctx({ TRAFIKVERKET_API_KEY: 'k' }))).toMatchObject({ ok: false, error: 'access_required' });
     expect(await boverketAdapter.getDeclaration('p')).toMatchObject({ ok: false, error: 'disabled' });
     expect(c.fetch).not.toHaveBeenCalled();
   });

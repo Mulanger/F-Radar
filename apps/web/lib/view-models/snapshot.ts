@@ -7,7 +7,8 @@ import type { MetricKey, Portfolio, PropertySnapshot, SourceId } from '@fastighe
  */
 export function sourceAvailable(p: Portfolio, ids: SourceId[]): boolean {
   if (p.origin === 'demo_fixture') return true;
-  return p.sources.some((s) => ids.includes(s.sourceId) && s.status === 'ok');
+  // Stale/degraded sources still deliver their last successful data (shown with a freshness label).
+  return p.sources.some((s) => ids.includes(s.sourceId) && (s.status === 'ok' || ((s.status === 'stale' || s.status === 'degraded') && !!s.lastSuccessAt)));
 }
 
 export function availability(p: Portfolio) {
@@ -22,6 +23,16 @@ export function availability(p: Portfolio) {
   };
 }
 export type Availability = ReturnType<typeof availability>;
+
+const FRESH_SV: Record<string, string> = { fresh: 'aktuell', stale: 'inaktuell', expired: 'utgången', unknown: 'okänd' };
+
+/** Swedish one-line source health, e.g. "SMHI varningar: hämtad 14:32 (aktuell)". */
+export function sourceLine(p: Portfolio, id: SourceId, label: string, clock: (iso: string) => string): string {
+  const s = p.sources.find((x) => x.sourceId === id);
+  if (!s) return `${label}: okänd`;
+  if (!s.lastSuccessAt) return `${label}: ${s.note ?? 'ej ansluten'}`;
+  return `${label}: hämtad ${clock(s.lastSuccessAt)} (${FRESH_SV[s.freshness] ?? s.freshness})`;
+}
 import { isDisplayableValue } from '@fastighetsradar/domain';
 
 /**

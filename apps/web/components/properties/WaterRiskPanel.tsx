@@ -94,6 +94,7 @@ export function WaterRiskPanel({ d }: { d: DetailVM }) {
           </div>
         ))}
       </div>
+      {w.note && <div style={{ fontSize: 11, color: C.text4, lineHeight: 1.45 }}>{w.note} Källa: MCF Översvämningsportalen.</div>}
     </div>
   );
 }

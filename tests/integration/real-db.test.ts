@@ -21,6 +21,19 @@ import {
   migrateUp,
   migrationStatus,
   updateProperty,
+  applyRetention,
+  endMissingEvents,
+  ensureJobs,
+  finishJob,
+  leaseDueJob,
+  loadOrgMonitoring,
+  rematchEvents,
+  requestJobRun,
+  upsertCountyAreas,
+  upsertPropertyContext,
+  upsertSourceEvents,
+  upsertStationObservations,
+  type SourceEventInput,
 } from '../../packages/db/src';
 import { buildApp } from '../../apps/api/src/app';
 import type { AuthVerifier, VerifiedIdentity } from '../../apps/api/src/auth';
@@ -61,7 +74,8 @@ const sveavagen = {
 
 async function resetSchema() {
   await pool.query(`
-    DROP TABLE IF EXISTS property_monitoring, integration_runs, alert_rules, property_source_profiles, properties,
+    DROP TABLE IF EXISTS monitoring_changes, property_event_matches, source_events, observation_stations, property_forecasts,
+      property_context, admin_areas, provider_jobs, property_monitoring, integration_runs, alert_rules, property_source_profiles, properties,
       source_catalog, organization_members, users, organizations, schema_migrations CASCADE;
     DROP FUNCTION IF EXISTS fr_set_updated_at() CASCADE;`);
 }
@@ -209,5 +223,148 @@ describe('real PostgreSQL / PostGIS', () => {
     } finally {
       await app.close();
     }
+  });
+
+  /* ---------------- Phase 3: monitoring ---------------- */
+
+  const box = (lon: number, lat: number, d: number) => ({ type: 'Polygon', coordinates: [[[lon - d, lat - d], [lon + d, lat - d], [lon + d, lat + d], [lon - d, lat + d], [lon - d, lat - d]]] });
+  const ev = (over: Partial<SourceEventInput>): SourceEventInput => ({
+    externalId: 'x', dataClass: 'OFFICIAL_WARNING', category: 'Weather', level: 'Yellow', severity: 'monitor', eventType: 'Snö', headline: 'Snöfall',
+    description: 'Officiell text', areaLabel: 'Test', countyNames: [], geometry: null, geometryWkt: null, publishedAt: new Date().toISOString(),
+    sourceUpdatedAt: null, validFrom: null, validTo: null, status: 'active', sourceUrl: null, attribution: 'Källa: test', extra: {}, ...over,
+  });
+  const goteborg = { ...sveavagen, name: 'Avenyn 1', address: 'Kungsportsavenyen 1, Göteborg', location: { lat: 57.7037, lon: 11.9746 } };
+
+  it('migration 0003 creates monitoring tables and seeds the source catalog', async () => {
+    const { rows } = await pool.query<{ t: string }>(`SELECT tablename AS t FROM pg_tables WHERE schemaname = 'public'`);
+    const names = rows.map((r) => r.t);
+    for (const t of ['provider_jobs', 'admin_areas', 'source_events', 'property_event_matches', 'monitoring_changes', 'observation_stations', 'property_forecasts', 'property_context'])
+      assert.ok(names.includes(t), t);
+    const { rows: cat } = await pool.query<{ n: number }>(`SELECT count(*)::int AS n FROM source_catalog`);
+    assert.ok(cat[0]!.n >= 13);
+  });
+
+  it('job leasing is exclusive, survives restarts via expiry and honours requestJobRun', async () => {
+    await ensureJobs(pool, [{ jobId: 'test_job', sourceId: 'smhi_warnings', intervalSeconds: 60, enabled: true }]);
+    const a = await leaseDueJob(pool, 'test_job', 'owner-a', 30);
+    assert.ok(a);
+    assert.equal(await leaseDueJob(pool, 'test_job', 'owner-b', 30), null, 'second owner cannot lease');
+    await finishJob(pool, 'test_job', 'owner-a', { status: 'error', items: 0, durationMs: 5, errorCode: 'timeout', nextRunInSeconds: 120 });
+    const { rows } = await pool.query(`SELECT consecutive_failures, last_status, next_run_at > now() AS later FROM provider_jobs WHERE job_id = 'test_job'`);
+    assert.deepEqual([rows[0].consecutive_failures, rows[0].last_status, rows[0].later], [1, 'error', true]);
+    assert.equal(await leaseDueJob(pool, 'test_job', 'owner-b', 30), null, 'not due yet');
+    await requestJobRun(pool, ['test_job']);
+    assert.ok(await leaseDueJob(pool, 'test_job', 'owner-b', 30), 'due again');
+    // Crashed owner: an expired lease can be taken over.
+    await pool.query(`UPDATE provider_jobs SET lease_until = now() - interval '1 second', next_run_at = now() WHERE job_id = 'test_job'`);
+    assert.ok(await leaseDueJob(pool, 'test_job', 'owner-c', 30));
+    const { rows: runs } = await pool.query(`SELECT count(*)::int AS n FROM integration_runs WHERE job_id = 'test_job'`);
+    assert.equal(runs[0].n, 1);
+  });
+
+  it('PostGIS matching: polygons, county, radius; dedup; versioning; end; isolation; retention', async () => {
+    const A = { organizationId: await ensureOrganization(pool, ORG_A, 'org-a'), userId: 'user_testA' };
+    const B = { organizationId: await ensureOrganization(pool, ORG_B, 'org-b'), userId: 'user_testB' };
+    const pa = await createProperty(pool, A, sveavagen);
+    const pb = await createProperty(pool, B, goteborg);
+    await upsertCountyAreas(pool, 'smhi_warnings', [{ code: '01', name: 'Stockholms län', sourceRef: '1', geometry: box(18.0, 59.4, 0.6) }]);
+
+    // Warning polygons: one over Stockholm, one over Göteborg.
+    let r = await upsertSourceEvents(pool, 'smhi_warnings', [
+      ev({ externalId: 'w-sthlm', geometry: box(18.06, 59.33, 0.1) }),
+      ev({ externalId: 'w-gbg', level: 'Orange', severity: 'warning', geometry: box(11.97, 57.70, 0.1) }),
+    ]);
+    assert.deepEqual(r, { inserted: 2, updated: 0, unchanged: 0 });
+    let changes = await rematchEvents(pool);
+    assert.equal(changes.filter((c) => c.changeType === 'new').length, 2);
+    assert.equal(changes.find((c) => c.propertyId === pa.id)?.organizationId, A.organizationId);
+    assert.equal((await rematchEvents(pool)).length, 0, 're-running is idempotent (dedup_key)');
+
+    // Unchanged re-fetch keeps version; changed text bumps version → one "updated" change.
+    r = await upsertSourceEvents(pool, 'smhi_warnings', [ev({ externalId: 'w-sthlm', geometry: box(18.06, 59.33, 0.1) }), ev({ externalId: 'w-gbg', level: 'Orange', severity: 'warning', geometry: box(11.97, 57.70, 0.1) })]);
+    assert.deepEqual(r, { inserted: 0, updated: 0, unchanged: 2 });
+    await upsertSourceEvents(pool, 'smhi_warnings', [ev({ externalId: 'w-sthlm', headline: 'Snöfall – uppdaterad', geometry: box(18.06, 59.33, 0.1) })]);
+    changes = await rematchEvents(pool);
+    assert.deepEqual(changes.map((c) => [c.propertyId, c.changeType]), [[pa.id, 'updated']]);
+
+    // County-scoped Krisinformation news matches Stockholm only; national news matches both.
+    await upsertSourceEvents(pool, 'krisinformation', [
+      ev({ externalId: 'news:1', dataClass: 'PUBLIC_EVENT', category: 'Crisis', level: 'Info', severity: 'info', countyNames: ['Stockholms län'] }),
+      ev({ externalId: 'news:2', dataClass: 'PUBLIC_EVENT', category: 'Crisis', level: 'Info', severity: 'info', countyNames: ['*'] }),
+    ]);
+    // Traffic: one line ~1.3 km from Sveavägen (inside 2 km), one ~19 km away.
+    await upsertSourceEvents(pool, 'trafikverket', [
+      ev({ externalId: 'tv-near', dataClass: 'PUBLIC_EVENT', category: 'Traffic', level: null, severity: 'warning', geometryWkt: 'LINESTRING (18.06 59.325, 18.08 59.325)' }),
+      ev({ externalId: 'tv-far', dataClass: 'PUBLIC_EVENT', category: 'Traffic', level: null, severity: 'warning', geometryWkt: 'POINT (18.4 59.33)' }),
+    ]);
+    await rematchEvents(pool);
+    const ma = await loadOrgMonitoring(pool, A.organizationId);
+    const mb = await loadOrgMonitoring(pool, B.organizationId);
+    const ids = (m: typeof ma) => m.events.map((e) => e.external_id).sort();
+    assert.deepEqual(ids(ma), ['news:1', 'news:2', 'tv-near', 'w-sthlm']);
+    assert.deepEqual(ids(mb), ['news:2', 'w-gbg']);
+    const near = ma.events.find((e) => e.external_id === 'tv-near')!;
+    assert.equal(near.match_method, 'within_radius');
+    assert.ok(Number(near.distance_m) > 1_100 && Number(near.distance_m) < 1_500, `distance ${near.distance_m}`);
+    assert.equal(ma.events.find((e) => e.external_id === 'news:1')!.match_method, 'county');
+    assert.ok(ma.events.every((e) => e.property_id === pa.id) && mb.events.every((e) => e.property_id === pb.id), 'tenant isolation');
+    assert.deepEqual(ma.counties.map((c) => c.code), ['01']);
+
+    // A complete fetch without w-sthlm ends it → "ended" change, match removed.
+    assert.equal(await endMissingEvents(pool, 'smhi_warnings', ['w-gbg']), 1);
+    changes = await rematchEvents(pool);
+    assert.deepEqual(changes.map((c) => [c.propertyId, c.changeType]), [[pa.id, 'ended']]);
+    assert.ok(!(await loadOrgMonitoring(pool, A.organizationId)).events.some((e) => e.external_id === 'w-sthlm'));
+
+    // Validity already passed → stored as ended, never matched.
+    await upsertSourceEvents(pool, 'smhi_warnings', [ev({ externalId: 'w-old', geometry: box(18.06, 59.33, 0.1), validTo: new Date(Date.now() - 3_600_000).toISOString() })]);
+    await rematchEvents(pool);
+    assert.ok(!(await loadOrgMonitoring(pool, A.organizationId)).events.some((e) => e.external_id === 'w-old'));
+
+    // Stations: nearest per parameter with real distance; stale values ignored.
+    await upsertStationObservations(pool, 'smhi_observations', [
+      { stationId: 's1', parameter: 'air_temperature', name: 'Nära', lat: 59.342, lon: 18.055, value: 1.5, unit: '°C', observedAt: new Date().toISOString(), quality: 'G', extra: {} },
+      { stationId: 's2', parameter: 'air_temperature', name: 'Långt', lat: 59.6, lon: 17.9, value: 9, unit: '°C', observedAt: new Date().toISOString(), quality: 'G', extra: {} },
+      { stationId: 's3', parameter: 'air_temperature', name: 'Gammal', lat: 59.3368, lon: 18.0627, value: 5, unit: '°C', observedAt: new Date(Date.now() - 10 * 3_600_000).toISOString(), quality: 'G', extra: {} },
+    ]);
+    const obs = (await loadOrgMonitoring(pool, A.organizationId, pa.id)).observations.filter((o) => o.parameter === 'air_temperature');
+    assert.equal(obs.length, 1);
+    assert.equal(obs[0]!.name, 'Nära');
+    assert.ok(obs[0]!.distance_m > 500 && obs[0]!.distance_m < 1_000, `distance ${obs[0]!.distance_m}`);
+
+    // Context rows are tenant scoped as well: a write with the wrong organization is a no-op.
+    await upsertPropertyContext(pool, { propertyId: pa.id, organizationId: A.organizationId, sourceId: 'scb', contextKey: 'municipality_stats', dataClass: 'REGIONAL_STATISTIC', status: 'ok', payload: { regionCode: '0180' }, sourceTimestamp: null });
+    await upsertPropertyContext(pool, { propertyId: pa.id, organizationId: B.organizationId, sourceId: 'scb', contextKey: 'other', dataClass: 'REGIONAL_STATISTIC', status: 'ok', payload: { hijack: true }, sourceTimestamp: null });
+    assert.equal((await loadOrgMonitoring(pool, B.organizationId)).contexts.length, 0);
+    assert.equal((await loadOrgMonitoring(pool, A.organizationId)).contexts.length, 1);
+
+    // API: warnings endpoint for own property; other org gets 404.
+    const app = await buildApp(loadServerEnv({ NODE_ENV: 'test' }), { logger: false, verifyAuth: verify, db: pool });
+    try {
+      const w = await app.inject({ method: 'GET', url: `/v1/properties/${pb.id}/warnings`, headers: { authorization: 'Bearer tok-b' } });
+      assert.equal(w.statusCode, 200, w.body);
+      assert.deepEqual(w.json().warnings.map((x: { level: string }) => x.level), ['Orange']);
+      assert.equal(w.json().status, 'warning');
+      assert.equal((await app.inject({ method: 'GET', url: `/v1/properties/${pb.id}/warnings`, headers: { authorization: 'Bearer tok-a' } })).statusCode, 404);
+      const pf = await app.inject({ method: 'GET', url: '/v1/portfolio', headers: { authorization: 'Bearer tok-a' } });
+      const snap = pf.json().properties[0];
+      assert.equal(snap.monitoring.observations[0].stationName, 'Nära');
+      assert.ok(snap.events.some((e: { category: string }) => e.category === 'Traffic'));
+      assert.equal(snap.demoRisk, null);
+      const ch = await app.inject({ method: 'GET', url: '/v1/changes', headers: { authorization: 'Bearer tok-a' } });
+      assert.ok(ch.json().changes.length >= 3);
+      assert.ok(ch.json().changes.every((c: { propertyId: string }) => c.propertyId === pa.id));
+    } finally {
+      await app.close();
+    }
+
+    // Retention removes ended events after the window (cascade removes their matches).
+    await pool.query(`UPDATE source_events SET ended_at = now() - interval '8 days' WHERE status <> 'active'`);
+    const del = await applyRetention(pool);
+    assert.ok(del.events >= 2, JSON.stringify(del));
+    await deleteProperty(pool, A, pa.id);
+    await deleteProperty(pool, B, pb.id);
+    const { rows: left } = await pool.query(`SELECT count(*)::int AS n FROM property_event_matches`);
+    assert.equal(left[0].n, 0, 'matches cascade with the property');
   });
 });

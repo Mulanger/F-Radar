@@ -26,7 +26,7 @@ export interface MigrationFile {
 }
 
 export interface Queryable {
-  query<R = unknown>(sql: string, params?: unknown[]): Promise<{ rows: R[] }>;
+  query<R = unknown>(sql: string, params?: unknown[]): Promise<{ rows: R[]; rowCount?: number | null }>;
 }
 
 export async function listMigrations(dir = MIGRATIONS_DIR): Promise<MigrationFile[]> {

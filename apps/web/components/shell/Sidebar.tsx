@@ -41,12 +41,18 @@ export function Sidebar() {
   const isOverview = !pathname.startsWith(`${basePath}/properties`);
   const totalAlerts = portfolio.properties.reduce((a, s) => a + s.activeAlertCount, 0);
   const isDemo = mode === 'demo';
-  const allOk = !isDemo && portfolio.sources.length > 0 && portfolio.sources.every((s) => s.status === 'ok');
+  // Health is judged over ENABLED monitoring sources only; deliberately disabled / not-yet-implemented
+  // sources (Lantmäteriet, Boverket, oceanography) are listed as such, never as failures.
+  const INACTIVE = ['disabled', 'not_implemented', 'access_required', 'pending_access'];
   const lastSync = portfolio.sources.map((s) => s.lastSuccessAt).filter(Boolean).sort().pop() ?? null;
   // Live mode: list only sources that actually deliver data; never imply "live" otherwise.
   const NON_MONITORING = ['geoapify_geocoding', 'lantmateriet_address', 'sms_46elks'];
   const connected = portfolio.sources.filter((s) => !NON_MONITORING.includes(s.sourceId) && (s.status === 'ok' || s.status === 'degraded'));
   const chips = isDemo ? portfolio.sources : connected;
+  const active = portfolio.sources.filter((s) => !NON_MONITORING.includes(s.sourceId) && !INACTIVE.includes(s.status));
+  const problems = active.filter((s) => s.status !== 'ok');
+  const allOk = !isDemo && active.length > 0 && problems.length === 0;
+  const STATUS_SV: Record<string, string> = { degraded: 'väntar/fel', stale: 'inaktuell', source_unavailable: 'otillgänglig' };
 
   return (
     <aside
@@ -96,14 +102,21 @@ export function Sidebar() {
         <div style={{ borderRadius: 18, padding: 14, background: C.white, border: '1px solid rgba(20,23,26,0.05)', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600 }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: isDemo ? C.demo : allOk ? C.live : 'oklch(0.6 0.15 55)', animation: 'frBreath 2.4s ease-in-out infinite' }} />
-            {isDemo ? 'Demo data · not live' : allOk ? 'All sources live' : connected.length ? 'Some sources unavailable' : 'Public data not connected'}
+            {isDemo ? 'Demo data · not live' : allOk ? 'Alla källor aktuella' : connected.length ? `${problems.length} av ${active.length} källor ej aktuella` : 'Public data not connected'}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
             {chips.length === 0 && <span style={{ fontSize: 11.5, color: C.text3 }}>SMHI, Krisinformation and Trafikverket arrive in the next phase.</span>}
             {chips.map((s) => (
-              <span key={s.sourceId} style={monoChip} title={`${s.label}: ${s.status}`}>{s.label}</span>
+              <span key={s.sourceId} style={{ ...monoChip, ...(s.status !== 'ok' && !isDemo ? { color: 'oklch(0.55 0.13 55)' } : {}) }} title={`${s.label}: ${s.status}${s.note ? ' – ' + s.note : ''}`}>
+                {s.label}
+              </span>
             ))}
           </div>
+          {!isDemo && problems.length > 0 && (
+            <div style={{ fontSize: 11, color: C.text3, lineHeight: 1.4 }}>
+              {problems.map((s) => `${s.label}: ${STATUS_SV[s.status] ?? s.status}`).join(' · ')}
+            </div>
+          )}
           <div style={{ fontSize: 11.5, color: C.text4 }}>
             {isDemo ? `Fixture snapshot ${formatClock(portfolio.generatedAt)} · no sync` : lastSync ? `Last sync ${formatClock(lastSync)}` : 'No data synced yet'}
           </div>

@@ -5,7 +5,9 @@ import type { Queryable } from '@fastighetsradar/db';
 import { geoapifyAdapter, type GeocodingProvider } from '@fastighetsradar/integrations';
 import { registerErrorHandling } from './errors';
 import { registerHealthRoutes, type ReadinessProbe } from './routes/health';
-import { registerSourceRoutes } from './routes/sources';
+import { registerMonitoringRoutes } from './routes/monitoring';
+import { MonitoringBus } from './monitoring/bus';
+import { MonitoringService } from './monitoring/service';
 import { registerCustomerRoutes } from './routes/customer';
 import { createClerkVerifier, registerAuth, type AuthVerifier } from './auth';
 import { loggerOptions } from './logger';
@@ -23,6 +25,8 @@ export interface AppDeps {
   verifyAuth?: AuthVerifier | null;
   geocoder?: GeocodingProvider;
   fetch?: typeof fetch;
+  /** Monitoring read service + live bus (defaults to one built on `db`). */
+  monitoring?: MonitoringService | null;
 }
 
 export const API_VERSION = process.env.npm_package_version ?? '0.2.0';
@@ -46,10 +50,10 @@ export async function buildApp(env: ServerEnv, deps: AppDeps = {}): Promise<Fast
 
   registerErrorHandling(app);
   registerHealthRoutes(app, { version: API_VERSION, probes: deps.probes ?? {}, critical: deps.criticalProbes });
-  registerSourceRoutes(app, env);
 
   const verify = deps.verifyAuth !== undefined ? deps.verifyAuth : createClerkVerifier(env);
   const { requireUser, requireOrg } = registerAuth(app, { verify, db: deps.db ?? null });
+  const monitoring = deps.monitoring !== undefined ? deps.monitoring : deps.db ? new MonitoringService(deps.db, env, new MonitoringBus()) : null;
   registerCustomerRoutes(app, {
     env,
     db: deps.db ?? null,
@@ -57,7 +61,9 @@ export async function buildApp(env: ServerEnv, deps: AppDeps = {}): Promise<Fast
     fetch: deps.fetch ?? fetch,
     requireUser,
     requireOrg,
+    monitoring,
   });
+  registerMonitoringRoutes(app, { env, service: monitoring, requireUser, requireOrg });
 
   return app;
 }

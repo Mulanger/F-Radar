@@ -11,6 +11,7 @@ import {
   SeveritySchema,
   SourceIdSchema,
 } from './common';
+import { PropertyMonitoringContextSchema } from './monitoring';
 
 /* ------------------------------------------------------------------ */
 /* Property & portfolio                                                */
@@ -63,6 +64,10 @@ export const METRIC_KEYS = [
   'weather.air_temperature',
   'weather.apparent_temperature',
   'weather.precipitation_24h',
+  /** Precipitation per forecast interval (mm per 1 h step) – used for the forecast chart. */
+  'weather.precipitation_1h',
+  'weather.precipitation_probability',
+  'weather.thunder_probability',
   'weather.wind_speed',
   'weather.wind_gust',
   'weather.wind_direction',
@@ -70,6 +75,8 @@ export const METRIC_KEYS = [
   'air_quality.index',
   'air_quality.pm25',
   'air_quality.no2',
+  'air_quality.pm10',
+  'air_quality.o3',
   'water.level_relative_to_mean',
 ] as const;
 export const MetricKeySchema = z.enum(METRIC_KEYS);
@@ -223,6 +230,12 @@ export const DataSourceStatusSchema = z.object({
   freshness: FreshnessSchema,
   errorCode: z.string().nullable(),
   note: z.string().nullable().optional(),
+  /** Phase 3 runtime health (collector jobs). Optional so fixtures stay valid. */
+  dataClass: z.string().optional(),
+  expectedIntervalSeconds: z.number().int().positive().nullable().optional(),
+  nextRunAt: IsoDateTimeSchema.nullable().optional(),
+  lastErrorAt: IsoDateTimeSchema.nullable().optional(),
+  attribution: z.string().optional(),
 });
 export type DataSourceStatus = z.infer<typeof DataSourceStatusSchema>;
 
@@ -303,6 +316,8 @@ export const PropertySnapshotSchema = z.object({
   }),
   activeAlertCount: z.number().int().nonnegative(),
   demoRisk: DemoRiskAssessmentSchema.nullable(),
+  /** Live monitoring context (Phase 3). Absent in demo fixtures. */
+  monitoring: PropertyMonitoringContextSchema.nullable().optional(),
 });
 export type PropertySnapshot = z.infer<typeof PropertySnapshotSchema>;
 

@@ -1,4 +1,5 @@
 export * from './types';
+export * from './http';
 export * from './sources/manifest';
 export * from './registry';
 export * from './status';

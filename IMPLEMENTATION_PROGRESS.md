@@ -1,8 +1,148 @@
 # FastighetsRadar – Implementation progress
 
-> Newest phase first: Agent 2.5 → Agent 2 → Agent 1.
+> Newest phase first: Agent 3 → Agent 2.5 → Agent 2 → Agent 1.
 
 ---
+
+# Agent 3 – Phase 3: Public data integrations, monitoring engine & live dashboard
+
+Branch `agent3/public-data-monitoring` (from `agent2.5/geoapify-maps` @ ebc6596). Deployed to **f-radar only**
+(https://f-radar.fr-2.instapods.app, Build plan, unchanged). `vaktskolan` was not touched. No paid service, no Redis,
+no SMS. Provider details + completion matrix: [`docs/sources.md`](docs/sources.md).
+
+## A. Implemented integrations and exact functionality
+
+| Provider | What is collected | Matching to a property |
+|---|---|---|
+| SMHI SNOW1gv1 | point forecast (81 steps) per property point; current-hour temp/wind/gust/direction/RH/precip-probability/thunder + 24 h precipitation total; 24 h chart series | model grid point (distance shown, e.g. 755 m) |
+| SMHI IBWW | all warning areas nationwide (Yellow/Orange/Red + "message"), official text unaltered, versioned | `ST_Intersects(polygon, point)` |
+| SMHI county polygons | 21 counties → `admin_areas` | `ST_Covers(county, point)` → property county |
+| Krisinformation v3 | news (PUBLIC_EVENT, info) + VMA (OFFICIAL_WARNING, critical) | county name / national / municipality |
+| Trafikverket | Situation deviations within 2 km of properties (≤ 20 points per request) | `ST_DWithin(line/point, 2 km)` + exact distance |
+| SMHI MetObs | latest hour, 6 parameters, all stations | nearest station with a value < 3 h old, ≤ 50 km |
+| Air quality (52°North) | PM2.5, PM10, NO₂, O₃ latest values (preliminary) | nearest station < 6 h old, ≤ 25 km; **no AQI** |
+| SGU HYPE | groundwater percentiles for the property's 4×4 km model area | area lookup by point |
+| MCF flood mapping | 100-year / 200-year / BHF scenario: inside / within X m / none within 1 km | WFS CQL BBOX probes (no geometry download) |
+| SCB TAB628 | municipality population, density, land area (latest year) | municipality name → region code |
+
+Normalised contract (`packages/domain/src/monitoring.ts`): data classes `FORECAST`, `OBSERVATION`, `OFFICIAL_WARNING`,
+`PUBLIC_EVENT`, `STATIC_GEODATA`, `REGIONAL_STATISTIC`; every record carries provenance (source, authority, attribution,
+source timestamp, fetched-at, freshness). Adapters: `packages/integrations/src/*` (zod-validated, never throw, injected
+`fetch`, shared retry/timeout/429 helper `http.ts`).
+
+**Property status** = highest active *official* warning matched to the property point (Red/VMA → Critical, Orange →
+Warning, Yellow → Monitor). "Normal" only when SMHI warnings are fresh and nothing matches; otherwise "Unknown".
+Documented as `statusMethod: 'highest_official_warning'`. **No risk score is computed** – the gauge stays "Not assessed".
+
+## B. Official sources successfully contacted (live, 2026-11-13)
+
+SMHI metfcst (SNOW1gv1), SMHI IBWW warnings + metadata, SMHI MetObs, Krisinformation v3 (news, vmas, features probed),
+Trafikverket open API v2 (with the existing key), SMHI datavärd luft (52°North), SGU OGC API Features (HYPE areas +
+levels, observed stations probed), MCF/MSB INSPIRE WFS + WMS capabilities, SCB PxWebApi v2 (`/config`, table search,
+metadata, data). All 9 live smoke tests pass (`npm run test:live`, ~25 s).
+
+## C. Dashboard instruments connected to real data
+
+* **Portfolio Overview:** KPIs (status distribution, official warnings, properties at risk = Warning/Critical by
+  official warnings), hero (avg temperature, max 24 h rain, peak gust – forecast), Monitoring Status table (weather now,
+  official warning, nearby crisis/traffic counts), Alert Feed (de-duplicated change log: new/updated/ended official
+  warnings, crisis news, significant traffic), Upcoming Conditions (forecast thresholds: gust ≥ 15 m/s, ≥ 15 mm/24 h,
+  frost), Portfolio Health, map, sidebar source health ("Alla källor aktuella" / which sources are not current).
+* **Property Detail:** status + reason, Official Warnings (unaltered text, validity, freshness line), instrument cards
+  (forecast current hour, 24 h rain bars, wind compass, humidity, nearest air-quality station), 24 h forecast chart,
+  Water Risk (MCF scenario exposure + coverage caveat; surface/basement "Ej bedömt"), **new panel "Mätningar och
+  sammanhang"** (nearest SMHI stations, air-quality stations, SGU groundwater, MCF scenarios, SCB statistics – each with
+  data-class badge, station/distance/time), Local Events (traffic with distances, Krisinformation as regional info) and
+  the local events map.
+* Still not connected (shown as unavailable, never invented): risk score/factors, AQI, sea/lake water level
+  (`smhi_oceanography`), SMS rules, property timeline history.
+
+## D. Database migrations and geographic matching
+
+`packages/db/migrations/0003_public_data_monitoring.sql` (additive only; applied on f-radar):
+`provider_jobs` (schedule + lease + health), `integration_runs` (+job_id/duration/detail), `admin_areas` (county
+polygons, GIST), `source_events` (versioned warnings/events with geometry, GIST + GIN on counties),
+`property_event_matches`, `monitoring_changes` (unique `dedup_key`, `notified_at` always NULL – SMS input),
+`observation_stations` (GIST/KNN), `property_forecasts`, `property_context`. Source catalog seeded.
+Matching (`rematchEvents`) is one SQL statement with data-modifying CTEs: computes all matches, writes `new`/`updated`/
+`ended`/`cancelled` changes exactly once (dedup key = property:event:version), removes stale matches.
+Tenant reads (`loadOrgMonitoring`) filter `organization_id` in every query; context writes are joined to the
+property's own organization so a wrong org id is a no-op.
+
+## E. Background worker and refresh behaviour
+
+In-process scheduler inside the API service (`apps/api/src/monitoring/scheduler.ts`) – no extra pod/service.
+* Job state in PostgreSQL; atomic lease (`UPDATE … WHERE lease expired RETURNING`) → exclusive across processes,
+  crashed runs expire; schedules **survive restarts** (verified: warnings ran 04:43 in the old process, 04:48 in the new).
+* One job at a time, hard timeout per job, exponential backoff (interval × 2ⁿ, 60 s – 6 h, Retry-After honoured);
+  shutdown-cancelled runs are released as "skipped" (no false failure).
+* Intervals: warnings 5 min · Trafikverket 5 min · Krisinformation 10 min · forecast tick 15 min (per point ≥ 58 min) ·
+  MetObs 30 min · air quality 60 min · SGU/MCF/SCB hourly ticks (per property 12 h / 7 d / 7 d) · counties weekly ·
+  retention daily. Property create/move/delete → immediate re-match + per-property jobs made due.
+* Dashboard requests **never** call providers – they read stored snapshots. Live updates: authenticated SSE
+  `/v1/stream` (org-scoped hints, heartbeat, 10 min max lifetime, ≤ 20/org) → BFF passthrough → `router.refresh()`
+  (debounced ≥ 15 s); falls back to 5-minute polling after repeated stream errors.
+* Resource use on the pod: API RSS ≈ 108 MB, host 1.65 GB free; full collector cycle ≈ 3 min CPU-light.
+
+## F. Data quality and known limitations
+
+* Forecast values are model values for the nearest grid point – labelled as forecast, never as measurements.
+* Air-quality data are preliminary; stations are sparse (≤ 25 km rule); no AQI.
+* SGU values are a regional model (4×4 km), lag a few days; observed SGU stations not integrated.
+* MCF covers only mapped watercourses: "nothing within 1 km" ≠ no risk (stated in the UI). "Inside" uses a 15 m box
+  around the address point.
+* Krisinformation news is county-level information, not a local incident; VMA path verified only with fixtures
+  (no active VMA during verification).
+* SMHI county polygons are generalised; properties right at a county border could be assigned the neighbour county.
+* Trafikverket radius 2 km (5 km was too noisy downtown); minor traffic items are kept out of the portfolio feed.
+* Status is driven by official warnings only; forecast thresholds appear as "Upcoming Conditions", not as status.
+
+## G. Automated and real API test results
+
+* `npm test`: **12 files / 112 tests pass** (new: `packages/integrations/test/providers.test.ts` – parsers on trimmed
+  REAL payloads, 9999/−1 missing values, aggregation, pro-rating, retry/429/timeout, skipped records, XML escaping;
+  `apps/api/test/monitoring.test.ts` – status/freshness, backoff, snapshot classes, status rule, flood mapping, stale
+  forecast, feed/upcoming, bus tenant isolation, auth 401/403 on every endpoint, SSE scoping).
+* Real PostgreSQL/PostGIS suite in the pod (`node scripts/run-real-db-tests.mjs`): **10/10 pass** (job leasing,
+  polygon/county/radius matching with real distances, dedup, versioning, ending, expiry, KNN stations, tenant isolation,
+  API on real DB, retention, cascades).
+* Live smoke tests (`npm run test:live`): **9/9 pass** against all providers.
+* `npm run typecheck`, `npm run lint`, web production build, release secret scan: clean.
+
+## H. Deployment status
+
+Deployed twice via `node scripts/deploy-pod.mjs` (tests + build first; migration 0003 applied; `app.prev` kept for
+rollback). New runtime env: `MONITORING_SCHEDULER_ENABLED=true`, `TRAFIKVERKET_ENABLED=true` (key present),
+`MCF_FLOOD_ENABLED=true`. All 11 collector jobs `ok`. Verified in the owner's signed-in Chrome: dashboard + detail
+show live values, sources "Alla källor aktuella", SSE `hello` through the BFF, WebGL scene, water canvas, map tiles and
+event markers render, no console errors; API only on 127.0.0.1:4000, unauthenticated BFF → 401.
+
+## I. Outstanding integrations and blockers
+
+* `smhi_oceanography` (sea/lake level for the water panel) – not implemented; endpoint and terms to be verified.
+* SGU observed station levels – partial (model only).
+* Lantmäteriet, Boverket – disabled pending authorization (unchanged). Clerk Production / f-radar.se – out of scope.
+* Formal licence review (manifest `displayPermitted`/`alertsPermitted` still false); attribution is shown everywhere.
+* No Playwright E2E; browser checks were manual.
+
+## J. Recommended scope for the next phase – configurable SMS alerts via 46elks
+
+1. **Input:** consume `monitoring_changes` (already de-duplicated, versioned, org/property-scoped; `notified_at` NULL).
+   Alert only on OFFICIAL_WARNING (+ optional significant traffic) – never on statistics/static data.
+2. **Rules:** per property/org rules in the existing `alert_rules` table (default OFF): minimum level (Yellow/Orange/Red/
+   VMA), sources, quiet hours, cooldown, max SMS/day/org (`SMS_DAILY_LIMIT_PER_ORG`), global budget.
+3. **Recipients:** verified phone numbers (OTP via 46elks, opt-in record, masked display), per-org roles.
+4. **Delivery pipeline:** outbox table (`sms_outbox`: change id, recipient, text, status, provider id, attempts),
+   leased by the existing scheduler; idempotency key = change dedup_key + recipient; 46elks delivery-report webhook
+   (signed/secret URL) updating status; retry with backoff; `notified_at` set only after acceptance.
+5. **Text:** Swedish, ≤ 160 GSM-7 chars where possible: level + type + property + validity + link; official wording
+   referenced, not paraphrased.
+6. **Safety:** keep `SMS_DRY_RUN=true` until the owner approves; `SMS_LIVE_SENDING_APPROVED` + allowlist for the first
+   live test; per-org spend caps; audit log; no SMS on cancelled/ended unless the rule asks for "all-clear".
+7. **Cost/plan:** 46elks is pay-per-SMS – needs owner approval before any live send; no infrastructure change needed.
+
+---
+
 
 # Agent 2.5 – Geoapify maps, stabilization & pre-Phase 3 verification
 

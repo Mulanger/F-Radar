@@ -62,7 +62,11 @@ export function UpcomingConditions({ vm }: { vm: OverviewVM }) {
         <div style={cardTitle}>Upcoming Conditions</div>
         <div style={cardSub}>Portfolio forecast · next 48 h</div>
       </div>
-      {vm.upcoming.length === 0 && <div style={{ fontSize: 13, color: C.text3, padding: '12px 0' }}>Forecast unavailable</div>}
+      {vm.upcoming.length === 0 && (
+        <div style={{ fontSize: 13, color: C.text3, padding: '12px 0' }}>
+          {!vm.avail.weather ? 'Forecast unavailable' : 'Inga prognoser över tröskelvärdena (byvind ≥ 15 m/s, nederbörd ≥ 15 mm/24 h, minusgrader) de närmaste 24 h'}
+        </div>
+      )}
       {vm.upcoming.map((u) => (
         <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderTop: '1px solid rgba(20,23,26,0.05)' }}>
           <div style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, background: u.c }} />

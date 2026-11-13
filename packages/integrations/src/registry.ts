@@ -7,16 +7,16 @@ import type { SourceId } from '@fastighetsradar/domain';
 export type AdapterImplementationState = 'not_implemented' | 'interface_only' | 'implemented';
 
 export const ADAPTER_IMPLEMENTATION: Record<Exclude<SourceId, 'demo_other'>, AdapterImplementationState> = {
-  smhi_forecast: 'interface_only',
-  smhi_warnings: 'interface_only',
-  smhi_observations: 'interface_only',
+  smhi_forecast: 'implemented', // Phase 3: fixture tests + live smoke test 2026-11-13
+  smhi_warnings: 'implemented', // Phase 3: fixture tests + live smoke test 2026-11-13
+  smhi_observations: 'implemented', // Phase 3: fixture tests + live smoke test 2026-11-13
   smhi_oceanography: 'not_implemented',
-  krisinformation: 'interface_only',
-  air_quality: 'interface_only',
-  sgu_groundwater: 'interface_only',
-  mcf_flood: 'interface_only',
-  scb: 'interface_only',
-  trafikverket: 'interface_only',
+  krisinformation: 'implemented', // Phase 3: fixture tests + live smoke test 2026-11-13
+  air_quality: 'implemented', // Phase 3: fixture tests + live smoke test 2026-11-13
+  sgu_groundwater: 'implemented', // Phase 3: fixture tests + live smoke test 2026-11-13
+  mcf_flood: 'implemented', // Phase 3: fixture tests + live smoke test 2026-11-13
+  scb: 'implemented', // Phase 3: fixture tests + live smoke test 2026-11-13
+  trafikverket: 'implemented', // Phase 3: fixture tests + live smoke test 2026-11-13
   geoapify_geocoding: 'implemented', // contract tests + live smoke test 2026-11-12
   lantmateriet_address: 'interface_only',
   boverket_energy: 'interface_only',

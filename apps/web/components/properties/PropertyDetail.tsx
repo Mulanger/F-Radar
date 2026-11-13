@@ -18,6 +18,7 @@ import { LocalEventsPanel } from './LocalEventsPanel';
 import { LocalEventsMap } from '../maps/LocalEventsMap';
 import { PropertyTimeline } from './PropertyTimeline';
 import { SMSRulesPanel } from './SMSRulesPanel';
+import { MonitoringContextPanel } from './MonitoringContextPanel';
 
 /**
  * Page 2 – Property Detail (`/properties/[propertyId]`).
@@ -123,6 +124,8 @@ export function PropertyDetail() {
         <WeatherCharts d={d} isDemo={isDemo} onMetric={ds.setMetric} />
         <WaterRiskPanel d={d} />
       </div>
+
+      {d.live && <MonitoringContextPanel d={d} />}
 
       <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         <LocalEventsPanel d={d} />

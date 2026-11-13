@@ -101,7 +101,11 @@ const vars = {
   GEOCODING_PROVIDER: 'geoapify',
   GEOAPIFY_API_KEY: local.GEOAPIFY_API_KEY ?? '',
   TRAFIKVERKET_API_KEY: local.TRAFIKVERKET_API_KEY ?? '',
-  TRAFIKVERKET_ENABLED: 'false',
+  // Phase 3: Trafikverket is collected only when the key exists (key value is never printed).
+  TRAFIKVERKET_ENABLED: local.TRAFIKVERKET_API_KEY ? 'true' : 'false',
+  MCF_FLOOD_ENABLED: 'true',
+  // In-process collector scheduler inside the API service (no extra pod/service).
+  MONITORING_SCHEDULER_ENABLED: 'true',
   DATABASE_URL: 'postgresql:///fastighetsradar?host=/var/run/postgresql',
   FASTIGHETSRADAR_INTERNAL_API_URL: 'http://127.0.0.1:4000',
   FASTIGHETSRADAR_DEMO_ENABLED: 'false',

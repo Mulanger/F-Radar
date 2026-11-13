@@ -4,7 +4,7 @@ import { SEV, WL, type SeverityStyle } from '../design/tokens';
 import type { ChartMetric } from '../state/dashboard-state';
 import { chartOf } from './chart';
 import { eventCounts, rulesFor, type RuleView } from './rules';
-import { availability, forecastValues, metricValue, riskSeverity, show } from './snapshot';
+import { availability, forecastValues, metricValue, riskSeverity, show, sourceLine } from './snapshot';
 
 /**
  * Property Detail view-model – port of the prototype's `renderVals()` detail section.
@@ -21,7 +21,7 @@ const sev = (st: PropertyStatus | 'info'): SeverityStyle => (st === 'info' ? SEV
 
 export const CHART_METAS: Record<ChartMetric, { label: string; u: string; c: string; dec: number; key: Parameters<typeof forecastValues>[1] }> = {
   temp: { label: 'Temperature', u: '°', c: '#E08A2E', dec: 1, key: 'weather.air_temperature' },
-  rain: { label: 'Precipitation', u: ' mm', c: '#4A86C5', dec: 1, key: 'weather.precipitation_24h' },
+  rain: { label: 'Precipitation', u: ' mm', c: '#4A86C5', dec: 1, key: 'weather.precipitation_1h' },
   wind: { label: 'Wind', u: ' m/s', c: '#3E8E9E', dec: 1, key: 'weather.wind_speed' },
   hum: { label: 'Humidity', u: '%', c: '#7468C9', dec: 0, key: 'weather.relative_humidity' },
 };
@@ -30,6 +30,14 @@ export const CHART_METAS: Record<ChartMetric, { label: string; u: string; c: str
 export const levelToFill = (l: number) => 0.18 + ((l + 20) / 120) * 0.62;
 
 const DIRS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+
+const svDate = new Intl.DateTimeFormat('sv-SE', { day: 'numeric', month: 'short', timeZone: 'Europe/Stockholm' });
+/** "Since 14:32" within 24 h, otherwise a date – an old start must never look like today. */
+export function sinceLabel(validFrom: string, nowIso: string, sv: boolean): string {
+  const recent = Date.parse(nowIso) - Date.parse(validFrom) < 20 * 3_600_000;
+  if (sv) return recent ? `Sedan ${formatClock(validFrom)}` : `Sedan ${svDate.format(new Date(validFrom))}`;
+  return recent ? `Since ${formatClock(validFrom)}` : `Since ${svDate.format(new Date(validFrom))}`;
+}
 
 /**
  * DEMO-ONLY timeline. The prototype assembled this list with hardcoded clock times.
@@ -84,7 +92,7 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
   const mt = CHART_METAS[ui.metric];
   const vals = forecastValues(s, mt.key);
   const tempSer = forecastValues(s, 'weather.air_temperature');
-  const rainSer = forecastValues(s, 'weather.precipitation_24h');
+  const rainSer = forecastValues(s, 'weather.precipitation_1h');
   const forecastPts = s.forecast?.series.find((x) => x.metricKey === mt.key)?.points ?? [];
   const hr = (i: number) => (forecastPts[i] ? formatClock(forecastPts[i]!.validAt) : '—');
   const ch = chartOf(vals, 640, 196, 0.12, ui.metric === 'rain');
@@ -94,7 +102,7 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
   const tS = chartOf(tempSer, 100, 36, 0.1);
   const rMax = rainSer.length ? Math.max(...rainSer) : 0;
   const rPi = rainSer.indexOf(rMax);
-  const rainPts = s.forecast?.series.find((x) => x.metricKey === 'weather.precipitation_24h')?.points ?? [];
+  const rainPts = s.forecast?.series.find((x) => x.metricKey === 'weather.precipitation_1h')?.points ?? [];
 
   const GC = 2 * Math.PI * 66;
   const arc = GC * 0.75;
@@ -114,6 +122,10 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
   const fac = s.demoRisk ? [s.demoRisk.factors.weather, s.demoRisk.factors.water, s.demoRisk.factors.crisis, s.demoRisk.factors.traffic, s.demoRisk.factors.air] : null;
 
   const avail = availability(portfolio);
+  const live = p.origin === 'live';
+  const mon = s.monitoring ?? null;
+  const pmM = s.metrics.find((m) => m.metricKey === 'air_quality.pm25' || m.metricKey === 'air_quality.no2');
+  const fmtDist = (m: number | null | undefined) => (m === null || m === undefined ? '—' : m >= 1000 ? `${(m / 1000).toFixed(1).replace('.', ',')} km` : `${Math.round(m)} m`);
   // Building facts are customer-provided; absent in Phase 2. The 3D scene then uses a neutral default.
   const b = p.building;
   const buildingLine = b ? `${b.type} · ${b.floors} floors · ${b.unitsLabel}` : 'Building details not provided';
@@ -225,12 +237,14 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
       level: lvl === null ? '—' : (lvl >= 0 ? '+' : '') + lvl + ' cm',
       levelFill: lvl === null ? 0.3 : levelToFill(lvl),
       trend: s.flood.waterBody?.trendLabel ?? '—',
-      dist: fdist === null ? '—' : fdist < 100 ? fdist + ' m · inside buffer' : fdist >= 1000 ? (fdist / 1000).toFixed(1) + ' km away' : fdist + ' m away',
+      scenario: s.flood.mapped.scenario,
+      dist: live ? (s.flood.mapped.availability !== 'ok' ? 'Ej kontrollerad' : fdist === null ? 'Inget inom 1 km' : fdist === 0 ? 'Inom karterat område' : `Inom ${fdist} m`) : fdist === null ? '—' : fdist < 100 ? fdist + ' m · inside buffer' : fdist >= 1000 ? (fdist / 1000).toFixed(1) + ' km away' : fdist + ' m away',
       thTop: (1 - levelToFill(60)) * 100 + '%',
       hasLevel: lvl !== null,
       // Derived demo labels from the prototype. Live mode needs a documented method before showing these.
-      surface: rain24 === null ? '—' : rain24 > 15 ? 'Likely' : rain24 > 10 ? 'Possible' : 'Unlikely',
-      basement: flood === 'High' ? 'Elevated' : flood === 'Medium' ? 'Moderate' : flood === 'Low' ? 'Low' : '—',
+      surface: live ? 'Ej bedömt' : rain24 === null ? '—' : rain24 > 15 ? 'Likely' : rain24 > 10 ? 'Possible' : 'Unlikely',
+      basement: live ? 'Ej bedömt' : flood === 'High' ? 'Elevated' : flood === 'Medium' ? 'Moderate' : flood === 'Low' ? 'Low' : '—',
+      note: live ? (s.flood.mapped.geo.note ?? null) : null,
     },
     events: s.events.map((e) => ({
       id: e.id,
@@ -238,7 +252,7 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
       title: e.title,
       src: e.sourceLabel,
       dist: formatDistance(e.geo.distanceMeters),
-      time: e.timeLabel ?? (e.validFrom ? `Since ${formatClock(e.validFrom)}` : '—'),
+      time: e.timeLabel ?? (e.validFrom ? sinceLabel(e.validFrom, portfolio.generatedAt, live) : '—'),
       c: evKind[e.category].c,
       bg: evKind[e.category].bg,
       hx: sev(e.severity === 'unknown' ? 'unknown' : e.severity).hx,
@@ -263,6 +277,19 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
     },
     location: p.location,
     floodExposure: flood,
+    live: live
+      ? {
+          warningsLine: [sourceLine(portfolio, 'smhi_warnings', 'SMHI', formatClock), sourceLine(portfolio, 'krisinformation', 'Krisinformation', formatClock)].join(' · '),
+          eventsLine: [sourceLine(portfolio, 'trafikverket', 'Trafikverket', formatClock), sourceLine(portfolio, 'krisinformation', 'Krisinformation', formatClock)].join(' · '),
+          forecastLine: s.forecast
+            ? `SMHI-prognos, modellkörning ${formatClock(s.forecast.issuedAt ?? s.forecast.fetchedAt ?? portfolio.generatedAt)}, modellpunkt ${fmtDist(s.forecast.geo.distanceMeters)} bort`
+            : 'Prognos har inte hämtats ännu',
+          airLine: pmM ? `${pmM.geo.note ?? 'Mätstation'} · ${fmtDist(pmM.geo.distanceMeters)} · preliminära värden` : 'Ingen luftmätstation inom 25 km med aktuella värden',
+          statusReason: p.statusReason ?? null,
+          monitoring: mon,
+          fmtDist,
+        }
+      : null,
   };
 }
 

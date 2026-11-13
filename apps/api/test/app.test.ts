@@ -10,6 +10,8 @@ describe('API bootstrap', () => {
     app = await buildApp(loadServerEnv({ NODE_ENV: 'test', GEOAPIFY_API_KEY: 'very-secret-geoapify-key' }), {
       logger: false,
       probes: { database: async () => ({ status: 'ok', detail: 'fake' }) },
+      verifyAuth: async (req) =>
+        req.headers.authorization === 'Bearer tok' ? { userId: 'user_test', sessionId: 's', clerkOrgId: null, orgRole: null, orgSlug: null } : null,
     });
   });
   afterAll(() => app.close());
@@ -31,7 +33,8 @@ describe('API bootstrap', () => {
   });
 
   it('GET /v1/sources/status never exposes secrets and never claims ok', async () => {
-    const res = await app.inject({ method: 'GET', url: '/v1/sources/status' });
+    expect((await app.inject({ method: 'GET', url: '/v1/sources/status' })).statusCode).toBe(401);
+    const res = await app.inject({ method: 'GET', url: '/v1/sources/status', headers: { authorization: 'Bearer tok' } });
     expect(res.statusCode).toBe(200);
     expect(res.body).not.toContain('very-secret-geoapify-key');
     const body = res.json() as { smsMode: string; sources: Array<{ sourceId: string; status: string }> };

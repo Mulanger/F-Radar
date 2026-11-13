@@ -30,7 +30,7 @@ export async function internalApi(path: string, init: RequestInit & { token?: st
   const token = init.token === undefined ? await sessionToken() : init.token;
   const headers = new Headers(init.headers);
   if (token) headers.set('authorization', `Bearer ${token}`);
-  headers.set('accept', 'application/json');
+  if (!headers.has('accept')) headers.set('accept', 'application/json');
   return fetch(`${INTERNAL_API_URL}${path}`, { ...init, headers, cache: 'no-store' });
 }
 

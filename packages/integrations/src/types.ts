@@ -1,5 +1,5 @@
 import type { ServerEnv } from '@fastighetsradar/config';
-import type { DataPoint, LatLon, MonitorEvent, SourceId } from '@fastighetsradar/domain';
+import type { DataClass, EventCategory, LatLon, Severity, SourceId, WarningLevel } from '@fastighetsradar/domain';
 
 /**
  * Adapter interfaces for all external integrations. Implementations live in
@@ -78,35 +78,57 @@ export interface GeocodingProvider {
   resolve(text: string, ctx: AdapterContext): Promise<AdapterResult<AddressSuggestion | null>>;
 }
 
-/* ---------- Measurements ---------- */
+/* ---------- Normalised collector output (Phase 3) ---------- */
 
-export interface ForecastProvider {
-  readonly id: Extract<SourceId, 'smhi_forecast'>;
-  getPointForecast(target: PropertyLocation, ctx: AdapterContext): Promise<AdapterResult<DataPoint[]>>;
+/** GeoJSON geometry in WGS84 lon/lat (validated loosely; PostGIS validates on insert). */
+export interface GeoJsonGeometry {
+  type: 'Point' | 'MultiPoint' | 'LineString' | 'MultiLineString' | 'Polygon' | 'MultiPolygon';
+  coordinates: unknown;
 }
 
-export interface ObservationProvider {
-  readonly id: Extract<SourceId, 'smhi_observations' | 'air_quality' | 'sgu_groundwater' | 'smhi_oceanography'>;
-  getNearestObservations(target: PropertyLocation, ctx: AdapterContext): Promise<AdapterResult<DataPoint[]>>;
+/**
+ * A centrally collected warning or public event. One record per upstream object/area.
+ * Text fields are the official wording, unmodified.
+ */
+export interface NormalizedSourceEvent {
+  sourceId: Extract<SourceId, 'smhi_warnings' | 'krisinformation' | 'trafikverket'>;
+  externalId: string;
+  dataClass: Extract<DataClass, 'OFFICIAL_WARNING' | 'PUBLIC_EVENT'>;
+  category: EventCategory;
+  level: WarningLevel | null;
+  severity: Severity;
+  eventType: string;
+  headline: string;
+  description: string | null;
+  areaLabel: string | null;
+  /** County names exactly as published ("Stockholms län"); '*' = whole country. */
+  countyNames: string[];
+  /** GeoJSON geometry, or WKT for providers that publish WKT (Trafikverket). */
+  geometry: GeoJsonGeometry | null;
+  geometryWkt?: string | null;
+  publishedAt: string | null;
+  sourceUpdatedAt: string | null;
+  validFrom: string | null;
+  validTo: string | null;
+  status: 'active' | 'cancelled';
+  sourceUrl: string | null;
+  attribution: string;
+  extra: Record<string, unknown>;
 }
 
-export interface StatisticsProvider {
-  readonly id: Extract<SourceId, 'scb'>;
-  getContextStatistics(target: PropertyLocation, ctx: AdapterContext): Promise<AdapterResult<DataPoint[]>>;
-}
-
-export interface FloodExposureProvider {
-  readonly id: Extract<SourceId, 'mcf_flood'>;
-  /** Static scenario exposure for a point – never a live water level. */
-  getMappedExposure(target: PropertyLocation, ctx: AdapterContext): Promise<AdapterResult<DataPoint[]>>;
-}
-
-/* ---------- Events & warnings (collected centrally, matched geographically) ---------- */
-
-export interface EventFeedProvider {
-  readonly id: Extract<SourceId, 'smhi_warnings' | 'krisinformation' | 'trafikverket'>;
-  /** Fetch all currently active objects once; geo-matching happens in the geo engine. */
-  fetchActive(ctx: AdapterContext): Promise<AdapterResult<MonitorEvent[]>>;
+/** Latest value of one parameter at one station (MetObs, air quality). */
+export interface StationObservation {
+  sourceId: Extract<SourceId, 'smhi_observations' | 'air_quality'>;
+  stationId: string;
+  parameter: string;
+  name: string;
+  lat: number;
+  lon: number;
+  value: number | null;
+  unit: string | null;
+  observedAt: string | null;
+  quality: string | null;
+  extra: Record<string, unknown>;
 }
 
 /* ---------- SMS ---------- */

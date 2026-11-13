@@ -7,8 +7,10 @@ Architecture: [`0001`](docs/decisions/0001-architecture.md), [`0002 auth/tenancy
 **Live (development Clerk instance):** https://f-radar.fr-2.instapods.app
 
 > Customers sign in with Clerk, create/select an organization and register properties by Swedish
-> address (Geoapify). Public-data monitoring (SMHI, Krisinformation, Trafikverket …) is **not connected
-> yet** – the dashboard says so explicitly instead of showing values. No SMS can be sent.
+> address (Geoapify). Public data (SMHI forecast/warnings/observations, Krisinformation, Trafikverket, air quality,
+> SGU groundwater, MCF flood mapping, SCB) is collected centrally by a scheduler in the API process, matched to
+> properties with PostGIS and pushed to the dashboard via SSE. No risk score is computed. No SMS can be sent.
+> Sources and status: [`docs/sources.md`](docs/sources.md).
 
 ## Layout
 
@@ -17,11 +19,12 @@ apps/web              Next.js 16 (App Router): dashboard, Clerk auth, /api/app B
 apps/api              Fastify API (private): Clerk token verification, properties, portfolio, geocoding
 packages/domain       Zod schemas/types, formatters, demo fixtures (/demo only)
 packages/config       Server env validation, Clerk key selection, SMS safety gate
-packages/integrations Source manifest + adapters (Geoapify implemented; others are stubs)
+packages/integrations Source manifest + provider adapters (zod-validated, retry/timeout helper)
 packages/db           PostGIS SQL migrations, runner, tenant-scoped property repository
 deploy/pod/index.js   Process supervisor for the InstaPods pod
-scripts/              instapods.mjs (API helper, f-radar only), deploy-pod.mjs, check-no-secrets.mjs, serve-design.mjs
-tests/integration/    Real PostgreSQL/PostGIS suite (runs inside the pod)
+scripts/              instapods.mjs (f-radar only), deploy-pod.mjs, run-real-db-tests.mjs, pod-sql.mjs (read-only), check-no-secrets.mjs, serve-design.mjs
+tests/integration/    Real PostgreSQL/PostGIS suite (runs inside the pod: scripts/run-real-db-tests.mjs)
+tests/live/           Live provider smoke tests (network; npm run test:live)
 FastighetsRadar dashboard complete/   Approved design export – untouched reference
 ```
 
@@ -75,8 +78,17 @@ npm test
 npm run lint && npm run typecheck && npm run build
 ```
 
-Real-database integration suite (inside the pod, against `fastighetsradar_test` only): see
-`IMPLEMENTATION_PROGRESS.md` → "Running the real-PostgreSQL tests".
+Live provider smoke tests (network, not part of `npm test`):
+
+```bash
+npm run test:live
+```
+
+Real-database integration suite (inside the pod, against `fastighetsradar_test` only):
+
+```bash
+node node_modules/tsup/dist/cli-default.js --config tsup.deploy.config.ts && node scripts/run-real-db-tests.mjs
+```
 
 ## Deploy to InstaPods (`f-radar` only)
 

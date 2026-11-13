@@ -13,6 +13,7 @@ import { orgContext } from '../auth';
 import { createRateLimiter } from '../rate-limit';
 import { HttpProblem } from '../errors';
 import { buildLivePortfolio } from '../portfolio';
+import type { MonitoringService } from '../monitoring/service';
 
 export interface CustomerRouteDeps {
   env: ServerEnv;
@@ -21,6 +22,7 @@ export interface CustomerRouteDeps {
   fetch: typeof fetch;
   requireUser: preHandlerHookHandler;
   requireOrg: preHandlerHookHandler;
+  monitoring?: MonitoringService | null;
 }
 
 /** Max properties per organization (abuse guard, IMPLEMENTATION.md §16.1). */
@@ -57,6 +59,7 @@ export function registerCustomerRoutes(app: FastifyInstance, deps: CustomerRoute
     if (Number(rows[0]?.n ?? 0) >= MAX_PROPERTIES_PER_ORG) throw new HttpProblem(409, 'Property limit reached');
     const property = await createProperty(db(), ctx, input);
     req.log.info({ propertyId: property.id }, 'property created');
+    void deps.monitoring?.propertyChanged(ctx.organizationId);
     reply.code(201);
     return { property };
   });
@@ -64,14 +67,18 @@ export function registerCustomerRoutes(app: FastifyInstance, deps: CustomerRoute
   app.patch('/v1/properties/:id', { preHandler: deps.requireOrg }, async (req) => {
     const { id } = PropertyIdParamSchema.parse(req.params);
     const patch = PropertyUpdateSchema.parse(req.body);
-    const property = await updateProperty(db(), orgContext(req), id, patch);
+    const ctx = orgContext(req);
+    const property = await updateProperty(db(), ctx, id, patch);
     if (!property) throw new HttpProblem(404, 'Property not found');
+    void deps.monitoring?.propertyChanged(ctx.organizationId);
     return { property };
   });
 
   app.delete('/v1/properties/:id', { preHandler: deps.requireOrg }, async (req, reply) => {
     const { id } = PropertyIdParamSchema.parse(req.params);
-    if (!(await deleteProperty(db(), orgContext(req), id))) throw new HttpProblem(404, 'Property not found');
+    const ctx = orgContext(req);
+    if (!(await deleteProperty(db(), ctx, id))) throw new HttpProblem(404, 'Property not found');
+    void deps.monitoring?.propertyChanged(ctx.organizationId);
     req.log.info({ propertyId: id }, 'property deleted');
     reply.code(204);
     return null;
@@ -81,6 +88,7 @@ export function registerCustomerRoutes(app: FastifyInstance, deps: CustomerRoute
 
   app.get('/v1/portfolio', { preHandler: deps.requireOrg }, async (req) => {
     const ctx = orgContext(req);
+    if (deps.monitoring) return deps.monitoring.portfolio(ctx);
     return buildLivePortfolio({
       clerkOrgId: ctx.clerkOrgId,
       orgSlug: ctx.orgSlug,

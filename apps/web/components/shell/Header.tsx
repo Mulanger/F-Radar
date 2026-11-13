@@ -8,6 +8,7 @@ import { IconBell, IconBuildingSimple, IconCalendar, IconChevronDown, IconPlus, 
 import { PropertyList } from '../properties/PropertyList';
 import { Popover } from '../ui/Popover';
 import { usePropertyEditor } from '../properties/PropertyEditorHost';
+import { LiveStatus } from './LiveStatus';
 
 const pill: React.CSSProperties = {
   height: 44,
@@ -65,6 +66,7 @@ export function Header() {
         <IconCalendar stroke="#6B737B" />
         <span style={{ color: C.text4 }}>Range</span>Today · next 48 h
       </div>
+      {!isDemo && <LiveStatus generatedAt={portfolio.generatedAt} />}
 
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
         <button

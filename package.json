@@ -23,7 +23,8 @@
     "db:migrate": "npm run migrate -w @fastighetsradar/db",
     "db:status": "npm run migrate:status -w @fastighetsradar/db",
     "services:up": "docker compose up -d",
-    "services:down": "docker compose down"
+    "services:down": "docker compose down",
+    "test:live": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --config vitest.live.config.mts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

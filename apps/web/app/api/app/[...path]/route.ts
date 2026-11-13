@@ -14,6 +14,11 @@ const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const ROUTES: Array<{ pattern: RegExp; methods: string[] }> = [
   { pattern: /^me$/, methods: ['GET'] },
   { pattern: /^portfolio$/, methods: ['GET'] },
+  { pattern: /^portfolio\/summary$/, methods: ['GET'] },
+  { pattern: new RegExp(`^properties/${UUID}/(snapshot|forecast|warnings|events|environment|flood)$`), methods: ['GET'] },
+  { pattern: /^sources\/status$/, methods: ['GET'] },
+  { pattern: /^changes$/, methods: ['GET'] },
+  { pattern: /^stream$/, methods: ['GET'] },
   { pattern: /^properties$/, methods: ['GET', 'POST'] },
   { pattern: new RegExp(`^properties/${UUID}$`), methods: ['GET', 'PATCH', 'DELETE'] },
   { pattern: /^geocoding\/suggestions$/, methods: ['GET'] },
@@ -54,7 +59,7 @@ async function handle(req: NextRequest, ctx: { params: Promise<{ path: string[] 
       method: req.method,
       token,
       body,
-      headers: body ? { 'content-type': 'application/json' } : undefined,
+      headers: path === 'stream' ? { accept: 'text/event-stream' } : body ? { 'content-type': 'application/json' } : undefined,
       signal: req.signal,
     });
   } catch {
@@ -64,7 +69,13 @@ async function handle(req: NextRequest, ctx: { params: Promise<{ path: string[] 
   const headers = new Headers({ 'cache-control': 'no-store' });
   const ct = upstream.headers.get('content-type');
   if (ct) headers.set('content-type', ct);
+  // Live stream (SSE): pass the body through unbuffered; it ends when either side disconnects.
+  if (path === 'stream' && upstream.ok && ct?.startsWith('text/event-stream')) {
+    headers.set('x-accel-buffering', 'no');
+    return new Response(upstream.body, { status: 200, headers });
+  }
   return new NextResponse(upstream.status === 204 ? null : await upstream.arrayBuffer(), { status: upstream.status, headers });
 }
 
+export const dynamic = 'force-dynamic';
 export { handle as GET, handle as POST, handle as PATCH, handle as DELETE };
