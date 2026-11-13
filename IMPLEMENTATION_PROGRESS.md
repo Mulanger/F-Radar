@@ -43,10 +43,36 @@ Base verified clean: `agent3/public-data-monitoring` at **d38f78e**. Dedicated b
 * New rule/transport/UI tests: **20/20 pass**.
 * Full real PostgreSQL 16 / PostGIS suite on `f-radar`, dedicated `fastighetsradar_test`: **21/21 pass**
   (10 existing Phase 3 tests plus 11 notification integration cases). No application database reset.
-* Full isolated unit regression, lint, typecheck, production build and release scan: pending final
-  release checkout verification. Shared-workspace regression currently also sees unrelated
-  in-progress localization edits; those are excluded rather than altered by this phase.
-* Deployment/post-release checks: pending. Only `f-radar` is authorized; Build plan remains unchanged.
+* Isolated release checkout at **1cd74ae**, based directly on d38f78e; unrelated localization excluded.
+  `npm ci`, `npm test`: **15 files / 132 tests pass** (including the 20 new tests).
+* `npm run lint`, `npm run typecheck`, `npm run build`: **pass**. API + Next.js production output
+  includes `/sms-rules`, authenticated short links and the prepared callback bridge.
+* `npm run test:live`: **9/9 pass** against the existing real public-data integrations.
+* `npm audit --omit=dev`: **zero production dependency vulnerabilities**. Full audit reports seven
+  inherited moderate development-tool findings through typescript-eslint/minimatch; unrelated
+  development-tool upgrades were not bundled into this phase. No high/critical findings reported.
+* Release secret scan: **1,720 files / seven configured secret values / clean**. No `.env` in release.
+* **Deployed 1cd74ae to https://f-radar.fr-2.instapods.app on 2026-11-13** via the guarded existing
+  deployment script. Verified pod `f-radar`, plan `build`, Clerk development instance; no other pod
+  was inspected, modified, restarted or deployed. No DNS, paid service or plan changes.
+* Migration 0004 applied safely; all four checksummed migrations recorded. `/health/ready` is ready,
+  PostgreSQL/PostGIS 3.4.2 healthy. All **12 scheduler jobs `ok`**, including `sms_notifications`.
+* Read active service environment (safe flag names only): `SMS_ENABLED=false`, `SMS_PROVIDER=simulated`,
+  `SMS_DRY_RUN=true`, `SMS_LIVE_SENDING_APPROVED=false`, global monthly/daily real allowances **0**,
+  future real organization monthly allowance **0**. No provider credentials were uploaded.
+* Signed-in Chrome: existing property data/maps/3D scene and water canvas render; Configure Alerts
+  opens `/sms-rules?property=<actual property ID>` with that property selected; catalog, pending
+  phone status, forecast controls, activity retention and zero-spend/test-mode notices verified.
+  No console errors. Browser check was read-only; persistence/CRUD are covered on real PostgreSQL.
+* Deployed worker smoke: temporary isolated tenant, actual stored SMHI forecast, synthetic unverified
+  test recipient, disabled rule tested explicitly. Durable `queued` → **`simulated`**, provider
+  `simulated`, one attempt, `verification_required=true`, message text cleared. Temporary tenant,
+  rule, property and recipient removed; remaining smoke tenants **0**. Only a non-identifying global
+  simulated usage reservation remains. No real SMS/gateway call or charge occurred.
+* Live unauthenticated notification API **401**; missing-auth form delivery callback **401**.
+  Cross-tenant API/FK isolation, role checks and callback replay/order behavior pass the real DB suite.
+* Previous application release remains `/home/instapod/app.prev`. Schema changes are additive: the
+  prior application can run against them; do not drop tables to roll back the application.
 
 ## Deliberate limitations / future work
 
@@ -56,7 +82,34 @@ remains outstanding. The real adapter's account-backed dry-run and actual cost/r
 must be reviewed in the separate activation release. Long-running collectors can delay the 30-second
 notification job. All such limits are explained in the notifications and activation documents.
 
-Final deployment result and acceptance matrix will be recorded after release verification.
+## Acceptance matrix
+
+| Criterion | Result / evidence |
+|---|---|
+| 1. Customer dashboard rule management | Complete; existing navigation/detail controls + deployed UI verified |
+| 2. PostgreSQL persistence | Complete; real API CRUD/reload tests |
+| 3. Actual tenant properties / organizations | Complete; tenant-scoped records and composite foreign keys |
+| 4. Phase 3 events drive evaluation | Complete; existing changes/matches/versions + normalized forecasts |
+| 5. Matching events create simulations | Complete; real integration suite and deployed-worker smoke |
+| 6. Polling deduplication | Complete; unique keys, cursors, concurrent/restart tests |
+| 7. Quiet hours / cooldown | Complete; DST, terminal suppression, cooldown tests |
+| 8. Verification infrastructure | Complete; unavailable real channel, test-only fake, expiry/attempt limits |
+| 9. No real delivery to unverified numbers | Complete; verified-evidence gate plus unconditional Phase 4 live lock |
+| 10. Restart-safe outbox | Complete; durable claims, leases, retries, unknown outcomes tested |
+| 11. Cost / frequency controls | Complete in simulation; backend reservations + zero permitted real spend |
+| 12. Prepared disabled 46elks adapter | Complete; serializers/parser/error/timeout/dry-run tests, no live request |
+| 13. Current config cannot send real SMS | Complete; running flags verified and code-level locks |
+| 14. Tenant isolation | Complete; API and real PostgreSQL composite-FK tests |
+| 15. Dashboard / monitoring regression | Complete; regression/live tests and signed-in visual check |
+| 16. Tests and production build | Complete; 132 + 21 + 9 tests, lint/typecheck/build/secret scan pass |
+| 17. Deploy f-radar | Complete; deployed application 1cd74ae, health and scheduler verified |
+| 18. Forbidden pod untouched | Complete; tooling restricted to f-radar; no other pod access |
+| 19. No added paid services | Complete; existing pod/PostgreSQL/scheduler only; zero SMS charges |
+| 20. Documentation | Complete; this report, notifications architecture, separate activation checklist, README/env |
+
+No Phase 4 acceptance criterion is left incomplete. Deliberately unavailable live channels, optional
+future categories, source-license approval and the separate paid activation release are limitations
+listed above, not silently enabled features.
 
 ---
 

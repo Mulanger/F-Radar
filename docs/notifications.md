@@ -274,6 +274,30 @@ engineering inventory, not a legal compliance certification.
 
 ## Validation, deployment and limitations
 
+Application **1cd74ae** deployed to `f-radar` on **2026-11-13**. Migration 0004 applied, all 12 jobs
+healthy, active service flags confirmed disabled/simulated with zero real allowances. Isolated release
+checks: **132 unit/DOM/regression + 21 real PostgreSQL/PostGIS + nine live provider tests passed**;
+lint/typecheck/API and Next production builds/secret scan passed. Production dependency audit clean;
+seven inherited moderate development-tool audit findings are documented in the root report.
+
+Signed-in browser verified the property-specific Configure Alerts route, actual property selection,
+forecast form, pending-phone/test-mode/zero-spend displays, current environmental data, 3D scene and
+water canvas; no console errors. One temporary deployment smoke tenant used a real stored normalized
+SMHI forecast and an unverified synthetic test number: the actual deployed worker produced
+`simulated`, one attempt, cleared text and no real delivery. All temporary tenant records were removed.
+Its non-identifying global simulated reservation remains by design. This did not change the owner's
+customer rules or phone settings. Unauthenticated API and callback requests returned 401.
+
+Rollback: previous application at `/home/instapod/app.prev`; migration 0004 is additive. Retain its
+tables when rolling back the application so rules/outbox data are preserved. No other pod was accessed,
+no paid infrastructure/account/credits were added, and Clerk Production/DNS were untouched.
+
+`scripts/notification-smoke.mts` preserves the guarded deployment smoke workflow for engineers.
+It requires explicit `PHASE4_DEPLOYMENT_SMOKE=1` and the FastighetsRadar database, creates only a
+randomly named isolated smoke tenant, never calls a transport itself, and cleans only its own verified
+completed test tenant. Invoke `setup`, then `status <org UUID>`, then `cleanup <org UUID>` using the
+existing f-radar-only operations wrapper. It is not a public endpoint or a fixture feed for customers.
+
 See the Phase 4 entry in `IMPLEMENTATION_PROGRESS.md` for final commands/results, deployed commit and
 acceptance matrix. Automated suites include server validation, Swedish numbers, threshold hysteresis,
 stale/missing data, warning versions/severity, old events, DST quiet hours, auth/roles, encoding,

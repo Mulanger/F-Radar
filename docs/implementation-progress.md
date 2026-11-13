@@ -10,4 +10,4 @@ at the repository root.
 | 2 – Auth, organisations, properties | Agent 2 | Done on a Clerk **development** instance; deployed to https://f-radar.fr-2.instapods.app | Production Clerk instance (clerk.f-radar.se) needs DNS + domain on the pod |
 | 2.5 – Geoapify maps & stabilization | Agent 2.5 | Done – Geoapify `positron` tiles live, regression verified, ready for Phase 3 | Tile referer restriction not enforced by provider (monitor usage) |
 | 3 – Geo engine, public data & monitoring | Agent 3 | Done – 9 providers collected centrally, PostGIS matching, live SSE dashboard on f-radar | smhi_oceanography not implemented; SGU observed stations partial |
-| 4 – SMS rules and simulated delivery | Agent 4 | Implemented; final release verification pending (see root report) | Real sending deliberately locked; future verification channel/account activation separate |
+| 4 – SMS rules and simulated delivery | Agent 4 | Done — application 1cd74ae deployed to f-radar; 132 regression + 21 DB + 9 live tests pass | Real sending deliberately locked; future verification channel/account activation separate |
