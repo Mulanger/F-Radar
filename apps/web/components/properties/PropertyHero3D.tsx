@@ -42,7 +42,7 @@ export function PropertyHero3D({ d, isDemo }: { d: DetailVM; isDemo: boolean }) 
       </div>
       <div className="fr-hero-stats" style={{ position: 'absolute', top: 20, right: 20, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
         {panel(`Vattennivå · ${d.water.body}`, d.water.level, d.water.trend, d.water.fc)}
-        {panel('Larmradie 1 km', `${d.eventsN} händelser`, `${d.crisisN} kris · ${d.trafficN} trafik`, C.text4)}
+        {panel('I närheten', `${d.trafficN} ${d.trafficN === 1 ? 'trafikhändelse' : 'trafikhändelser'}`, `${d.crisisN} ${d.crisisN === 1 ? 'regionalt meddelande' : 'regionala meddelanden'} (län)`, C.text4)}
       </div>
       <div className="fr-hero-bottom" style={{ position: 'absolute', left: 20, bottom: 20, right: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <div

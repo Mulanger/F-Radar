@@ -17,7 +17,7 @@ import type {
   WarningLevel,
   WeatherForecast,
 } from '@fastighetsradar/domain';
-import { formatWeekdayClock } from '@fastighetsradar/domain';
+import { assessPropertyRisk, formatWeekdayClock } from '@fastighetsradar/domain';
 import type { OrgContextRow, OrgEventRow, OrgForecastRow, OrgMonitoringData, OrgObservationRow } from '@fastighetsradar/db';
 import {
   AIR_PHENOMENA,
@@ -38,7 +38,8 @@ import { freshnessOf, FRESHNESS_WINDOW_S } from './status';
  *  - Data classes are kept apart: forecast metrics are labelled forecast, station values are
  *    observations with distance + time, warnings are official, events are public information.
  *  - Property status = highest ACTIVE OFFICIAL warning matched to the property's point
- *    (documented `statusMethod`). No risk score is computed; `demoRisk` stays null.
+ *    (documented `statusMethod`); a VMA naming other municipalities in the county gives Monitor.
+ *  - `riskIndex` follows the documented, conservative method in docs/decisions/0003-riskindex.md.
  *  - Missing/old data is never shown as normal: unavailable values are omitted (UI shows "—").
  */
 
@@ -222,7 +223,9 @@ function toWarning(e: OrgEventRow): OfficialWarning {
     sourceUrl: e.source_url,
     geo: e.match_method === 'polygon_intersection'
       ? { match: 'polygon_intersection', distanceMeters: 0, note: 'Fastighetens punkt ligger inom varningsområdet' }
-      : { match: e.match_method === 'municipality' ? 'municipality' : 'county', note: 'Regional publicering (län/kommun)' },
+      : e.match_method === 'municipality'
+        ? { match: 'municipality', note: 'Meddelandet gäller fastighetens kommun eller hela länet' }
+        : { match: 'county', note: 'Meddelandet gäller andra kommuner i samma län' },
     origin: 'live',
   };
 }
@@ -353,10 +356,12 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
   let status: PropertyStatus = 'unknown';
   let reason = 'Varningskällor är inte aktuella – status kan inte bedömas';
   for (const w of official) {
-    const st = LEVEL_STATUS[w.level];
+    // A VMA that names other municipalities in the county is not a crisis at this property (ADR 0003).
+    const otherMunicipality = w.level === 'VMA' && w.geo.match === 'county';
+    const st = otherMunicipality ? 'monitor' : LEVEL_STATUS[w.level];
     if (st && STATUS_RANK[st] > STATUS_RANK[status]) {
       status = st;
-      reason = `${LEVEL_SV[w.level]}: ${w.type} (${w.sourceLabel})`;
+      reason = otherMunicipality ? `VMA för andra kommuner i länet: ${w.type} (${w.sourceLabel})` : `${LEVEL_SV[w.level]}: ${w.type} (${w.sourceLabel})`;
     }
   }
   if (status === 'unknown' && sourceOk(statuses, 'smhi_warnings')) {
@@ -376,7 +381,7 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
     }),
   ];
 
-  return {
+  const snapshot: PropertySnapshot = {
     ...base,
     property: { ...base.property, countyCode: county?.code ?? null, status, statusReason: reason },
     metrics: [...forecastMetrics(p.id, forecastRow, now), ...airMetrics(p.id, obs, now)],
@@ -397,6 +402,8 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
       coverage,
     },
   };
+  // Riskindex v1 (docs/decisions/0003-riskindex.md) – same source-currency rule as the status.
+  return { ...snapshot, riskIndex: assessPropertyRisk(snapshot, (id) => sourceOk(statuses, id)) };
 }
 
 /* ------------------------------------------------------------------ */

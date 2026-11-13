@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { PropertyStatus, WarningLevel } from '@fastighetsradar/domain';
+import { RISK_LEVEL_SV, type PropertyStatus, type RiskLevel, type WarningLevel } from '@fastighetsradar/domain';
 
 /**
  * Design tokens extracted verbatim from the approved prototype
@@ -50,9 +50,24 @@ export const SEV: Record<Exclude<PropertyStatus, 'unknown'>, SeverityStyle> & { 
 
 export const STATUS_ORDER = ['normal', 'monitor', 'warning', 'critical'] as const;
 
-/** Swedish labels for event categories and mapped flood exposure classes. */
-export const CATEGORY_SV: Record<string, string> = { Crisis: 'Kris', Traffic: 'Trafik', Water: 'Vatten', Air: 'Luft', Weather: 'Väder', Info: 'Info' };
-export const EXPOSURE_SV: Record<string, string> = { High: 'Hög', Medium: 'Medel', Low: 'Låg', unknown: 'Okänd' };
+/**
+ * Swedish labels for event categories and mapped flood exposure classes (ADR 0003: never overstate).
+ * Krisinformation news is regional (county) information – not a crisis at the property.
+ * Flood classes are STATIC mapped scenarios, so they are named by scenario, not as "Hög" risk.
+ */
+export const CATEGORY_SV: Record<string, string> = { Crisis: 'Länsinfo', Traffic: 'Trafik', Water: 'Vatten', Air: 'Luft', Weather: 'Väder', Info: 'Info' };
+export const EXPOSURE_SV: Record<string, string> = { High: '100-årsflöde', Medium: '200-årsflöde', Low: 'Högsta flöde', unknown: 'Okänd' };
+/** Static mapped exposure is never shown in warning colours. */
+export const exposureStyle = (cls: string): SeverityStyle => (cls === 'High' || cls === 'Medium' ? SEV.monitor : cls === 'Low' ? SEV.normal : SEV.unknown);
+
+/** Riskindex v1 levels → colours of the four status steps, with the index's own labels. */
+export const RISK_STYLE: Record<RiskLevel, SeverityStyle> = {
+  low: { ...SEV.normal, label: RISK_LEVEL_SV.low },
+  watch: { ...SEV.monitor, label: RISK_LEVEL_SV.watch },
+  elevated: { ...SEV.warning, label: RISK_LEVEL_SV.elevated },
+  high: { ...SEV.critical, label: RISK_LEVEL_SV.high },
+};
+export const riskStyle = (level: RiskLevel | null | undefined): SeverityStyle => (level ? RISK_STYLE[level] : SEV.unknown);
 
 export const WL: Record<WarningLevel, { bg: string; fg: string; label: string }> = {
   Yellow: { bg: 'oklch(0.94 0.08 95)', fg: 'oklch(0.45 0.1 85)', label: 'Gul' },

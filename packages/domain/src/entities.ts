@@ -12,6 +12,7 @@ import {
   SourceIdSchema,
 } from './common';
 import { PropertyMonitoringContextSchema } from './monitoring';
+import { RiskIndexSchema } from './risk-index';
 
 /* ------------------------------------------------------------------ */
 /* Property & portfolio                                                */
@@ -278,10 +279,8 @@ export type AlertRule = z.infer<typeof AlertRuleSchema>;
 /* ------------------------------------------------------------------ */
 
 /**
- * The approved design shows a 0–100 "risk score" with five factors.
- * No risk methodology has been defined or approved (IMPLEMENTATION.md §14.1, §20).
- * These values exist ONLY in demo fixtures; live mode must leave `demoRisk` null
- * and must not compute a score until a documented, approved method exists.
+ * Legacy hand-picked demo values from before the risk method existed. Not displayed any more:
+ * the dashboard shows `riskIndex` (docs/decisions/0003-riskindex.md) in both live and demo mode.
  */
 export const DemoRiskAssessmentSchema = z.object({
   method: z.literal('unspecified_demo_value'),
@@ -316,6 +315,8 @@ export const PropertySnapshotSchema = z.object({
   }),
   activeAlertCount: z.number().int().nonnegative(),
   demoRisk: DemoRiskAssessmentSchema.nullable(),
+  /** Riskindex v1 (docs/decisions/0003-riskindex.md). Absent in old payloads. */
+  riskIndex: RiskIndexSchema.nullable().optional(),
   /** Live monitoring context (Phase 3). Absent in demo fixtures. */
   monitoring: PropertyMonitoringContextSchema.nullable().optional(),
 });

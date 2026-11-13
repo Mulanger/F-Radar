@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 // Clerk server helpers are mocked: the loader must only forward the session token.
 const authMock = vi.fn();
 vi.mock('@clerk/nextjs/server', () => ({ auth: () => authMock() }));
-import type { Portfolio, PropertySnapshot } from '@fastighetsradar/domain';
+import { assessPropertyRisk, portfolioRisk, type Portfolio, type PropertySnapshot } from '@fastighetsradar/domain';
 import { demoPortfolio } from '@fastighetsradar/domain/fixtures';
 import { buildOverviewVM } from '@/lib/view-models/overview';
 import { buildDetailVM } from '@/lib/view-models/detail';
@@ -34,18 +34,23 @@ describe('overview view-model reproduces the approved design values', () => {
   });
 
   it('hero and health', () => {
-    expect(vm.hero.risk).toBe('43');
+    // Riskindex v1 (ADR 0003) replaces the hand-picked demo score: mean of the properties' index.
+    const pr = portfolioRisk(demoPortfolio.properties.map((x) => ({ name: x.property.name, risk: x.riskIndex })));
+    expect(vm.hero.risk).toBe(String(pr.score));
+    expect(vm.hero.riskLabel).toMatch(new RegExp(`^(Låg|Bevaka) · högst Ulvsunda Lager \\(${pr.highest!.score}\\)$`));
     expect(vm.hero.avgTemp).toBe('3,9');
     expect(vm.hero.maxRain).toBe('22,1');
     expect(vm.hero.maxRainAt).toBe('Augustendal Brygga');
     expect(vm.hero.gust).toBe('25');
     expect(vm.healthPct).toBe(38);
-    expect(vm.cats.map((c) => c.n)).toEqual([4, 3, 2, 6, 2]);
+    // Weather / water / VMA at "Bevaka" or higher – regional news, static flood mapping, traffic and air never count.
+    expect(vm.cats.map((c) => [c.label, c.n])).toEqual([['Väder', 1], ['Vatten', 3], ['VMA', 1]]);
   });
 
   it('table sorted by risk and feed formatted in local time', () => {
-    expect(vm.rows[0]!.name).toBe('Augustendal Brygga');
-    expect(vm.rows[0]!.warn).toBe('Orange · Kraftig vind');
+    expect(vm.rows.map((r) => r.name).slice(0, 2)).toEqual(['Ulvsunda Lager', 'Augustendal Brygga']); // VMA in its municipality, then orange wind
+    expect(vm.rows[1]!.warn).toBe('Orange · Kraftig vind');
+    expect(vm.rows[0]!.nearby).not.toMatch(/kris/i);
     expect(vm.rows.find((r) => r.name === 'Ulvsunda Lager')!.aq).toBe('Dålig');
     expect(vm.feed[0]).toMatchObject({ t: '14:32', src: 'SMHI', prop: 'Augustendal Brygga' });
     expect(vm.dateLine).toBe('Onsdag 12 november · Stockholmsregionen · Demodata');
@@ -98,6 +103,8 @@ describe('missing data is never rendered as a normal value', () => {
     demoRisk: null,
     flood: { ...s.flood, mapped: { ...s.flood.mapped, exposureClass: 'unknown' }, waterBody: null },
   };
+  // Live payload whose warning sources are down: the method itself says "Ej bedömd" (never 0).
+  missing.riskIndex = assessPropertyRisk(missing, () => false);
   const portfolio: Portfolio = { ...demoPortfolio, origin: 'live', properties: [missing], feed: [], demoTrends: null };
 
   it('shows em dashes and "Not assessed" instead of zeros or "Normal"', () => {

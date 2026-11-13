@@ -1,5 +1,5 @@
 import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
-import { PropertyIdParamSchema, type StreamUpdate } from '@fastighetsradar/domain';
+import { portfolioRisk, PropertyIdParamSchema, type StreamUpdate } from '@fastighetsradar/domain';
 import { resolveSmsMode, type ServerEnv } from '@fastighetsradar/config';
 import { resolveSourceStatuses } from '@fastighetsradar/integrations';
 import { orgContext } from '../auth';
@@ -46,7 +46,8 @@ export function registerMonitoringRoutes(app: FastifyInstance, deps: MonitoringR
       properties: p.properties.length,
       byStatus,
       statusMethod: 'highest_official_warning',
-      riskScore: null,
+      riskScore: portfolioRisk(p.properties.map((s) => ({ name: s.property.name, risk: s.riskIndex }))).score,
+      riskMethod: 'fr_risk_index_v1',
       activeOfficialWarnings: p.properties.reduce((a, s) => a + s.activeAlertCount, 0),
       publicEvents: p.properties.reduce((a, s) => a + s.events.length, 0),
       sources: p.sources.map((s) => ({ sourceId: s.sourceId, status: s.status, freshness: s.freshness, lastSuccessAt: s.lastSuccessAt })),

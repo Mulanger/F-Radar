@@ -1,9 +1,9 @@
 import type { Portfolio, PropertySnapshot, PropertyStatus } from '@fastighetsradar/domain';
-import { formatClock, formatLongDate, formatNumber } from '@fastighetsradar/domain';
-import { C, EXPOSURE_SV, SEV, STATUS_ORDER, WL } from '../design/tokens';
+import { formatClock, formatLongDate, formatNumber, portfolioRisk, type RiskFactorKey } from '@fastighetsradar/domain';
+import { C, EXPOSURE_SV, SEV, STATUS_ORDER, WL, riskStyle } from '../design/tokens';
 import { smooth } from './chart';
 import { rulesFor, eventCounts } from './rules';
-import { availability, isOfficialLevel, metricValue, n0, riskSeverity, show } from './snapshot';
+import { availability, isOfficialLevel, mappedExposure, metricValue, n0, riskScore, show } from './snapshot';
 
 /**
  * Portfolio Overview view-model – a faithful port of the prototype's `renderVals()`
@@ -19,7 +19,9 @@ export interface OverviewUi {
 
 type CountedStatus = (typeof STATUS_ORDER)[number];
 const sev = (st: PropertyStatus) => SEV[st] ?? SEV.unknown;
-const riskOf = (s: PropertySnapshot) => s.demoRisk?.score ?? null;
+const riskOf = riskScore;
+/** Properties where a risk factor reaches "Bevaka" or higher (ADR 0003) – static data alone never counts. */
+const factorAtLeastWatch = (s: PropertySnapshot, key: RiskFactorKey) => (s.riskIndex?.factors.find((f) => f.key === key)?.points ?? 0) >= 25;
 
 export function filterByGroup(p: Portfolio, group: string) {
   return group === 'all' ? p.properties : p.properties.filter((s) => s.property.segment === group);
@@ -67,8 +69,8 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
   const spMax = Math.max(...sp, 1);
   const spark = sp.length ? smooth(sp.map((v, i) => [(i / (sp.length - 1)) * 100, 28 - (v / spMax) * 24])) : '';
 
-  const risks = list.map(riskOf).filter((v): v is number => v !== null);
-  const avgRisk = risks.length ? Math.round(risks.reduce((a, b) => a + b, 0) / risks.length) : null;
+  const pr = portfolioRisk(list.map((s) => ({ name: s.property.name, risk: s.riskIndex })));
+  const avgRisk = pr.score;
   const maxRainP = [...list].sort((a, b) => n0(rain(b)) - n0(rain(a)))[0];
   const gustP = [...list].sort((a, b) => n0(gust(b)) - n0(gust(a)))[0];
   const temps = list.map(temp).filter((v): v is number => v !== null);
@@ -83,12 +85,12 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     return o;
   });
 
+  // Per risk factor: properties at "Bevaka" or higher. Regional news, static flood mapping, traffic and
+  // outdoor air can never reach that alone, so they do not inflate these bars (ADR 0003).
   const catsRaw = [
-    { label: 'Väder', n: list.filter((s) => n0(rain(s)) >= 15 || n0(gust(s)) >= 15 || s.warnings.some((w) => w.level === 'Yellow' || w.level === 'Orange')).length, c: 'oklch(0.6 0.1 240)' },
-    { label: 'Vatten', n: list.filter((s) => s.flood.mapped.exposureClass === 'High' || s.flood.mapped.exposureClass === 'Medium').length, c: 'oklch(0.62 0.08 215)' },
-    { label: 'Kris', n: list.filter((s) => eventCounts(s).crisis > 0).length, c: 'oklch(0.6 0.17 28)' },
-    { label: 'Trafik', n: list.filter((s) => eventCounts(s).traffic > 0).length, c: 'oklch(0.68 0.14 60)' },
-    { label: 'Luftkvalitet', n: list.filter((s) => n0(aqi(s)) > 50).length, c: 'oklch(0.62 0.11 155)' },
+    { label: 'Väder', n: list.filter((s) => factorAtLeastWatch(s, 'weather')).length, c: 'oklch(0.6 0.1 240)' },
+    { label: 'Vatten', n: list.filter((s) => factorAtLeastWatch(s, 'water')).length, c: 'oklch(0.62 0.08 215)' },
+    { label: 'VMA', n: list.filter((s) => factorAtLeastWatch(s, 'vma')).length, c: 'oklch(0.6 0.17 28)' },
   ];
   const catMax = Math.max(1, ...catsRaw.map((c) => c.n));
 
@@ -98,7 +100,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     const st = sev(p.status);
     const w = s.warnings.find((x) => isOfficialLevel(x.level));
     const on = ui.isSmsOn(s);
-    const flood = s.flood.mapped.exposureClass;
+    const flood = mappedExposure(s);
     const fl = lvlC[flood];
     const fc = flood === 'High' ? 'oklch(0.58 0.1 225)' : flood === 'Medium' ? 'oklch(0.68 0.08 220)' : 'oklch(0.75 0.05 220)';
     const ev = eventCounts(s);
@@ -122,12 +124,14 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
       f1: fl >= 1 ? fc : C.trackOff,
       f2: fl >= 2 ? fc : C.trackOff,
       f3: fl >= 3 ? fc : C.trackOff,
-      nearby: `${ev.crisis} kris · ${ev.traffic} trafik`,
+      nearby: `${ev.traffic} trafik · ${ev.crisis} länsinfo`,
       aq: a === null ? '—' : a > 75 ? 'Dålig' : a > 50 ? 'Måttlig' : 'Bra',
       aqC: a === null ? SEV.unknown.c : a > 75 ? SEV.critical.c : a > 50 ? SEV.warning.c : SEV.normal.c,
       alerts: s.activeAlertCount,
       risk: show(risk),
       riskW: ready && risk !== null ? risk + '%' : '0%',
+      riskC: riskStyle(s.riskIndex?.level).c,
+      riskTitle: s.riskIndex ? `${riskStyle(s.riskIndex.level).label}: ${s.riskIndex.summary}` : 'Ej bedömd',
       smsOn: on,
       snapshot: s,
     };
@@ -157,7 +161,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     active: ui.group === g.id,
   }));
 
-  const riskSevKey = avgRisk === null ? null : riskSeverity(avgRisk);
+  const riskSt = riskStyle(pr.level);
   const upcomingTone = { monitor: SEV.monitor.c, critical: SEV.critical.c, warning: SEV.warning.c, cold: 'oklch(0.6 0.1 265)' };
 
   const avail = availability(portfolio);
@@ -177,8 +181,8 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     hero: {
       count: list.length,
       risk: show(avgRisk),
-      riskC: riskSevKey ? SEV[riskSevKey].c : SEV.unknown.c,
-      riskLabel: riskSevKey ? SEV[riskSevKey].label : 'Ej bedömd',
+      riskC: riskSt.c,
+      riskLabel: pr.level ? `${riskSt.label} · högst ${pr.highest!.name} (${pr.highest!.score})` : 'Ej bedömd',
       riskDelta: portfolio.demoTrends?.riskDeltaLabel ?? null,
       riskDash: `${ready && avgRisk !== null ? (avgRisk / 100) * C30 : 0} ${C30}`,
       avgTemp: temps.length ? formatNumber(temps.reduce((a, b) => a + b, 0) / temps.length, 1) : '—',

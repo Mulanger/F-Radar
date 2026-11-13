@@ -1,10 +1,11 @@
 import type { Portfolio, PropertySnapshot, PropertyStatus } from '@fastighetsradar/domain';
 import { formatClock, formatDistance, formatNumber, formatWeekdayClock } from '@fastighetsradar/domain';
-import { CATEGORY_SV, EXPOSURE_SV, SEV, WL, type SeverityStyle } from '../design/tokens';
+import { riskLevelOf, type GeographicEvent } from '@fastighetsradar/domain';
+import { CATEGORY_SV, EXPOSURE_SV, SEV, WL, exposureStyle, riskStyle, type SeverityStyle } from '../design/tokens';
 import type { ChartMetric } from '../state/dashboard-state';
 import { chartOf } from './chart';
 import { eventCounts, rulesFor, type RuleView } from './rules';
-import { availability, forecastValues, metricValue, riskSeverity, show, sourceLine } from './snapshot';
+import { availability, forecastValues, mappedExposure, metricValue, show, sourceLine } from './snapshot';
 
 /**
  * Property Detail view-model – port of the prototype's `renderVals()` detail section.
@@ -63,7 +64,7 @@ export function buildDemoTimeline(s: PropertySnapshot, rules: RuleView[], smsOn:
   s.events.slice(0, 2).forEach((e, i) =>
     tl.push({ time: ['13:48', '11:20'][i]!, title: e.title, detail: e.sourceLabel + ' · ' + formatDistance(e.geo.distanceMeters), c: sev(e.severity === 'unknown' ? 'unknown' : e.severity).c }),
   );
-  tl.push({ time: '09:00', title: 'Daglig riskbedömning', detail: `Riskpoäng uppdaterad till ${show(s.demoRisk?.score)}`, c: '#9AA1A8' });
+  tl.push({ time: '09:00', title: 'Daglig riskbedömning', detail: `Riskpoäng uppdaterad till ${show(s.riskIndex?.score)}`, c: '#9AA1A8' });
   tl.push({ time: 'Igår', title: 'Avslutad — gul varning, vind', detail: 'SMHI · stängdes automatiskt efter 18 h', c: 'oklch(0.55 0.12 155)' });
   tl.sort((a, b) => (b.time === 'Igår' ? -1 : 0) - (a.time === 'Igår' ? -1 : 0) || b.time.localeCompare(a.time));
   return tl;
@@ -86,7 +87,8 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
   const aqi = metricValue(s, 'air_quality.index');
   const pm = metricValue(s, 'air_quality.pm25');
   const no2 = metricValue(s, 'air_quality.no2');
-  const risk = s.demoRisk?.score ?? null;
+  const ri = s.riskIndex ?? null;
+  const risk = ri?.score ?? null;
 
   // Forecast chart
   const mt = CHART_METAS[ui.metric];
@@ -106,20 +108,22 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
 
   const GC = 2 * Math.PI * 66;
   const arc = GC * 0.75;
-  const gs = risk === null ? null : riskSeverity(risk);
+  const gst = riskStyle(ri?.level);
   const HC = 2 * Math.PI * 26;
 
   const rules = rulesFor(s, ui.isRuleOn);
   const on = ui.smsOn;
-  const flood = s.flood.mapped.exposureClass;
-  const fS = flood === 'High' ? SEV.critical : flood === 'Medium' ? SEV.warning : flood === 'Low' ? SEV.normal : SEV.unknown;
+  const flood = mappedExposure(s);
+  // Static mapped scenario – shown in neutral colours, never as a red/orange warning (ADR 0003).
+  const fS = exposureStyle(flood);
   const lvlM = s.flood.waterBody?.level;
   const lvl = lvlM && lvlM.availability === 'ok' && typeof lvlM.value === 'number' ? lvlM.value : null;
   const fdist = s.flood.mapped.distanceToZoneMeters;
   const ev = eventCounts(s);
-  const evKind = { Crisis: SEV.critical, Traffic: SEV.warning, Water: SEV.monitor, Air: SEV.normal, Weather: SEV.monitor, Info: SEV.normal };
-  const factorLabels = ['Väder', 'Vatten', 'Kris', 'Trafik', 'Luft'] as const;
-  const fac = s.demoRisk ? [s.demoRisk.factors.weather, s.demoRisk.factors.water, s.demoRisk.factors.crisis, s.demoRisk.factors.traffic, s.demoRisk.factors.air] : null;
+  // Regional Krisinformation news is neutral information; traffic is coloured by Trafikverket's own impact grade.
+  const evKind = { Crisis: SEV.unknown, Traffic: SEV.unknown, Water: SEV.monitor, Air: SEV.normal, Weather: SEV.monitor, Info: SEV.normal };
+  const evStyle = (e: GeographicEvent) => (e.category === 'Traffic' ? (e.severity === 'warning' ? SEV.warning : e.severity === 'monitor' ? SEV.monitor : SEV.unknown) : evKind[e.category]);
+  const FACTOR_LABELS = ['Väder', 'Vatten', 'VMA', 'Framkomlighet', 'Luft (utomhus)'];
 
   const avail = availability(portfolio);
   const live = p.origin === 'live';
@@ -179,16 +183,21 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
     gauge: {
       track: `${arc} ${GC}`,
       val: `${ready && risk !== null ? (risk / 100) * arc : 0} ${GC}`,
-      c: gs ? SEV[gs].c : SEV.unknown.c,
-      bg: gs ? SEV[gs].bg : SEV.unknown.bg,
-      label: gs ? SEV[gs].label : 'Ej bedömd',
+      c: gst.c,
+      bg: gst.bg,
+      label: ri?.level ? gst.label : 'Ej bedömd',
     },
-    factors: factorLabels.map((label, i) => ({
-      label,
-      v: fac ? String(fac[i]) : '—',
-      w: ready && fac ? fac[i] + '%' : '0%',
-      c: fac ? SEV[riskSeverity(fac[i]!)].c : SEV.unknown.c,
-    })),
+    riskSummary: ri?.summary ?? 'Ingen riskbedömning finns för fastigheten ännu.',
+    riskMeta: ri ? (ri.score === null ? `Ej bedömd · ${ri.assessedFactors} av ${ri.factors.length} faktorer kontrollerade` : `Riskindex v1 · ${ri.assessedFactors} av ${ri.factors.length} faktorer bedömda`) : 'Ej bedömd',
+    factors: ri
+      ? ri.factors.map((f) => ({
+          label: f.label,
+          v: f.short,
+          title: f.reason,
+          w: ready && f.points !== null ? Math.max(f.points, f.points > 0 ? 3 : 0) + '%' : '0%',
+          c: f.points === null ? SEV.unknown.c : riskStyle(riskLevelOf(f.points)).c,
+        }))
+      : FACTOR_LABELS.map((label) => ({ label, v: '—', title: 'Ej bedömd', w: '0%', c: SEV.unknown.c })),
     warnings: s.warnings.map((w) => ({
       id: w.id,
       level: w.level,
@@ -254,8 +263,8 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
       src: e.sourceLabel,
       dist: formatDistance(e.geo.distanceMeters),
       time: e.timeLabel ?? (e.validFrom ? sinceLabel(e.validFrom, portfolio.generatedAt, live) : '—'),
-      c: evKind[e.category].c,
-      bg: evKind[e.category].bg,
+      c: evStyle(e).c,
+      bg: evStyle(e).bg,
       hx: sev(e.severity === 'unknown' ? 'unknown' : e.severity).hx,
       location: e.location,
     })),

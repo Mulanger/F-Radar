@@ -2,7 +2,7 @@
 
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { C, FONT_MONO, SEV } from '@/lib/design/tokens';
-import { show } from '@/lib/view-models/snapshot';
+import { riskScore, show } from '@/lib/view-models/snapshot';
 
 /**
  * Property picker rows used by the header "Quick switch" (`variant="status"`) and the
@@ -46,7 +46,7 @@ export function PropertyList({
             {variant === 'status' ? (
               <span style={{ fontSize: 11.5, color: st.c }}>{st.label}</span>
             ) : (
-              <span style={{ fontFamily: FONT_MONO, fontSize: 11.5, color: C.text3 }}>Risk {show(s.demoRisk?.score)}</span>
+              <span style={{ fontFamily: FONT_MONO, fontSize: 11.5, color: C.text3 }}>Risk {show(riskScore(s))}</span>
             )}
           </div>
         );

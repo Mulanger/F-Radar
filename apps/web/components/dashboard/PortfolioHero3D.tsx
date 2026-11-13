@@ -58,7 +58,7 @@ export function PortfolioHero3D({ vm, isDemo }: { vm: OverviewVM; isDemo: boolea
           <circle cx="34" cy="34" r="28" fill="none" stroke={h.riskC} strokeWidth="6" strokeLinecap="round" strokeDasharray={h.riskDash} style={{ transition: 'stroke-dasharray 1.4s cubic-bezier(.2,.8,.2,1)' }} />
         </svg>
         <div style={{ position: 'relative' }}>
-          <div style={{ fontSize: 12, color: C.text3 }} title={isDemo ? 'Demovärde – ingen riskmetod är godkänd ännu' : undefined}>
+          <div style={{ fontSize: 12, color: C.text3 }} title={`Medelvärdet av fastigheternas riskindex (v1)${isDemo ? ' · demodata' : ''}. Bara aktuella officiella varningar kan ge Förhöjd eller Hög.`}>
             Portföljens riskpoäng
           </div>
           <div style={{ fontSize: 30, fontWeight: 500, letterSpacing: '-0.03em' }}>

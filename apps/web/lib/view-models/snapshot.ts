@@ -60,6 +60,15 @@ export function forecastValues(s: PropertySnapshot, key: MetricKey): number[] {
 
 export const isOfficialLevel = (level: string) => level !== 'Info';
 
-export function riskSeverity(v: number): 'critical' | 'warning' | 'monitor' | 'normal' {
-  return v >= 70 ? 'critical' : v >= 50 ? 'warning' : v >= 30 ? 'monitor' : 'normal';
+/**
+ * Mapped flood scenario that actually contains the address point (±50 m search box), else 'unknown'.
+ * Being merely NEAR a mapped area is not shown as exposure (ADR 0003) – same rule as the risk index.
+ */
+export function mappedExposure(s: PropertySnapshot): 'High' | 'Medium' | 'Low' | 'unknown' {
+  const m = s.flood.mapped;
+  if (m.availability !== 'ok' || m.exposureClass === 'unknown') return 'unknown';
+  return m.distanceToZoneMeters === null || m.distanceToZoneMeters <= 50 ? m.exposureClass : 'unknown';
 }
+
+/** Riskindex v1 score of a property; null = "Ej bedömd" (docs/decisions/0003-riskindex.md). */
+export const riskScore = (s: PropertySnapshot): number | null => s.riskIndex?.score ?? null;

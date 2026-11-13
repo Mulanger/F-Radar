@@ -79,9 +79,9 @@ export function PropertyStatusTable({
                 {r.aq}
               </div>
               <div role="cell" style={{ fontSize: 14, fontWeight: 500 }}>{r.alerts}</div>
-              <div role="cell" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div role="cell" title={r.riskTitle} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ flex: 1, height: 5, borderRadius: 3, background: C.chip, overflow: 'hidden' }}>
-                  <div style={{ height: 5, borderRadius: 3, width: r.riskW, background: r.c, transition: 'width 1s' }} />
+                  <div style={{ height: 5, borderRadius: 3, width: r.riskW, background: r.riskC, transition: 'width 1s' }} />
                 </div>
                 <span style={{ fontFamily: FONT_MONO, fontSize: 12, width: 22, textAlign: 'right' }}>{r.risk}</span>
               </div>

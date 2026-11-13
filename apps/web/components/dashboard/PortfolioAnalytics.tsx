@@ -39,7 +39,7 @@ export function PortfolioAnalytics({ vm }: { vm: OverviewVM }) {
           </div>
         </div>
         <div style={{ flex: '1 1 260px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ fontSize: 12, color: C.text3 }}>Påverkade fastigheter per kategori</div>
+          <div style={{ fontSize: 12, color: C.text3 }} title="Fastigheter där riskfaktorn når Bevaka eller högre. Karterade scenarier, regional information, trafik och utomhusluft räknas inte här.">Fastigheter per riskfaktor · Bevaka eller högre</div>
           {vm.cats.map((c) => (
             <div key={c.label} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 24px', alignItems: 'center', gap: 12, fontSize: 13 }}>
               <span>{c.label}</span>

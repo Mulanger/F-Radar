@@ -13,7 +13,7 @@ export function LocalEventsPanel({ d }: { d: DetailVM }) {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
         {[
-          ['Krishändelser', d.crisisN],
+          ['Länsinfo', d.crisisN],
           ['Trafik', d.trafficN],
           ['Övrigt', d.otherN],
         ].map(([label, n]) => (

@@ -333,8 +333,14 @@ export async function rematchEvents(db: Queryable): Promise<MatchChange[]> {
        SELECT pr.id AS property_id, pr.organization_id, e.id AS event_id, e.version,
               CASE WHEN e.source_id = 'smhi_warnings' THEN 'polygon_intersection'
                    WHEN e.source_id = 'trafikverket' THEN 'within_radius'
-                   WHEN pr.county = ANY(e.county_names) OR '*' = ANY(e.county_names) THEN 'county'
-                   ELSE 'municipality' END AS match_method,
+                   -- Krisinformation: 'municipality' = the message covers the property's municipality (it names it,
+                   -- or names no municipality and so covers the whole county/country); 'county' = same county but
+                   -- only OTHER municipalities are named. A VMA there is not shown as a crisis (ADR 0003).
+                   WHEN jsonb_array_length(COALESCE(e.extra->'municipalities', '[]'::jsonb)) = 0 THEN 'municipality'
+                   WHEN pr.muni <> '' AND EXISTS (
+                        SELECT 1 FROM jsonb_array_elements_text(e.extra->'municipalities') m
+                         WHERE lower(regexp_replace(m, '\\s+(kommun|stad)$', '')) = pr.muni) THEN 'municipality'
+                   ELSE 'county' END AS match_method,
               CASE WHEN e.source_id = 'trafikverket' THEN round(ST_Distance(e.geom::geography, pr.location)::numeric, 0)
                    WHEN e.source_id = 'smhi_warnings' THEN 0 END AS distance_m
          FROM props pr

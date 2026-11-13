@@ -130,6 +130,29 @@ describe('property snapshot from stored data', () => {
     expect(blind.property.status).toBe('unknown');
   });
 
+  it('computes the documented risk index (ADR 0003) and is "Ej bedömd" without warning sources', () => {
+    const calm = buildPropertySnapshot(record, 'org_x', data(), statuses, NOW);
+    expect(calm.riskIndex).toMatchObject({ method: 'fr_risk_index_v1', level: 'low' });
+    expect(calm.riskIndex!.score).toBeLessThan(25);
+    const yellow = buildPropertySnapshot(record, 'org_x', data({ events: [event({})] as never }), statuses, NOW);
+    expect(yellow.riskIndex!.level).not.toBe('low');
+    const blind = buildPropertySnapshot(record, 'org_x', data(), resolveRuntimeStatuses(env, [job('smhi_warnings', { last_success_at: null, last_status: null })], NOW), NOW);
+    expect(blind.riskIndex).toMatchObject({ score: null, level: null });
+  });
+
+  it('does not call a VMA for other municipalities in the county a crisis', () => {
+    const vma = (match_method: string) =>
+      buildPropertySnapshot(record, 'org_x', data({ events: [event({ id: 'v1', source_id: 'krisinformation', data_class: 'OFFICIAL_WARNING', category: 'Crisis', level: 'VMA', severity: 'critical', match_method, distance_m: null })] as never }), statuses, NOW);
+    const own = vma('municipality');
+    expect(own.property.status).toBe('critical');
+    expect(own.riskIndex!.level).toBe('high');
+    const other = vma('county');
+    expect(other.property.status).toBe('monitor');
+    expect(other.property.statusReason).toContain('andra kommuner i länet');
+    expect(other.riskIndex!.level).toBe('watch');
+    expect(other.warnings[0]!.geo.note).toBe('Meddelandet gäller andra kommuner i samma län');
+  });
+
   it('labels Krisinformation news as regional public events and traffic with distance', () => {
     const s = buildPropertySnapshot(
       record,

@@ -25,6 +25,7 @@ import type {
 } from '../entities';
 import type { PropertyStatus } from '../common';
 import { syntheticSeries } from './synthetic-series';
+import { assessPropertyRisk } from '../risk-index';
 
 export const DEMO_ORGANIZATION_ID = 'demo-org';
 /** Reference "now" for the demo snapshot (design shows "Wednesday 12 November · 14:32"). */
@@ -385,7 +386,8 @@ function buildSnapshot(p: RawProperty): PropertySnapshot {
   };
 }
 
-const snapshots = RAW.map(buildSnapshot);
+// Demo uses the same documented method as live data (all demo sources count as current).
+const snapshots = RAW.map(buildSnapshot).map((s) => ({ ...s, riskIndex: assessPropertyRisk(s, () => true) }));
 
 const feed: FeedItem[] = RAW_FEED.map((f, i) => ({
   id: `demo-feed-${i}`,

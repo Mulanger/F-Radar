@@ -67,8 +67,8 @@ export function WaterRiskPanel({ d }: { d: DetailVM }) {
           <div style={cardTitle}>Vattenrisk</div>
           <div style={cardSub}>Översvämningsexponering och vattennivå</div>
         </div>
-        <span style={{ fontSize: 12, fontWeight: 500, padding: '4px 10px', borderRadius: 10, background: w.fbg, color: w.fc }} title="Exponering enligt karterade scenarier – inte en aktuell vattennivå">
-          Exponering: {w.flood}
+        <span style={{ fontSize: 12, fontWeight: 500, padding: '4px 10px', borderRadius: 10, background: w.fbg, color: w.fc }} title="Karterat översvämningsscenario (MCF) vid adresspunkten – statiskt, inte en aktuell vattennivå eller pågående översvämning">
+          Karterat: {w.flood}
         </span>
       </div>
       <div style={{ position: 'relative', height: 190, borderRadius: 18, overflow: 'hidden', background: 'linear-gradient(180deg,#F7FAFB,#E9F0F2)' }}>
