@@ -101,7 +101,7 @@ export function Sidebar() {
         <PendingLink icon={<IconMap />} label="Kartvy" />
         <PendingLink icon={<IconAnalytics />} label="Analys" />
         <div style={{ ...sectionLabel, padding: '22px 12px 8px' }}>Konfiguration</div>
-        {isDemo ? <PendingLink icon={<IconMessage />} label="SMS-regler" /> : <Link href="/sms-rules" aria-current={isSms?'page':undefined} style={{...navItem,...(isSms?navOn:navOff)}}><IconMessage/>SMS Rules</Link>}
+        {isDemo ? <PendingLink icon={<IconMessage />} label="SMS-regler" /> : <Link href="/sms-rules" aria-current={isSms?'page':undefined} style={{...navItem,...(isSms?navOn:navOff)}}><IconMessage/>SMS-regler</Link>}
         <PendingLink icon={<IconSliders />} label="Inställningar" />
       </nav>
 

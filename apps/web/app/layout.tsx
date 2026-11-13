@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { ClerkProvider } from '@clerk/nextjs';
-import { svSE } from '@clerk/localizations';
+import { clerkSv } from '@/lib/i18n/clerk-sv';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import { clerkAppearance } from '@/lib/design/clerk-appearance';
@@ -23,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ClerkProvider
           appearance={clerkAppearance}
-          localization={svSE}
+          localization={clerkSv}
           signInUrl="/sign-in"
           signUpUrl="/sign-up"
           signInFallbackRedirectUrl="/overview"
