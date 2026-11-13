@@ -29,14 +29,14 @@ export function PortfolioOverview() {
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: isDemo ? C.demo : C.live, animation: 'frBreath 2.4s ease-in-out infinite' }} />
             {vm.dateLine}
           </div>
-          <h1 style={{ margin: '8px 0 0', fontSize: 42, lineHeight: 1.05, fontWeight: 500, letterSpacing: '-0.035em' }}>Portfolio Overview</h1>
+          <h1 style={{ margin: '8px 0 0', fontSize: 42, lineHeight: 1.05, fontWeight: 500, letterSpacing: '-0.035em' }}>Portföljöversikt</h1>
           <p style={{ margin: '8px 0 0', color: C.text3, fontSize: 15 }}>
             {isDemo
-              ? 'Demo of environmental and public-data monitoring across your properties'
-              : 'Environmental and public-data monitoring across your properties'}
+              ? 'Demo av miljö- och samhällsbevakning för dina fastigheter'
+              : 'Bevakning av väder, varningar och offentliga data för dina fastigheter'}
           </p>
         </div>
-        <div role="tablist" aria-label="Property group" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 24, background: C.white, border: '1px solid rgba(20,23,26,0.06)' }}>
+        <div role="tablist" aria-label="Fastighetsgrupp" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 24, background: C.white, border: '1px solid rgba(20,23,26,0.06)' }}>
           {vm.groups.map((g) => (
             <button
               key={g.id}

@@ -66,15 +66,15 @@ describe('demo fixtures', () => {
 describe('format helpers', () => {
   it('display Europe/Stockholm local time', () => {
     expect(formatClock('2025-11-12T13:32:00Z')).toBe('14:32');
-    expect(formatWeekdayClock('2025-11-13T05:00:00Z')).toBe('Thu 06:00');
-    expect(formatWeekdayClock(null)).toBe('Until further notice');
+    expect(formatWeekdayClock('2025-11-13T05:00:00Z')).toBe('tors 06:00');
+    expect(formatWeekdayClock(null)).toBe('Tills vidare');
     // Summer time (CEST, UTC+2)
     expect(formatClock('2025-07-01T10:00:00Z')).toBe('12:00');
   });
   it('format distances', () => {
     expect(formatDistance(610)).toBe('610 m');
-    expect(formatDistance(1100)).toBe('1.1 km');
-    expect(formatDistance(null)).toBe('Area');
+    expect(formatDistance(1100)).toBe('1,1 km');
+    expect(formatDistance(null)).toBe('Område');
   });
 });
 

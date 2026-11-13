@@ -21,9 +21,9 @@ export type GeoapifyStyle = (typeof GEOAPIFY_LIGHT_STYLES)[number];
 export const DEFAULT_GEOAPIFY_STYLE: GeoapifyStyle = 'positron';
 
 export const GEOAPIFY_ATTRIBUTION =
-  'Powered by <a href="https://www.geoapify.com/" target="_blank" rel="noopener">Geoapify</a>' +
+  'Drivs av <a href="https://www.geoapify.com/" target="_blank" rel="noopener">Geoapify</a>' +
   ' | © <a href="https://openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>' +
-  ' © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
+  ' © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-bidragsgivare';
 
 /** Zoom limits: Sweden-scale overview to building level (Geoapify serves up to z20). */
 export const MAP_MIN_ZOOM = 4;
@@ -67,11 +67,11 @@ export function resolveTileConfig(env: TileEnv): TileConfig {
   const zoom = { minZoom: MAP_MIN_ZOOM, maxZoom: MAP_MAX_ZOOM };
   const custom = env.customUrl?.trim();
   if (custom) {
-    return { provider: 'custom', url: custom, attribution: env.customAttribution?.trim() || '© OpenStreetMap contributors', style: null, ...zoom };
+    return { provider: 'custom', url: custom, attribution: env.customAttribution?.trim() || '© OpenStreetMap-bidragsgivare', style: null, ...zoom };
   }
   const key = env.geoapifyMapKey?.trim();
-  if (!key) return { provider: 'none', reason: 'missing_key', attribution: 'Map tiles not configured', ...zoom };
-  if (!isPlausibleGeoapifyKey(key)) return { provider: 'none', reason: 'invalid_key', attribution: 'Map tiles not configured (invalid key)', ...zoom };
+  if (!key) return { provider: 'none', reason: 'missing_key', attribution: 'Kartbilder ej konfigurerade', ...zoom };
+  if (!isPlausibleGeoapifyKey(key)) return { provider: 'none', reason: 'invalid_key', attribution: 'Kartbilder ej konfigurerade (ogiltig nyckel)', ...zoom };
   const requested = env.style?.trim() as GeoapifyStyle | undefined;
   const style = requested && (GEOAPIFY_LIGHT_STYLES as readonly string[]).includes(requested) ? requested : DEFAULT_GEOAPIFY_STYLE;
   return { provider: 'geoapify', url: geoapifyTileUrl(style, key), attribution: GEOAPIFY_ATTRIBUTION, style, ...zoom };

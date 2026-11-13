@@ -4,7 +4,7 @@ import { auth } from '@clerk/nextjs/server';
 import { OrganizationList } from '@clerk/nextjs';
 import { AuthFrame } from '@/components/auth/AuthFrame';
 
-export const metadata: Metadata = { title: 'Choose organization · FastighetsRadar' };
+export const metadata: Metadata = { title: 'Välj organisation · FastighetsRadar' };
 
 /**
  * Organization onboarding. Every property belongs to a Clerk organization; users with
@@ -18,8 +18,8 @@ export default async function OnboardingPage() {
   if (orgId) redirect('/overview');
   return (
     <AuthFrame
-      title="Choose your workspace"
-      subtitle="Create an organization for your company – or a personal workspace just for you – or join one you've been invited to."
+      title="Välj arbetsyta"
+      subtitle="Skapa en organisation för ditt företag – eller gå med i en som du har bjudits in till."
     >
       <OrganizationList hidePersonal afterCreateOrganizationUrl="/overview" afterSelectOrganizationUrl="/overview" />
     </AuthFrame>

@@ -33,7 +33,7 @@ export function LocationPickerMap({
       const map = newMap(L, el, [p.lat, p.lon], zoom);
       map.scrollWheelZoom.enable();
       L.control.zoom({ position: 'bottomright' }).addTo(map);
-      const marker = L.marker([p.lat, p.lon], { draggable: true, icon: pinIcon(L, '#14171A', 22), keyboard: true, title: 'Property position – drag to adjust' }).addTo(map);
+      const marker = L.marker([p.lat, p.lon], { draggable: true, icon: pinIcon(L, '#14171A', 22), keyboard: true, title: 'Fastighetens position – dra för att justera' }).addTo(map);
       const report = (ll: Leaflet.LatLng) => onChangeRef.current({ lat: +ll.lat.toFixed(7), lon: +ll.lng.toFixed(7) });
       marker.on('dragend', () => report(marker.getLatLng()));
       map.on('click', (e: Leaflet.LeafletMouseEvent) => {
@@ -59,5 +59,5 @@ export function LocationPickerMap({
     c.map.setView([point.lat, point.lon], Math.max(c.map.getZoom(), 15));
   }, [point.lat, point.lon]);
 
-  return <div ref={elRef} role="region" aria-label="Confirm property position on map" style={{ position: 'absolute', inset: 0 }} />;
+  return <div ref={elRef} role="region" aria-label="Bekräfta fastighetens position på kartan" style={{ position: 'absolute', inset: 0 }} />;
 }

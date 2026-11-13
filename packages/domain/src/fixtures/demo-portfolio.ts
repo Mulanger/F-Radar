@@ -95,95 +95,95 @@ const FRI = '2025-11-14';
 
 const RAW: RawProperty[] = [
   {
-    slug: 'sjostaden-kaj', seed: 1, name: 'Sjöstaden Kaj', address: 'Hammarby Kaj 12, 120 30 Stockholm', area: 'Hammarby Sjöstad', group: 'inner', lat: 59.3036, lng: 18.1028, status: 'warning', type: 'Residential', floors: 9, units: '146 units',
-    temp: 4.2, feels: 0.8, rain24: 18.4, wind: 9.6, gust: 16, dir: 225, hum: 88, aqi: 31, flood: 'High', fdist: 40, body: 'Saltsjön', lvl: 38, trend: 'Rising +3 cm/h', alerts: 3, risk: 68, sms: true, fac: [62, 84, 8, 30, 18],
+    slug: 'sjostaden-kaj', seed: 1, name: 'Sjöstaden Kaj', address: 'Hammarby Kaj 12, 120 30 Stockholm', area: 'Hammarby Sjöstad', group: 'inner', lat: 59.3036, lng: 18.1028, status: 'warning', type: 'Bostäder', floors: 9, units: '146 lägenheter',
+    temp: 4.2, feels: 0.8, rain24: 18.4, wind: 9.6, gust: 16, dir: 225, hum: 88, aqi: 31, flood: 'High', fdist: 40, body: 'Saltsjön', lvl: 38, trend: 'Stigande +3 cm/h', alerts: 3, risk: 68, sms: true, fac: [62, 84, 8, 30, 18],
     warnings: [
-      { level: 'Yellow', type: 'Heavy rain', src: 'SMHI', start: t('06:00', THU), end: t('20:00', THU), summary: '15–25 mm of rain within 12 hours. Risk of surface water on streets and in low-lying basements.', region: 'Stockholm · Inner city' },
-      { level: 'Info', type: 'High sea level', src: 'SMHI Oceanografi', start: t('12:00'), end: t('00:00', FRI), summary: 'Sea level in Saltsjön expected 30–45 cm above mean.', region: 'Saltsjön' },
+      { level: 'Yellow', type: 'Kraftigt regn', src: 'SMHI', start: t('06:00', THU), end: t('20:00', THU), summary: '15–25 mm regn inom 12 timmar. Risk för ytvatten på gator och i lågt liggande källare.', region: 'Stockholm · Innerstaden' },
+      { level: 'Info', type: 'Högt vattenstånd', src: 'SMHI Oceanografi', start: t('12:00'), end: t('00:00', FRI), summary: 'Vattenståndet i Saltsjön väntas bli 30–45 cm över medelvattenstånd.', region: 'Saltsjön' },
     ],
     events: [
-      { kind: 'Water', title: 'Storm drain capacity alert, Sickla kanal', src: 'Stockholm Vatten', distM: 610, time: 'Since 11:20', sev: 'warning', dx: 5, dy: -2 },
-      { kind: 'Traffic', title: 'Roadworks on Hammarby Allé, one lane closed', src: 'Trafikverket', distM: 260, time: 'Until 21 Nov', sev: 'monitor', dx: 2, dy: 2 },
-      { kind: 'Traffic', title: 'Tvärbanan service reduced, Luma–Sickla', src: 'SL Trafikinfo', distM: 480, time: '15:00–20:00', sev: 'monitor', dx: -4, dy: 2 },
+      { kind: 'Water', title: 'Dagvattensystemet nära kapacitetsgräns, Sickla kanal', src: 'Stockholm Vatten', distM: 610, time: 'Sedan 11:20', sev: 'warning', dx: 5, dy: -2 },
+      { kind: 'Traffic', title: 'Vägarbete på Hammarby Allé, ett körfält avstängt', src: 'Trafikverket', distM: 260, time: 'Till 21 nov', sev: 'monitor', dx: 2, dy: 2 },
+      { kind: 'Traffic', title: 'Tvärbanan glesare trafik, Luma–Sickla', src: 'SL Trafikinfo', distM: 480, time: '15:00–20:00', sev: 'monitor', dx: -4, dy: 2 },
     ],
   },
   {
-    slug: 'strandhuset', seed: 2, name: 'Strandhuset', address: 'Kungsholms Strand 147, 112 48 Stockholm', area: 'Kungsholmen', group: 'inner', lat: 59.3365, lng: 18.0335, status: 'monitor', type: 'Office', floors: 7, units: '42 tenants',
-    temp: 4.6, feels: 1.9, rain24: 11.2, wind: 7.1, gust: 12, dir: 240, hum: 84, aqi: 54, flood: 'Medium', fdist: 180, body: 'Karlbergssjön', lvl: 14, trend: 'Stable', alerts: 1, risk: 44, sms: true, fac: [44, 52, 5, 22, 46],
+    slug: 'strandhuset', seed: 2, name: 'Strandhuset', address: 'Kungsholms Strand 147, 112 48 Stockholm', area: 'Kungsholmen', group: 'inner', lat: 59.3365, lng: 18.0335, status: 'monitor', type: 'Kontor', floors: 7, units: '42 hyresgäster',
+    temp: 4.6, feels: 1.9, rain24: 11.2, wind: 7.1, gust: 12, dir: 240, hum: 84, aqi: 54, flood: 'Medium', fdist: 180, body: 'Karlbergssjön', lvl: 14, trend: 'Stabil', alerts: 1, risk: 44, sms: true, fac: [44, 52, 5, 22, 46],
     warnings: [
-      { level: 'Yellow', type: 'Heavy rain', src: 'SMHI', start: t('06:00', THU), end: t('20:00', THU), summary: '15–25 mm of rain within 12 hours. Risk of surface water in low-lying areas.', region: 'Stockholm · Inner city' },
+      { level: 'Yellow', type: 'Kraftigt regn', src: 'SMHI', start: t('06:00', THU), end: t('20:00', THU), summary: '15–25 mm regn inom 12 timmar. Risk för ytvatten i lågt liggande områden.', region: 'Stockholm · Innerstaden' },
     ],
     events: [
-      { kind: 'Air', title: 'Elevated NO₂ along Fleminggatan', src: 'SLB-analys', distM: 350, time: 'Since 10:40', sev: 'monitor', dx: 3, dy: -3 },
-      { kind: 'Traffic', title: 'Barnhusbron closed for maintenance', src: 'Trafikverket', distM: 700, time: 'Until 30 Nov', sev: 'monitor', dx: 6, dy: -1 },
+      { kind: 'Air', title: 'Förhöjd NO₂ längs Fleminggatan', src: 'SLB-analys', distM: 350, time: 'Sedan 10:40', sev: 'monitor', dx: 3, dy: -3 },
+      { kind: 'Traffic', title: 'Barnhusbron avstängd för underhåll', src: 'Trafikverket', distM: 700, time: 'Till 30 nov', sev: 'monitor', dx: 6, dy: -1 },
     ],
   },
   {
-    slug: 'gotgarden', seed: 3, name: 'Götgården', address: 'Götgatan 48, 118 26 Stockholm', area: 'Södermalm', group: 'inner', lat: 59.3135, lng: 18.0725, status: 'normal', type: 'Mixed use', floors: 6, units: '64 units',
-    temp: 4.4, feels: 1.5, rain24: 9.8, wind: 6.2, gust: 10, dir: 230, hum: 82, aqi: 38, flood: 'Low', fdist: 850, body: 'Saltsjön', lvl: 38, trend: 'Rising +3 cm/h', alerts: 0, risk: 18, sms: true, fac: [30, 12, 4, 10, 20],
+    slug: 'gotgarden', seed: 3, name: 'Götgården', address: 'Götgatan 48, 118 26 Stockholm', area: 'Södermalm', group: 'inner', lat: 59.3135, lng: 18.0725, status: 'normal', type: 'Blandat ändamål', floors: 6, units: '64 lägenheter',
+    temp: 4.4, feels: 1.5, rain24: 9.8, wind: 6.2, gust: 10, dir: 230, hum: 82, aqi: 38, flood: 'Low', fdist: 850, body: 'Saltsjön', lvl: 38, trend: 'Stigande +3 cm/h', alerts: 0, risk: 18, sms: true, fac: [30, 12, 4, 10, 20],
     warnings: [],
-    events: [{ kind: 'Info', title: 'Planned water main work on Åsögatan', src: 'Stockholm Vatten', distM: 420, time: 'Mon 17 Nov', sev: 'normal', dx: 3, dy: -2 }],
+    events: [{ kind: 'Info', title: 'Planerat arbete på vattenledning, Åsögatan', src: 'Stockholm Vatten', distM: 420, time: 'mån 17 nov', sev: 'normal', dx: 3, dy: -2 }],
   },
   {
-    slug: 'odenplan-atrium', seed: 4, name: 'Odenplan Atrium', address: 'Odengatan 65, 113 22 Stockholm', area: 'Vasastan', group: 'inner', lat: 59.3428, lng: 18.0468, status: 'normal', type: 'Office', floors: 8, units: '28 tenants',
-    temp: 4.0, feels: 1.2, rain24: 9.1, wind: 5.8, gust: 9, dir: 220, hum: 81, aqi: 42, flood: 'Low', fdist: 1200, body: 'Brunnsviken', lvl: 9, trend: 'Stable', alerts: 0, risk: 22, sms: false, fac: [28, 6, 4, 24, 26],
+    slug: 'odenplan-atrium', seed: 4, name: 'Odenplan Atrium', address: 'Odengatan 65, 113 22 Stockholm', area: 'Vasastan', group: 'inner', lat: 59.3428, lng: 18.0468, status: 'normal', type: 'Kontor', floors: 8, units: '28 hyresgäster',
+    temp: 4.0, feels: 1.2, rain24: 9.1, wind: 5.8, gust: 9, dir: 220, hum: 81, aqi: 42, flood: 'Low', fdist: 1200, body: 'Brunnsviken', lvl: 9, trend: 'Stabil', alerts: 0, risk: 22, sms: false, fac: [28, 6, 4, 24, 26],
     warnings: [],
-    events: [{ kind: 'Traffic', title: 'Bus 4 diverted via Karlbergsvägen', src: 'SL Trafikinfo', distM: 150, time: 'Until 18:00', sev: 'monitor', dx: -2, dy: 1 }],
+    events: [{ kind: 'Traffic', title: 'Buss 4 omleds via Karlbergsvägen', src: 'SL Trafikinfo', distM: 150, time: 'Till 18:00', sev: 'monitor', dx: -2, dy: 1 }],
   },
   {
-    slug: 'arenastaden-hus-c', seed: 5, name: 'Arenastaden Hus C', address: 'Evenemangsgatan 21, 169 79 Solna', area: 'Solna', group: 'outer', lat: 59.3705, lng: 18.0035, status: 'monitor', type: 'Office', floors: 12, units: '9 tenants',
-    temp: 3.6, feels: 0.2, rain24: 8.7, wind: 8.4, gust: 14, dir: 250, hum: 83, aqi: 47, flood: 'Low', fdist: 950, body: 'Brunnsviken', lvl: 9, trend: 'Stable', alerts: 2, risk: 38, sms: true, fac: [40, 10, 6, 72, 30],
+    slug: 'arenastaden-hus-c', seed: 5, name: 'Arenastaden Hus C', address: 'Evenemangsgatan 21, 169 79 Solna', area: 'Solna', group: 'outer', lat: 59.3705, lng: 18.0035, status: 'monitor', type: 'Kontor', floors: 12, units: '9 hyresgäster',
+    temp: 3.6, feels: 0.2, rain24: 8.7, wind: 8.4, gust: 14, dir: 250, hum: 83, aqi: 47, flood: 'Low', fdist: 950, body: 'Brunnsviken', lvl: 9, trend: 'Stabil', alerts: 2, risk: 38, sms: true, fac: [40, 10, 6, 72, 30],
     warnings: [],
     events: [
-      { kind: 'Traffic', title: 'Arena event tonight, expect heavy congestion', src: 'Trafikverket', distM: 300, time: '17:00–23:00', sev: 'monitor', dx: 2, dy: -2 },
-      { kind: 'Traffic', title: 'Lane closure on E4 northbound at Haga', src: 'Trafikverket', distM: 1100, time: 'Since 12:57', sev: 'monitor', dx: 7, dy: -3 },
-      { kind: 'Traffic', title: 'Commuter train delays at Solna station', src: 'SL Trafikinfo', distM: 800, time: 'Since 13:40', sev: 'monitor', dx: -5, dy: 3 },
+      { kind: 'Traffic', title: 'Evenemang på arenan i kväll, räkna med tät trafik', src: 'Trafikverket', distM: 300, time: '17:00–23:00', sev: 'monitor', dx: 2, dy: -2 },
+      { kind: 'Traffic', title: 'Körfält avstängt på E4 norrgående vid Haga', src: 'Trafikverket', distM: 1100, time: 'Sedan 12:57', sev: 'monitor', dx: 7, dy: -3 },
+      { kind: 'Traffic', title: 'Förseningar i pendeltågstrafiken vid Solna station', src: 'SL Trafikinfo', distM: 800, time: 'Sedan 13:40', sev: 'monitor', dx: -5, dy: 3 },
     ],
   },
   {
-    slug: 'augustendal-brygga', seed: 6, name: 'Augustendal Brygga', address: 'Augustendalsvägen 20, 131 52 Nacka Strand', area: 'Nacka Strand', group: 'outer', lat: 59.3172, lng: 18.1588, status: 'critical', type: 'Residential', floors: 10, units: '118 units',
-    temp: 3.9, feels: -1.4, rain24: 22.1, wind: 14.2, gust: 25, dir: 200, hum: 90, aqi: 26, flood: 'High', fdist: 15, body: 'Saltsjön', lvl: 41, trend: 'Rising +4 cm/h', alerts: 5, risk: 82, sms: true, fac: [88, 90, 40, 26, 14],
+    slug: 'augustendal-brygga', seed: 6, name: 'Augustendal Brygga', address: 'Augustendalsvägen 20, 131 52 Nacka Strand', area: 'Nacka Strand', group: 'outer', lat: 59.3172, lng: 18.1588, status: 'critical', type: 'Bostäder', floors: 10, units: '118 lägenheter',
+    temp: 3.9, feels: -1.4, rain24: 22.1, wind: 14.2, gust: 25, dir: 200, hum: 90, aqi: 26, flood: 'High', fdist: 15, body: 'Saltsjön', lvl: 41, trend: 'Stigande +4 cm/h', alerts: 5, risk: 82, sms: true, fac: [88, 90, 40, 26, 14],
     warnings: [
-      { level: 'Orange', type: 'Strong wind', src: 'SMHI', start: t('16:00'), end: t('10:00', THU), summary: 'Gusts of 21–25 m/s along the coast. Risk of falling trees, loose objects and disrupted ferry traffic.', region: 'Stockholm archipelago · Nacka' },
-      { level: 'Yellow', type: 'Heavy rain', src: 'SMHI', start: t('06:00', THU), end: t('20:00', THU), summary: '20–30 mm within 12 hours in coastal areas.', region: 'Nacka · Värmdö' },
+      { level: 'Orange', type: 'Kraftig vind', src: 'SMHI', start: t('16:00'), end: t('10:00', THU), summary: 'Vindbyar på 21–25 m/s längs kusten. Risk för nedfallna träd, lösa föremål och störd färjetrafik.', region: 'Stockholms skärgård · Nacka' },
+      { level: 'Yellow', type: 'Kraftigt regn', src: 'SMHI', start: t('06:00', THU), end: t('20:00', THU), summary: '20–30 mm inom 12 timmar i kustområden.', region: 'Nacka · Värmdö' },
     ],
     events: [
-      { kind: 'Water', title: 'Quay flooding risk at Augustendal pier', src: 'Nacka kommun', distM: 60, time: 'Tonight 22:00–04:00', sev: 'critical', dx: 1, dy: 2 },
-      { kind: 'Crisis', title: 'Ferry traffic suspended, Nacka Strand pier', src: 'Krisinformation', distM: 90, time: 'Since 13:10', sev: 'warning', dx: -2, dy: 3 },
-      { kind: 'Traffic', title: 'Fallen tree on Augustendalsvägen', src: 'Trafikverket', distM: 400, time: 'Since 14:02', sev: 'warning', dx: -4, dy: -2 },
+      { kind: 'Water', title: 'Risk för översvämning av kajen vid Augustendal brygga', src: 'Nacka kommun', distM: 60, time: 'I natt 22:00–04:00', sev: 'critical', dx: 1, dy: 2 },
+      { kind: 'Crisis', title: 'Färjetrafiken inställd, Nacka Strand brygga', src: 'Krisinformation', distM: 90, time: 'Sedan 13:10', sev: 'warning', dx: -2, dy: 3 },
+      { kind: 'Traffic', title: 'Nedfallet träd på Augustendalsvägen', src: 'Trafikverket', distM: 400, time: 'Sedan 14:02', sev: 'warning', dx: -4, dy: -2 },
     ],
   },
   {
-    slug: 'torsviks-torg', seed: 7, name: 'Torsviks Torg', address: 'Torsvikssvängen 2, 181 34 Lidingö', area: 'Lidingö', group: 'outer', lat: 59.3655, lng: 18.1335, status: 'normal', type: 'Retail', floors: 4, units: '22 tenants',
-    temp: 3.7, feels: 0.4, rain24: 10.4, wind: 9.1, gust: 15, dir: 210, hum: 85, aqi: 24, flood: 'Low', fdist: 700, body: 'Lilla Värtan', lvl: 39, trend: 'Rising +3 cm/h', alerts: 0, risk: 14, sms: true, fac: [36, 14, 2, 6, 10],
+    slug: 'torsviks-torg', seed: 7, name: 'Torsviks Torg', address: 'Torsvikssvängen 2, 181 34 Lidingö', area: 'Lidingö', group: 'outer', lat: 59.3655, lng: 18.1335, status: 'normal', type: 'Handel', floors: 4, units: '22 hyresgäster',
+    temp: 3.7, feels: 0.4, rain24: 10.4, wind: 9.1, gust: 15, dir: 210, hum: 85, aqi: 24, flood: 'Low', fdist: 700, body: 'Lilla Värtan', lvl: 39, trend: 'Stigande +3 cm/h', alerts: 0, risk: 14, sms: true, fac: [36, 14, 2, 6, 10],
     warnings: [],
     events: [],
   },
   {
-    slug: 'ulvsunda-lager', seed: 8, name: 'Ulvsunda Lager', address: 'Ulvsundavägen 106, 168 67 Bromma', area: 'Bromma', group: 'outer', lat: 59.3445, lng: 17.961, status: 'warning', type: 'Industrial', floors: 3, units: '4 tenants',
-    temp: 3.1, feels: -0.6, rain24: 7.9, wind: 6.9, gust: 12, dir: 260, hum: 79, aqi: 96, flood: 'Low', fdist: 1500, body: 'Mälaren', lvl: 14, trend: 'Stable', alerts: 3, risk: 57, sms: true, fac: [34, 8, 78, 28, 74],
+    slug: 'ulvsunda-lager', seed: 8, name: 'Ulvsunda Lager', address: 'Ulvsundavägen 106, 168 67 Bromma', area: 'Bromma', group: 'outer', lat: 59.3445, lng: 17.961, status: 'warning', type: 'Industri', floors: 3, units: '4 hyresgäster',
+    temp: 3.1, feels: -0.6, rain24: 7.9, wind: 6.9, gust: 12, dir: 260, hum: 79, aqi: 96, flood: 'Low', fdist: 1500, body: 'Mälaren', lvl: 14, trend: 'Stabil', alerts: 3, risk: 57, sms: true, fac: [34, 8, 78, 28, 74],
     warnings: [
-      { level: 'VMA', type: 'Important public announcement — smoke', src: 'Krisinformation', start: t('13:15'), end: null, summary: 'Large fire at an industrial site in Ulvsunda. Keep doors, windows and ventilation closed.', region: 'Bromma · Ulvsunda' },
+      { level: 'VMA', type: 'Viktigt meddelande till allmänheten — rök', src: 'Krisinformation', start: t('13:15'), end: null, summary: 'Stor brand på ett industriområde i Ulvsunda. Håll dörrar, fönster och ventilation stängda.', region: 'Bromma · Ulvsunda' },
     ],
     events: [
-      { kind: 'Crisis', title: 'Industrial fire, Ulvsunda industrial area', src: 'Räddningstjänsten', distM: 1400, time: 'Since 13:05', sev: 'warning', dx: 6, dy: 4 },
-      { kind: 'Traffic', title: 'Ulvsundavägen closed near Bällstavägen', src: 'Trafikverket', distM: 600, time: 'Since 13:30', sev: 'warning', dx: 3, dy: 3 },
-      { kind: 'Weather', title: 'Frost risk tonight, −3 °C', src: 'SMHI', distM: null, time: '02:00–07:00', sev: 'monitor', dx: -3, dy: -2 },
+      { kind: 'Crisis', title: 'Industribrand, Ulvsunda industriområde', src: 'Räddningstjänsten', distM: 1400, time: 'Sedan 13:05', sev: 'warning', dx: 6, dy: 4 },
+      { kind: 'Traffic', title: 'Ulvsundavägen avstängd vid Bällstavägen', src: 'Trafikverket', distM: 600, time: 'Sedan 13:30', sev: 'warning', dx: 3, dy: 3 },
+      { kind: 'Weather', title: 'Risk för frost i natt, −3 °C', src: 'SMHI', distM: null, time: '02:00–07:00', sev: 'monitor', dx: -3, dy: -2 },
     ],
   },
 ];
 
 const RAW_FEED: Array<{ t: string; title: string; src: string; sev: PropertyStatus; slug: string }> = [
-  { t: '14:32', title: 'Orange warning — strong wind, gusts up to 25 m/s', src: 'SMHI', sev: 'critical', slug: 'augustendal-brygga' },
-  { t: '14:05', title: 'Sea level in Saltsjön +38 cm above mean and rising', src: 'SMHI', sev: 'warning', slug: 'sjostaden-kaj' },
-  { t: '13:48', title: 'Heavy rain threshold exceeded — 12 mm in 3 h', src: 'Radar', sev: 'warning', slug: 'sjostaden-kaj' },
-  { t: '13:20', title: 'VMA: industrial fire, keep windows and ventilation closed', src: 'Krisinformation', sev: 'critical', slug: 'ulvsunda-lager' },
-  { t: '13:10', title: 'Ferry traffic suspended at Nacka Strand pier', src: 'Krisinformation', sev: 'warning', slug: 'augustendal-brygga' },
-  { t: '12:57', title: 'Lane closure on E4 northbound at Haga', src: 'Trafikverket', sev: 'monitor', slug: 'arenastaden-hus-c' },
-  { t: '11:40', title: 'Elevated NO₂, moderate air quality', src: 'SLB-analys', sev: 'monitor', slug: 'strandhuset' },
-  { t: '10:15', title: 'Property inside mapped flood-risk zone (15 m)', src: 'Länsstyrelsen', sev: 'warning', slug: 'augustendal-brygga' },
-  { t: '09:02', title: 'Frost risk overnight, −3 °C expected', src: 'SMHI', sev: 'monitor', slug: 'ulvsunda-lager' },
-  { t: '08:30', title: 'Yellow warning lifted — wind', src: 'SMHI', sev: 'normal', slug: 'gotgarden' },
+  { t: '14:32', title: 'Orange varning — kraftig vind, byar upp till 25 m/s', src: 'SMHI', sev: 'critical', slug: 'augustendal-brygga' },
+  { t: '14:05', title: 'Vattenståndet i Saltsjön +38 cm över medel och stigande', src: 'SMHI', sev: 'warning', slug: 'sjostaden-kaj' },
+  { t: '13:48', title: 'Gräns för kraftigt regn överskriden — 12 mm på 3 h', src: 'Radar', sev: 'warning', slug: 'sjostaden-kaj' },
+  { t: '13:20', title: 'VMA: industribrand, håll fönster och ventilation stängda', src: 'Krisinformation', sev: 'critical', slug: 'ulvsunda-lager' },
+  { t: '13:10', title: 'Färjetrafiken inställd vid Nacka Strand brygga', src: 'Krisinformation', sev: 'warning', slug: 'augustendal-brygga' },
+  { t: '12:57', title: 'Körfält avstängt på E4 norrgående vid Haga', src: 'Trafikverket', sev: 'monitor', slug: 'arenastaden-hus-c' },
+  { t: '11:40', title: 'Förhöjd NO₂, måttlig luftkvalitet', src: 'SLB-analys', sev: 'monitor', slug: 'strandhuset' },
+  { t: '10:15', title: 'Fastigheten ligger i karterad översvämningszon (15 m)', src: 'Länsstyrelsen', sev: 'warning', slug: 'augustendal-brygga' },
+  { t: '09:02', title: 'Risk för frost i natt, −3 °C väntas', src: 'SMHI', sev: 'monitor', slug: 'ulvsunda-lager' },
+  { t: '08:30', title: 'Gul varning hävd — vind', src: 'SMHI', sev: 'normal', slug: 'gotgarden' },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -229,11 +229,11 @@ function metric(
 }
 
 const RULE_TEMPLATES = [
-  { code: 'RN', name: 'Heavy rain', cond: 'More than 15 mm in 24 h', sourceId: 'smhi_forecast', metricKey: 'weather.precipitation_24h', operator: 'gt', threshold: 15, unit: 'mm', window: '24h' },
-  { code: 'WD', name: 'Wind above threshold', cond: 'Gusts above 18 m/s', sourceId: 'smhi_forecast', metricKey: 'weather.wind_gust', operator: 'gt', threshold: 18, unit: 'm/s', window: null },
-  { code: 'OW', name: 'Official warning level', cond: 'SMHI Yellow or higher, any VMA', sourceId: 'smhi_warnings', metricKey: 'warning.level', operator: 'any', threshold: null, unit: null, window: null },
-  { code: 'CR', name: 'Local crisis event', cond: 'Krisinformation event within 2 km', sourceId: 'krisinformation', metricKey: 'crisis.regional_publication', operator: 'any', threshold: null, unit: null, window: null },
-  { code: 'FL', name: 'Flood risk escalation', cond: 'Water level above +50 cm', sourceId: 'smhi_oceanography', metricKey: 'water.level_relative_to_mean', operator: 'gt', threshold: 50, unit: 'cm', window: null },
+  { code: 'RN', name: 'Kraftigt regn', cond: 'Mer än 15 mm på 24 h', sourceId: 'smhi_forecast', metricKey: 'weather.precipitation_24h', operator: 'gt', threshold: 15, unit: 'mm', window: '24h' },
+  { code: 'WD', name: 'Vind över gränsvärde', cond: 'Byar över 18 m/s', sourceId: 'smhi_forecast', metricKey: 'weather.wind_gust', operator: 'gt', threshold: 18, unit: 'm/s', window: null },
+  { code: 'OW', name: 'Officiell varningsnivå', cond: 'SMHI gul eller högre, alla VMA', sourceId: 'smhi_warnings', metricKey: 'warning.level', operator: 'any', threshold: null, unit: null, window: null },
+  { code: 'CR', name: 'Lokal krishändelse', cond: 'Krisinformation inom 2 km', sourceId: 'krisinformation', metricKey: 'crisis.regional_publication', operator: 'any', threshold: null, unit: null, window: null },
+  { code: 'FL', name: 'Ökad översvämningsrisk', cond: 'Vattennivå över +50 cm', sourceId: 'smhi_oceanography', metricKey: 'water.level_relative_to_mean', operator: 'gt', threshold: 50, unit: 'cm', window: null },
 ] as const;
 
 function buildSnapshot(p: RawProperty): PropertySnapshot {
@@ -255,7 +255,7 @@ function buildSnapshot(p: RawProperty): PropertySnapshot {
     validTo: w.end,
     issuedAt: null,
     sourceUrl: null,
-    geo: { match: 'polygon_intersection', note: 'Demo fixture – not matched against an official warning area' },
+    geo: { match: 'polygon_intersection', note: 'Demodata – inte matchad mot ett officiellt varningsområde' },
     origin: 'demo_fixture',
   }));
 
@@ -268,7 +268,7 @@ function buildSnapshot(p: RawProperty): PropertySnapshot {
     severity: e.sev === 'normal' ? 'info' : e.sev,
     title: e.title,
     location: { lat: p.lat + e.dy * 0.0014, lon: p.lng + e.dx * 0.0022 },
-    geo: e.distM === null ? { match: 'municipality', distanceMeters: null, note: 'Area-level publication' } : { match: 'within_radius', distanceMeters: e.distM },
+    geo: e.distM === null ? { match: 'municipality', distanceMeters: null, note: 'Publicerad för ett område' } : { match: 'within_radius', distanceMeters: e.distM },
     validFrom: null,
     validTo: null,
     timeLabel: e.time,
@@ -296,7 +296,7 @@ function buildSnapshot(p: RawProperty): PropertySnapshot {
     quietHours: { enabled: true, from: '22:00', to: '07:00', timezone: 'Europe/Stockholm' },
   }));
 
-  const stationGeo = { match: 'nearest_station' as const, distanceMeters: null, note: 'Demo fixture – no station matched' };
+  const stationGeo = { match: 'nearest_station' as const, distanceMeters: null, note: 'Demodata – ingen station matchad' };
 
   return {
     property: {
@@ -334,11 +334,11 @@ function buildSnapshot(p: RawProperty): PropertySnapshot {
       fetchedAt: DEMO_REFERENCE_TIME,
       freshness: 'fresh',
       availability: 'ok',
-      geo: { match: 'point_grid', note: 'Synthetic demo series' },
+      geo: { match: 'point_grid', note: 'Syntetisk demoserie' },
       origin: 'demo_fixture',
       series: [
         { metricKey: 'weather.air_temperature', unit: '°C', points: pts(series.temp) },
-        { metricKey: 'weather.precipitation_1h', unit: 'mm', intervalNote: 'mm per hour (synthetic)', points: pts(series.rain) },
+        { metricKey: 'weather.precipitation_1h', unit: 'mm', intervalNote: 'mm per timme (syntetisk)', points: pts(series.rain) },
         { metricKey: 'weather.wind_speed', unit: 'm/s', points: pts(series.wind) },
         { metricKey: 'weather.relative_humidity', unit: '%', points: pts(series.hum) },
       ],
@@ -353,7 +353,7 @@ function buildSnapshot(p: RawProperty): PropertySnapshot {
         scenario: null,
         distanceToZoneMeters: p.fdist,
         availability: 'ok',
-        geo: { match: 'within_radius', distanceMeters: p.fdist, note: 'Demo fixture – no MCF layer imported' },
+        geo: { match: 'within_radius', distanceMeters: p.fdist, note: 'Demodata – inget MCF-lager importerat' },
         origin: 'demo_fixture',
       },
       waterBody: {
@@ -375,7 +375,7 @@ function buildSnapshot(p: RawProperty): PropertySnapshot {
       },
     },
     alertRules,
-    sms: { enabled: p.sms, recipientsLabel: '+46 70 ··· 42 18 and 1 more', recipientCount: 2 },
+    sms: { enabled: p.sms, recipientsLabel: '+46 70 ··· 42 18 och 1 till', recipientCount: 2 },
     activeAlertCount: p.alerts,
     demoRisk: {
       method: 'unspecified_demo_value',
@@ -400,10 +400,10 @@ const feed: FeedItem[] = RAW_FEED.map((f, i) => ({
 
 export const demoPortfolio: Portfolio = {
   organizationId: DEMO_ORGANIZATION_ID,
-  organizationName: 'Demo portfolio',
+  organizationName: 'Demoportfölj',
   generatedAt: DEMO_REFERENCE_TIME,
   origin: 'demo_fixture',
-  regionLabel: 'Stockholm region',
+  regionLabel: 'Stockholmsregionen',
   segments: [
     { id: 'inner', label: 'Innerstad' },
     { id: 'outer', label: 'Förort & Kust' },
@@ -411,26 +411,26 @@ export const demoPortfolio: Portfolio = {
   properties: snapshots,
   feed,
   upcoming: [
-    { id: 'u1', label: 'Heavy rain expected', where: 'Nacka Strand & Hammarby', when: 'Thu 13 Nov · 06:00–20:00', value: '22 mm', tone: 'monitor', origin: 'demo_fixture' },
-    { id: 'u2', label: 'Strongest wind expected', where: 'Augustendal Brygga', when: 'Tonight · peak around 03:00', value: '25 m/s', tone: 'critical', origin: 'demo_fixture' },
-    { id: 'u3', label: 'Coldest property region', where: 'Bromma · Ulvsunda', when: 'Thu 13 Nov · 05:00', value: '−3.4°', tone: 'cold', origin: 'demo_fixture' },
-    { id: 'u4', label: 'Next official warning window', where: 'SMHI Yellow — heavy rain', when: 'Starts Thu 06:00 · 4 properties', value: '15 h', tone: 'warning', origin: 'demo_fixture' },
+    { id: 'u1', label: 'Kraftigt regn väntas', where: 'Nacka Strand och Hammarby', when: 'tors 13 nov · 06:00–20:00', value: '22 mm', tone: 'monitor', origin: 'demo_fixture' },
+    { id: 'u2', label: 'Hårdast vind väntas', where: 'Augustendal Brygga', when: 'I natt · kulmen runt 03:00', value: '25 m/s', tone: 'critical', origin: 'demo_fixture' },
+    { id: 'u3', label: 'Kallaste området', where: 'Bromma · Ulvsunda', when: 'tors 13 nov · 05:00', value: '−3,4°', tone: 'cold', origin: 'demo_fixture' },
+    { id: 'u4', label: 'Nästa officiella varningsperiod', where: 'SMHI gul — kraftigt regn', when: 'Börjar tors 06:00 · 4 fastigheter', value: '15 h', tone: 'warning', origin: 'demo_fixture' },
   ],
   sources: [
-    { sourceId: 'smhi_forecast', label: 'SMHI', status: 'demo', lastSuccessAt: null, lastCheckedAt: null, freshness: 'unknown', errorCode: null, note: 'Demo fixture' },
-    { sourceId: 'krisinformation', label: 'Krisinformation', status: 'demo', lastSuccessAt: null, lastCheckedAt: null, freshness: 'unknown', errorCode: null, note: 'Demo fixture' },
-    { sourceId: 'trafikverket', label: 'Trafikverket', status: 'demo', lastSuccessAt: null, lastCheckedAt: null, freshness: 'unknown', errorCode: null, note: 'Demo fixture' },
-    { sourceId: 'air_quality', label: 'SLB-analys', status: 'demo', lastSuccessAt: null, lastCheckedAt: null, freshness: 'unknown', errorCode: null, note: 'Demo fixture' },
+    { sourceId: 'smhi_forecast', label: 'SMHI', status: 'demo', lastSuccessAt: null, lastCheckedAt: null, freshness: 'unknown', errorCode: null, note: 'Demodata' },
+    { sourceId: 'krisinformation', label: 'Krisinformation', status: 'demo', lastSuccessAt: null, lastCheckedAt: null, freshness: 'unknown', errorCode: null, note: 'Demodata' },
+    { sourceId: 'trafikverket', label: 'Trafikverket', status: 'demo', lastSuccessAt: null, lastCheckedAt: null, freshness: 'unknown', errorCode: null, note: 'Demodata' },
+    { sourceId: 'air_quality', label: 'SLB-analys', status: 'demo', lastSuccessAt: null, lastCheckedAt: null, freshness: 'unknown', errorCode: null, note: 'Demodata' },
   ],
   narrative: {
-    headline: 'Three properties need your attention today.',
-    detail: 'Coastal wind and rising sea level around Nacka and Hammarby. Smoke advisory active in Ulvsunda.',
+    headline: 'Tre fastigheter behöver din uppmärksamhet i dag.',
+    detail: 'Kustvind och stigande vattenstånd runt Nacka och Hammarby. Rökvarning gäller i Ulvsunda.',
   },
   demoTrends: {
-    riskDeltaLabel: '+6 since yesterday',
+    riskDeltaLabel: '+6 sedan igår',
     alertsDeltaLabel: '+5',
-    alertsSince: 'since 08:00',
+    alertsSince: 'sedan 08:00',
     alertsSparkWeights: [3, 5, 4, 6, 9, 8, 12, 11, 14],
   },
-  viewer: { displayName: 'Elin Lindqvist', role: 'Portfolio Manager', initials: 'EL' },
+  viewer: { displayName: 'Elin Lindqvist', role: 'Förvaltare', initials: 'EL' },
 };

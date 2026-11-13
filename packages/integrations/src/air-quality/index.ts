@@ -15,7 +15,7 @@ import type { AdapterContext, AdapterResult, StationObservation } from '../types
 export const AIR_QUALITY_ATTRIBUTION = 'Källa: SMHI / Naturvårdsverket (datavärdskap luft) – preliminära data';
 
 export const AIR_PHENOMENA = [
-  { id: '6001', key: 'pm25', label: 'PM2.5', unit: 'µg/m³' },
+  { id: '6001', key: 'pm25', label: 'PM2,5', unit: 'µg/m³' },
   { id: '5', key: 'pm10', label: 'PM10', unit: 'µg/m³' },
   { id: '8', key: 'no2', label: 'Kvävedioxid (NO₂)', unit: 'µg/m³' },
   { id: '7', key: 'o3', label: 'Ozon (O₃)', unit: 'µg/m³' },

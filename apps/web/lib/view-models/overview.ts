@@ -1,6 +1,6 @@
 import type { Portfolio, PropertySnapshot, PropertyStatus } from '@fastighetsradar/domain';
-import { formatClock, formatLongDate } from '@fastighetsradar/domain';
-import { C, SEV, STATUS_ORDER, WL } from '../design/tokens';
+import { formatClock, formatLongDate, formatNumber } from '@fastighetsradar/domain';
+import { C, EXPOSURE_SV, SEV, STATUS_ORDER, WL } from '../design/tokens';
 import { smooth } from './chart';
 import { rulesFor, eventCounts } from './rules';
 import { availability, isOfficialLevel, metricValue, n0, riskSeverity, show } from './snapshot';
@@ -84,11 +84,11 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
   });
 
   const catsRaw = [
-    { label: 'Weather', n: list.filter((s) => n0(rain(s)) >= 15 || n0(gust(s)) >= 15 || s.warnings.some((w) => w.level === 'Yellow' || w.level === 'Orange')).length, c: 'oklch(0.6 0.1 240)' },
-    { label: 'Water', n: list.filter((s) => s.flood.mapped.exposureClass === 'High' || s.flood.mapped.exposureClass === 'Medium').length, c: 'oklch(0.62 0.08 215)' },
-    { label: 'Crisis', n: list.filter((s) => eventCounts(s).crisis > 0).length, c: 'oklch(0.6 0.17 28)' },
-    { label: 'Traffic', n: list.filter((s) => eventCounts(s).traffic > 0).length, c: 'oklch(0.68 0.14 60)' },
-    { label: 'Air quality', n: list.filter((s) => n0(aqi(s)) > 50).length, c: 'oklch(0.62 0.11 155)' },
+    { label: 'Väder', n: list.filter((s) => n0(rain(s)) >= 15 || n0(gust(s)) >= 15 || s.warnings.some((w) => w.level === 'Yellow' || w.level === 'Orange')).length, c: 'oklch(0.6 0.1 240)' },
+    { label: 'Vatten', n: list.filter((s) => s.flood.mapped.exposureClass === 'High' || s.flood.mapped.exposureClass === 'Medium').length, c: 'oklch(0.62 0.08 215)' },
+    { label: 'Kris', n: list.filter((s) => eventCounts(s).crisis > 0).length, c: 'oklch(0.6 0.17 28)' },
+    { label: 'Trafik', n: list.filter((s) => eventCounts(s).traffic > 0).length, c: 'oklch(0.68 0.14 60)' },
+    { label: 'Luftkvalitet', n: list.filter((s) => n0(aqi(s)) > 50).length, c: 'oklch(0.62 0.11 155)' },
   ];
   const catMax = Math.max(1, ...catsRaw.map((c) => c.n));
 
@@ -115,15 +115,15 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
       rain: show(rain(s)),
       wind: show(metricValue(s, 'weather.wind_speed')),
       hum: show(metricValue(s, 'weather.relative_humidity')),
-      warn: w ? w.level + ' · ' + w.type.split(' — ')[0] : 'None',
+      warn: w ? WL[w.level].label + ' · ' + w.type.split(' — ')[0] : 'Ingen',
       wBg: w ? WL[w.level].bg : C.page,
       wFg: w ? WL[w.level].fg : C.text4,
-      flood: flood === 'unknown' ? '—' : flood,
+      flood: flood === 'unknown' ? '—' : EXPOSURE_SV[flood] ?? flood,
       f1: fl >= 1 ? fc : C.trackOff,
       f2: fl >= 2 ? fc : C.trackOff,
       f3: fl >= 3 ? fc : C.trackOff,
-      nearby: (ev.crisis ? ev.crisis + ' crisis' : '0 crisis') + ' · ' + ev.traffic + ' traffic',
-      aq: a === null ? '—' : a > 75 ? 'Poor' : a > 50 ? 'Moderate' : 'Good',
+      nearby: `${ev.crisis} kris · ${ev.traffic} trafik`,
+      aq: a === null ? '—' : a > 75 ? 'Dålig' : a > 50 ? 'Måttlig' : 'Bra',
       aqC: a === null ? SEV.unknown.c : a > 75 ? SEV.critical.c : a > 50 ? SEV.warning.c : SEV.normal.c,
       alerts: s.activeAlertCount,
       risk: show(risk),
@@ -149,7 +149,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     }));
 
   const groups = [
-    { id: 'all', label: 'All Properties' },
+    { id: 'all', label: 'Alla fastigheter' },
     ...portfolio.segments.map((g) => ({ id: g.id, label: g.label })),
   ].map((g) => ({
     ...g,
@@ -170,7 +170,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     isEmpty: portfolio.properties.length === 0,
     assessed,
     notAssessed,
-    dateLine: `${formatLongDate(portfolio.generatedAt)} · ${portfolio.regionLabel}${portfolio.origin === 'demo_fixture' ? ' · Demo data' : ''}`,
+    dateLine: `${formatLongDate(portfolio.generatedAt)} · ${portfolio.regionLabel}${portfolio.origin === 'demo_fixture' ? ' · Demodata' : ''}`,
     updatedAt: formatClock(portfolio.generatedAt),
     narrative: portfolio.narrative,
     groups,
@@ -178,10 +178,10 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
       count: list.length,
       risk: show(avgRisk),
       riskC: riskSevKey ? SEV[riskSevKey].c : SEV.unknown.c,
-      riskLabel: riskSevKey ? SEV[riskSevKey].label : 'Not assessed',
+      riskLabel: riskSevKey ? SEV[riskSevKey].label : 'Ej bedömd',
       riskDelta: portfolio.demoTrends?.riskDeltaLabel ?? null,
       riskDash: `${ready && avgRisk !== null ? (avgRisk / 100) * C30 : 0} ${C30}`,
-      avgTemp: temps.length ? (temps.reduce((a, b) => a + b, 0) / temps.length).toFixed(1) : '—',
+      avgTemp: temps.length ? formatNumber(temps.reduce((a, b) => a + b, 0) / temps.length, 1) : '—',
       maxRain: show(maxRainP ? rain(maxRainP) : null),
       maxRainAt: maxRainP?.property.name ?? '—',
       gust: show(gustP ? gust(gustP) : null),
@@ -192,8 +192,8 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
       bar: STATUS_ORDER.filter((k) => counts[k]).map((k) => ({ key: k, w: (counts[k] / n) * 100 + '%', c: SEV[k].c })),
       barLabel:
         notAssessed === list.length && list.length > 0
-          ? `${list.length} not assessed yet · no public-data sources connected`
-          : STATUS_ORDER.map((k) => counts[k] + ' ' + SEV[k].label.toLowerCase()).join(' · ') + (notAssessed ? ` · ${notAssessed} not assessed` : ''),
+          ? `${list.length} ej bedömda ännu · inga offentliga datakällor anslutna`
+          : STATUS_ORDER.map((k) => `${SEV[k].label}: ${counts[k]}`).join(' · ') + (notAssessed ? ` · Ej bedömda: ${notAssessed}` : ''),
       alerts: totalAlerts,
       spark,
       alertsDelta: portfolio.demoTrends?.alertsDeltaLabel ?? null,
@@ -208,13 +208,13 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
       warnChips: (Object.keys(wc) as Array<keyof typeof WL>).map((k) => ({ key: k, label: WL[k].label + ' ×' + wc[k], bg: WL[k].bg, fg: WL[k].fg })),
       wx: wxR + wxW + wxF,
       wxSplit: [
-        { label: 'Rain', n: wxR },
-        { label: 'Wind', n: wxW },
+        { label: 'Regn', n: wxR },
+        { label: 'Vind', n: wxW },
         { label: 'Frost', n: wxF },
       ],
       sms: smsN,
       smsW: ready ? (smsN / Math.max(1, smsMax)) * 100 + '%' : '0%',
-      smsSub: `${smsProps.length} of ${list.length} properties with SMS enabled`,
+      smsSub: `${smsProps.length} av ${list.length} fastigheter med SMS aktiverat`,
     },
     legend: [
       ...STATUS_ORDER.map((k) => ({ key: k as string, label: SEV[k].label, c: SEV[k].c, n: counts[k] })),

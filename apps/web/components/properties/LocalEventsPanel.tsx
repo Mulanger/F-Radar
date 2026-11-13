@@ -8,14 +8,14 @@ export function LocalEventsPanel({ d }: { d: DetailVM }) {
   return (
     <div style={{ ...card, flex: '1 1 380px', padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div>
-        <div style={cardTitle}>Local Events &amp; Disruptions</div>
-        <div style={cardSub}>{d.live ? 'Trafikverket inom 2 km · Krisinformation per län (regional information)' : 'Within 1.5 km of the property'}</div>
+        <div style={cardTitle}>Händelser och störningar i närheten</div>
+        <div style={cardSub}>{d.live ? 'Trafikverket inom 2 km · Krisinformation per län (regional information)' : 'Inom 1,5 km från fastigheten'}</div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
         {[
-          ['Crisis events', d.crisisN],
-          ['Traffic', d.trafficN],
-          ['Other', d.otherN],
+          ['Krishändelser', d.crisisN],
+          ['Trafik', d.trafficN],
+          ['Övrigt', d.otherN],
         ].map(([label, n]) => (
           <div key={label} style={tile}>
             <div style={{ fontSize: 11.5, color: C.text4 }}>{label}</div>
@@ -25,10 +25,10 @@ export function LocalEventsPanel({ d }: { d: DetailVM }) {
       </div>
       {!d.avail.events && (
         <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: C.text3, borderRadius: 14, background: '#F8F9F8' }}>
-          {d.live ? 'Händelsekällorna (Krisinformation, Trafikverket) kunde inte hämtas – händelser i närheten kan inte visas.' : 'Event sources (Krisinformation, Trafikverket) are not connected yet – nearby events cannot be shown.'}
+          {d.live ? 'Händelsekällorna (Krisinformation, Trafikverket) kunde inte hämtas – händelser i närheten kan inte visas.' : 'Händelsekällorna (Krisinformation, Trafikverket) är inte anslutna – händelser i närheten kan inte visas.'}
         </div>
       )}
-      {d.avail.events && d.noEvents && <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: C.text3, borderRadius: 14, background: '#F8F9F8' }}>{d.live ? 'Inga rapporterade händelser i närheten' : 'No disruptions reported nearby'}</div>}
+      {d.avail.events && d.noEvents && <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: C.text3, borderRadius: 14, background: '#F8F9F8' }}>{d.live ? 'Inga rapporterade händelser i närheten' : 'Inga rapporterade störningar i närheten'}</div>}
       {d.events.map((e) => (
         <div key={e.id} style={{ display: 'flex', gap: 12, padding: '12px 0', borderTop: '1px solid rgba(20,23,26,0.05)' }}>
           <span style={{ flexShrink: 0, alignSelf: 'flex-start', fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 7, background: e.bg, color: e.c }}>{e.kind}</span>

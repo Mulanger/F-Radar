@@ -13,7 +13,7 @@ async function findProperty(propertyId: string) {
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const s = await findProperty((await params).propertyId);
-  return { title: `${s?.property.name ?? 'Property'} · FastighetsRadar` };
+  return { title: `${s?.property.name ?? 'Fastighet'} · FastighetsRadar` };
 }
 
 /** Validates (org-scoped, server-side) that the property exists; UI is rendered by `../layout.tsx`. */

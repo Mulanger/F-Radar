@@ -37,11 +37,11 @@ export function PropertyHero3D({ d, isDemo }: { d: DetailVM; isDemo: boolean }) 
       <ThreeScene config={config} />
       <div style={{ position: 'absolute', top: 20, left: 22, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 20, ...glass(0.6, 14), fontSize: 12, color: C.text2 }}>
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: d.c, animation: 'frBreath 2s infinite' }} />
-        {isDemo ? 'Illustrative property twin' : 'Illustration – not a model of the real building'} · {d.area}
+        {isDemo ? 'Illustrerad fastighet (demo)' : 'Illustration – inte en modell av den verkliga byggnaden'} · {d.area}
       </div>
       <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
-        {panel(`Water level · ${d.water.body}`, d.water.level, d.water.trend, d.water.fc)}
-        {panel('Alert radius 1 km', `${d.eventsN} events`, `${d.crisisN} crisis · ${d.trafficN} traffic`, C.text4)}
+        {panel(`Vattennivå · ${d.water.body}`, d.water.level, d.water.trend, d.water.fc)}
+        {panel('Larmradie 1 km', `${d.eventsN} händelser`, `${d.crisisN} kris · ${d.trafficN} trafik`, C.text4)}
       </div>
       <div style={{ position: 'absolute', left: 20, bottom: 20, right: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <div
@@ -52,10 +52,10 @@ export function PropertyHero3D({ d, isDemo }: { d: DetailVM; isDemo: boolean }) 
           }}
         >
           <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '30%', background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.7),transparent)', animation: 'frShimmer 7s ease-in-out infinite' }} />
-          {stat('Temperature', `${d.temp}°C`)}
-          {stat('Wind', `${d.wind} m/s`)}
-          {stat('Humidity', `${d.hum}%`)}
-          {stat('Rain 24 h', `${d.rain} mm`)}
+          {stat('Temperatur', `${d.temp}°C`)}
+          {stat('Vind', `${d.wind} m/s`)}
+          {stat('Luftfuktighet', `${d.hum}%`)}
+          {stat('Nederbörd 24 h', `${d.rain} mm`)}
         </div>
       </div>
     </div>

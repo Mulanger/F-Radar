@@ -32,9 +32,9 @@ export function Header() {
     <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 26, flexWrap: 'wrap' }}>
       <label style={{ ...pill, flex: '1 1 280px', maxWidth: 420, padding: '0 16px', color: C.text4, fontSize: 14 }}>
         <IconSearch />
-        <span className="fr-sr-only">Search</span>
+        <span className="fr-sr-only">Sök</span>
         <input
-          placeholder="Search properties, addresses, alerts…"
+          placeholder="Sök fastigheter, adresser, larm…"
           style={{ border: 'none', outline: 'none', background: 'transparent', font: 'inherit', color: C.ink, flex: 1, minWidth: 0 }}
         />
         <span style={{ fontFamily: FONT_MONO, fontSize: 11, padding: '2px 6px', borderRadius: 6, background: C.chip }}>⌘K</span>
@@ -48,7 +48,7 @@ export function Header() {
           style={{ ...pill, padding: '0 14px 0 16px', color: C.ink, cursor: 'pointer' }}
         >
           <IconBuildingSimple />
-          Quick switch
+          Snabbväxla
           <IconChevronDown stroke={C.text4} />
         </button>
         <Popover open={jumpOpen} onClose={() => setJumpOpen(false)} style={{ top: 52, left: 0, width: 300, background: 'rgba(255,255,255,0.92)' }}>
@@ -64,13 +64,13 @@ export function Header() {
 
       <div style={{ ...pill, padding: '0 16px' }}>
         <IconCalendar stroke="#6B737B" />
-        <span style={{ color: C.text4 }}>Range</span>Today · next 48 h
+        <span style={{ color: C.text4 }}>Period</span>Idag · kommande 48 h
       </div>
       {!isDemo && <LiveStatus generatedAt={portfolio.generatedAt} />}
 
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
         <button
-          aria-label="Notifications"
+          aria-label="Aviseringar"
           style={{ width: 44, height: 44, borderRadius: '50%', background: C.white, border: '1px solid rgba(20,23,26,0.06)', display: 'grid', placeItems: 'center', position: 'relative', cursor: 'pointer', color: C.ink }}
         >
           <IconBell />
@@ -80,11 +80,11 @@ export function Header() {
           className="fr-hover-dark"
           onClick={editor.openCreate}
           disabled={!editor.enabled}
-          title={editor.enabled ? 'Add a property' : 'Demo data cannot be edited'}
+          title={editor.enabled ? 'Lägg till en fastighet' : 'Demodata kan inte redigeras'}
           style={{ opacity: editor.enabled ? 1 : 0.85, height: 44, display: 'flex', alignItems: 'center', gap: 8, padding: '0 18px', borderRadius: 22, background: C.ink, color: '#fff', border: 'none', fontSize: 13.5, fontWeight: 500, cursor: 'pointer' }}
         >
           <IconPlus />
-          Add Property
+          Lägg till fastighet
         </button>
         {isDemo ? (
           <div style={{ ...pill, gap: 10, padding: '4px 14px 4px 4px', boxSizing: 'border-box' }}>

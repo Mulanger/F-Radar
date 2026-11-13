@@ -33,7 +33,7 @@ export function sourceLine(p: Portfolio, id: SourceId, label: string, clock: (is
   if (!s.lastSuccessAt) return `${label}: ${s.note ?? 'ej ansluten'}`;
   return `${label}: hämtad ${clock(s.lastSuccessAt)} (${FRESH_SV[s.freshness] ?? s.freshness})`;
 }
-import { isDisplayableValue } from '@fastighetsradar/domain';
+import { formatNumber, isDisplayableValue } from '@fastighetsradar/domain';
 
 /**
  * Accessors that read typed measurements. A value is returned only when it is
@@ -48,7 +48,7 @@ export function metricValue(s: PropertySnapshot, key: MetricKey): number | null 
 /** Number or em dash for display. */
 export function show(v: number | null | undefined, digits?: number): string {
   if (v === null || v === undefined || Number.isNaN(v)) return '—';
-  return digits === undefined ? String(v) : v.toFixed(digits);
+  return formatNumber(v, digits);
 }
 
 export const n0 = (v: number | null) => v ?? 0;

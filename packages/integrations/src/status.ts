@@ -18,20 +18,20 @@ export function resolveSourceStatus(manifest: SourceManifest, env: ServerEnv): D
   let note: string;
   if (manifest.access === 'disabled' && !flagEnabled) {
     status = 'disabled';
-    note = 'Disabled pending legal/usage clearance';
+    note = 'Avstängd i väntan på juridiskt godkännande';
   } else if (!flagEnabled) {
     status = 'disabled';
-    note = `Disabled via ${manifest.enableFlag}`;
+    note = `Avstängd via ${manifest.enableFlag}`;
   } else if (missingSecrets.length > 0) {
     status = manifest.access === 'requires_approval' ? 'access_required' : 'pending_access';
-    note = `Missing ${missingSecrets.join(', ')}`;
+    note = `Saknar ${missingSecrets.join(', ')}`;
   } else if (ADAPTER_IMPLEMENTATION[manifest.id] !== 'implemented') {
     status = 'not_implemented';
-    note = 'Adapter not implemented yet';
+    note = 'Integrationen är inte implementerad ännu';
   } else {
     // Configured, but health is unknown until a collector run succeeds.
     status = 'degraded';
-    note = 'Configured – awaiting first successful fetch';
+    note = 'Konfigurerad – väntar på första lyckade hämtning';
   }
 
   return {

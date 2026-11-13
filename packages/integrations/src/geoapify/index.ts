@@ -19,7 +19,7 @@ import type { AdapterContext, AdapterResult, AddressSuggestion, GeocodingProvide
 
 export const GEOAPIFY_MIN_QUERY_LENGTH = 3;
 export const GEOAPIFY_MAX_SUGGESTIONS = 5;
-export const GEOAPIFY_ATTRIBUTION = 'Powered by Geoapify · © OpenStreetMap contributors';
+export const GEOAPIFY_ATTRIBUTION = 'Drivs av Geoapify · © OpenStreetMap-bidragsgivare';
 const TIMEOUT_MS = 4_000;
 const CACHE_TTL_MS = 10 * 60_000;
 const CACHE_MAX = 500;

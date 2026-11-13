@@ -8,8 +8,8 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
     <div style={{ ...card, flex: '1 1 380px', height: 460, boxSizing: 'border-box', padding: '20px 8px 8px 20px', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 12, marginBottom: 12 }}>
         <div>
-          <div style={cardTitle}>Alert Feed</div>
-          <div style={cardSub}>Public-data events across the portfolio</div>
+          <div style={cardTitle}>Händelseflöde</div>
+          <div style={cardSub}>Händelser från offentliga källor i portföljen</div>
         </div>
         <span
           style={{
@@ -19,13 +19,13 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
           }}
         >
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', animation: 'frBreath 2s infinite' }} />
-          {isDemo ? 'Demo' : vm.avail.warnings || vm.avail.events ? 'Live' : 'Not connected'}
+          {isDemo ? 'Demo' : vm.avail.warnings || vm.avail.events ? 'Live' : 'Ej ansluten'}
         </span>
       </div>
       <div style={{ overflowY: 'auto', overflowX: 'hidden', flex: 1, paddingRight: 12, paddingLeft: 10, marginLeft: -10, display: 'flex', flexDirection: 'column' }}>
         {vm.feed.length === 0 && (
           <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: C.text3 }}>
-            {vm.avail.warnings || vm.avail.events ? 'No events for the selected properties' : 'Public-data event sources are not connected yet. Events will appear here once SMHI, Krisinformation and Trafikverket are integrated.'}
+            {vm.avail.warnings || vm.avail.events ? 'Inga händelser för valda fastigheter' : 'Händelsekällorna är inte anslutna. Händelser visas här när SMHI, Krisinformation och Trafikverket levererar data.'}
           </div>
         )}
         {vm.feed.map((f) => (

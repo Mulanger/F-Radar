@@ -10,8 +10,8 @@ import { IsoDateTimeSchema } from './common';
 export const SWEDEN_BOUNDS = { minLat: 55.0, maxLat: 69.2, minLon: 10.5, maxLon: 24.3 } as const;
 
 export const SwedishPointSchema = z.object({
-  lat: z.number().finite().min(SWEDEN_BOUNDS.minLat, 'Latitude outside Sweden').max(SWEDEN_BOUNDS.maxLat, 'Latitude outside Sweden'),
-  lon: z.number().finite().min(SWEDEN_BOUNDS.minLon, 'Longitude outside Sweden').max(SWEDEN_BOUNDS.maxLon, 'Longitude outside Sweden'),
+  lat: z.number().finite().min(SWEDEN_BOUNDS.minLat, 'Latituden ligger utanför Sverige').max(SWEDEN_BOUNDS.maxLat, 'Latituden ligger utanför Sverige'),
+  lon: z.number().finite().min(SWEDEN_BOUNDS.minLon, 'Longituden ligger utanför Sverige').max(SWEDEN_BOUNDS.maxLon, 'Longituden ligger utanför Sverige'),
 });
 export type SwedishPoint = z.infer<typeof SwedishPointSchema>;
 
@@ -79,7 +79,7 @@ export const PropertyUpdateSchema = z
     /** Required when the address changed via a new geocoding selection. */
     geocode: GeocodeMetadataSchema.optional(),
   })
-  .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });
+  .refine((v) => Object.keys(v).length > 0, { message: 'Inget att uppdatera' });
 export type PropertyUpdateInput = z.infer<typeof PropertyUpdateSchema>;
 
 export const PositionSourceSchema = z.enum(['geocoded', 'manual_adjusted', 'manual_pin']);

@@ -17,7 +17,7 @@ export function PropertySwitcher({ d, onSwitch }: { d: DetailVM; onSwitch: (id: 
   };
   return (
     <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 4, padding: 4, borderRadius: 24, background: C.white, border: '1px solid rgba(20,23,26,0.06)' }}>
-      <button className="fr-hover-soft" onClick={() => go(d.prevId)} aria-label="Previous property" style={round}>
+      <button className="fr-hover-soft" onClick={() => go(d.prevId)} aria-label="Föregående fastighet" style={round}>
         <IconChevronLeft stroke={C.ink} />
       </button>
       <button
@@ -31,7 +31,7 @@ export function PropertySwitcher({ d, onSwitch }: { d: DetailVM; onSwitch: (id: 
         <span style={{ fontSize: 11.5, color: C.text4, marginLeft: 'auto' }}>{d.pos}</span>
         <IconChevronDown stroke={C.text4} />
       </button>
-      <button className="fr-hover-soft" onClick={() => go(d.nextId)} aria-label="Next property" style={round}>
+      <button className="fr-hover-soft" onClick={() => go(d.nextId)} aria-label="Nästa fastighet" style={round}>
         <IconChevronRight stroke={C.ink} />
       </button>
       <Popover open={open} onClose={() => setOpen(false)} style={{ top: 52, right: 0, width: 320, background: 'rgba(255,255,255,0.94)' }}>

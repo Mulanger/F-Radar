@@ -1,6 +1,6 @@
 import type { Portfolio, PropertySnapshot, PropertyStatus } from '@fastighetsradar/domain';
-import { formatClock, formatDistance, formatWeekdayClock } from '@fastighetsradar/domain';
-import { SEV, WL, type SeverityStyle } from '../design/tokens';
+import { formatClock, formatDistance, formatNumber, formatWeekdayClock } from '@fastighetsradar/domain';
+import { CATEGORY_SV, EXPOSURE_SV, SEV, WL, type SeverityStyle } from '../design/tokens';
 import type { ChartMetric } from '../state/dashboard-state';
 import { chartOf } from './chart';
 import { eventCounts, rulesFor, type RuleView } from './rules';
@@ -20,23 +20,23 @@ export interface DetailUi {
 const sev = (st: PropertyStatus | 'info'): SeverityStyle => (st === 'info' ? SEV.normal : SEV[st] ?? SEV.unknown);
 
 export const CHART_METAS: Record<ChartMetric, { label: string; u: string; c: string; dec: number; key: Parameters<typeof forecastValues>[1] }> = {
-  temp: { label: 'Temperature', u: '°', c: '#E08A2E', dec: 1, key: 'weather.air_temperature' },
-  rain: { label: 'Precipitation', u: ' mm', c: '#4A86C5', dec: 1, key: 'weather.precipitation_1h' },
-  wind: { label: 'Wind', u: ' m/s', c: '#3E8E9E', dec: 1, key: 'weather.wind_speed' },
-  hum: { label: 'Humidity', u: '%', c: '#7468C9', dec: 0, key: 'weather.relative_humidity' },
+  temp: { label: 'Temperatur', u: '°', c: '#E08A2E', dec: 1, key: 'weather.air_temperature' },
+  rain: { label: 'Nederbörd', u: ' mm', c: '#4A86C5', dec: 1, key: 'weather.precipitation_1h' },
+  wind: { label: 'Vind', u: ' m/s', c: '#3E8E9E', dec: 1, key: 'weather.wind_speed' },
+  hum: { label: 'Luftfuktighet', u: '%', c: '#7468C9', dec: 0, key: 'weather.relative_humidity' },
 };
 
 /** Maps a water level (cm vs mean) to a 0–1 fill used by the decorative wave canvas. */
 export const levelToFill = (l: number) => 0.18 + ((l + 20) / 120) * 0.62;
 
-const DIRS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+const DIRS = ['N', 'NO', 'O', 'SO', 'S', 'SV', 'V', 'NV'];
 
 const svDate = new Intl.DateTimeFormat('sv-SE', { day: 'numeric', month: 'short', timeZone: 'Europe/Stockholm' });
 /** "Since 14:32" within 24 h, otherwise a date – an old start must never look like today. */
 export function sinceLabel(validFrom: string, nowIso: string, sv: boolean): string {
   const recent = Date.parse(nowIso) - Date.parse(validFrom) < 20 * 3_600_000;
-  if (sv) return recent ? `Sedan ${formatClock(validFrom)}` : `Sedan ${svDate.format(new Date(validFrom))}`;
-  return recent ? `Since ${formatClock(validFrom)}` : `Since ${svDate.format(new Date(validFrom))}`;
+  void sv;
+  return recent ? `Sedan ${formatClock(validFrom)}` : `Sedan ${svDate.format(new Date(validFrom))}`;
 }
 
 /**
@@ -48,7 +48,7 @@ export function buildDemoTimeline(s: PropertySnapshot, rules: RuleView[], smsOn:
   s.warnings.forEach((w, i) =>
     tl.push({
       time: i ? '12:00' : '14:32',
-      title: `${w.level} ${w.level === 'VMA' ? '' : 'warning '}issued — ${w.type}`,
+      title: `${w.level === 'VMA' ? 'VMA' : `${WL[w.level].label} varning`} utfärdad — ${w.type}`,
       detail: w.sourceLabel + ' · ' + w.region,
       c: WL[w.level].fg,
     }),
@@ -56,16 +56,16 @@ export function buildDemoTimeline(s: PropertySnapshot, rules: RuleView[], smsOn:
   if (smsOn && s.activeAlertCount)
     tl.push({
       time: '14:34',
-      title: 'SMS alert sent',
-      detail: `${s.sms.recipientCount} recipients · ` + (rules.find((r) => r.hit && r.on) || rules[0])?.name,
+      title: 'SMS-larm skickat',
+      detail: `${s.sms.recipientCount} mottagare · ` + (rules.find((r) => r.hit && r.on) || rules[0])?.name,
       c: 'oklch(0.55 0.12 155)',
     });
   s.events.slice(0, 2).forEach((e, i) =>
     tl.push({ time: ['13:48', '11:20'][i]!, title: e.title, detail: e.sourceLabel + ' · ' + formatDistance(e.geo.distanceMeters), c: sev(e.severity === 'unknown' ? 'unknown' : e.severity).c }),
   );
-  tl.push({ time: '09:00', title: 'Daily risk assessment', detail: `Risk score updated to ${show(s.demoRisk?.score)}`, c: '#9AA1A8' });
-  tl.push({ time: 'Yesterday', title: 'Resolved — Yellow warning, wind', detail: 'SMHI · auto-closed after 18 h', c: 'oklch(0.55 0.12 155)' });
-  tl.sort((a, b) => (b.time === 'Yesterday' ? -1 : 0) - (a.time === 'Yesterday' ? -1 : 0) || b.time.localeCompare(a.time));
+  tl.push({ time: '09:00', title: 'Daglig riskbedömning', detail: `Riskpoäng uppdaterad till ${show(s.demoRisk?.score)}`, c: '#9AA1A8' });
+  tl.push({ time: 'Igår', title: 'Avslutad — gul varning, vind', detail: 'SMHI · stängdes automatiskt efter 18 h', c: 'oklch(0.55 0.12 155)' });
+  tl.sort((a, b) => (b.time === 'Igår' ? -1 : 0) - (a.time === 'Igår' ? -1 : 0) || b.time.localeCompare(a.time));
   return tl;
 }
 
@@ -97,7 +97,7 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
   const hr = (i: number) => (forecastPts[i] ? formatClock(forecastPts[i]!.validAt) : '—');
   const ch = chartOf(vals, 640, 196, 0.12, ui.metric === 'rain');
   const pi = vals.length ? vals.indexOf(Math.max(...vals)) : 0;
-  const fmt = (v: number) => (+v).toFixed(mt.dec) + mt.u;
+  const fmt = (v: number) => formatNumber(+v, mt.dec) + mt.u;
   const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
   const tS = chartOf(tempSer, 100, 36, 0.1);
   const rMax = rainSer.length ? Math.max(...rainSer) : 0;
@@ -118,17 +118,17 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
   const fdist = s.flood.mapped.distanceToZoneMeters;
   const ev = eventCounts(s);
   const evKind = { Crisis: SEV.critical, Traffic: SEV.warning, Water: SEV.monitor, Air: SEV.normal, Weather: SEV.monitor, Info: SEV.normal };
-  const factorLabels = ['Weather', 'Water', 'Crisis', 'Traffic', 'Air'] as const;
+  const factorLabels = ['Väder', 'Vatten', 'Kris', 'Trafik', 'Luft'] as const;
   const fac = s.demoRisk ? [s.demoRisk.factors.weather, s.demoRisk.factors.water, s.demoRisk.factors.crisis, s.demoRisk.factors.traffic, s.demoRisk.factors.air] : null;
 
   const avail = availability(portfolio);
   const live = p.origin === 'live';
   const mon = s.monitoring ?? null;
   const pmM = s.metrics.find((m) => m.metricKey === 'air_quality.pm25' || m.metricKey === 'air_quality.no2');
-  const fmtDist = (m: number | null | undefined) => (m === null || m === undefined ? '—' : m >= 1000 ? `${(m / 1000).toFixed(1).replace('.', ',')} km` : `${Math.round(m)} m`);
+  const fmtDist = (m: number | null | undefined) => (m === null || m === undefined ? '—' : m >= 1000 ? `${formatNumber(m / 1000, 1)} km` : `${Math.round(m)} m`);
   // Building facts are customer-provided; absent in Phase 2. The 3D scene then uses a neutral default.
   const b = p.building;
-  const buildingLine = b ? `${b.type} · ${b.floors} floors · ${b.unitsLabel}` : 'Building details not provided';
+  const buildingLine = b ? `${b.type} · ${b.floors} våningar · ${b.unitsLabel}` : 'Byggnadsuppgifter saknas';
 
   return {
     id: p.id,
@@ -137,7 +137,7 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
     buildingLine,
     lat: p.location.lat,
     lon: p.location.lon,
-    positionNote: p.geocode.provider === 'manual_pin' ? 'Manual pin' : p.geocode.precision === 'building' ? 'Address point (Geoapify)' : 'Approximate address point',
+    positionNote: p.geocode.provider === 'manual_pin' ? 'Manuell nål' : p.geocode.precision === 'building' ? 'Adresspunkt (Geoapify)' : 'Ungefärlig adresspunkt',
     name: p.name,
     address: p.address,
     area: p.area,
@@ -163,15 +163,15 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
     windRot: (ready && dir !== null ? dir + 180 : 0) + 'deg',
     windW: gust === null ? '0%' : Math.min(100, (gust / 30) * 100) + '%',
     tempSpark: tS.line,
-    tempRange: tempSer.length ? `${Math.min(...tempSer)}° – ${Math.max(...tempSer)}° next 24 h` : 'Forecast unavailable',
+    tempRange: tempSer.length ? `${formatNumber(Math.min(...tempSer))}° – ${formatNumber(Math.max(...tempSer))}° kommande 24 h` : 'Prognos otillgänglig',
     rainBars: rainSer.map((v, i) => ({ key: i, h: ready && rMax > 0 ? Math.max(6, (v / rMax) * 100) + '%' : '6%', c: v > rMax * 0.6 ? '#4A86C5' : '#C9DAEB' })),
-    rainPeak: rainSer.length ? `Peak ${rMax.toFixed(1)} mm/h at ${rainPts[rPi] ? formatClock(rainPts[rPi]!.validAt) : '—'}` : 'Forecast unavailable',
+    rainPeak: rainSer.length ? `Max ${formatNumber(rMax, 1)} mm/h kl. ${rainPts[rPi] ? formatClock(rainPts[rPi]!.validAt) : '—'}` : 'Prognos otillgänglig',
     humDash: `${ready && hum !== null ? (hum / 100) * HC : 0} ${HC}`,
     // Approximate dew point (simple Lawrence approximation, as in the prototype). Derived – not a source value.
-    dew: temp !== null && hum !== null ? (temp - (100 - hum) / 5).toFixed(1) : '—',
-    condens: hum === null ? '—' : hum > 85 ? 'high' : 'low',
+    dew: temp !== null && hum !== null ? formatNumber(temp - (100 - hum) / 5, 1) : '—',
+    condens: hum === null ? '—' : hum > 85 ? 'hög' : 'låg',
     aqi: show(aqi),
-    aq: aqi === null ? '' : aqi > 75 ? 'Poor' : aqi > 50 ? 'Moderate' : 'Good',
+    aq: aqi === null ? '' : aqi > 75 ? 'Dålig' : aqi > 50 ? 'Måttlig' : 'Bra',
     aqC: aqi === null ? SEV.unknown.c : aqi > 75 ? SEV.critical.c : aqi > 50 ? SEV.warning.c : SEV.normal.c,
     aqLeft: aqi === null ? '0%' : Math.min(97, (aqi / 150) * 100) + '%',
     pm: show(pm),
@@ -181,7 +181,7 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
       val: `${ready && risk !== null ? (risk / 100) * arc : 0} ${GC}`,
       c: gs ? SEV[gs].c : SEV.unknown.c,
       bg: gs ? SEV[gs].bg : SEV.unknown.bg,
-      label: gs ? SEV[gs].label : 'Not assessed',
+      label: gs ? SEV[gs].label : 'Ej bedömd',
     },
     factors: factorLabels.map((label, i) => ({
       label,
@@ -192,6 +192,7 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
     warnings: s.warnings.map((w) => ({
       id: w.id,
       level: w.level,
+      levelLabel: WL[w.level].label,
       type: w.type,
       summary: w.summary,
       start: formatWeekdayClock(w.validFrom, '—'),
@@ -214,15 +215,15 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
           yMin: fmt(ch.mn),
           pL: (pi / Math.max(1, vals.length - 1)) * 100 + '%',
           pT: (ch.pts[pi]![1] / 196) * 100 + '%',
-          pLabel: `Peak ${fmt(vals[pi]!)} · ${hr(pi)}`,
+          pLabel: `Topp ${fmt(vals[pi]!)} · ${hr(pi)}`,
           stats: [
-            { label: 'Now', value: fmt(vals[0]!) },
+            { label: 'Nu', value: fmt(vals[0]!) },
             { label: 'Min', value: fmt(Math.min(...vals)) },
             { label: 'Max', value: fmt(Math.max(...vals)) },
-            { label: ui.metric === 'rain' ? 'Total' : 'Average', value: ui.metric === 'rain' ? (rain24 === null ? '—' : fmt(rain24)) : fmt(avg) },
+            { label: ui.metric === 'rain' ? 'Totalt' : 'Medel', value: ui.metric === 'rain' ? (rain24 === null ? '—' : fmt(rain24)) : fmt(avg) },
           ],
           xLabels: [
-            'Now',
+            'Nu',
             ...[6, 12, 18, 24].map((h) =>
               forecastPts[0] ? formatClock(new Date(Date.parse(forecastPts[0].validAt) + h * 3_600_000).toISOString()) : '—',
             ),
@@ -230,25 +231,25 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
         }
       : null,
     water: {
-      flood: flood === 'unknown' ? 'Unknown' : flood,
+      flood: EXPOSURE_SV[flood] ?? flood,
       fc: fS.c,
       fbg: fS.bg,
-      body: s.flood.waterBody?.name ?? 'No water body matched',
+      body: s.flood.waterBody?.name ?? 'Inget vattendrag matchat',
       level: lvl === null ? '—' : (lvl >= 0 ? '+' : '') + lvl + ' cm',
       levelFill: lvl === null ? 0.3 : levelToFill(lvl),
       trend: s.flood.waterBody?.trendLabel ?? '—',
       scenario: s.flood.mapped.scenario,
-      dist: live ? (s.flood.mapped.availability !== 'ok' ? 'Ej kontrollerad' : fdist === null ? 'Inget inom 1 km' : fdist === 0 ? 'Inom karterat område' : `Inom ${fdist} m`) : fdist === null ? '—' : fdist < 100 ? fdist + ' m · inside buffer' : fdist >= 1000 ? (fdist / 1000).toFixed(1) + ' km away' : fdist + ' m away',
+      dist: live ? (s.flood.mapped.availability !== 'ok' ? 'Ej kontrollerad' : fdist === null ? 'Inget inom 1 km' : fdist === 0 ? 'Inom karterat område' : `Inom ${fdist} m`) : fdist === null ? '—' : fdist < 100 ? fdist + ' m · inom buffert' : fdist >= 1000 ? formatNumber(fdist / 1000, 1) + ' km bort' : fdist + ' m bort',
       thTop: (1 - levelToFill(60)) * 100 + '%',
       hasLevel: lvl !== null,
       // Derived demo labels from the prototype. Live mode needs a documented method before showing these.
-      surface: live ? 'Ej bedömt' : rain24 === null ? '—' : rain24 > 15 ? 'Likely' : rain24 > 10 ? 'Possible' : 'Unlikely',
-      basement: live ? 'Ej bedömt' : flood === 'High' ? 'Elevated' : flood === 'Medium' ? 'Moderate' : flood === 'Low' ? 'Low' : '—',
+      surface: live ? 'Ej bedömt' : rain24 === null ? '—' : rain24 > 15 ? 'Troligt' : rain24 > 10 ? 'Möjligt' : 'Osannolikt',
+      basement: live ? 'Ej bedömt' : flood === 'High' ? 'Förhöjd' : flood === 'Medium' ? 'Måttlig' : flood === 'Low' ? 'Låg' : '—',
       note: live ? (s.flood.mapped.geo.note ?? null) : null,
     },
     events: s.events.map((e) => ({
       id: e.id,
-      kind: e.category,
+      kind: CATEGORY_SV[e.category] ?? e.category,
       title: e.title,
       src: e.sourceLabel,
       dist: formatDistance(e.geo.distanceMeters),
@@ -266,12 +267,12 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
     timeline: portfolio.origin === 'demo_fixture' ? buildDemoTimeline(s, rules, on) : [],
     sms: {
       on,
-      label: on ? 'Enabled' : 'Disabled',
+      label: on ? 'Aktiverat' : 'Avaktiverat',
       op: on ? 1 : 0.45,
-      sub: `${rules.filter((r) => r.on).length} of ${rules.length} triggers active · ${s.sms.recipientsLabel}`,
+      sub: `${rules.filter((r) => r.on).length} av ${rules.length} regler aktiva · ${s.sms.recipientsLabel}`,
       rules: rules.map((r) => ({
         ...r,
-        state: !r.on ? 'Off' : r.hit ? 'Triggered today' : 'Armed',
+        state: !r.on ? 'Av' : r.hit ? 'Utlöst idag' : 'Aktiv',
         stateC: !r.on ? '#9AA1A8' : r.hit ? SEV.warning.c : SEV.normal.c,
       })),
     },

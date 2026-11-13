@@ -40,23 +40,27 @@ export interface SeverityStyle {
 }
 
 export const SEV: Record<Exclude<PropertyStatus, 'unknown'>, SeverityStyle> & { unknown: SeverityStyle } = {
-  normal: { label: 'Normal', c: 'oklch(0.55 0.12 155)', bg: 'oklch(0.95 0.035 155)', hex: 0x3fa66b, hx: '#3FA66B' },
-  monitor: { label: 'Monitor', c: 'oklch(0.54 0.12 245)', bg: 'oklch(0.95 0.03 245)', hex: 0x4a7fd0, hx: '#4A7FD0' },
-  warning: { label: 'Warning', c: 'oklch(0.6 0.15 55)', bg: 'oklch(0.95 0.045 65)', hex: 0xe08a2e, hx: '#E08A2E' },
-  critical: { label: 'Critical', c: 'oklch(0.57 0.19 27)', bg: 'oklch(0.95 0.04 25)', hex: 0xd8473a, hx: '#D8473A' },
+  normal: { label: 'Ingen aktiv varning', c: 'oklch(0.55 0.12 155)', bg: 'oklch(0.95 0.035 155)', hex: 0x3fa66b, hx: '#3FA66B' },
+  monitor: { label: 'Bevaka', c: 'oklch(0.54 0.12 245)', bg: 'oklch(0.95 0.03 245)', hex: 0x4a7fd0, hx: '#4A7FD0' },
+  warning: { label: 'Varning', c: 'oklch(0.6 0.15 55)', bg: 'oklch(0.95 0.045 65)', hex: 0xe08a2e, hx: '#E08A2E' },
+  critical: { label: 'Kritisk', c: 'oklch(0.57 0.19 27)', bg: 'oklch(0.95 0.04 25)', hex: 0xd8473a, hx: '#D8473A' },
   // Not in the prototype: used when status cannot be determined (missing data ≠ normal).
-  unknown: { label: 'Unknown', c: '#6B737B', bg: '#F1F3F2', hex: 0x9aa1a8, hx: '#9AA1A8' },
+  unknown: { label: 'Ej bedömd', c: '#6B737B', bg: '#F1F3F2', hex: 0x9aa1a8, hx: '#9AA1A8' },
 };
 
 export const STATUS_ORDER = ['normal', 'monitor', 'warning', 'critical'] as const;
 
+/** Swedish labels for event categories and mapped flood exposure classes. */
+export const CATEGORY_SV: Record<string, string> = { Crisis: 'Kris', Traffic: 'Trafik', Water: 'Vatten', Air: 'Luft', Weather: 'Väder', Info: 'Info' };
+export const EXPOSURE_SV: Record<string, string> = { High: 'Hög', Medium: 'Medel', Low: 'Låg', unknown: 'Okänd' };
+
 export const WL: Record<WarningLevel, { bg: string; fg: string; label: string }> = {
-  Yellow: { bg: 'oklch(0.94 0.08 95)', fg: 'oklch(0.45 0.1 85)', label: 'Yellow' },
+  Yellow: { bg: 'oklch(0.94 0.08 95)', fg: 'oklch(0.45 0.1 85)', label: 'Gul' },
   Orange: { bg: 'oklch(0.93 0.07 60)', fg: 'oklch(0.5 0.14 50)', label: 'Orange' },
   // Red is not in the prototype; added so a real SMHI red warning can be rendered.
-  Red: { bg: 'oklch(0.93 0.06 25)', fg: 'oklch(0.48 0.18 27)', label: 'Red' },
+  Red: { bg: 'oklch(0.93 0.06 25)', fg: 'oklch(0.48 0.18 27)', label: 'Röd' },
   VMA: { bg: 'oklch(0.94 0.04 25)', fg: 'oklch(0.5 0.17 27)', label: 'VMA' },
-  Info: { bg: 'oklch(0.95 0.03 240)', fg: 'oklch(0.48 0.1 245)', label: 'Info' },
+  Info: { bg: 'oklch(0.95 0.03 240)', fg: 'oklch(0.48 0.1 245)', label: 'Meddelande' },
 };
 
 /* Shared surfaces ------------------------------------------------------ */

@@ -30,7 +30,7 @@ export function Toggle({
       aria-checked={on}
       aria-label={label}
       disabled={disabled}
-      title={disabled ? 'Not available yet' : undefined}
+      title={disabled ? 'Inte tillgängligt än' : undefined}
       onClick={(e) => {
         e.stopPropagation();
         onToggle(e);

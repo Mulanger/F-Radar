@@ -51,7 +51,7 @@ export function PropertyDetail() {
     <div data-screen-label="02 Property Detail" style={{ display: 'flex', flexDirection: 'column', gap: 20, animation: 'frFade .45s ease both' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
         <div style={{ minWidth: 0 }}>
-          <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.text4 }}>
+          <nav aria-label="Brödsmulor" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.text4 }}>
             <a
               href="/overview"
               onClick={(e) => {
@@ -60,7 +60,7 @@ export function PropertyDetail() {
               }}
               style={{ color: C.text3 }}
             >
-              All Properties
+              Alla fastigheter
             </a>
             <span>/</span>
             <span style={{ color: C.ink }} aria-current="page">{d.name}</span>
@@ -82,7 +82,7 @@ export function PropertyDetail() {
             <span style={{ color: C.sep }}>·</span>
             <span title={d.positionNote} style={{ fontFamily: FONT_MONO, fontSize: 12.5 }}>{d.lat.toFixed(5)}, {d.lon.toFixed(5)}</span>
             <span style={{ color: C.sep }}>·</span>
-            <span>{isDemo ? 'Demo snapshot' : 'Updated'} {d.updatedAt}</span>
+            <span>{isDemo ? 'Demoögonblick' : 'Uppdaterad'} {d.updatedAt}</span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -92,7 +92,7 @@ export function PropertyDetail() {
               onClick={() => editor.openEdit(s)}
               style={{ height: 44, display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px', borderRadius: 22, background: C.white, border: '1px solid rgba(20,23,26,0.08)', fontSize: 13.5, cursor: 'pointer', color: C.ink }}
             >
-              Edit property
+              Redigera fastighet
             </button>
           )}
           <button
@@ -100,7 +100,7 @@ export function PropertyDetail() {
             style={{ height: 44, display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px', borderRadius: 22, background: C.white, border: '1px solid rgba(20,23,26,0.08)', fontSize: 13.5, cursor: 'pointer', color: C.ink }}
           >
             <IconArrowLeft />
-            Back to Portfolio
+            Tillbaka till portföljen
           </button>
           <button
             onClick={configure}
@@ -108,7 +108,7 @@ export function PropertyDetail() {
             style={{ height: 44, display: 'flex', alignItems: 'center', gap: 8, padding: '0 18px', borderRadius: 22, background: C.ink, color: '#fff', border: 'none', fontSize: 13.5, fontWeight: 500, cursor: 'pointer' }}
           >
             <IconSliders size={15} sw={1.8} />
-            Configure Alerts
+            Konfigurera larm
           </button>
         </div>
       </div>

@@ -19,7 +19,7 @@ export function PropertyList({
 }) {
   const { portfolio } = useDashboard();
   return (
-    <div role="listbox" aria-label="Properties">
+    <div role="listbox" aria-label="Fastigheter">
       {portfolio.properties.map((s) => {
         const p = s.property;
         const st = SEV[p.status] ?? SEV.unknown;

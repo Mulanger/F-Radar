@@ -8,11 +8,11 @@ export function PropertyTimeline({ d }: { d: DetailVM }) {
   return (
     <div style={{ ...card, flex: '1 1 380px', padding: 22 }}>
       <div style={{ marginBottom: 16 }}>
-        <div style={cardTitle}>Property Timeline</div>
-        <div style={cardSub}>Warnings, triggers and resolved states</div>
+        <div style={cardTitle}>Tidslinje</div>
+        <div style={cardSub}>Varningar, utlösta regler och avslutade händelser</div>
       </div>
       {d.timeline.length === 0 ? (
-        <div style={{ fontSize: 13, color: C.text3 }}>No recent activity</div>
+        <div style={{ fontSize: 13, color: C.text3 }}>Ingen aktivitet nyligen</div>
       ) : (
         <ol
           style={{

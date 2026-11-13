@@ -29,14 +29,14 @@ describe('overview view-model reproduces the approved design values', () => {
     expect(vm.kpi.warnAffected).toBe(4);
     expect(vm.kpi.wx).toBe(7);
     expect(vm.kpi.sms).toBe(30);
-    expect(vm.kpi.smsSub).toBe('7 of 8 properties with SMS enabled');
-    expect(vm.kpi.barLabel).toBe('3 normal · 2 monitor · 2 warning · 1 critical');
+    expect(vm.kpi.smsSub).toBe('7 av 8 fastigheter med SMS aktiverat');
+    expect(vm.kpi.barLabel).toBe('Ingen aktiv varning: 3 · Bevaka: 2 · Varning: 2 · Kritisk: 1');
   });
 
   it('hero and health', () => {
     expect(vm.hero.risk).toBe('43');
-    expect(vm.hero.avgTemp).toBe('3.9');
-    expect(vm.hero.maxRain).toBe('22.1');
+    expect(vm.hero.avgTemp).toBe('3,9');
+    expect(vm.hero.maxRain).toBe('22,1');
     expect(vm.hero.maxRainAt).toBe('Augustendal Brygga');
     expect(vm.hero.gust).toBe('25');
     expect(vm.healthPct).toBe(38);
@@ -45,10 +45,10 @@ describe('overview view-model reproduces the approved design values', () => {
 
   it('table sorted by risk and feed formatted in local time', () => {
     expect(vm.rows[0]!.name).toBe('Augustendal Brygga');
-    expect(vm.rows[0]!.warn).toBe('Orange · Strong wind');
-    expect(vm.rows.find((r) => r.name === 'Ulvsunda Lager')!.aq).toBe('Poor');
+    expect(vm.rows[0]!.warn).toBe('Orange · Kraftig vind');
+    expect(vm.rows.find((r) => r.name === 'Ulvsunda Lager')!.aq).toBe('Dålig');
     expect(vm.feed[0]).toMatchObject({ t: '14:32', src: 'SMHI', prop: 'Augustendal Brygga' });
-    expect(vm.dateLine).toBe('Wednesday 12 November · Stockholm region · Demo data');
+    expect(vm.dateLine).toBe('Onsdag 12 november · Stockholmsregionen · Demodata');
   });
 
   it('group filter', () => {
@@ -72,20 +72,20 @@ describe('detail view-model', () => {
     expect(d.pos).toBe('6/8');
     expect(d.windDir).toBe('S');
     expect(d.water.level).toBe('+41 cm');
-    expect(d.water.dist).toBe('15 m · inside buffer');
+    expect(d.water.dist).toBe('15 m · inom buffert');
     expect(d.warnings.map((w) => [w.level, w.start, w.end])).toEqual([
-      ['Orange', 'Wed 16:00', 'Thu 10:00'],
-      ['Yellow', 'Thu 06:00', 'Thu 20:00'],
+      ['Orange', 'ons 16:00', 'tors 10:00'],
+      ['Yellow', 'tors 06:00', 'tors 20:00'],
     ]);
-    expect(d.sms.rules.map((r) => r.state)).toEqual(['Triggered today', 'Triggered today', 'Triggered today', 'Triggered today', 'Armed']);
-    expect(d.chart?.xLabels).toEqual(['Now', '20:00', '02:00', '08:00', '14:00']);
+    expect(d.sms.rules.map((r) => r.state)).toEqual(['Utlöst idag', 'Utlöst idag', 'Utlöst idag', 'Utlöst idag', 'Aktiv']);
+    expect(d.chart?.xLabels).toEqual(['Nu', '20:00', '02:00', '08:00', '14:00']);
     expect(d.timeline[0]!.time).toBe('14:34');
   });
 
   it('wraps prev/next around the portfolio', () => {
     const first = buildDetailVM(demoPortfolio, demoPortfolio.properties[0]!, { ready: true, metric: 'rain', smsOn: false, isRuleOn: (_i, f) => f });
     expect(first.prevId).toBe(demoPortfolio.properties[7]!.property.id);
-    expect(first.chart?.stats[3]!.label).toBe('Total');
+    expect(first.chart?.stats[3]!.label).toBe('Totalt');
   });
 });
 
@@ -106,9 +106,9 @@ describe('missing data is never rendered as a normal value', () => {
     expect(d.rain).toBe('—');
     expect(d.aqi).toBe('—');
     expect(d.risk).toBe('—');
-    expect(d.gauge.label).toBe('Not assessed');
+    expect(d.gauge.label).toBe('Ej bedömd');
     expect(d.chart).toBeNull();
-    expect(d.water.flood).toBe('Unknown');
+    expect(d.water.flood).toBe('Okänd');
     expect(d.water.basement).toBe('—');
     expect(d.timeline).toEqual([]); // demo timeline never shown for live data
     // Unknown values never trigger rules
@@ -116,7 +116,7 @@ describe('missing data is never rendered as a normal value', () => {
 
     const vm = buildOverviewVM(portfolio, ui);
     expect(vm.hero.risk).toBe('—');
-    expect(vm.hero.riskLabel).toBe('Not assessed');
+    expect(vm.hero.riskLabel).toBe('Ej bedömd');
     expect(vm.rows[0]!.temp).toBe('—');
     expect(vm.rows[0]!.aq).toBe('—');
     expect(vm.kpi.alertsDelta).toBeNull();
@@ -192,11 +192,11 @@ describe('live portfolio without connected sources', () => {
     const vm = buildOverviewVM(live, ui);
     expect(vm.avail).toEqual({ weather: false, warnings: false, events: false, air: false, flood: false, alerts: true });
     expect(vm.healthPct).toBeNull();
-    expect(vm.kpi.barLabel).toBe('1 not assessed yet · no public-data sources connected');
-    expect(vm.rows[0]!.status).toBe('Unknown');
+    expect(vm.kpi.barLabel).toBe('1 ej bedömda ännu · inga offentliga datakällor anslutna');
+    expect(vm.rows[0]!.status).toBe('Ej bedömd');
     const d = buildDetailVM(live, live.properties[0]!, { ready: true, metric: 'temp', smsOn: false, isRuleOn: (_i, f) => f });
     expect(d.avail.warnings).toBe(false);
-    expect(d.buildingLine).toBe('Building details not provided');
+    expect(d.buildingLine).toBe('Byggnadsuppgifter saknas');
     expect(d.floors).toBe(6);
     expect(d.water.hasLevel).toBe(false);
     expect(d.sms.rules).toEqual([]);

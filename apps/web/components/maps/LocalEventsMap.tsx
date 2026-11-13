@@ -64,15 +64,15 @@ export function LocalEventsMap({ d }: { d: DetailVM }) {
 
   return (
     <div style={{ ...card, flex: '1.3 1 460px', minHeight: 420, position: 'relative', overflow: 'hidden', background: C.mapBg }}>
-      <div ref={elRef} style={{ position: 'absolute', inset: 0, zIndex: 0 }} role="region" aria-label={`Local context map for ${d.name}`} />
+      <div ref={elRef} style={{ position: 'absolute', inset: 0, zIndex: 0 }} role="region" aria-label={`Karta över närområdet för ${d.name}`} />
       <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 500, padding: '12px 16px', borderRadius: 16, ...glass(0.82, 16) }}>
-        <div style={{ fontSize: 15, fontWeight: 600 }}>Local Context</div>
-        <div style={{ fontSize: 12, color: C.text3 }}>1 km alert radius · events · flood zone</div>
+        <div style={{ fontSize: 15, fontWeight: 600 }}>Närområde</div>
+        <div style={{ fontSize: 12, color: C.text3 }}>Larmradie 1 km · händelser · översvämningszon</div>
       </div>
       <div style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 500, display: 'flex', gap: 14, padding: '10px 14px', borderRadius: 14, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(16px)', fontSize: 12, color: C.text2 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', border: `1.5px dashed ${d.c}` }} />Alert radius</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: 'oklch(0.65 0.15 55)' }} />Event</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: 'rgba(84,148,176,0.45)' }} />Flood zone</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', border: `1.5px dashed ${d.c}` }} />Larmradie</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: 'oklch(0.65 0.15 55)' }} />Händelse</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: 'rgba(84,148,176,0.45)' }} />Översvämningszon</span>
       </div>
     </div>
   );

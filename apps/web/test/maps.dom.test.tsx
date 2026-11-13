@@ -49,7 +49,7 @@ describe('tile layer', () => {
     const map = L.map(container()).setView([59.33, 18.06], 12);
     expect(addTileLayer(L, map, resolveTileConfig({}))).toBeNull();
     expect(map.getContainer().querySelectorAll('img.leaflet-tile')).toHaveLength(0);
-    expect(map.getContainer().querySelector('.leaflet-control-attribution')!.textContent).toContain('Map tiles not configured');
+    expect(map.getContainer().querySelector('.leaflet-control-attribution')!.textContent).toContain('Kartbilder ej konfigurerade');
     map.remove();
   });
 
@@ -64,7 +64,7 @@ describe('tile layer', () => {
     expect(map.hasLayer(layer)).toBe(true);
     layer.fire('tileerror');
     expect(map.hasLayer(layer)).toBe(false);
-    expect(map.getContainer().querySelector('.leaflet-control-attribution')!.textContent).toContain('Map tiles unavailable');
+    expect(map.getContainer().querySelector('.leaflet-control-attribution')!.textContent).toContain('Kartbilder otillgängliga');
     expect(warn).toHaveBeenCalledTimes(1);
     map.remove();
   });

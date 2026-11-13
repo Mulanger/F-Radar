@@ -92,7 +92,7 @@ describe('customer API authentication & tenancy guards', () => {
       payload: { name: 'Berlin', address: 'Unter den Linden 1, Berlin', location: { lat: 52.52, lon: 13.4 }, geocode: { provider: 'manual_pin', precision: 'unknown' } },
     });
     expect(outside.statusCode).toBe(400);
-    expect(JSON.stringify(outside.json())).toContain('Latitude outside Sweden');
+    expect(JSON.stringify(outside.json())).toContain('Latituden ligger utanför Sverige');
   });
 
   it('returns 503 (not a crash) when Clerk is not configured', async () => {

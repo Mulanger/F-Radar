@@ -26,7 +26,7 @@ describe('map tile configuration', () => {
   it('carries the attribution Geoapify requires on the free plan', () => {
     const cfg = resolveTileConfig({ geoapifyMapKey: KEY });
     expect(cfg.attribution).toBe(GEOAPIFY_ATTRIBUTION);
-    expect(cfg.attribution).toContain('Powered by');
+    expect(cfg.attribution).toContain('Drivs av');
     expect(cfg.attribution).toContain('Geoapify');
     expect(cfg.attribution).toContain('OpenMapTiles');
     expect(cfg.attribution).toContain('OpenStreetMap');

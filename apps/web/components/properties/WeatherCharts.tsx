@@ -11,10 +11,10 @@ export function WeatherCharts({ d, isDemo, onMetric }: { d: DetailVM; isDemo: bo
     <div style={{ ...card, flex: '1.7 1 600px', padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <div style={cardTitle}>Environmental Conditions</div>
-          <div style={cardSub}>{isDemo ? 'SMHI point forecast · next 24 h · synthetic demo series' : 'SMHI point forecast · next 24 h'}</div>
+          <div style={cardTitle}>Väderförhållanden</div>
+          <div style={cardSub}>{isDemo ? 'SMHI punktprognos · kommande 24 h · syntetisk demoserie' : 'SMHI punktprognos · kommande 24 h'}</div>
         </div>
-        <div role="tablist" aria-label="Forecast metric" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 16, background: C.page }}>
+        <div role="tablist" aria-label="Prognosvärde" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 16, background: C.page }}>
           {d.tabs.map((t) => (
             <button
               key={t.key}
@@ -33,7 +33,7 @@ export function WeatherCharts({ d, isDemo, onMetric }: { d: DetailVM; isDemo: bo
       </div>
       {!ch ? (
         <div style={{ height: 220, display: 'grid', placeItems: 'center', fontSize: 13, color: C.text3, borderRadius: 16, background: '#F8F9F8' }}>
-          Forecast unavailable for this property
+          Prognos otillgänglig för den här fastigheten
         </div>
       ) : (
         <>
@@ -57,7 +57,7 @@ export function WeatherCharts({ d, isDemo, onMetric }: { d: DetailVM; isDemo: bo
                 <div style={{ borderTop: '1px dashed rgba(20,23,26,0.08)' }} />
                 <div style={{ borderTop: '1px dashed rgba(20,23,26,0.08)' }} />
               </div>
-              <svg width="100%" height="196" viewBox="0 0 640 196" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, overflow: 'visible' }} role="img" aria-label={`${d.tabs.find((t) => t.active)?.label} forecast chart`}>
+              <svg width="100%" height="196" viewBox="0 0 640 196" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, overflow: 'visible' }} role="img" aria-label={`Prognosdiagram: ${d.tabs.find((t) => t.active)?.label}`}>
                 <defs>
                   <linearGradient id="envGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0" stopColor={ch.c} stopOpacity="0.28" />

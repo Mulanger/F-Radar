@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import {
   PropertyCreateSchema,
+  configureSwedishValidation,
+  fieldLabelSv,
   PropertyUpdateSchema,
   SWEDEN_BOUNDS,
   type AddressSuggestionDto,
@@ -35,17 +37,32 @@ const secondaryBtn: React.CSSProperties = {
   border: '1px solid rgba(20,23,26,0.1)', fontSize: 13.5, cursor: 'pointer',
 };
 
+configureSwedishValidation();
+
+const PRECISION_SV: Record<string, string> = { building: 'byggnad', street: 'gata', approximate: 'ungefärlig' };
+
+/** Swedish messages for API problem statuses (API titles are English, RFC 9457). */
+const STATUS_SV: Record<number, string> = {
+  400: 'Uppgifterna är ogiltiga.',
+  401: 'Din inloggning har gått ut – logga in igen.',
+  403: 'Du saknar behörighet eller har ingen organisation vald.',
+  404: 'Fastigheten hittades inte.',
+  409: 'Gränsen för antal fastigheter är nådd.',
+  429: 'För många förfrågningar – vänta en stund.',
+  503: 'Tjänsten är tillfälligt otillgänglig.',
+};
+
 function precisionNote(meta: GeocodeMetadata | null): string | null {
   if (!meta) return null;
-  if (meta.provider === 'manual_pin') return 'Manual position – drag the pin onto the building.';
-  if (meta.precision === 'building') return 'Building-level address match. Check the pin and adjust if needed.';
-  return 'Approximate match (no exact building). Drag the pin onto the building before saving.';
+  if (meta.provider === 'manual_pin') return 'Manuell position – dra nålen till byggnaden.';
+  if (meta.precision === 'building') return 'Adressen matchade en byggnad. Kontrollera nålen och justera vid behov.';
+  return 'Ungefärlig träff (ingen exakt byggnad). Dra nålen till byggnaden innan du sparar.';
 }
 
 async function problemMessage(res: Response): Promise<string> {
   const body = await res.json().catch(() => null);
-  if (body?.errors?.length) return body.errors.map((e: { path: string; message: string }) => `${e.path || 'input'}: ${e.message}`).join(' · ');
-  return body?.detail || body?.title || `Request failed (${res.status})`;
+  if (body?.errors?.length) return body.errors.map((e: { path: string; message: string }) => `${fieldLabelSv(e.path || 'input')}: ${e.message}`).join(' · ');
+  return STATUS_SV[res.status] ?? `Förfrågan misslyckades (${res.status}).`;
 }
 
 /**
@@ -72,7 +89,7 @@ export function PropertyEditorDialog({
   const [address, setAddress] = useState(editing?.address ?? '');
   const [suggestions, setSuggestions] = useState<AddressSuggestionDto[]>([]);
   const [searchState, setSearchState] = useState<'idle' | 'loading' | 'error' | 'unavailable' | 'rate_limited' | 'empty'>('idle');
-  const [attribution, setAttribution] = useState('Powered by Geoapify · © OpenStreetMap contributors');
+  const [attribution, setAttribution] = useState('Drivs av Geoapify · © OpenStreetMap-bidragsgivare');
   const [geocode, setGeocode] = useState<GeocodeMetadata | null>(null);
   const [point, setPoint] = useState<{ lat: number; lon: number } | null>(editing ? editing.location : null);
   const [pointTouched, setPointTouched] = useState(false);
@@ -177,12 +194,12 @@ export function PropertyEditorDialog({
   const save = async () => {
     setError(null);
     if (!payload) {
-      setError(editing ? 'Nothing to save.' : 'Select an address suggestion or place the pin manually.');
+      setError(editing ? 'Inget att spara.' : 'Välj ett adressförslag eller placera nålen manuellt.');
       return;
     }
     const parsed = editing ? PropertyUpdateSchema.safeParse(payload) : PropertyCreateSchema.safeParse(payload);
     if (!parsed.success) {
-      setError(parsed.error.issues.map((i) => `${i.path.join('.') || 'input'}: ${i.message}`).join(' · '));
+      setError(parsed.error.issues.map((i) => `${fieldLabelSv(i.path.join('.') || 'input')}: ${i.message}`).join(' · '));
       return;
     }
     setSaving(true);
@@ -199,7 +216,7 @@ export function PropertyEditorDialog({
       const body = await res.json();
       onSaved(body.property.id);
     } catch {
-      setError('Network error – the property was not saved.');
+      setError('Nätverksfel – fastigheten sparades inte.');
     } finally {
       setSaving(false);
     }
@@ -217,7 +234,7 @@ export function PropertyEditorDialog({
       }
       onDeleted?.();
     } catch {
-      setError('Network error – the property was not deleted.');
+      setError('Nätverksfel – fastigheten togs inte bort.');
     } finally {
       setSaving(false);
     }
@@ -239,12 +256,12 @@ export function PropertyEditorDialog({
       <div style={{ ...card, width: 'min(880px, 100%)', maxHeight: 'calc(100vh - 32px)', overflowY: 'auto', padding: 24, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
           <div>
-            <div id="property-editor-title" style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.03em' }}>{editing ? 'Edit property' : 'Add property'}</div>
+            <div id="property-editor-title" style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.03em' }}>{editing ? 'Redigera fastighet' : 'Lägg till fastighet'}</div>
             <div style={{ fontSize: 12.5, color: C.text3, marginTop: 4 }}>
-              {editing ? 'Rename, change the address or correct the map position.' : 'Search a Swedish address, then confirm the position on the map.'}
+              {editing ? 'Byt namn, ändra adressen eller korrigera positionen på kartan.' : 'Sök en svensk adress och bekräfta sedan positionen på kartan.'}
             </div>
           </div>
-          <button onClick={onClose} disabled={saving} aria-label="Close" style={{ ...secondaryBtn, width: 40, height: 40, padding: 0, justifyContent: 'center' }}>
+          <button onClick={onClose} disabled={saving} aria-label="Stäng" style={{ ...secondaryBtn, width: 40, height: 40, padding: 0, justifyContent: 'center' }}>
             ✕
           </button>
         </div>
@@ -252,11 +269,11 @@ export function PropertyEditorDialog({
         <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 320px', display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
             <div>
-              <label htmlFor="pe-name" style={label}>Property name</label>
-              <input id="pe-name" ref={nameRef} value={name} maxLength={120} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sveavägen 42" style={input} />
+              <label htmlFor="pe-name" style={label}>Fastighetens namn</label>
+              <input id="pe-name" ref={nameRef} value={name} maxLength={120} onChange={(e) => setName(e.target.value)} placeholder="t.ex. Sveavägen 42" style={input} />
             </div>
             <div style={{ position: 'relative' }}>
-              <label htmlFor="pe-address" style={label}>Address</label>
+              <label htmlFor="pe-address" style={label}>Adress</label>
               <input
                 id="pe-address"
                 value={query}
@@ -270,7 +287,7 @@ export function PropertyEditorDialog({
                   setQuery(e.target.value);
                   if (geocode?.provider === 'geoapify') setGeocode(null);
                 }}
-                placeholder="Street and number, city"
+                placeholder="Gata och nummer, ort"
                 style={input}
               />
               {suggestions.length > 0 && (
@@ -294,22 +311,22 @@ export function PropertyEditorDialog({
                       style={{ padding: '10px 12px', borderRadius: 12, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', gap: 10 }}
                     >
                       <span style={{ fontSize: 13.5 }}>{s.label}</span>
-                      <span style={{ fontFamily: FONT_MONO, fontSize: 10.5, color: C.text4, whiteSpace: 'nowrap' }}>{s.precision}</span>
+                      <span style={{ fontFamily: FONT_MONO, fontSize: 10.5, color: C.text4, whiteSpace: 'nowrap' }}>{PRECISION_SV[s.precision] ?? s.precision}</span>
                     </div>
                   ))}
                   <div style={{ fontSize: 10.5, color: C.text4, padding: '6px 12px 2px' }}>{attribution}</div>
                 </div>
               )}
               <div style={{ fontSize: 11.5, color: C.text4, marginTop: 6, minHeight: 16 }} aria-live="polite">
-                {searchState === 'loading' && 'Searching…'}
-                {searchState === 'empty' && 'No Swedish address found. Check the spelling or place the pin manually.'}
-                {searchState === 'unavailable' && 'Address search is unavailable right now – place the pin manually.'}
-                {searchState === 'rate_limited' && 'Too many searches – wait a moment or place the pin manually.'}
-                {searchState === 'error' && 'Address search failed – try again or place the pin manually.'}
+                {searchState === 'loading' && 'Söker…'}
+                {searchState === 'empty' && 'Ingen svensk adress hittades. Kontrollera stavningen eller placera nålen manuellt.'}
+                {searchState === 'unavailable' && 'Adressökningen är inte tillgänglig just nu – placera nålen manuellt.'}
+                {searchState === 'rate_limited' && 'För många sökningar – vänta en stund eller placera nålen manuellt.'}
+                {searchState === 'error' && 'Adressökningen misslyckades – försök igen eller placera nålen manuellt.'}
               </div>
               {geocode?.provider !== 'manual_pin' && (
                 <button type="button" onClick={useManualPin} style={{ marginTop: 4, padding: 0, border: 'none', background: 'none', color: C.text2, fontSize: 12.5, textDecoration: 'underline', cursor: 'pointer' }}>
-                  Can&apos;t find it? Place the pin manually
+                  Hittar du inte adressen? Placera nålen manuellt
                 </button>
               )}
             </div>
@@ -320,13 +337,13 @@ export function PropertyEditorDialog({
                     Position <b style={{ fontFamily: FONT_MONO, fontWeight: 500, color: C.ink }}>{point.lat.toFixed(5)}, {point.lon.toFixed(5)}</b>
                   </div>
                   {note && <div style={{ marginTop: 4 }}>{note}</div>}
-                  {outsideSweden && <div style={{ marginTop: 4, color: 'oklch(0.55 0.17 28)' }}>The position is outside Sweden.</div>}
+                  {outsideSweden && <div style={{ marginTop: 4, color: 'oklch(0.55 0.17 28)' }}>Positionen ligger utanför Sverige.</div>}
                 </>
               ) : (
-                'No position yet.'
+                'Ingen position ännu.'
               )}
               <div style={{ marginTop: 6, color: C.text4 }}>
-                Address points come from Geoapify/OpenStreetMap and are not official property boundaries (fastighetsgränser).
+                Adresspunkter kommer från Geoapify/OpenStreetMap och är inte officiella fastighetsgränser.
               </div>
             </div>
           </div>
@@ -342,7 +359,7 @@ export function PropertyEditorDialog({
               />
             ) : (
               <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', textAlign: 'center', padding: 24, fontSize: 13, color: C.text3 }}>
-                Choose an address to see it on the map.
+                Välj en adress för att se den på kartan.
               </div>
             )}
           </div>
@@ -359,23 +376,23 @@ export function PropertyEditorDialog({
             {editing &&
               (confirmDelete ? (
                 <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center', fontSize: 13 }}>
-                  Delete “{editing.name}” permanently?
+                  Ta bort ”{editing.name}” permanent?
                   <button onClick={remove} disabled={saving} style={{ ...primaryBtn, height: 36, background: 'oklch(0.57 0.19 27)' }}>
-                    Delete
+                    Ta bort
                   </button>
                   <button onClick={() => setConfirmDelete(false)} disabled={saving} style={{ ...secondaryBtn, height: 36 }}>
-                    Keep
+                    Behåll
                   </button>
                 </span>
               ) : (
                 <button onClick={() => setConfirmDelete(true)} disabled={saving} style={{ ...secondaryBtn, color: 'oklch(0.5 0.17 27)' }}>
-                  Delete property
+                  Ta bort fastighet
                 </button>
               ))}
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={onClose} disabled={saving} style={secondaryBtn}>
-              Cancel
+              Avbryt
             </button>
             <button
               className="fr-hover-dark"
@@ -383,7 +400,7 @@ export function PropertyEditorDialog({
               disabled={saving || outsideSweden || (!editing && (!geocode || !point || !name.trim())) || (!!editing && !addressChanged && !pointTouched && name.trim() === editing.name)}
               style={{ ...primaryBtn, opacity: saving ? 0.6 : 1 }}
             >
-              {saving ? 'Saving…' : editing ? 'Save changes' : 'Save property'}
+              {saving ? 'Sparar…' : editing ? 'Spara ändringar' : 'Spara fastighet'}
             </button>
           </div>
         </div>

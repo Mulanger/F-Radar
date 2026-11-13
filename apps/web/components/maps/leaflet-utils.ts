@@ -42,7 +42,7 @@ export function addTileLayer(L: typeof Leaflet, map: Leaflet.Map, cfg: TileConfi
     consecutiveErrors++;
     if (consecutiveErrors === TILE_ERROR_THRESHOLD) {
       map.removeLayer(layer);
-      map.attributionControl.addAttribution('Map tiles unavailable');
+      map.attributionControl.addAttribution('Kartbilder otillgängliga');
       console.warn('[maps] tile provider failed repeatedly – tile layer disabled for this map');
     }
   });

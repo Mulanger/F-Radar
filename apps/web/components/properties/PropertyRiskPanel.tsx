@@ -13,8 +13,8 @@ export function PropertyRiskPanel({ d, isDemo }: { d: DetailVM; isDemo: boolean 
     <div style={{ ...card, padding: 22 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <div style={cardTitle}>Overall Property Risk</div>
-          <div style={cardSub}>{isDemo ? 'Weighted across 5 factors · demo values' : 'No approved method yet'}</div>
+          <div style={cardTitle}>Samlad fastighetsrisk</div>
+          <div style={cardSub}>{isDemo ? 'Viktad över 5 faktorer · demovärden' : 'Ingen godkänd metod ännu'}</div>
         </div>
         <span style={{ fontSize: 12, padding: '4px 10px', borderRadius: 10, background: d.gauge.bg, color: d.gauge.c }}>{d.gauge.label}</span>
       </div>
@@ -27,7 +27,7 @@ export function PropertyRiskPanel({ d, isDemo }: { d: DetailVM; isDemo: boolean 
           <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
             <div>
               <div style={{ fontSize: 40, fontWeight: 500, letterSpacing: '-0.04em', lineHeight: 1 }}>{d.risk}</div>
-              <div style={{ fontSize: 11.5, color: C.text4, marginTop: 4 }}>of 100</div>
+              <div style={{ fontSize: 11.5, color: C.text4, marginTop: 4 }}>av 100</div>
             </div>
           </div>
         </div>

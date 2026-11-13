@@ -8,8 +8,8 @@ export function PortfolioAnalytics({ vm }: { vm: OverviewVM }) {
   return (
     <div style={{ ...card, flex: '1.5 1 620px', padding: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div>
-        <div style={cardTitle}>Portfolio Health</div>
-        <div style={cardSub}>Status distribution and alerts by category</div>
+        <div style={cardTitle}>Varningsstatus</div>
+        <div style={cardSub}>Statusfördelning och påverkade fastigheter per kategori</div>
       </div>
       <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
@@ -23,7 +23,7 @@ export function PortfolioAnalytics({ vm }: { vm: OverviewVM }) {
             <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
               <div>
                 <div style={{ fontSize: 30, fontWeight: 500, letterSpacing: '-0.03em' }}>{vm.healthPct === null ? '—' : `${vm.healthPct}%`}</div>
-                <div style={{ fontSize: 11.5, color: C.text4 }} title="Share of properties with status Normal">healthy</div>
+                <div style={{ fontSize: 11.5, color: C.text4 }} title="Andel fastigheter utan aktiva officiella varningar i aktuella källor. Ingen bedömning av byggnadens säkerhet.">utan varning</div>
               </div>
             </div>
           </div>
@@ -39,7 +39,7 @@ export function PortfolioAnalytics({ vm }: { vm: OverviewVM }) {
           </div>
         </div>
         <div style={{ flex: '1 1 260px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ fontSize: 12, color: C.text3 }}>Properties affected by category</div>
+          <div style={{ fontSize: 12, color: C.text3 }}>Påverkade fastigheter per kategori</div>
           {vm.cats.map((c) => (
             <div key={c.label} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 24px', alignItems: 'center', gap: 12, fontSize: 13 }}>
               <span>{c.label}</span>
@@ -59,12 +59,12 @@ export function UpcomingConditions({ vm }: { vm: OverviewVM }) {
   return (
     <div style={{ ...card, flex: '1 1 380px', padding: 22, display: 'flex', flexDirection: 'column', gap: 6 }}>
       <div style={{ marginBottom: 8 }}>
-        <div style={cardTitle}>Upcoming Conditions</div>
-        <div style={cardSub}>Portfolio forecast · next 48 h</div>
+        <div style={cardTitle}>Kommande förhållanden</div>
+        <div style={cardSub}>Prognos för portföljen · kommande 24 h</div>
       </div>
       {vm.upcoming.length === 0 && (
         <div style={{ fontSize: 13, color: C.text3, padding: '12px 0' }}>
-          {!vm.avail.weather ? 'Forecast unavailable' : 'Inga prognoser över tröskelvärdena (byvind ≥ 15 m/s, nederbörd ≥ 15 mm/24 h, minusgrader) de närmaste 24 h'}
+          {!vm.avail.weather ? 'Prognos otillgänglig' : 'Inga prognoser över tröskelvärdena (byvind ≥ 15 m/s, nederbörd ≥ 15 mm/24 h, minusgrader) de närmaste 24 h'}
         </div>
       )}
       {vm.upcoming.map((u) => (

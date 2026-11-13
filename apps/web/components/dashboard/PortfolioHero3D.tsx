@@ -33,7 +33,7 @@ export function PortfolioHero3D({ vm, isDemo }: { vm: OverviewVM; isDemo: boolea
       <div style={{ position: 'absolute', top: 22, left: 24, display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 300 }}>
         <div style={{ display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 20, ...glass(0.6, 14), fontSize: 12, color: C.text2 }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: isDemo ? C.demo : C.live, animation: 'frBreath 2.4s ease-in-out infinite' }} />
-          {isDemo ? 'Demo portfolio twin' : 'Portfolio illustration'} · {h.count} properties
+          {isDemo ? 'Demoportfölj' : 'Illustration av portföljen'} · {h.count} {h.count === 1 ? 'fastighet' : 'fastigheter'}
         </div>
         {vm.narrative && (
           <>
@@ -56,8 +56,8 @@ export function PortfolioHero3D({ vm, isDemo }: { vm: OverviewVM; isDemo: boolea
           <circle cx="34" cy="34" r="28" fill="none" stroke={h.riskC} strokeWidth="6" strokeLinecap="round" strokeDasharray={h.riskDash} style={{ transition: 'stroke-dasharray 1.4s cubic-bezier(.2,.8,.2,1)' }} />
         </svg>
         <div style={{ position: 'relative' }}>
-          <div style={{ fontSize: 12, color: C.text3 }} title={isDemo ? 'Demo value – no risk methodology has been approved yet' : undefined}>
-            Portfolio risk score
+          <div style={{ fontSize: 12, color: C.text3 }} title={isDemo ? 'Demovärde – ingen riskmetod är godkänd ännu' : undefined}>
+            Portföljens riskpoäng
           </div>
           <div style={{ fontSize: 30, fontWeight: 500, letterSpacing: '-0.03em' }}>
             {h.risk}
@@ -70,9 +70,9 @@ export function PortfolioHero3D({ vm, isDemo }: { vm: OverviewVM; isDemo: boolea
         </div>
       </div>
       <div style={{ position: 'absolute', right: 20, top: 20, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
-        {stat('Avg temperature', `${h.avgTemp}°C`)}
-        {stat('Max rain next 24 h', `${h.maxRain} mm`, h.maxRainAt)}
-        {stat('Peak gust', `${h.gust} m/s`, h.gustAt)}
+        {stat('Medeltemperatur', `${h.avgTemp}°C`)}
+        {stat('Mest nederbörd 24 h', `${h.maxRain} mm`, h.maxRainAt)}
+        {stat('Hårdaste byvind', `${h.gust} m/s`, h.gustAt)}
       </div>
     </div>
   );

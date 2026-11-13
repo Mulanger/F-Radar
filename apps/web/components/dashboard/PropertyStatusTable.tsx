@@ -23,18 +23,18 @@ export function PropertyStatusTable({
     <div style={{ ...card, padding: '20px 20px 8px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
         <div>
-          <div style={cardTitle}>Monitoring Status</div>
-          <div style={cardSub}>Live instruments per property · sorted by risk</div>
+          <div style={cardTitle}>Bevakningsstatus</div>
+          <div style={cardSub}>Aktuella värden per fastighet · sorterat efter status</div>
         </div>
-        <div style={{ fontSize: 12, color: C.text4 }}>Updated {vm.updatedAt}</div>
+        <div style={{ fontSize: 12, color: C.text4 }}>Uppdaterad {vm.updatedAt}</div>
       </div>
       <div style={{ overflowX: 'auto' }}>
-        <div style={{ minWidth: 1180 }} role="table" aria-label="Monitoring status per property">
+        <div style={{ minWidth: 1180 }} role="table" aria-label="Bevakningsstatus per fastighet">
           <div
             role="row"
             style={{ display: 'grid', gridTemplateColumns: COLS, gap: 12, padding: '10px 12px', fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.text4, borderBottom: '1px solid rgba(20,23,26,0.06)' }}
           >
-            {['Property', 'Status', 'Weather now', 'Official warning', 'Flood', 'Nearby', 'Air', 'Alerts', 'Risk score', 'SMS', ''].map((h, i) => (
+            {['Fastighet', 'Status', 'Väder nu', 'Officiell varning', 'Översvämning', 'I närheten', 'Luft', 'Larm', 'Riskpoäng', 'SMS', ''].map((h, i) => (
               <div key={i} role="columnheader">{h}</div>
             ))}
           </div>
@@ -86,7 +86,7 @@ export function PropertyStatusTable({
                 <span style={{ fontFamily: FONT_MONO, fontSize: 12, width: 22, textAlign: 'right' }}>{r.risk}</span>
               </div>
               <div role="cell">
-                <Toggle on={r.smsOn} disabled={!smsInteractive} onToggle={() => onToggleSms(r.snapshot)} label={`SMS alerts for ${r.name}`} />
+                <Toggle on={r.smsOn} disabled={!smsInteractive} onToggle={() => onToggleSms(r.snapshot)} label={`SMS-larm för ${r.name}`} />
               </div>
               <IconChevronRight stroke={C.text4} />
             </div>

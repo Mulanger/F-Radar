@@ -54,7 +54,7 @@ export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen }: Pr
       const rain = metricValue(s, 'weather.precipitation_24h');
       const mk = L.marker([lat, lon], { icon: pinIcon(L, st.hx), keyboard: true, title: p.name });
       mk.bindTooltip(
-        `<div style="font-family:inherit;min-width:190px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><b style="font-size:13.5px;font-weight:600;color:#14171A">${esc(p.name)}</b><span style="font-size:11px;padding:2px 7px;border-radius:7px;background:${st.bg};color:${st.c}">${esc(st.label)}</span></div><div style="font-size:11.5px;color:#9AA1A8;margin:2px 0 8px">${esc(p.area)}</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px;color:#6B737B"><div>Temp<br><b style="font-size:13px;color:#14171A;font-weight:500">${esc(show(metricValue(s, 'weather.air_temperature')))}°</b></div><div>Rain 24h<br><b style="font-size:13px;color:#14171A;font-weight:500">${esc(show(rain))} mm</b></div><div>Risk<br><b style="font-size:13px;color:#14171A;font-weight:500">${esc(show(s.demoRisk?.score))}</b></div></div></div>`,
+        `<div style="font-family:inherit;min-width:190px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><b style="font-size:13.5px;font-weight:600;color:#14171A">${esc(p.name)}</b><span style="font-size:11px;padding:2px 7px;border-radius:7px;background:${st.bg};color:${st.c}">${esc(st.label)}</span></div><div style="font-size:11.5px;color:#9AA1A8;margin:2px 0 8px">${esc(p.area)}</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px;color:#6B737B"><div>Temp<br><b style="font-size:13px;color:#14171A;font-weight:500">${esc(show(metricValue(s, 'weather.air_temperature')))}°</b></div><div>Nederbörd 24 h<br><b style="font-size:13px;color:#14171A;font-weight:500">${esc(show(rain))} mm</b></div><div>Risk<br><b style="font-size:13px;color:#14171A;font-weight:500">${esc(show(s.demoRisk?.score))}</b></div></div></div>`,
         { direction: 'top', offset: [0, -12], opacity: 1 },
       );
       mk.on('click', () => onOpenRef.current(p.id));
@@ -88,14 +88,14 @@ export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen }: Pr
 
   return (
     <div style={{ ...card, flex: '1.5 1 620px', height: 460, position: 'relative', overflow: 'hidden', background: C.mapBg }}>
-      <div ref={elRef} style={{ position: 'absolute', inset: 0, zIndex: 0 }} role="region" aria-label="Portfolio map" />
+      <div ref={elRef} style={{ position: 'absolute', inset: 0, zIndex: 0 }} role="region" aria-label="Portföljkarta" />
       <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 500, padding: '12px 16px', borderRadius: 16, ...overlay }}>
-        <div style={{ fontSize: 15, fontWeight: 600 }}>Portfolio Map</div>
-        <div style={{ fontSize: 12, color: C.text3 }}>Click a pin to open property detail</div>
+        <div style={{ fontSize: 15, fontWeight: 600 }}>Portföljkarta</div>
+        <div style={{ fontSize: 12, color: C.text3 }}>Klicka på en nål för att öppna fastigheten</div>
       </div>
       <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 500, display: 'flex', gap: 4, padding: 4, borderRadius: 16, ...overlay }}>
-        <button onClick={() => onToggleLayer('weather')} aria-pressed={layers.weather} style={layerBtn(layers.weather)}>Rain overlay</button>
-        <button onClick={() => onToggleLayer('flood')} aria-pressed={layers.flood} style={layerBtn(layers.flood)}>Flood zones</button>
+        <button onClick={() => onToggleLayer('weather')} aria-pressed={layers.weather} style={layerBtn(layers.weather)}>Nederbördslager</button>
+        <button onClick={() => onToggleLayer('flood')} aria-pressed={layers.flood} style={layerBtn(layers.flood)}>Översvämningszoner</button>
       </div>
       <div style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 500, display: 'flex', gap: 14, padding: '10px 14px', borderRadius: 14, ...overlay }}>
         {legend.map((l) => (
@@ -107,9 +107,9 @@ export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen }: Pr
         ))}
       </div>
       <div style={{ position: 'absolute', bottom: 16, right: 16, zIndex: 500, display: 'flex', flexDirection: 'column', borderRadius: 14, overflow: 'hidden', background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(255,255,255,0.9)' }}>
-        <button onClick={() => mapRef.current?.map.zoomIn()} aria-label="Zoom in" style={zoomBtn}>+</button>
+        <button onClick={() => mapRef.current?.map.zoomIn()} aria-label="Zooma in" style={zoomBtn}>+</button>
         <div style={{ height: 1, background: 'rgba(20,23,26,0.08)' }} />
-        <button onClick={() => mapRef.current?.map.zoomOut()} aria-label="Zoom out" style={zoomBtn}>−</button>
+        <button onClick={() => mapRef.current?.map.zoomOut()} aria-label="Zooma ut" style={zoomBtn}>−</button>
       </div>
     </div>
   );

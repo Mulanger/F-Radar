@@ -31,7 +31,7 @@ export function PortfolioKPIs({ vm }: { vm: OverviewVM }) {
   return (
     <div style={{ flex: '1 1 420px', display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 14 }}>
       <div className="fr-hover-lift" style={kpiCard}>
-        <KpiHead icon={<IconBuildingSimple size={15} sw={1.8} />} bg={C.chip} fg={C.ink} label="Total Properties" />
+        <KpiHead icon={<IconBuildingSimple size={15} sw={1.8} />} bg={C.chip} fg={C.ink} label="Fastigheter totalt" />
         <div style={big}>{k.total}</div>
         <div style={{ display: 'flex', gap: 3, height: 6, marginTop: 'auto' }}>
           {k.bar.map((b) => (
@@ -42,7 +42,7 @@ export function PortfolioKPIs({ vm }: { vm: OverviewVM }) {
       </div>
 
       <div className="fr-hover-lift" style={kpiCard}>
-        <KpiHead icon={<IconBellSimple />} bg="oklch(0.95 0.035 30)" fg="oklch(0.56 0.17 28)" label="Active Alerts" />
+        <KpiHead icon={<IconBellSimple />} bg="oklch(0.95 0.035 30)" fg="oklch(0.56 0.17 28)" label="Aktiva larm" />
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
           <div style={big}>{v(a.alerts, k.alerts)}</div>
           {k.spark && (
@@ -57,38 +57,38 @@ export function PortfolioKPIs({ vm }: { vm: OverviewVM }) {
               <span style={{ color: 'oklch(0.56 0.17 28)' }}>{k.alertsDelta}</span> {k.alertsSince}
             </>
           ) : (
-            a.alerts ? 'No history yet' : 'Not connected yet'
+            a.alerts ? 'Ingen historik ännu' : 'Ej ansluten ännu'
           )}
         </div>
       </div>
 
       <div className="fr-hover-lift" style={kpiCard}>
-        <KpiHead icon={<IconShield />} bg="oklch(0.95 0.045 65)" fg="oklch(0.6 0.15 55)" label="Properties at Risk" />
+        <KpiHead icon={<IconShield />} bg="oklch(0.95 0.045 65)" fg="oklch(0.6 0.15 55)" label="Fastigheter med varning" />
         <div style={big}>
           {v(a.warnings || a.weather, k.atRisk)}
-          <span style={{ fontSize: 15, color: C.text4 }}> of {k.total}</span>
+          <span style={{ fontSize: 15, color: C.text4 }}> av {k.total}</span>
         </div>
         <div style={{ display: 'flex', gap: 5, marginTop: 'auto' }}>
           {k.dots.map((d) => (
             <span key={d.id} style={{ width: 12, height: 12, borderRadius: 4, background: d.c }} />
           ))}
         </div>
-        <div style={foot}>{a.warnings || a.weather ? 'Warning or critical severity' : 'Status requires connected sources'}</div>
+        <div style={foot}>{a.warnings || a.weather ? 'Orange, röd varning eller VMA' : 'Status kräver anslutna källor'}</div>
       </div>
 
       <div className="fr-hover-lift" style={kpiCard}>
-        <KpiHead icon={<IconAlert size={15} sw={1.8} />} bg="oklch(0.95 0.06 95)" fg="oklch(0.5 0.1 85)" label="Official Warnings" />
+        <KpiHead icon={<IconAlert size={15} sw={1.8} />} bg="oklch(0.95 0.06 95)" fg="oklch(0.5 0.1 85)" label="Officiella varningar" />
         <div style={big}>{v(a.warnings, k.warnings)}</div>
         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 'auto' }}>
           {k.warnChips.map((w) => (
             <span key={w.key} style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 8, background: w.bg, color: w.fg }}>{w.label}</span>
           ))}
         </div>
-        <div style={foot}>{a.warnings ? `Affecting ${k.warnAffected} properties` : 'SMHI / Krisinformation not connected yet'}</div>
+        <div style={foot}>{a.warnings ? `Berör ${k.warnAffected} fastigheter` : 'SMHI / Krisinformation ej anslutna ännu'}</div>
       </div>
 
       <div className="fr-hover-lift" style={kpiCard}>
-        <KpiHead icon={<IconRain />} bg="oklch(0.95 0.03 230)" fg="oklch(0.52 0.1 235)" label="Weather Events Today" />
+        <KpiHead icon={<IconRain />} bg="oklch(0.95 0.03 230)" fg="oklch(0.52 0.1 235)" label="Väderhändelser idag" />
         <div style={big}>{v(a.weather, k.wx)}</div>
         <div style={{ display: 'flex', gap: 6, marginTop: 'auto', flexWrap: 'wrap' }}>
           {k.wxSplit.map((x) => (
@@ -97,16 +97,16 @@ export function PortfolioKPIs({ vm }: { vm: OverviewVM }) {
             </span>
           ))}
         </div>
-        <div style={foot}>{a.weather ? 'Threshold triggers in next 24 h' : 'SMHI forecast not connected yet'}</div>
+        <div style={foot}>{a.weather ? 'Prognos över tröskelvärden kommande 24 h' : 'SMHI-prognos ej ansluten ännu'}</div>
       </div>
 
       <div className="fr-hover-lift" style={kpiCard}>
-        <KpiHead icon={<IconMessage size={15} sw={1.8} />} bg="oklch(0.95 0.035 155)" fg="oklch(0.52 0.12 155)" label="SMS Triggers Armed" />
+        <KpiHead icon={<IconMessage size={15} sw={1.8} />} bg="oklch(0.95 0.035 155)" fg="oklch(0.52 0.12 155)" label="Aktiva SMS-regler" />
         <div style={big}>{v(a.alerts, k.sms)}</div>
         <div style={{ height: 6, borderRadius: 3, background: C.chip, marginTop: 'auto', overflow: 'hidden' }}>
           <div style={{ height: 6, borderRadius: 3, background: 'oklch(0.65 0.13 155)', width: k.smsW, transition: 'width .8s' }} />
         </div>
-        <div style={foot}>{a.alerts ? k.smsSub : 'SMS alerts arrive in a later phase · none sent'}</div>
+        <div style={foot}>{a.alerts ? k.smsSub : 'SMS-larm är inte aktiverade · inga SMS skickas'}</div>
       </div>
     </div>
   );

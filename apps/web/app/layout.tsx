@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { ClerkProvider } from '@clerk/nextjs';
+import { svSE } from '@clerk/localizations';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import { clerkAppearance } from '@/lib/design/clerk-appearance';
@@ -18,10 +19,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html lang="sv" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body>
         <ClerkProvider
           appearance={clerkAppearance}
+          localization={svSE}
           signInUrl="/sign-in"
           signUpUrl="/sign-up"
           signInFallbackRedirectUrl="/overview"

@@ -64,17 +64,17 @@ export function WaterRiskPanel({ d }: { d: DetailVM }) {
     <div style={{ ...card, flex: '1 1 340px', padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <div style={cardTitle}>Water Risk</div>
-          <div style={cardSub}>Flood exposure &amp; water level</div>
+          <div style={cardTitle}>Vattenrisk</div>
+          <div style={cardSub}>Översvämningsexponering och vattennivå</div>
         </div>
-        <span style={{ fontSize: 12, fontWeight: 500, padding: '4px 10px', borderRadius: 10, background: w.fbg, color: w.fc }} title="Mapped scenario exposure – not a current water level">
-          {w.flood} exposure
+        <span style={{ fontSize: 12, fontWeight: 500, padding: '4px 10px', borderRadius: 10, background: w.fbg, color: w.fc }} title="Exponering enligt karterade scenarier – inte en aktuell vattennivå">
+          Exponering: {w.flood}
         </span>
       </div>
       <div style={{ position: 'relative', height: 190, borderRadius: 18, overflow: 'hidden', background: 'linear-gradient(180deg,#F7FAFB,#E9F0F2)' }}>
         <WaveCanvas level={w.levelFill} />
         {w.hasLevel && <div style={{ position: 'absolute', left: 0, right: 0, top: w.thTop, borderTop: '1.5px dashed oklch(0.6 0.17 28)', transition: 'top 1s' }}>
-          <span style={{ position: 'absolute', right: 10, top: -22, fontSize: 11, color: 'oklch(0.55 0.17 28)', background: 'rgba(255,255,255,0.8)', padding: '2px 6px', borderRadius: 6 }}>Flood threshold +60 cm</span>
+          <span style={{ position: 'absolute', right: 10, top: -22, fontSize: 11, color: 'oklch(0.55 0.17 28)', background: 'rgba(255,255,255,0.8)', padding: '2px 6px', borderRadius: 6 }}>Översvämningsgräns +60 cm</span>
         </div>}
         <div style={{ position: 'absolute', left: 14, top: 14, padding: '8px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(10px)' }}>
           <div style={{ fontSize: 11, color: C.text3 }}>{w.body}</div>
@@ -83,10 +83,10 @@ export function WaterRiskPanel({ d }: { d: DetailVM }) {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {[
-          ['Mapped flood zone', w.dist],
+          ['Karterad översvämningszon', w.dist],
           ['Trend', w.trend],
-          ['Surface water', w.surface],
-          ['Basement risk', w.basement],
+          ['Ytvatten', w.surface],
+          ['Källarrisk', w.basement],
         ].map(([label, value]) => (
           <div key={label} style={tile}>
             <div style={{ fontSize: 11.5, color: C.text4 }}>{label}</div>

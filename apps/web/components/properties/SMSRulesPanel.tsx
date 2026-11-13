@@ -21,18 +21,18 @@ export const SMSRulesPanel = forwardRef<
     <div ref={ref} style={{ ...card, flex: '1.3 1 460px', padding: 22, display: 'flex', flexDirection: 'column', gap: 14, scrollMarginTop: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <div style={cardTitle}>SMS Alert Rules</div>
+          <div style={cardTitle}>SMS-larmregler</div>
           <div style={cardSub}>{d.live ? 'Testläge – inga riktiga SMS skickas' : sms.sub}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 13, color: C.text2 }}>{sms.label}</span>
-          <Toggle size="lg" on={sms.on} disabled={!smsInteractive} onToggle={onToggleSms} label={`SMS alerts for ${d.name}`} />
+          <Toggle size="lg" on={sms.on} disabled={!smsInteractive} onToggle={onToggleSms} label={`SMS-larm för ${d.name}`} />
           <button
             title="Konfigurera SMS-regler"
             onClick={()=>router.push(`/sms-rules?property=${encodeURIComponent(d.id)}`)}
             style={{ height: 36, padding: '0 14px', borderRadius: 18, background: C.white, border: '1px solid rgba(20,23,26,0.1)', fontSize: 13, cursor: 'pointer', color: C.ink }}
           >
-            Edit rules
+            Redigera regler
           </button>
         </div>
       </div>
@@ -50,7 +50,7 @@ export const SMSRulesPanel = forwardRef<
               <div style={{ fontSize: 12, color: C.text4 }}>{r.cond}</div>
             </div>
             <span style={{ fontSize: 11.5, color: r.stateC }}>{d.live?(r.on?'Testläge aktivt':'Av'):r.state}</span>
-            <Toggle on={r.on} disabled={!smsInteractive} onToggle={() => onToggleRule(r.id, r.on)} label={`${r.name} rule`} />
+            <Toggle on={r.on} disabled={!smsInteractive} onToggle={() => onToggleRule(r.id, r.on)} label={`Regel ${r.name}`} />
           </div>
         ))}
       </div>
