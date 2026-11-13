@@ -99,14 +99,20 @@ export const ServerEnvSchema = z.object({
   BOVERKET_API_KEY: optionalString,
 
   SMS_ENABLED: bool(false),
+  SMS_PROVIDER: z.enum(['simulated', '46elks']).default('simulated'),
+  SMS_SIMULATION_MONTHLY_LIMIT: intWithDefault(100),
+  SMS_MAX_GLOBAL_MONTHLY_COST_SEK: intWithDefault(0),
+  SMS_MAX_MESSAGES_PER_MINUTE: intWithDefault(10),
+  SMS_ESTIMATED_PRICE_PER_PART_SEK: optionalString.pipe(z.string().regex(/^\d+(\.\d{1,4})?$/).optional()).transform((v) => v === undefined ? undefined : Number(v)),
+  SMS_WEBHOOK_AUTH_SECRET: optionalString,
   SMS_DRY_RUN: bool(true),
   SMS_TEST_ALLOWLIST: optionalString,
-  SMS_SENDER: z.string().default('FastRadar'),
+  SMS_SENDER: z.string().regex(/^[A-Za-z][A-Za-z0-9]{0,10}$/).default('FRadar'),
   ELKS_API_USERNAME: optionalString,
   ELKS_API_PASSWORD: optionalString,
   SMS_DAILY_LIMIT_PER_ORG: intWithDefault(20),
-  SMS_MONTHLY_LIMIT_PER_ORG: intWithDefault(100),
-  SMS_GLOBAL_DAILY_BUDGET_SEK: intWithDefault(100),
+  SMS_MONTHLY_LIMIT_PER_ORG: intWithDefault(0),
+  SMS_GLOBAL_DAILY_BUDGET_SEK: intWithDefault(0),
   /** Explicit owner approval flag required in addition to SMS_ENABLED + SMS_DRY_RUN=false. */
   SMS_LIVE_SENDING_APPROVED: bool(false),
 
@@ -166,6 +172,7 @@ export const SECRET_ENV_KEYS = [
   'BOVERKET_API_KEY',
   'ELKS_API_USERNAME',
   'ELKS_API_PASSWORD',
+  'SMS_WEBHOOK_AUTH_SECRET',
   'DATABASE_URL',
   'REDIS_URL',
 ] as const satisfies ReadonlyArray<keyof ServerEnv>;
@@ -195,6 +202,11 @@ export type SmsMode = 'disabled' | 'dry_run' | 'live';
 export function resolveSmsMode(env: ServerEnv): SmsMode {
   if (!env.SMS_ENABLED) return 'disabled';
   const liveAllowed =
+    env.SMS_PROVIDER === '46elks' &&
+    env.SMS_MAX_GLOBAL_MONTHLY_COST_SEK > 0 &&
+    env.SMS_MONTHLY_LIMIT_PER_ORG > 0 &&
+    env.SMS_GLOBAL_DAILY_BUDGET_SEK > 0 &&
+    (env.SMS_ESTIMATED_PRICE_PER_PART_SEK ?? 0) > 0 &&
     !env.SMS_DRY_RUN &&
     env.SMS_LIVE_SENDING_APPROVED &&
     env.NODE_ENV === 'production' &&

@@ -10,14 +10,16 @@ import type { SmsMessage, SmsProvider, SmsSendResult } from '../types';
  *  - `live`: not available in this phase – the factory refuses to create it.
  */
 
-const GSM7 = /^[\n\r -_a-zA-Z0-9!"#$%&'()*+,\-./:;<=>?@¡£¤¥§¿ÄÅÆÇÉÑÖØÜßàäåæèéìñòöøùü]*$/;
+const GSM_BASIC = new Set('@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà');
+const GSM_EXTENSION = new Set('\f^{}\\[~]|€');
 
 /** Estimates SMS parts (GSM-7: 160/153, UCS-2: 70/67). */
 export function estimateSmsParts(message: string): number {
-  const gsm = GSM7.test(message);
+  const gsm = [...message].every((c) => GSM_BASIC.has(c) || GSM_EXTENSION.has(c));
   const single = gsm ? 160 : 70;
   const multi = gsm ? 153 : 67;
-  const len = [...message].length;
+  // GSM extension characters take two septets; UTF-16 counts astral characters twice.
+  const len = gsm ? [...message].reduce((n, c) => n + (GSM_EXTENSION.has(c) ? 2 : 1), 0) : message.length;
   if (len === 0) return 0;
   return len <= single ? 1 : Math.ceil(len / multi);
 }

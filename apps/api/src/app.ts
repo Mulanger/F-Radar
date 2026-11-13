@@ -11,8 +11,11 @@ import { MonitoringService } from './monitoring/service';
 import { registerCustomerRoutes } from './routes/customer';
 import { createClerkVerifier, registerAuth, type AuthVerifier } from './auth';
 import { loggerOptions } from './logger';
+import { registerNotificationRoutes } from './routes/notifications';
+import type { PhoneVerificationProvider } from './notifications/verification';
 
 export interface AppDeps {
+  verification?: PhoneVerificationProvider;
   /** Optional dependency probes (database, redis …). Missing probes are reported as `skipped`. */
   probes?: Record<string, ReadinessProbe>;
   /** Probes whose failure makes /health/ready return 503. */
@@ -64,6 +67,7 @@ export async function buildApp(env: ServerEnv, deps: AppDeps = {}): Promise<Fast
     monitoring,
   });
   registerMonitoringRoutes(app, { env, service: monitoring, requireUser, requireOrg });
+  registerNotificationRoutes(app, { env, db: deps.db ?? null, requireOrg, verification: deps.verification });
 
   return app;
 }

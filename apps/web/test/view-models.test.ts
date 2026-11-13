@@ -190,7 +190,7 @@ describe('live portfolio without connected sources', () => {
 
   it('marks every monitoring panel as not connected instead of normal', () => {
     const vm = buildOverviewVM(live, ui);
-    expect(vm.avail).toEqual({ weather: false, warnings: false, events: false, air: false, flood: false, alerts: false });
+    expect(vm.avail).toEqual({ weather: false, warnings: false, events: false, air: false, flood: false, alerts: true });
     expect(vm.healthPct).toBeNull();
     expect(vm.kpi.barLabel).toBe('1 not assessed yet · no public-data sources connected');
     expect(vm.rows[0]!.status).toBe('Unknown');

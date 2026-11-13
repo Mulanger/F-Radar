@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
  * resolved BOTH a user and an active organization; the API re-verifies both.
  */
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { userId, orgId } = await auth();
+  const { userId, orgId, orgRole } = await auth();
   if (!userId) redirect('/sign-in');
   if (!orgId) redirect('/onboarding');
 
@@ -24,7 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.username || user?.primaryEmailAddress?.emailAddress || 'Signed in';
   const portfolio = {
     ...result.portfolio,
-    viewer: { displayName, role: '', initials: displayName.slice(0, 2).toUpperCase() },
+    viewer: { displayName, role: orgRole ?? '', initials: displayName.slice(0, 2).toUpperCase() },
   };
   return (
     <AppShell mode="live" basePath="" portfolio={portfolio}>

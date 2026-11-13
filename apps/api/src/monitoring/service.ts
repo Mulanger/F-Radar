@@ -7,6 +7,7 @@ import type { MonitoringBus } from './bus';
 import { PER_PROPERTY_JOBS } from './jobs';
 import { buildFeed, buildPropertySnapshot, buildUpcoming } from './snapshot';
 import { resolveRuntimeStatuses } from './status';
+import { notificationSnapshots } from '../notifications/snapshots';
 
 export interface TenantContext extends OrgContext {
   clerkOrgId: string;
@@ -46,7 +47,7 @@ export class MonitoringService {
       listRecentChangesForOrg(this.db, t.organizationId, 60),
     ]);
     const base = buildLivePortfolio({ clerkOrgId: t.clerkOrgId, orgSlug: t.orgSlug, properties, sources: statuses, now });
-    const snapshots = properties.map((p) => buildPropertySnapshot(p, t.clerkOrgId, data, statuses, now));
+    const snapshots = await notificationSnapshots(this.db,t.organizationId,properties.map((p) => buildPropertySnapshot(p, t.clerkOrgId, data, statuses, now)));
     return {
       ...base,
       regionLabel: 'Sverige',
@@ -60,7 +61,7 @@ export class MonitoringService {
     const record = await getProperty(this.db, t, id);
     if (!record) return null;
     const [data, statuses] = await Promise.all([loadOrgMonitoring(this.db, t.organizationId, id), this.statuses(now)]);
-    return { record, snapshot: buildPropertySnapshot(record, t.clerkOrgId, data, statuses, now), statuses };
+    return { record, snapshot: (await notificationSnapshots(this.db,t.organizationId,[buildPropertySnapshot(record,t.clerkOrgId,data,statuses,now)]))[0], statuses };
   }
 
   async changes(t: TenantContext, limit: number) {

@@ -31,6 +31,7 @@ describe('loadServerEnv', () => {
 
 describe('resolveSmsMode', () => {
   const live = {
+    SMS_PROVIDER:'46elks', SMS_MAX_GLOBAL_MONTHLY_COST_SEK:'100', SMS_MONTHLY_LIMIT_PER_ORG:'100', SMS_GLOBAL_DAILY_BUDGET_SEK:'10', SMS_ESTIMATED_PRICE_PER_PART_SEK:'1',
     SMS_ENABLED: 'true', SMS_DRY_RUN: 'false', SMS_LIVE_SENDING_APPROVED: 'true',
     NODE_ENV: 'production', ELKS_API_USERNAME: 'u', ELKS_API_PASSWORD: 'p',
   };
@@ -41,6 +42,9 @@ describe('resolveSmsMode', () => {
     expect(resolveSmsMode(loadServerEnv({ ...live, SMS_LIVE_SENDING_APPROVED: 'false' }))).toBe('dry_run');
     expect(resolveSmsMode(loadServerEnv({ ...live, NODE_ENV: 'development' }))).toBe('dry_run');
     expect(resolveSmsMode(loadServerEnv({ ...live, ELKS_API_PASSWORD: '' }))).toBe('dry_run');
+    expect(resolveSmsMode(loadServerEnv({ ...live, SMS_PROVIDER:'simulated' }))).toBe('dry_run');
+    expect(resolveSmsMode(loadServerEnv({ ...live, SMS_MAX_GLOBAL_MONTHLY_COST_SEK:'0' }))).toBe('dry_run');
+    expect(resolveSmsMode(loadServerEnv({ ...live, SMS_ESTIMATED_PRICE_PER_PART_SEK:'' }))).toBe('dry_run');
     expect(resolveSmsMode(loadServerEnv(live))).toBe('live');
   });
 });

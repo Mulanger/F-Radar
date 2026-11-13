@@ -1,4 +1,5 @@
 import type { ServerEnv } from '@fastighetsradar/config';
+import { NotificationService } from '../notifications/service';
 import {
   applyRetention,
   countCountyAreas,
@@ -366,6 +367,7 @@ async function runRetention(ctx: JobContext): Promise<JobResult> {
 /** Order = priority when several jobs are due. Intervals are conservative for the Build pod. */
 export function buildJobs(env: ServerEnv): MonitoringJob[] {
   const jobs: MonitoringJob[] = [
+    { jobId: 'sms_notifications', sourceId: null, intervalSeconds: 30, enabled: true, timeoutMs: 120000, run: async (ctx) => ({ status: 'ok', items: await new NotificationService(ctx.db,ctx.adapter.env).tick() }) },
     { jobId: 'smhi_county_areas', sourceId: 'smhi_warnings', intervalSeconds: 7 * 86_400, enabled: env.SOURCE_SMHI_WARNINGS_ENABLED || env.SOURCE_KRISINFORMATION_ENABLED, timeoutMs: 120_000, run: runCountyAreas },
     { jobId: 'smhi_warnings', sourceId: 'smhi_warnings', intervalSeconds: 300, enabled: env.SOURCE_SMHI_WARNINGS_ENABLED, timeoutMs: 90_000, run: runSmhiWarnings },
     { jobId: 'krisinformation', sourceId: 'krisinformation', intervalSeconds: 600, enabled: env.SOURCE_KRISINFORMATION_ENABLED, timeoutMs: 90_000, run: runKrisinformation },

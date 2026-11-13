@@ -9,8 +9,12 @@ Architecture: [`0001`](docs/decisions/0001-architecture.md), [`0002 auth/tenancy
 > Customers sign in with Clerk, create/select an organization and register properties by Swedish
 > address (Geoapify). Public data (SMHI forecast/warnings/observations, Krisinformation, Trafikverket, air quality,
 > SGU groundwater, MCF flood mapping, SCB) is collected centrally by a scheduler in the API process, matched to
-> properties with PostGIS and pushed to the dashboard via SSE. No risk score is computed. No SMS can be sent.
+> properties with PostGIS and pushed to the dashboard via SSE. No risk score is computed. SMS rules persist in
+> PostgreSQL at `/sms-rules`; notifications are simulated locally. No real SMS can be sent in Phase 4.
 > Sources and status: [`docs/sources.md`](docs/sources.md).
+>
+> Notifications: [`docs/notifications.md`](docs/notifications.md) ·
+> Future activation: [`docs/notifications-activation.md`](docs/notifications-activation.md).
 
 ## Layout
 

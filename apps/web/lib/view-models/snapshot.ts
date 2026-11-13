@@ -18,8 +18,8 @@ export function availability(p: Portfolio) {
     events: sourceAvailable(p, ['krisinformation', 'trafikverket']),
     air: sourceAvailable(p, ['air_quality']),
     flood: sourceAvailable(p, ['mcf_flood', 'smhi_oceanography']),
-    /** Alert/rule engine + SMS (Phase 8). Only the labelled demo shows rule states. */
-    alerts: p.origin === 'demo_fixture',
+    /** Rule configuration works independently of public-source availability. Delivery is simulated. */
+    alerts: true,
   };
 }
 export type Availability = ReturnType<typeof availability>;

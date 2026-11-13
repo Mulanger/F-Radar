@@ -38,7 +38,8 @@ export function Sidebar() {
     e.preventDefault();
     fn();
   };
-  const isOverview = !pathname.startsWith(`${basePath}/properties`);
+  const isSms = pathname === '/sms-rules';
+  const isOverview = !isSms && !pathname.startsWith(`${basePath}/properties`);
   const totalAlerts = portfolio.properties.reduce((a, s) => a + s.activeAlertCount, 0);
   const isDemo = mode === 'demo';
   // Health is judged over ENABLED monitoring sources only; deliberately disabled / not-yet-implemented
@@ -79,8 +80,8 @@ export function Sidebar() {
         <Link
           href={selectedId ? `${basePath}/properties/${encodeURIComponent(selectedId)}` : `${basePath}/overview`}
           onClick={nav(() => (selectedId ? openProperty(selectedId) : goOverview()))}
-          aria-current={!isOverview ? 'page' : undefined}
-          style={{ ...navItem, ...(!isOverview ? navOn : navOff) }}
+          aria-current={!isOverview && !isSms ? 'page' : undefined}
+          style={{ ...navItem, ...(!isOverview && !isSms ? navOn : navOff) }}
         >
           <IconBuilding />
           Properties
@@ -94,7 +95,7 @@ export function Sidebar() {
         <PendingLink icon={<IconMap />} label="Map View" />
         <PendingLink icon={<IconAnalytics />} label="Analytics" />
         <div style={{ ...sectionLabel, padding: '22px 12px 8px' }}>Configure</div>
-        <PendingLink icon={<IconMessage />} label="SMS Rules" />
+        {isDemo ? <PendingLink icon={<IconMessage />} label="SMS Rules" /> : <Link href="/sms-rules" aria-current={isSms?'page':undefined} style={{...navItem,...(isSms?navOn:navOff)}}><IconMessage/>SMS Rules</Link>}
         <PendingLink icon={<IconSliders />} label="Settings" />
       </nav>
 

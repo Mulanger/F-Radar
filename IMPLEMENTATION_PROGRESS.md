@@ -1,6 +1,62 @@
 # FastighetsRadar – Implementation progress
 
-> Newest phase first: Agent 3 → Agent 2.5 → Agent 2 → Agent 1.
+> Newest phase first: Agent 4 → Agent 3 → Agent 2.5 → Agent 2 → Agent 1.
+
+---
+
+# Agent 4 — Phase 4: persisted SMS rules, safe evaluation and local simulations
+
+Base verified clean: `agent3/public-data-monitoring` at **d38f78e**. Dedicated branch:
+`codex/phase4-sms-notifications`. Full engineering details, data model, semantics, retention and APIs:
+[`docs/notifications.md`](docs/notifications.md). Future account activation is deliberately separate:
+[`docs/notifications-activation.md`](docs/notifications-activation.md).
+
+## Implementation
+
+* `/sms-rules`: saved rule CRUD, actual tenant properties, selected/current/future scopes, recipients
+  and consent, pending phone verification, severity and forecast thresholds, hysteresis, radius,
+  cooldown, Stockholm quiet hours, daily caps, exact Swedish preview, deterministic tests, masked
+  activity and usage. Existing sidebar, detail Configure Alerts/Edit rules and switches integrated.
+* Reuses `alert_rules`, Phase 3 `source_events`, geographic matches, `monitoring_changes`, normalized
+  forecast steps and the existing database scheduler. No competing event system or added service.
+* Additive migration **0004**: tenant-constrained subscriptions/recipients, forecast state, durable
+  outbox/leases/attempts, bounded activity, independent aggregate budgets/rate reservations and
+  authenticated idempotent callback preparation. Global counters survive rule/tenant deletion.
+* Atomic evaluation/deduplication, grouped property alerts, current-version/freshness checks, no
+  initial backfill, threshold baselines, no replay after quiet hours, final source/consent/opt-out
+  checks, bounded exponential retries and terminal unknown outcomes to avoid blind resending.
+* Real SMS is impossible in Phase 4: worker always selects simulator; 46elks adapter rejects live
+  requests even with credentials. Deployment forces provider simulated, delivery/approval false,
+  dry-run true and real allowances zero. No provider account or real OTP is needed.
+* Verified Clerk organization/role controls all endpoints. Only `org:admin` can mutate/test settings;
+  readers receive masked numbers. Full mobile validation via new dependency `libphonenumber-js`
+  (full maintained metadata, Swedish mobile/E.164 validation). Fake verification is test-only and
+  cannot start in production. Correctly formatted input never means verified possession.
+* Source categories: SMHI official levels/material updates/optional ending, forecast windows and
+  crossings, official Krisinformation VMA, significant recent nearby traffic. Environmental rules
+  stay disabled pending approved semantics; static MCF and SCB remain informational.
+* No 3D, water, map assets or approved design system were replaced. Unrelated concurrent Swedish
+  localization changes were preserved in the shared workspace and excluded from the Phase 4 release.
+
+## Validation / release record
+
+* New rule/transport/UI tests: **20/20 pass**.
+* Full real PostgreSQL 16 / PostGIS suite on `f-radar`, dedicated `fastighetsradar_test`: **21/21 pass**
+  (10 existing Phase 3 tests plus 11 notification integration cases). No application database reset.
+* Full isolated unit regression, lint, typecheck, production build and release scan: pending final
+  release checkout verification. Shared-workspace regression currently also sees unrelated
+  in-progress localization edits; those are excluded rather than altered by this phase.
+* Deployment/post-release checks: pending. Only `f-radar` is authorized; Build plan remains unchanged.
+
+## Deliberate limitations / future work
+
+No real verification channel or paid SMS; no assumed Clerk phone evidence; no optional MCF onboarding
+SMS, environmental thresholds or unverified public-event taxonomy. Source license approval from Phase 3
+remains outstanding. The real adapter's account-backed dry-run and actual cost/reconciliation wiring
+must be reviewed in the separate activation release. Long-running collectors can delay the 30-second
+notification job. All such limits are explained in the notifications and activation documents.
+
+Final deployment result and acceptance matrix will be recorded after release verification.
 
 ---
 

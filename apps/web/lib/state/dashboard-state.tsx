@@ -10,7 +10,7 @@ export type DataMode = 'demo' | 'live';
 /**
  * Client UI state shared by both dashboard pages (ported from the prototype's
  * component state). SMS toggles are LOCAL UI state in demo mode only; in live mode the
- * SMS engine does not exist yet (Phase 8), so toggles are disabled and nothing is sent.
+ * persisted notification preferences are updated through the authenticated BFF in live mode.
  */
 interface DashboardState {
   mode: DataMode;
@@ -18,7 +18,7 @@ interface DashboardState {
   basePath: string;
   /** Live customer properties can be added/edited; demo fixtures cannot. */
   canEdit: boolean;
-  /** SMS toggles are interactive only in demo mode (no SMS engine yet). */
+  /** Live writes require an organization administrator; demo toggles stay local. */
   smsInteractive: boolean;
   /** Re-fetches server data after a mutation. */
   refresh: () => void;
@@ -96,7 +96,7 @@ export function DashboardStateProvider({
     scrollTop();
   }, [router, basePath]);
 
-  const smsInteractive = mode === 'demo';
+  const smsInteractive = mode === 'demo' || portfolio.viewer.role === 'org:admin';
   const value: DashboardState = {
     mode,
     basePath,
@@ -115,6 +115,11 @@ export function DashboardStateProvider({
     isSmsOn: (s) => (s.property.id in smsOff ? !smsOff[s.property.id] : s.sms.enabled),
     toggleSms: (s) => {
       if (!smsInteractive) return;
+      if (mode === 'live') {
+        if (!s.alertRules.some(r=>r.enabled)) { router.push(`/sms-rules?property=${encodeURIComponent(s.property.id)}`); return; }
+        void fetch(`/api/app/notifications/properties/${s.property.id}`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({enabled:!s.sms.enabled})}).then(async r=>{if(!r.ok)throw new Error((await r.json()).detail??'Inställningen kunde inte sparas');router.refresh();}).catch(e=>window.alert(e.message));
+        return;
+      }
       setSmsOff((prev) => {
         const on = s.property.id in prev ? !prev[s.property.id] : s.sms.enabled;
         return { ...prev, [s.property.id]: on };
@@ -122,7 +127,9 @@ export function DashboardStateProvider({
     },
     isRuleOn: (ruleId, fallback) => (ruleId in rules ? rules[ruleId]! : fallback),
     toggleRule: (ruleId, current) => {
-      if (smsInteractive) setRules((r) => ({ ...r, [ruleId]: !current }));
+      if (!smsInteractive) return;
+      if (mode === 'live') { void fetch(`/api/app/notifications/rules/${ruleId}`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({enabled:!current})}).then(async r=>{if(!r.ok)throw new Error((await r.json()).detail??'Regeln kunde inte sparas');router.refresh();}).catch(e=>window.alert(e.message)); }
+      else setRules((r) => ({ ...r, [ruleId]: !current }));
     },
     openProperty,
     goOverview,

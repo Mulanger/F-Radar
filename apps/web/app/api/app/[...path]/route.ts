@@ -12,6 +12,13 @@ import { internalApi } from '@/lib/server/internal-api';
  */
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const ROUTES: Array<{ pattern: RegExp; methods: string[] }> = [
+  { pattern: /^notifications$/, methods: ['GET'] },
+  { pattern: /^notifications\/(categories|activity|usage)$/, methods: ['GET'] },
+  { pattern: /^notifications\/(rules|recipients)$/, methods: ['GET', 'POST'] },
+  { pattern: new RegExp(`^notifications/(rules|recipients)/${UUID}$`), methods: ['PATCH','DELETE'] },
+  { pattern: new RegExp(`^notifications/rules/${UUID}/(preview|test)$`), methods: ['POST'] },
+  { pattern: new RegExp(`^notifications/recipients/${UUID}/verification(/complete)?$`), methods: ['POST'] },
+  { pattern: new RegExp(`^notifications/properties/${UUID}$`), methods: ['PATCH'] },
   { pattern: /^me$/, methods: ['GET'] },
   { pattern: /^portfolio$/, methods: ['GET'] },
   { pattern: /^portfolio\/summary$/, methods: ['GET'] },

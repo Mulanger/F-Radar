@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { buildDetailVM } from '@/lib/view-models/detail';
 import { C, FONT_MONO } from '@/lib/design/tokens';
@@ -28,6 +29,7 @@ import { MonitoringContextPanel } from './MonitoringContextPanel';
  * and the map flies to the new location, exactly like the prototype.
  */
 export function PropertyDetail() {
+  const router = useRouter();
   const params = useParams<{ propertyId?: string }>();
   const ds = useDashboard();
   const smsRef = useRef<HTMLDivElement>(null);
@@ -40,6 +42,7 @@ export function PropertyDetail() {
   const d = buildDetailVM(ds.portfolio, s, { ready: ds.ready, metric: ds.metric, smsOn: ds.isSmsOn(s), isRuleOn: ds.isRuleOn });
   const switchTo = (pid: string) => ds.openProperty(pid, { scroll: false });
   const configure = () => {
+    if (!isDemo) { router.push(`/sms-rules?property=${encodeURIComponent(s.property.id)}`); return; }
     const el = smsRef.current;
     if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 24, behavior: 'smooth' });
   };

@@ -16,7 +16,7 @@
  * The token is read from INSTAPOD_TOKEN; secret values are never printed.
  */
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { execSync, execFileSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { ALLOWED_POD, api } from './instapods.mjs';
 
@@ -41,6 +41,8 @@ async function exec(command) {
 }
 
 const local = readEnv();
+const branch=execFileSync('git',['-c',`safe.directory=${root.replace(/\\/g,'/')}`,'branch','--show-current'],{cwd:root}).toString().trim();
+if(branch && branch!=='codex/phase4-sms-notifications')throw new Error('Phase 4 deployment requires codex/phase4-sms-notifications (or its detached verification checkout).');
 const pod = (await api('GET', `/pods/${ALLOWED_POD}`)).data;
 if (pod.name !== ALLOWED_POD || pod.plan_slug !== 'build') throw new Error(`Unexpected pod state: ${pod.name}/${pod.plan_slug}`);
 const appUrl = `https://${pod.domain}`;
@@ -77,7 +79,7 @@ if (!args.has('--env-only')) {
   cpSync(join(root, 'apps/web/.next/static'), join(rel, 'web/apps/web/.next/static'), { recursive: true });
   // Never ship env files that Next may have traced.
   for (const f of ['.env', 'apps/web/.env', '.env.local']) rmSync(join(rel, 'web', f), { force: true });
-  writeFileSync(join(rel, 'RELEASE'), `${new Date().toISOString()}\n${execSync('git rev-parse --short HEAD', { cwd: root }).toString().trim()}\n`);
+  writeFileSync(join(rel, 'RELEASE'), `${new Date().toISOString()}\n${execFileSync('git',['-c',`safe.directory=${root.replace(/\\/g,'/')}`,'rev-parse','--short','HEAD'], { cwd: root }).toString().trim()}\n`);
   sh(`node scripts/check-no-secrets.mjs .deploy/release`);
   sh(`tar -czf .deploy/release.tar.gz -C .deploy/release .`);
 
@@ -110,6 +112,14 @@ const vars = {
   FASTIGHETSRADAR_INTERNAL_API_URL: 'http://127.0.0.1:4000',
   FASTIGHETSRADAR_DEMO_ENABLED: 'false',
   SMS_ENABLED: 'false',
+  SMS_PROVIDER: 'simulated',
+  SMS_LIVE_SENDING_APPROVED: 'false',
+  SMS_MAX_GLOBAL_MONTHLY_COST_SEK: '0',
+  SMS_GLOBAL_DAILY_BUDGET_SEK: '0',
+  SMS_MONTHLY_LIMIT_PER_ORG: '0',
+  SMS_SIMULATION_MONTHLY_LIMIT: '100',
+  SMS_MAX_MESSAGES_PER_MINUTE: '10',
+  SMS_ESTIMATED_PRICE_PER_PART_SEK: local.SMS_ESTIMATED_PRICE_PER_PART_SEK ?? '',
   SMS_DRY_RUN: 'true',
   LOG_LEVEL: 'info',
   TZ: 'Europe/Stockholm',

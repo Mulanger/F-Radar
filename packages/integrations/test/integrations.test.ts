@@ -108,7 +108,7 @@ describe('SMS provider', () => {
 
   it('refuses to construct a live provider in this phase', () => {
     expect(() =>
-      createSmsProvider(loadServerEnv({ SMS_ENABLED: 'true', SMS_DRY_RUN: 'false', SMS_LIVE_SENDING_APPROVED: 'true', NODE_ENV: 'production', ELKS_API_USERNAME: 'u', ELKS_API_PASSWORD: 'p' })),
+      createSmsProvider(loadServerEnv({ SMS_PROVIDER:'46elks', SMS_MAX_GLOBAL_MONTHLY_COST_SEK:'100', SMS_MONTHLY_LIMIT_PER_ORG:'100', SMS_GLOBAL_DAILY_BUDGET_SEK:'10', SMS_ESTIMATED_PRICE_PER_PART_SEK:'1', SMS_ENABLED: 'true', SMS_DRY_RUN: 'false', SMS_LIVE_SENDING_APPROVED: 'true', NODE_ENV: 'production', ELKS_API_USERNAME: 'u', ELKS_API_PASSWORD: 'p' })),
     ).toThrow(/not implemented/);
   });
 

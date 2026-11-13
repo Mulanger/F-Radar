@@ -4,3 +4,4 @@ export * from './contracts';
 export * from './format';
 export * from './api';
 export * from './monitoring';
+export * from './notifications';
