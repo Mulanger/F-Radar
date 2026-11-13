@@ -37,7 +37,10 @@ npm install
 cp .env.example .env
 ```
 
-Fill in the Clerk development pair (`NEXT_PUBLIC_CLERK_DEVELOPMENT_KEY`, `CLERK_SECRET`) and `GEOAPIFY_API_KEY`.
+Fill in the Clerk development pair (`NEXT_PUBLIC_CLERK_DEVELOPMENT_KEY`, `CLERK_SECRET`), `GEOAPIFY_API_KEY`
+(server-side address search) and `NEXT_PUBLIC_GEOAPIFY_MAP_KEY` (a **separate**, origin/referer-restricted Geoapify key
+for map tiles – the build refuses to reuse the server key). Without a map key the maps work but show no tiles.
+Map style: `NEXT_PUBLIC_MAP_STYLE` (default `positron`). Details: `IMPLEMENTATION_PROGRESS.md` → Agent 2.5.
 
 ```bash
 npm run services:up
