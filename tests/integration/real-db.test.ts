@@ -70,6 +70,7 @@ const sveavagen = {
     geocodedPoint: { lat: 59.3367656, lon: 18.0627049 },
     postcode: '111 35',
     city: 'Stockholm',
+    municipality: 'Stockholms kommun',
   },
 };
 
@@ -235,7 +236,7 @@ describe('real PostgreSQL / PostGIS', () => {
     description: 'Officiell text', areaLabel: 'Test', countyNames: [], geometry: null, geometryWkt: null, publishedAt: new Date().toISOString(),
     sourceUpdatedAt: null, validFrom: null, validTo: null, status: 'active', sourceUrl: null, attribution: 'Källa: test', extra: {}, ...over,
   });
-  const goteborg = { ...sveavagen, name: 'Avenyn 1', address: 'Kungsportsavenyen 1, Göteborg', location: { lat: 57.7037, lon: 11.9746 } };
+  const goteborg = { ...sveavagen, name: 'Avenyn 1', address: 'Kungsportsavenyen 1, Göteborg', location: { lat: 57.7037, lon: 11.9746 }, geocode: { ...sveavagen.geocode, municipality: 'Göteborgs kommun' } };
 
   it('migration 0003 creates monitoring tables and seeds the source catalog', async () => {
     const { rows } = await pool.query<{ t: string }>(`SELECT tablename AS t FROM pg_tables WHERE schemaname = 'public'`);
@@ -308,9 +309,22 @@ describe('real PostgreSQL / PostGIS', () => {
     const near = ma.events.find((e) => e.external_id === 'tv-near')!;
     assert.equal(near.match_method, 'within_radius');
     assert.ok(Number(near.distance_m) > 1_100 && Number(near.distance_m) < 1_500, `distance ${near.distance_m}`);
-    assert.equal(ma.events.find((e) => e.external_id === 'news:1')!.match_method, 'county');
+    // A message for the whole county (no municipality list) covers the property's municipality (ADR 0003).
+    assert.equal(ma.events.find((e) => e.external_id === 'news:1')!.match_method, 'municipality');
     assert.ok(ma.events.every((e) => e.property_id === pa.id) && mb.events.every((e) => e.property_id === pb.id), 'tenant isolation');
     assert.deepEqual(ma.counties.map((c) => c.code), ['01']);
+
+    // VMA: naming the property's municipality → 'municipality'; naming only OTHER municipalities in the
+    // same county → 'county' (shown as Bevaka, not Kritisk – ADR 0003).
+    await upsertSourceEvents(pool, 'krisinformation', [
+      ev({ externalId: 'vma:own', level: 'VMA', severity: 'critical', category: 'Crisis', countyNames: ['Stockholms län'], extra: { municipalities: ['Stockholms kommun'] } }),
+      ev({ externalId: 'vma:other', level: 'VMA', severity: 'critical', category: 'Crisis', countyNames: ['Stockholms län'], extra: { municipalities: ['Norrtälje kommun'] } }),
+    ]);
+    await rematchEvents(pool);
+    const vm = (await loadOrgMonitoring(pool, A.organizationId)).events;
+    assert.equal(vm.find((e) => e.external_id === 'vma:own')!.match_method, 'municipality');
+    assert.equal(vm.find((e) => e.external_id === 'vma:other')!.match_method, 'county');
+    assert.ok(!(await loadOrgMonitoring(pool, B.organizationId)).events.some((e) => e.external_id.startsWith('vma:')), 'other county never matches');
 
     // A complete fetch without w-sthlm ends it → "ended" change, match removed.
     assert.equal(await endMissingEvents(pool, 'smhi_warnings', ['w-gbg']), 1);
