@@ -520,6 +520,7 @@ export const RETENTION = {
   changesDays: 30,
   runsDays: 14,
   stationSilentDays: 2,
+  nowcastDays: 1,
 } as const;
 
 export async function applyRetention(db: Queryable): Promise<Record<string, number>> {
@@ -528,6 +529,7 @@ export async function applyRetention(db: Queryable): Promise<Record<string, numb
     events: await del(`DELETE FROM source_events WHERE status <> 'active' AND ended_at < now() - make_interval(days => $1)`, [RETENTION.endedEventsDays]),
     changes: await del(`DELETE FROM monitoring_changes WHERE created_at < now() - make_interval(days => $1)`, [RETENTION.changesDays]),
     runs: await del(`DELETE FROM integration_runs WHERE started_at < now() - make_interval(days => $1)`, [RETENTION.runsDays]),
+    nowcast: await del(`DELETE FROM nowcast_points WHERE fetched_at < now() - make_interval(days => $1)`, [RETENTION.nowcastDays]),
     stations: await del(`DELETE FROM observation_stations WHERE fetched_at < now() - make_interval(days => $1)`, [RETENTION.stationSilentDays]),
   };
 }
@@ -604,6 +606,7 @@ export interface OrgObservationRow {
 }
 
 export interface OrgMonitoringData {
+  nowcasts?: Array<NowcastRow & { property_id: string }>;
   forecasts: OrgForecastRow[];
   events: OrgEventRow[];
   contexts: OrgContextRow[];
@@ -631,7 +634,7 @@ export const NEAREST_PARAMETERS: Array<[string, string, number]> = [
  */
 export async function loadOrgMonitoring(db: Queryable, organizationId: string, propertyId?: string): Promise<OrgMonitoringData> {
   const pid = propertyId ?? null;
-  const [forecasts, events, contexts, observations, counties] = await Promise.all([
+  const [forecasts, events, contexts, observations, counties, nowcasts] = await Promise.all([
     db.query<OrgForecastRow>(
       `SELECT f.property_id, f.source_id, f.reference_time, f.created_time, ST_Y(f.grid_point::geometry) AS grid_lat, ST_X(f.grid_point::geometry) AS grid_lon,
               f.distance_m, f.series, f.fetched_at
@@ -677,8 +680,12 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
         WHERE p.organization_id = $1 AND ($2::uuid IS NULL OR p.id = $2)`,
       [organizationId, pid],
     ),
+    db.query<NowcastRow & { property_id: string }>(
+      `SELECT p.id AS property_id, n.* FROM properties p JOIN nowcast_points n ON n.point_key =
+        round(ST_Y(p.location::geometry)::numeric,2)::text || ',' || round(ST_X(p.location::geometry)::numeric,2)::text
+        WHERE p.organization_id = $1 AND ($2::uuid IS NULL OR p.id = $2)`, [organizationId, pid]),
   ]);
-  return { forecasts: forecasts.rows, events: events.rows, contexts: contexts.rows, observations: observations.rows, counties: counties.rows };
+  return { nowcasts: nowcasts.rows, forecasts: forecasts.rows, events: events.rows, contexts: contexts.rows, observations: observations.rows, counties: counties.rows };
 }
 
 export async function listRecentChangesForOrg(db: Queryable, organizationId: string, limit = 50) {
@@ -688,4 +695,24 @@ export async function listRecentChangesForOrg(db: Queryable, organizationId: str
     [organizationId, limit],
   );
   return rows;
+}
+
+/* Shared public radar-grid cache. Reads for snapshots remain organization scoped above. */
+export interface NowcastRow {
+  point_key: string; radar_coverage: 'ok' | 'temporarily unavailable' | 'no coverage';
+  series: { temperature: number | null; points: Array<{ validAt: string; rateMmH: number | null }> };
+  source_updated_at: Date | null; fetched_at: Date; expires_at: Date; last_modified: string | null;
+}
+export async function loadNowcastCache(db: Queryable): Promise<NowcastRow[]> {
+  return (await db.query<NowcastRow>('SELECT point_key, radar_coverage, series, source_updated_at, fetched_at, expires_at, last_modified FROM nowcast_points')).rows;
+}
+export async function saveNowcastPoint(db: Queryable, pointKey: string, lat: number, lon: number, data: { coverage: string; updatedAt: string; temperature: number | null; points: unknown[] }, fetchedAt: string, expiresAt: string, lastModified: string | null) {
+  await db.query(`INSERT INTO nowcast_points (point_key, location, radar_coverage, series, source_updated_at, fetched_at, expires_at, last_modified)
+    VALUES ($1, ST_SetSRID(ST_MakePoint($2,$3),4326)::geography, $4, $5::jsonb, $6, $7, $8, $9)
+    ON CONFLICT(point_key) DO UPDATE SET radar_coverage=EXCLUDED.radar_coverage, series=EXCLUDED.series,
+      source_updated_at=EXCLUDED.source_updated_at, fetched_at=EXCLUDED.fetched_at, expires_at=EXCLUDED.expires_at, last_modified=EXCLUDED.last_modified`,
+    [pointKey, lon, lat, data.coverage, JSON.stringify({temperature:data.temperature,points:data.points}), data.updatedAt, fetchedAt, expiresAt, lastModified]);
+}
+export async function revalidateNowcastPoint(db: Queryable, key: string, fetchedAt: string, expiresAt: string, lastModified: string | null) {
+  await db.query('UPDATE nowcast_points SET fetched_at=$2, expires_at=$3, last_modified=$4 WHERE point_key=$1', [key,fetchedAt,expiresAt,lastModified]);
 }

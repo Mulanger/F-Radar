@@ -15,3 +15,4 @@ export * from './lantmateriet';
 export * from './boverket';
 export * from './sms';
 export * from './sms/transport';
+export * from './met-nowcast';

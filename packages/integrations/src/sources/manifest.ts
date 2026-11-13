@@ -61,6 +61,15 @@ export const SOURCE_MANIFEST: Record<Exclude<SourceId, 'demo_other'>, SourceMani
     updatePolicy: 'Hourly per station; latest-hour sets collected every 30 min (6 parameters)', retentionPolicy: 'Latest value per station/parameter; stations silent > 2 days dropped',
     displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_SMHI_OBSERVATIONS_ENABLED', reviewedAt: VERIFIED,
   },
+  met_nowcast: {
+    id: 'met_nowcast', authority: 'MET Norway', label: 'MET Norway radarprognos',
+    docsUrl: 'https://api.met.no/doc/TermsOfService', access: 'public', commercialReuseReviewed: true,
+    licenseUrl: 'https://creativecommons.org/licenses/by/4.0/', attributionText: 'Data från MET Norway · bearbetad av FastighetsRadar',
+    dataKind: 'forecast', geographicPrecision: 'point_grid', coverageNote: 'Nordic radar coverage; outages and missing coverage are explicit. Informational only.',
+    updatePolicy: 'Every 5 min; shared 1 km grid, Expires respected, If-Modified-Since, max 4 concurrent and 4 requests/s per leased collector',
+    retentionPolicy: 'Latest point series; removed after 1 day', displayPermitted: true, alertsPermitted: false,
+    requiredSecrets: ['MET_NORWAY_CONTACT'], enableFlag: 'SOURCE_MET_NOWCAST_ENABLED', reviewedAt: VERIFIED,
+  },
   smhi_oceanography: {
     id: 'smhi_oceanography', authority: 'SMHI', label: 'SMHI oceanografi (havsvattenstånd)',
     docsUrl: 'https://opendata.smhi.se/', access: 'public', commercialReuseReviewed: false,

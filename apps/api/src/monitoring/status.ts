@@ -12,6 +12,7 @@ import { SOURCE_MANIFEST, resolveSourceStatuses } from '@fastighetsradar/integra
  *  source_unavailable – never succeeded and the latest run failed
  */
 export const FRESHNESS_WINDOW_S: Partial<Record<SourceId, number>> = {
+  met_nowcast: 15 * 60,
   smhi_warnings: 20 * 60,
   krisinformation: 40 * 60,
   trafikverket: 20 * 60,
@@ -24,6 +25,7 @@ export const FRESHNESS_WINDOW_S: Partial<Record<SourceId, number>> = {
 };
 
 const DATA_CLASS: Partial<Record<SourceId, string>> = {
+  met_nowcast: 'FORECAST',
   smhi_forecast: 'FORECAST',
   smhi_warnings: 'OFFICIAL_WARNING',
   krisinformation: 'OFFICIAL_WARNING / PUBLIC_EVENT',

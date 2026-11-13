@@ -116,6 +116,9 @@ export const ServerEnvSchema = z.object({
   /** Explicit owner approval flag required in addition to SMS_ENABLED + SMS_DRY_RUN=false. */
   SMS_LIVE_SENDING_APPROVED: bool(false),
 
+  SOURCE_MET_NOWCAST_ENABLED: bool(false),
+  MET_NORWAY_CONTACT: optionalUrl.pipe(z.string().regex(/^https?:\/\//).optional()),
+  MET_NOWCAST_BASE_URL: z.string().url().default('https://api.met.no/weatherapi/nowcast/2.0'),
   SOURCE_SMHI_FORECAST_ENABLED: bool(true),
   SOURCE_SMHI_WARNINGS_ENABLED: bool(true),
   SOURCE_SMHI_OBSERVATIONS_ENABLED: bool(true),

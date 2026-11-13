@@ -49,7 +49,7 @@ export function PropertyStatusTable({
               style={{ display: 'grid', gridTemplateColumns: COLS, gap: 12, alignItems: 'center', padding: '14px 12px', borderBottom: '1px solid rgba(20,23,26,0.05)', cursor: 'pointer', borderRadius: 14, transition: 'background .2s' }}
             >
               <div role="cell" style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 500 }}>{r.name}</div>
+                <div style={{ fontSize: 14, fontWeight: 500 }}>{r.name}</div>{r.nowcast.badge && <div title={r.nowcast.source} style={{ fontSize:11, color:'#4A86C5', marginTop:3 }}>{r.nowcast.badge} · MET Norway</div>}
                 <div style={{ fontSize: 12, color: C.text4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.address}</div>
               </div>
               <div role="cell">

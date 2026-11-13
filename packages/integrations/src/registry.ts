@@ -10,6 +10,7 @@ export const ADAPTER_IMPLEMENTATION: Record<Exclude<SourceId, 'demo_other'>, Ada
   smhi_forecast: 'implemented', // Phase 3: fixture tests + live smoke test 2026-11-13
   smhi_warnings: 'implemented', // Phase 3: fixture tests + live smoke test 2026-11-13
   smhi_observations: 'implemented', // Phase 3: fixture tests + live smoke test 2026-11-13
+  met_nowcast: 'implemented', // fixture + recorded live smoke 2026-11-13 (docs/sources.md)
   smhi_oceanography: 'not_implemented',
   krisinformation: 'implemented', // Phase 3: fixture tests + live smoke test 2026-11-13
   air_quality: 'implemented', // Phase 3: fixture tests + live smoke test 2026-11-13

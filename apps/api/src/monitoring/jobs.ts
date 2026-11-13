@@ -2,6 +2,7 @@ import type { ServerEnv } from '@fastighetsradar/config';
 import { NotificationService } from '../notifications/service';
 import {
   applyRetention,
+  loadNowcastCache, saveNowcastPoint, revalidateNowcastPoint,
   countCountyAreas,
   endEventsById,
   endMissingEvents,
@@ -28,6 +29,8 @@ import {
   SCB_TABLE,
   SGU_ATTRIBUTION,
   TRAFIKVERKET_POINTS_PER_REQUEST,
+  fetchMetNowcast,
+  sleep,
   fetchAirQuality,
   fetchKrisinformation,
   fetchMetObsLatest,
@@ -372,6 +375,7 @@ export function buildJobs(env: ServerEnv): MonitoringJob[] {
     { jobId: 'smhi_warnings', sourceId: 'smhi_warnings', intervalSeconds: 300, enabled: env.SOURCE_SMHI_WARNINGS_ENABLED, timeoutMs: 90_000, run: runSmhiWarnings },
     { jobId: 'krisinformation', sourceId: 'krisinformation', intervalSeconds: 600, enabled: env.SOURCE_KRISINFORMATION_ENABLED, timeoutMs: 90_000, run: runKrisinformation },
     { jobId: 'trafikverket', sourceId: 'trafikverket', intervalSeconds: 300, enabled: Boolean(env.TRAFIKVERKET_ENABLED && env.TRAFIKVERKET_API_KEY), timeoutMs: 120_000, run: runTrafikverket },
+    { jobId: 'met_nowcast', sourceId: 'met_nowcast', intervalSeconds: 300, enabled: env.SOURCE_MET_NOWCAST_ENABLED, timeoutMs: 180_000, run: runNowcast },
     { jobId: 'smhi_forecast', sourceId: 'smhi_forecast', intervalSeconds: 900, enabled: env.SOURCE_SMHI_FORECAST_ENABLED, timeoutMs: 180_000, run: runForecasts },
     { jobId: 'smhi_observations', sourceId: 'smhi_observations', intervalSeconds: 1_800, enabled: env.SOURCE_SMHI_OBSERVATIONS_ENABLED, timeoutMs: 180_000, run: runMetObs },
     { jobId: 'sgu_groundwater', sourceId: 'sgu_groundwater', intervalSeconds: 3_600, enabled: env.SOURCE_SGU_ENABLED, timeoutMs: 180_000, run: runSgu },
@@ -384,7 +388,7 @@ export function buildJobs(env: ServerEnv): MonitoringJob[] {
 }
 
 /** Jobs that compute per-property data and must run soon after a property is created/moved. */
-export const PER_PROPERTY_JOBS = ['smhi_forecast', 'sgu_groundwater', 'mcf_flood', 'scb'];
+export const PER_PROPERTY_JOBS = ['met_nowcast', 'smhi_forecast', 'sgu_groundwater', 'mcf_flood', 'scb'];
 
 /** Backoff after failures: interval × 2^(n−1), min 60 s, max 6 h; Retry-After wins when longer. */
 export function nextRunSeconds(intervalSeconds: number, consecutiveFailures: number, result: JobResult): number {
@@ -395,3 +399,28 @@ export function nextRunSeconds(intervalSeconds: number, consecutiveFailures: num
 }
 
 export { countCountyAreas };
+
+/** Leased singleton job; batches of at most four, spaced by one second, no HTTP retries. */
+export async function runNowcast(ctx: JobContext): Promise<JobResult> {
+  if (!ctx.adapter.env.MET_NORWAY_CONTACT) return { status:'skipped', items:0, errorCode:'access_required', errorDetail:'MET_NORWAY_CONTACT saknas – ange publik kontaktwebbadress' };
+  const targets=await listMonitoringTargets(ctx.db), cache=new Map((await loadNowcastCache(ctx.db)).map(x=>[x.point_key,x]));
+  const keys=[...new Set(targets.map(t=>t.lat.toFixed(2)+','+t.lon.toFixed(2)))];
+  const due=keys.filter(k=>!cache.has(k)||cache.get(k)!.expires_at<=ctx.adapter.now());
+  let items=0, failure: JobResult | null=null;
+  for(let i=0;i<due.length;i+=4) {
+    if(i) await sleep(1000,ctx.adapter.signal);
+    const results=await Promise.all(due.slice(i,i+4).map(async key=>{
+      const [lat,lon]=key.split(',').map(Number), old=cache.get(key);
+      const r=await fetchMetNowcast(lat!,lon!,ctx.adapter,old?.last_modified);
+      if(!r.ok)return fail(r);
+      if(r.data.notModified) {
+        if(!old)return {status:'error' as const,items:0,errorCode:'invalid_payload'};
+        await revalidateNowcastPoint(ctx.db,key,r.fetchedAt,r.data.expiresAt,r.data.lastModified);
+      } else if(r.data.data) await saveNowcastPoint(ctx.db,key,lat!,lon!,r.data.data,r.fetchedAt,r.data.expiresAt,r.data.lastModified);
+      return {status:'ok' as const,items:1};
+    }));
+    for(const r of results) {items+=r.items;if(r.status==='error')failure=r;}
+    if(results.some(r=>'errorCode' in r && (r.errorCode==='rate_limited'||r.errorCode==='unauthorized')))break;
+  }
+  return failure ? {...failure,status:items?'partial':'error',items} : {status:'ok',items,changed:{all:true}};
+}

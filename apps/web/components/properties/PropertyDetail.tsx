@@ -1,5 +1,6 @@
 'use client';
 
+import { NowcastPanel } from './NowcastPanel';
 import { ForecastDays } from './ForecastDays';
 
 import { useRef } from 'react';
@@ -130,6 +131,7 @@ export function PropertyDetail() {
         <WaterRiskPanel d={d} />
       </div>
 
+      <NowcastPanel d={d} />
       <ForecastDays d={d} />
 
       {d.live && <MonitoringContextPanel d={d} />}

@@ -1,3 +1,4 @@
+import { nowcastVM } from './nowcast';
 import type { Portfolio, PropertySnapshot, PropertyStatus } from '@fastighetsradar/domain';
 import { formatClock, formatLongDate, formatNumber, portfolioRisk, type RiskFactorKey } from '@fastighetsradar/domain';
 import { C, EXPOSURE_SV, SEV, STATUS_ORDER, WL, riskStyle } from '../design/tokens';
@@ -109,6 +110,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     return {
       id: p.id,
       name: p.name,
+      nowcast: nowcastVM(s, portfolio.generatedAt),
       address: p.address,
       status: st.label,
       c: st.c,

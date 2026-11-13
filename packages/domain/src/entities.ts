@@ -1,3 +1,4 @@
+import { NowcastSchema } from './nowcast';
 import { z } from 'zod';
 import {
   DataKindSchema,
@@ -329,6 +330,7 @@ export const PropertySnapshotSchema = z.object({
   riskIndex: RiskIndexSchema.nullable().optional(),
   /** Live monitoring context (Phase 3). Absent in demo fixtures. */
   monitoring: PropertyMonitoringContextSchema.nullable().optional(),
+  nowcast: NowcastSchema.nullable().optional(),
 });
 export type PropertySnapshot = z.infer<typeof PropertySnapshotSchema>;
 

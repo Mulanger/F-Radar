@@ -1,3 +1,4 @@
+import { summarizeNowcast } from '../nowcast';
 /**
  * DEMO FIXTURES — NOT REAL DATA.
  *
@@ -387,7 +388,10 @@ function buildSnapshot(p: RawProperty): PropertySnapshot {
 }
 
 // Demo uses the same documented method as live data (all demo sources count as current).
-const snapshots = RAW.map(buildSnapshot).map((s) => ({ ...s, riskIndex: assessPropertyRisk(s, () => true) }));
+const snapshots = RAW.map(buildSnapshot).map((s, index) => {
+  const points=Array.from({length:24},(_,i)=>({validAt:new Date(Date.parse(DEMO_REFERENCE_TIME)+i*300_000).toISOString(),rateMmH:i>=4&&i<18?4:0}));
+  return { ...s, riskIndex: assessPropertyRisk(s, () => true), nowcast: index<2 ? {sourceId:'met_nowcast' as const,coverage:'ok' as const,updatedAt:DEMO_REFERENCE_TIME,fetchedAt:DEMO_REFERENCE_TIME,freshness:'fresh' as const,points,summary:summarizeNowcast(points,new Date(DEMO_REFERENCE_TIME),5),attribution:'Data från MET Norway · bearbetad av FastighetsRadar · syntetisk demo',origin:'demo_fixture' as const} : null };
+});
 
 const feed: FeedItem[] = RAW_FEED.map((f, i) => ({
   id: `demo-feed-${i}`,

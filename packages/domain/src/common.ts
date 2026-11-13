@@ -16,6 +16,7 @@ export const SOURCE_IDS = [
   'smhi_warnings',
   'smhi_observations',
   'smhi_oceanography',
+  'met_nowcast',
   'krisinformation',
   'air_quality',
   'sgu_groundwater',

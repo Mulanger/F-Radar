@@ -10,6 +10,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadServerEnv } from '@fastighetsradar/config';
 import {
+  fetchMetNowcast,
   AIR_PHENOMENA,
   METOBS_PARAMETERS,
   fetchAirQuality,
@@ -33,6 +34,11 @@ const STHLM = { lat: 59.3367656, lon: 18.0627049 }; // Sveavägen 42
 const UPPSALA_FYRIS = { lat: 59.8586, lon: 17.6389 }; // inside mapped Fyrisån flood areas (verified)
 
 describe('live providers', () => {
+  it.skipIf(!env.MET_NORWAY_CONTACT)('MET Norway nowcast', async () => {
+    const r=await fetchMetNowcast(59.33,18.06,ctx);
+    expect(r.ok, r.ok?'':r.detail).toBe(true);
+    if(r.ok) { expect(r.data.expiresAt).toBeTruthy(); expect(r.data.data?.points.length).toBeGreaterThan(0); }
+  },30000);
   it('SMHI SNOW1gv1 point forecast', async () => {
     const r = await fetchSmhiPointForecast(STHLM.lat, STHLM.lon, ctx);
     expect(r.ok, JSON.stringify(r)).toBe(true);

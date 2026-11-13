@@ -28,8 +28,14 @@ describe('source manifest', () => {
     for (const id of ['smhi_forecast', 'smhi_warnings', 'smhi_observations', 'krisinformation', 'air_quality', 'sgu_groundwater', 'mcf_flood', 'scb', 'trafikverket', 'geoapify_geocoding', 'lantmateriet_address', 'boverket_energy', 'sms_46elks'])
       expect(ids).toContain(id);
     MANIFEST_LIST.forEach((m) => {
-      expect(m.commercialReuseReviewed).toBe(false);
-      expect(m.displayPermitted).toBe(false);
+      if (m.id === 'met_nowcast') {
+        expect(m.commercialReuseReviewed).toBe(true);
+        expect(m.licenseUrl).toBe('https://creativecommons.org/licenses/by/4.0/');
+        expect(m.displayPermitted).toBe(true);
+      } else {
+        expect(m.commercialReuseReviewed).toBe(false);
+        expect(m.displayPermitted).toBe(false);
+      }
       expect(m.alertsPermitted).toBe(false);
     });
   });

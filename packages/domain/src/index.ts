@@ -8,3 +8,4 @@ export * from './i18n';
 export * from './notifications';
 export * from './risk-index';
 export * from './weather-information';
+export * from './nowcast';

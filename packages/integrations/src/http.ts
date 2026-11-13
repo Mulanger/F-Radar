@@ -12,6 +12,7 @@ import type { AdapterContext, AdapterResult } from './types';
 export const USER_AGENT = 'FastighetsRadar/0.3 (public-data monitoring; contact via app operator)';
 
 export interface HttpOptions {
+  acceptNotModified?: boolean;
   method?: 'GET' | 'POST';
   body?: string;
   headers?: Record<string, string>;
@@ -68,7 +69,7 @@ export async function httpRequest(url: string | URL, ctx: AdapterContext, opts: 
         }
         return last;
       }
-      if (!res.ok) {
+      if (!res.ok && !(opts.acceptNotModified && res.status === 304)) {
         await res.body?.cancel().catch(() => undefined);
         return { ok: false, error: 'upstream_error', detail: `${opts.label}: HTTP ${res.status}` };
       }

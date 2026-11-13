@@ -2,6 +2,7 @@
 
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { C, FONT_MONO, SEV } from '@/lib/design/tokens';
+import { nowcastVM } from '@/lib/view-models/nowcast';
 import { riskScore, show } from '@/lib/view-models/snapshot';
 
 /**
@@ -22,6 +23,7 @@ export function PropertyList({
     <div role="listbox" aria-label="Fastigheter">
       {portfolio.properties.map((s) => {
         const p = s.property;
+        const radar = nowcastVM(s, portfolio.generatedAt);
         const st = SEV[p.status] ?? SEV.unknown;
         const selected = p.id === currentId;
         return (
@@ -40,7 +42,7 @@ export function PropertyList({
           >
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: st.c }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 500 }}>{p.name}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 500 }}>{p.name}</div>{radar.badge && <div title={radar.source} style={{ fontSize:11, color:'#4A86C5', marginTop:3 }}>{radar.badge} · MET Norway</div>}
               <div style={{ fontSize: 12, color: C.text4 }}>{p.area}</div>
             </div>
             {variant === 'status' ? (

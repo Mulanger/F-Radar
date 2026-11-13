@@ -15,3 +15,7 @@ at the repository root.
 ## Prognosfält och kommande dygn (2026-11-13)
 
 SMHI-serier sparas som v2; v1 läses med null för nya fält. Informativa trösklar och fem rullande dygn dokumenteras i ADR 0004. Riskindex v1 och SMS-regler är oförändrade.
+
+## MET Norway nowcast (2026-11-13)
+
+Fixture och identifierat live-rökprov godkända lokalt: `npm run test:live -- -t "MET Norway nowcast"` (1 passed). CC BY 4.0; Data från MET Norway, bearbetad av FastighetsRadar. Villkor: https://api.met.no/doc/TermsOfService. Kontaktwebbadress bekräftad av ägaren: https://f-radar.se. Flaggan är false som standard, ingen produktionsaktivering. Cache och 304 verifieras i enhetstester; databasverifiering görs i slutsteget.

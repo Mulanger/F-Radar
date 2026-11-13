@@ -17,7 +17,7 @@ import type {
   WarningLevel,
   WeatherForecast,
 } from '@fastighetsradar/domain';
-import { assessPropertyRisk, formatWeekdayClock, forecastInformation, WEATHER_WATER } from '@fastighetsradar/domain';
+import { assessPropertyRisk, formatWeekdayClock, forecastInformation, WEATHER_WATER, summarizeNowcast } from '@fastighetsradar/domain';
 import type { OrgContextRow, OrgEventRow, OrgForecastRow, OrgMonitoringData, OrgObservationRow } from '@fastighetsradar/db';
 import {
   AIR_PHENOMENA,
@@ -392,11 +392,14 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
     }),
   ];
 
+  const radar = data.nowcasts?.find(x => x.property_id === p.id);
+  const radarAge = radar ? (now.getTime()-radar.fetched_at.getTime())/60_000 : Infinity;
   const snapshot: PropertySnapshot = {
     ...base,
     property: { ...base.property, countyCode: county?.code ?? null, status, statusReason: reason },
     metrics: [...forecastMetrics(p.id, forecastRow, now), ...airMetrics(p.id, obs, now)],
     forecast: buildForecast(p.id, forecastRow, now),
+    nowcast: radar ? { sourceId:'met_nowcast', coverage:radar.radar_coverage, updatedAt:iso(radar.source_updated_at), fetchedAt:radar.fetched_at.toISOString(), freshness:radarAge<=WEATHER_WATER.nowcastFreshMinutes?'fresh':radarAge<=WEATHER_WATER.nowcastUsableMinutes?'stale':'expired', points:radar.series.points, summary:summarizeNowcast(radar.series.points,now,radar.series.temperature,{coverage:radar.radar_coverage,fetchedAt:radar.fetched_at.toISOString()}), attribution:'Data från MET Norway · bearbetad av FastighetsRadar (CC BY 4.0)', origin:'live' } : null,
     warnings,
     events: publicEvents,
     flood: floodParts.flood,
