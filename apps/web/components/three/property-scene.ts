@@ -35,6 +35,13 @@ export interface SceneConfig {
   shift: number;
   buildings: SceneBuilding[];
   trees: Array<[number, number, number]>;
+  /**
+   * Auto-framing: keep the whole island (incl. its base) and the tallest building inside the
+   * canvas minus these pixel insets (where HTML overlays sit). Distance and look-at height are
+   * solved per canvas size; viewing angle, orbit and style stay as designed. Omitted = fixed
+   * prototype framing (portfolio hero).
+   */
+  fit?: { top: number; bottom: number; side: number };
 }
 
 export interface SceneHandle {
@@ -73,7 +80,70 @@ export function detailSceneConfig(floors: number, ringColor: number, exposure: s
       { x: 1.35, z: 1.1, w: 0.8, d: 0.8, f: 2 },
     ],
     trees: [[-1.4, -1.5, 1], [1.6, -1.2, 1.2], [-0.4, 1.9, 0.9], [1.9, 0.0, 0.8], [-2.0, -0.6, 0.9], [0.6, 1.95, 1]],
+    // PropertyHero3D overlays: label pill (top), stat glass panel (bottom 20 px + ~74 px).
+    fit: { top: 58, bottom: 112, side: 24 },
   };
+}
+
+const FOV = 28;
+const FLOOR_H = 0.34;
+
+/** Points that must stay visible: rim and underside of the island base, building roofs. */
+function framingPoints(c: SceneConfig): T.Vector3[] {
+  const out: T.Vector3[] = [];
+  const rTop = c.outer + 0.1;
+  const rBottom = c.outer - 0.25;
+  for (let i = 0; i < 48; i++) {
+    const a = (i / 48) * Math.PI * 2;
+    out.push(new T.Vector3(Math.cos(a) * rTop, -0.1, Math.sin(a) * rTop));
+    out.push(new T.Vector3(Math.cos(a) * rBottom, -0.9, Math.sin(a) * rBottom));
+  }
+  for (const b of c.buildings) {
+    const top = 0.25 + 0.1 + b.f * FLOOR_H + 0.27;
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) out.push(new T.Vector3(b.x + (sx * b.w) / 2, top, b.z + (sz * b.d) / 2));
+  }
+  return out;
+}
+
+/**
+ * Solves camera distance + look-at height so every framing point stays inside the safe area
+ * for ALL orbit angles. Keeps the designed elevation ratio (h / dist). Pure function – tested.
+ */
+export function solveFraming(c: SceneConfig, W: number, H: number): { dist: number; ty: number } {
+  const fit = c.fit;
+  if (!fit || W < 2 || H < 2) return { dist: c.dist, ty: c.ty };
+  const pts = framingPoints(c);
+  const cam = new T.PerspectiveCamera(FOV, W / H, 0.1, 400);
+  const yHi = 1 - (2 * Math.min(fit.top, H * 0.3)) / H;
+  const yLo = -1 + (2 * Math.min(fit.bottom, H * 0.4)) / H;
+  const xHi = 1 - (2 * Math.min(fit.side, W * 0.2)) / W;
+  const ratio = c.h / c.dist;
+  const tanHalf = Math.tan((FOV * Math.PI) / 360);
+  const minDist = c.dist * 0.8;
+  let d = c.dist;
+  let ty = c.ty;
+  const v = new T.Vector3();
+  for (let iter = 0; iter < 14; iter++) {
+    let ymin = Infinity, ymax = -Infinity, xmax = 0;
+    for (let k = 0; k < 16; k++) {
+      const ang = (k / 16) * Math.PI * 2;
+      cam.position.set(Math.cos(ang) * d, ratio * d, Math.sin(ang) * d);
+      cam.lookAt(0, ty, 0);
+      cam.updateMatrixWorld();
+      for (const p of pts) {
+        v.copy(p).project(cam);
+        if (v.y < ymin) ymin = v.y;
+        if (v.y > ymax) ymax = v.y;
+        if (Math.abs(v.x) > xmax) xmax = Math.abs(v.x);
+      }
+    }
+    const scale = Math.max((ymax - ymin) / (yHi - yLo), xmax / xHi);
+    const centerShift = (ymax + ymin) / 2 - (yHi + yLo) / 2;
+    const viewDist = Math.hypot(d, ratio * d - ty);
+    ty += centerShift * tanHalf * viewDist;
+    d = Math.max(minDist, d * scale);
+  }
+  return { dist: d, ty };
 }
 
 function disposeObject(root: T.Object3D) {
@@ -103,7 +173,7 @@ export function createPropertyScene(el: HTMLElement, initial: SceneConfig): Scen
   el.appendChild(cv);
 
   const scene = new T.Scene();
-  const cam = new T.PerspectiveCamera(28, 1, 0.1, 200);
+  const cam = new T.PerspectiveCamera(FOV, 1, 0.1, 400);
   scene.add(new T.HemisphereLight(0xffffff, 0xd3dee3, 1.7));
   const sun = new T.DirectionalLight(0xfff8ef, 2.3);
   sun.position.set(7, 14, 5);
@@ -178,9 +248,11 @@ export function createPropertyScene(el: HTMLElement, initial: SceneConfig): Scen
 
   let W = 1;
   let H = 1;
+  let framing = { dist: initial.dist, ty: initial.ty };
   const resize = () => {
     W = Math.max(1, el.clientWidth);
     H = Math.max(1, el.clientHeight);
+    framing = solveFraming(cfg, W, H);
     renderer.setSize(W, H, false);
     cam.aspect = W / H;
     if (cfg && cfg.shift) cam.setViewOffset(W, H, -W * cfg.shift, 0, W, H);
@@ -275,9 +347,9 @@ export function createPropertyScene(el: HTMLElement, initial: SceneConfig): Scen
     pts.rotation.y = t * 0.03;
     const ang = t * 0.05 + 0.75;
     const aspect = W / H;
-    const dd = cfg.dist * (aspect < 1.5 ? 1.5 / aspect : 1);
+    const dd = cfg.fit ? framing.dist : cfg.dist * (aspect < 1.5 ? 1.5 / aspect : 1);
     cam.position.set(Math.cos(ang) * dd, cfg.h * (dd / cfg.dist), Math.sin(ang) * dd);
-    cam.lookAt(0, cfg.ty, 0);
+    cam.lookAt(0, cfg.fit ? framing.ty : cfg.ty, 0);
     renderer.render(scene, cam);
   };
 
