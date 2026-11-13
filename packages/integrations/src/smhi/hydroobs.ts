@@ -2,6 +2,7 @@ import { monthlyFlowReference } from '@fastighetsradar/domain';
 import { httpJson,httpRequest,iso,num } from '../http';
 import type { AdapterContext,AdapterResult,StationObservation } from '../types';
 import { StationSeriesSchema } from './ocobs';
+import { readSmhiCsv } from './history';
 
 export function parseHydrology(raw:unknown):StationObservation[]|null {
   const p=StationSeriesSchema.safeParse(raw);
@@ -44,14 +45,9 @@ export async function fetchHydrologyReference(stationId:string,ctx:AdapterContex
   const url=`${ctx.env.SMHI_HYDROLOGY_BASE_URL.replace(/\/+$/,'')}/version/latest/parameter/2/station/${stationId}/period/corrected-archive/data.csv`;
   const r=await httpRequest(url,ctx,{label:'hydrology_reference',timeoutMs:180000,attempts:1,headers:{Accept:'text/plain'}});
   if(!r.ok)return r;
-  const a=hydroArchiveAccumulator(),decoder=new TextDecoder();let pending='';
+  const a=hydroArchiveAccumulator();
   try {
-    if(!r.data.body)return {ok:false,error:'invalid_payload',detail:'empty archive'};
-    const reader=r.data.body.getReader();
-    try {
-      for(;;){const chunk=await reader.read();if(chunk.done)break;pending+=decoder.decode(chunk.value,{stream:true});const lines=pending.split('\n');pending=lines.pop()??'';for(const line of lines)a.line(line.replace(/\r$/,''));}
-      a.line(pending+decoder.decode());
-    } finally {reader.releaseLock();}
+    await readSmhiCsv(r.data, a.line);
     const data=a.finish();return data?{ok:true,data,fetchedAt:r.fetchedAt}:{ok:false,error:'invalid_payload',detail:'unknown corrected-archive CSV format'};
   } catch {return {ok:false,error:'upstream_error',detail:'hydrology archive read failed'};}
 }

@@ -1,4 +1,5 @@
-import { WEATHER_WATER, stationMatchDistance } from '@fastighetsradar/domain';
+import { HISTORY, WEATHER_WATER, stationMatchDistance } from '@fastighetsradar/domain';
+import { aggregateStoredHistory } from './history';
 import { createHash } from 'node:crypto';
 import type { Queryable } from './migrations';
 
@@ -206,8 +207,8 @@ export async function upsertSourceEvents(db: Queryable, sourceId: string, events
       level: e.level,
       severity: e.severity,
       event_type: e.eventType.slice(0, 200),
-      headline: e.headline.slice(0, 500),
-      description: e.description?.slice(0, 8000) ?? null,
+      headline: e.headline,
+      description: e.description,
       area_label: e.areaLabel?.slice(0, 500) ?? null,
       county_names: e.countyNames,
       geojson: e.geometry ? JSON.stringify(e.geometry) : null,
@@ -526,8 +527,12 @@ export const RETENTION = {
 } as const;
 
 export async function applyRetention(db: Queryable): Promise<Record<string, number>> {
+  // Always preserve daily values before raw readings are removed, even after scheduler downtime.
+  await aggregateStoredHistory(db);
   const del = async (sql: string, params: unknown[]) => (await db.query(sql, params)).rowCount ?? 0;
   return {
+    eventHistory: await del(`DELETE FROM property_event_history WHERE LEAST(ended_at,valid_to,matched_until) < now() - make_interval(months => $1)`, [HISTORY.eventRetentionMonths]),
+    stationDaily: await del(`DELETE FROM station_daily WHERE date < (now() - make_interval(years => $1))::date`, [HISTORY.dailyRetentionYears]),
     events: await del(`DELETE FROM source_events WHERE status <> 'active' AND ended_at < now() - make_interval(days => $1)`, [RETENTION.endedEventsDays]),
     changes: await del(`DELETE FROM monitoring_changes WHERE created_at < now() - make_interval(days => $1)`, [RETENTION.changesDays]),
     runs: await del(`DELETE FROM integration_runs WHERE started_at < now() - make_interval(days => $1)`, [RETENTION.runsDays]),

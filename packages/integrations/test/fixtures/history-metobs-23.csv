@@ -1,0 +1,55 @@
+Stationsnamn;Stationsnummer;Stationsnät;Mäthöjd (meter över marken)
+Stockholm-Observatoriekullen A;98230;SMHIs stationsnät;2.0
+
+Parameternamn;Beskrivning;Enhet
+Nederbördsmängd;summa, 1 gång per månad;millimeter
+
+Tidsperiod (fr.o.m);Tidsperiod (t.o.m);Höjd (meter över havet);Latitud (decimalgrader);Longitud (decimalgrader)
+1996-11-01 00:00:00;2026-11-13 08:21:35;43.133;59.3417;18.0549
+
+Från Datum Tid (UTC);Till Datum Tid (UTC);Representativ månad;Nederbördsmängd;Kvalitet;;Tidsutsnitt:
+1996-10-01 06:00:01;1996-11-01 06:00:00;1996-10;17.9;Y;;Kvalitetskontrollerade historiska data (utom de senaste 3 mån)
+1996-11-01 06:00:01;1996-12-01 06:00:00;1996-11;72.6;Y;;Tidsperiod (fr.o.m.) = 1996-11-01 00:00:00 (UTC)
+1996-12-01 06:00:01;1997-01-01 06:00:00;1996-12;29.0;Y;;Tidsperiod (t.o.m.) = 2026-08-01 06:00:00 (UTC)
+1997-01-01 06:00:01;1997-02-01 06:00:00;1997-01;10.3;Y;;Värdet är summerat över = 1 månad
+1997-02-01 06:00:01;1997-03-01 06:00:00;1997-02;36.2;Y;;
+1997-03-01 06:00:01;1997-04-01 06:00:00;1997-03;13.9;Y;;Kvalitetskoderna:
+1997-04-01 06:00:01;1997-05-01 06:00:00;1997-04;29.0;Y;;Grön (G) = Kontrollerade och godkända värden.
+1997-05-01 06:00:01;1997-06-01 06:00:00;1997-05;55.8;Y;;Gul (Y) = Misstänkta eller aggregerade värden. Grovt kontrollerade arkivdata och okontrollerade realtidsdata (senaste 2 tim).
+1997-06-01 06:00:01;1997-07-01 06:00:00;1997-06;98.2;Y;;
+1997-07-01 06:00:01;1997-08-01 06:00:00;1997-07;30.6;Y;;Nätinformation:
+1997-08-01 06:00:01;1997-09-01 06:00:00;1997-08;26.7;Y;;SMHIs Stationsnät: Data samlas in och lagras i SMHIs databaser. Data kvalitetskontrolleras vilket innebär att felaktiga data korrigeras och att databortfall kompletteras utifrån expertbedömning där det är möjligt. De flesta stationerna övervakas, inspekteras och underhålls löpande av SMHI.
+1997-09-01 06:00:01;1997-10-01 06:00:00;1997-09;65.7;Y;;Övriga stationer: Data samlas in och lagras i SMHIs databaser. Datakvaliteten är för SMHI okänd då SMHI varken utför kvalitetskontroll på data eller inspektioner på stationerna.
+1997-10-01 06:00:01;1997-11-01 06:00:00;1997-10;46.2;Y;;
+2024-01-01 06:00:01;2024-02-01 06:00:00;2024-01;35.1;Y;;Möjliga orsaker till saknade data:
+2024-02-01 06:00:01;2024-03-01 06:00:00;2024-02;57.6;G;;– stationen eller givaren har varit ur funktion.
+2024-03-01 06:00:01;2024-04-01 06:00:00;2024-03;22.6;G;;– stationen har endast levererat värden med kvalitetskod Röd (R). Dessa levereras ej.
+2024-04-01 06:00:01;2024-05-01 06:00:00;2024-04;51.3;Y
+2024-05-01 06:00:01;2024-06-01 06:00:00;2024-05;19.5;Y
+2024-06-01 06:00:01;2024-07-01 06:00:00;2024-06;87.6;Y
+2024-07-01 06:00:01;2024-08-01 06:00:00;2024-07;44.7;Y
+2024-08-01 06:00:01;2024-09-01 06:00:00;2024-08;24.4;Y
+2024-09-01 06:00:01;2024-10-01 06:00:00;2024-09;114.5;Y
+2024-10-01 06:00:01;2024-11-01 06:00:00;2024-10;74.2;G
+2024-11-01 06:00:01;2024-12-01 06:00:00;2024-11;15.4;Y
+2024-12-01 06:00:01;2025-01-01 06:00:00;2024-12;57.9;Y
+2025-01-01 06:00:01;2025-02-01 06:00:00;2025-01;39.7;Y
+2025-02-01 06:00:01;2025-03-01 06:00:00;2025-02;3.5;Y
+2025-03-01 06:00:01;2025-04-01 06:00:00;2025-03;3.2;Y
+2025-04-01 06:00:01;2025-05-01 06:00:00;2025-04;10.7;Y
+2025-05-01 06:00:01;2025-06-01 06:00:00;2025-05;20.4;Y
+2025-06-01 06:00:01;2025-07-01 06:00:00;2025-06;24.0;Y
+2025-07-01 06:00:01;2025-08-01 06:00:00;2025-07;85.4;G
+2025-08-01 06:00:01;2025-09-01 06:00:00;2025-08;73.1;Y
+2025-09-01 06:00:01;2025-10-01 06:00:00;2025-09;50.6;Y
+2025-10-01 06:00:01;2025-11-01 06:00:00;2025-10;85.1;Y
+2025-11-01 06:00:01;2025-12-01 06:00:00;2025-11;27.1;Y
+2025-12-01 06:00:01;2026-01-01 06:00:00;2025-12;47.8;Y
+2026-01-01 06:00:01;2026-02-01 06:00:00;2026-01;47.3;Y
+2026-02-01 06:00:01;2026-03-01 06:00:00;2026-02;16.5;Y
+2026-03-01 06:00:01;2026-04-01 06:00:00;2026-03;25.8;Y
+2026-04-01 06:00:01;2026-05-01 06:00:00;2026-04;19.2;Y
+2026-05-01 06:00:01;2026-06-01 06:00:00;2026-05;20.9;Y
+2026-06-01 06:00:01;2026-07-01 06:00:00;2026-06;51.7;G
+2026-07-01 06:00:01;2026-08-01 06:00:00;2026-07;67.5;Y
+

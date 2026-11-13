@@ -40,6 +40,7 @@ import {
 import { buildApp } from '../../apps/api/src/app';
 import type { AuthVerifier, VerifiedIdentity } from '../../apps/api/src/auth';
 import { registerNotificationTests } from './notifications';
+import { registerHistoryTests } from './history';
 
 const url = process.env.TEST_DATABASE_URL;
 if (!url) throw new Error('TEST_DATABASE_URL is required');
@@ -79,11 +80,14 @@ const sveavagen = {
 async function resetSchema() {
   await pool.query(`
     DROP TABLE IF EXISTS sms_delivery_callbacks,notification_attempts,notification_properties,notification_outbox,notification_daily_usage,notification_usage,notification_global_usage,notification_rate_buckets,alert_evaluation_state,alert_rule_recipients,alert_rule_properties,sms_recipients,
+      property_event_history, station_daily, history_stations, history_backfill_checks,
+      station_precipitation_normals, history_normal_checks, history_flow_references, history_archive_state,
       observation_history, observation_backfill_checks, nowcast_points, hydrology_references, hydrology_reference_checks,
       monitoring_changes, property_event_matches, source_events, observation_stations, property_forecasts,
       property_context, admin_areas, provider_jobs, property_monitoring, integration_runs, alert_rules, property_source_profiles, properties,
       source_catalog, organization_members, users, organizations, schema_migrations CASCADE;
     DROP FUNCTION IF EXISTS fr_set_updated_at() CASCADE;`);
+  await pool.query(`DROP FUNCTION IF EXISTS fr_archive_match_trigger(),fr_archive_end_trigger(),fr_archive_unmatch_trigger() CASCADE`);
 }
 
 describe('real PostgreSQL / PostGIS', () => {
@@ -447,4 +451,5 @@ describe('real PostgreSQL / PostGIS', () => {
     assert.equal(left[0].n, 0, 'matches cascade with the property');
   });
   registerNotificationTests(pool);
+  registerHistoryTests(pool);
 });
