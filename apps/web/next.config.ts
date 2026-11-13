@@ -21,6 +21,12 @@ if (existsSync(rootEnv)) process.loadEnvFile(rootEnv);
   }
 }
 
+// Map tiles: the browser must use a SEPARATE, origin-restricted Geoapify key. Refuse to build if
+// someone points NEXT_PUBLIC_GEOAPIFY_MAP_KEY at the unrestricted server geocoding key.
+if (process.env.NEXT_PUBLIC_GEOAPIFY_MAP_KEY && process.env.NEXT_PUBLIC_GEOAPIFY_MAP_KEY === process.env.GEOAPIFY_API_KEY) {
+  throw new Error('NEXT_PUBLIC_GEOAPIFY_MAP_KEY must not equal GEOAPIFY_API_KEY – create a separate origin-restricted browser key.');
+}
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Internal workspace packages ship TypeScript source.

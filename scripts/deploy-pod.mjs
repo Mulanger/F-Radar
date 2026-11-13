@@ -55,6 +55,11 @@ if ((pk.startsWith('pk_live_') || sk.startsWith('sk_live_')) && !args.has('--all
   throw new Error('Production Clerk keys only work on their configured domain, not on ' + appUrl + '. Use development keys or pass --allow-live-clerk.');
 }
 
+// Map tiles (build-time, public): a separate origin-restricted Geoapify browser key.
+const mapKey = local.NEXT_PUBLIC_GEOAPIFY_MAP_KEY ?? '';
+if (mapKey && mapKey === local.GEOAPIFY_API_KEY) throw new Error('NEXT_PUBLIC_GEOAPIFY_MAP_KEY must not reuse the server GEOAPIFY_API_KEY');
+console.log('Map tiles for this deployment:', mapKey ? `geoapify (${local.NEXT_PUBLIC_MAP_STYLE || 'positron'})` : 'NOT CONFIGURED – maps render without tiles');
+
 /* 1–3: build, assemble, scan */
 if (!args.has('--env-only')) {
   if (!args.has('--skip-build')) {

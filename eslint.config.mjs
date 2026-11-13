@@ -27,7 +27,7 @@ export default tseslint.config(
       'no-restricted-syntax': [
         'error',
         {
-          selector: "MemberExpression[object.object.name='process'][object.property.name='env'][property.name=/^NEXT_PUBLIC_(?!CLERK_(PUBLISHABLE|DEVELOPMENT)_KEY$).*(KEY|SECRET|TOKEN|PASSWORD)/]",
+          selector: "MemberExpression[object.object.name='process'][object.property.name='env'][property.name=/^NEXT_PUBLIC_(?!(CLERK_(PUBLISHABLE|DEVELOPMENT)_KEY|GEOAPIFY_MAP_KEY)$).*(KEY|SECRET|TOKEN|PASSWORD)/]",
           message: 'Never expose secrets through NEXT_PUBLIC_* variables.',
         },
       ],

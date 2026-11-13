@@ -1,18 +1,11 @@
 import type * as Leaflet from 'leaflet';
+import { TILE_ERROR_THRESHOLD, tileConfig, type TileConfig } from '@/lib/maps/tile-config';
 
 /**
- * Leaflet helpers ported from the prototype. Leaflet is bundled locally and loaded
- * lazily on the client (it touches `window` at import time).
- *
- * Tiles: the prototype used CARTO "light_all" raster tiles. The production tile
- * provider is an open decision (IMPLEMENTATION.md §24) and CARTO's public basemaps
- * now require a key/licence for this use. The URL is therefore configurable via
- * NEXT_PUBLIC_MAP_TILE_URL / NEXT_PUBLIC_MAP_TILE_ATTRIBUTION (public by design –
- * never put a secret there).
+ * Leaflet helpers shared by every map (portfolio, local context, location picker).
+ * Leaflet is bundled locally and loaded lazily on the client (it touches `window` at
+ * import time). Tile provider settings come from `lib/maps/tile-config.ts` only.
  */
-
-const TILE_URL = process.env.NEXT_PUBLIC_MAP_TILE_URL || 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-const TILE_ATTRIBUTION = process.env.NEXT_PUBLIC_MAP_TILE_ATTRIBUTION || '© OpenStreetMap © CARTO';
 
 let leafletPromise: Promise<typeof Leaflet> | null = null;
 export function loadLeaflet(): Promise<typeof Leaflet> {
@@ -20,10 +13,51 @@ export function loadLeaflet(): Promise<typeof Leaflet> {
   return leafletPromise;
 }
 
+/**
+ * Adds the configured raster tile layer with credit-conscious options. After
+ * TILE_ERROR_THRESHOLD consecutive tile errors (invalid/unauthorised key, 429 rate limit,
+ * network) the layer is removed so no further paid requests are made, and the attribution
+ * corner explains why. Markers and overlays keep working without tiles.
+ */
+export function addTileLayer(L: typeof Leaflet, map: Leaflet.Map, cfg: TileConfig = tileConfig): Leaflet.TileLayer | null {
+  map.attributionControl.setPrefix(false);
+  if (cfg.provider === 'none') {
+    map.attributionControl.addAttribution(cfg.attribution);
+    return null;
+  }
+  const layer = L.tileLayer(cfg.url, {
+    minZoom: cfg.minZoom,
+    maxZoom: cfg.maxZoom,
+    attribution: cfg.attribution,
+    // Cost control: fewer off-screen tiles, no requests while animating, only when idle.
+    keepBuffer: 1,
+    updateWhenZooming: false,
+    updateWhenIdle: true,
+  });
+  let consecutiveErrors = 0;
+  layer.on('tileload', () => {
+    consecutiveErrors = 0;
+  });
+  layer.on('tileerror', () => {
+    consecutiveErrors++;
+    if (consecutiveErrors === TILE_ERROR_THRESHOLD) {
+      map.removeLayer(layer);
+      map.attributionControl.addAttribution('Map tiles unavailable');
+      console.warn('[maps] tile provider failed repeatedly – tile layer disabled for this map');
+    }
+  });
+  layer.addTo(map);
+  return layer;
+}
+
 export function newMap(L: typeof Leaflet, el: HTMLElement, center: [number, number], zoom: number) {
-  const m = L.map(el, { zoomControl: false, scrollWheelZoom: false }).setView(center, zoom);
-  m.attributionControl.setPrefix(false);
-  L.tileLayer(TILE_URL, { subdomains: 'abcd', maxZoom: 19, attribution: TILE_ATTRIBUTION }).addTo(m);
+  const m = L.map(el, {
+    zoomControl: false,
+    scrollWheelZoom: false,
+    minZoom: tileConfig.minZoom,
+    maxZoom: tileConfig.maxZoom,
+  }).setView(center, zoom);
+  addTileLayer(L, m);
   return m;
 }
 
