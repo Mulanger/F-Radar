@@ -17,7 +17,7 @@ import type {
   WarningLevel,
   WeatherForecast,
 } from '@fastighetsradar/domain';
-import { assessPropertyRisk, formatWeekdayClock, forecastInformation, WEATHER_WATER, summarizeNowcast, measurementTrend, type TimedReading, classifyFlow, measuredPrecipitation } from '@fastighetsradar/domain';
+import { assessPropertyRisk, formatWeekdayClock, swedishDayWindows, forecastInformation, WEATHER_WATER, summarizeNowcast, measurementTrend, type TimedReading, classifyFlow, measuredPrecipitation } from '@fastighetsradar/domain';
 import type { OrgContextRow, OrgEventRow, OrgForecastRow, OrgMonitoringData, OrgObservationRow } from '@fastighetsradar/db';
 import {
   AIR_PHENOMENA,
@@ -144,16 +144,16 @@ export function buildForecast(propertyId: string, row: OrgForecastRow | undefine
     availability: age > FORECAST_USABLE_S ? 'stale' : 'ok',
     geo: { match: 'point_grid', distanceMeters: n(row.distance_m), note: 'SMHI SNOW1gv1 modellpunkt' },
     origin: 'live',
-    days: Array.from({ length: 5 }, (_, i) => {
-      const start = new Date(now.getTime() + i * 24 * 3_600_000);
-      const end = new Date(start.getTime() + 24 * 3_600_000);
+    // Calendar days in Swedish time ("Idag", "Imorgon", …); the first window is the rest of today.
+    days: swedishDayWindows(now, 5).map(({ from: start, to: end }) => {
+      const hours = (end.getTime() - start.getTime()) / 3_600_000;
       const day = steps.filter(s => Date.parse(s.time) > start.getTime() && Date.parse(s.intervalStart ?? s.time) < end.getTime());
-      const total = (key: 'precipitationMean' | 'precipitationMin' | 'precipitationMax') => precipitationTotal(steps.map(s => ({ ...s, precipitationMean: s[key] })), start, 24);
+      const total = (key: 'precipitationMean' | 'precipitationMin' | 'precipitationMax') => precipitationTotal(steps.map(s => ({ ...s, precipitationMean: s[key] })), start, hours);
       const complete = total('precipitationMean') !== null;
       const samples = day.filter(s => Date.parse(s.time) <= end.getTime());
       const extreme = (key: 'airTemperature' | 'windGust', max: boolean) => complete && samples.length && samples.every(s => s[key] != null) ? (max ? Math.max : Math.min)(...samples.map(s => s[key]!)) : null;
       const mean = total('precipitationMean');
-      const frozen = precipitationTotal(steps.map(s => ({ ...s, precipitationMean: s.precipitationMean === 0 ? 0 : s.precipitationMean != null && s.frozenPartPercent != null ? s.precipitationMean * s.frozenPartPercent / 100 : null })), start, 24);
+      const frozen = precipitationTotal(steps.map(s => ({ ...s, precipitationMean: s.precipitationMean === 0 ? 0 : s.precipitationMean != null && s.frozenPartPercent != null ? s.precipitationMean * s.frozenPartPercent / 100 : null })), start, hours);
       return { from: start.toISOString(), to: end.toISOString(), temperatureMin: extreme('airTemperature', false), temperatureMax: extreme('airTemperature', true), precipitationMean: mean, precipitationMin: total('precipitationMin'), precipitationMax: total('precipitationMax'), windGustMax: extreme('windGust', true), snowPercent: mean != null && mean > 0 && frozen != null ? Math.round(frozen / mean * 100) : null };
     }),
     series: [
@@ -469,11 +469,11 @@ export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForec
     if (!steps.length) continue;
     const gust = steps.reduce<ForecastStep | null>((a, b) => ((b.windGust ?? -1) > (a?.windGust ?? -1) ? b : a), null);
     if (gust?.windGust !== null && gust && gust.windGust >= 15) {
-      out.push({ id: `gust-${s.property.id}`, label: 'Hårda vindbyar (prognos)', where: s.property.name, when: formatWeekdayClock(gust.time), validAt:gust.time,sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${gust.windGust.toFixed(0)} m/s`, tone: gust.windGust >= 21 ? 'critical' : 'warning', origin: 'live' });
+      out.push({ id: `gust-${s.property.id}`, label: 'Hårda vindbyar (prognos)', where: s.property.name, when: formatWeekdayClock(gust.time), validAt:gust.time,sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${gust.windGust.toFixed(0)} m/s`, tone: gust.windGust >= 21 ? 'warning' : 'monitor', origin: 'live' });
     }
     const rain = precipitationTotal(forecastSteps(forecasts.find((f) => f.property_id === s.property.id)), now, 24);
     if (rain !== null && rain >= 15) {
-      out.push({ id: `rain-${s.property.id}`, label: 'Kraftig nederbörd (prognos, 24 h)', where: s.property.name, when: 'Närmaste 24 h', validAt:now.toISOString(),sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${rain.toFixed(0)} mm`, tone: rain >= 30 ? 'critical' : 'warning', origin: 'live' });
+      out.push({ id: `rain-${s.property.id}`, label: 'Kraftig nederbörd (prognos, 24 h)', where: s.property.name, when: 'Närmaste 24 h', validAt:now.toISOString(),sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${rain.toFixed(0)} mm`, tone: rain >= 30 ? 'warning' : 'monitor', origin: 'live' });
     }
     const cold = steps.find((x) => x.airTemperature !== null && x.airTemperature < 0);
     if (cold && cold.airTemperature !== null) {

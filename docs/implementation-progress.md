@@ -18,7 +18,7 @@ SMHI-serier sparas som v2; v1 läses med null för nya fält. Informativa trösk
 
 ## MET Norway nowcast (2026-11-13)
 
-Fixture och identifierat live-rökprov godkända lokalt: `npm run test:live -- -t "MET Norway nowcast"` (1 passed). CC BY 4.0; Data från MET Norway, bearbetad av FastighetsRadar. Villkor: https://api.met.no/doc/TermsOfService. Kontaktwebbadress bekräftad av ägaren: https://f-radar.se. Flaggan är false som standard, ingen produktionsaktivering. Cache och 304 verifieras i enhetstester; databasverifiering görs i slutsteget.
+Fixture och identifierat live-rökprov godkända lokalt: `npm run test:live -- -t "MET Norway nowcast"` (1 passed). CC BY 4.0; Data från MET Norway, bearbetad av FastighetsRadar. Villkor: https://api.met.no/doc/TermsOfService. Kontaktwebbadress: https://f-radar.fr-2.instapods.app (f-radar.se är ännu inte registrerad; byt när domänen är i drift). Flaggan är false som standard, ingen produktionsaktivering. Cache och 304 verifieras i enhetstester; databasverifiering görs i slutsteget.
 
 ## Havsvattenstånd (2026-11-13)
 

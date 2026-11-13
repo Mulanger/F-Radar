@@ -17,3 +17,6 @@ dist-deploy/
 ci-bundle.tar.gz
 .ci/
 .ci.tar.gz
+
+# Local git worktrees used by agents (never committed)
+.worktrees/

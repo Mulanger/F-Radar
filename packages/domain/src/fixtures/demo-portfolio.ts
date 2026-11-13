@@ -1,5 +1,6 @@
 import { measuredPrecipitation } from '../water-information';
 import { summarizeNowcast } from '../nowcast';
+import { swedishDayWindows } from '../format';
 /**
  * DEMO FIXTURES — NOT REAL DATA.
  *
@@ -389,11 +390,65 @@ function buildSnapshot(p: RawProperty): PropertySnapshot {
 }
 
 // Demo uses the same documented method as live data (all demo sources count as current).
+/*
+ * Synthetic demo series for the radar nowcast, five calendar days and measured rainfall – one
+ * per demo property so no panel shows "ej ansluten" in the demo. Values are invented but follow
+ * the demo story (wet, windy November day; heavier rain towards Nacka). Labelled as demo in the UI.
+ */
+const DEMO_NOW = new Date(DEMO_REFERENCE_TIME);
+/** 5-minute radar rate (mm/h) per demo property: [first wet step, last wet step, peak]; null = dry. */
+const DEMO_RADAR: Array<[number, number, number] | null> = [
+  [4, 17, 4], // Sjöstaden Kaj: rain in ~20 min, moderate
+  [0, 6, 1.2], // Strandhuset: light rain now, easing within ~35 min
+  null, // Götgården
+  null, // Odenplan Atrium
+  [9, 20, 1.5], // Arenastaden Hus C: light rain in ~45 min
+  [0, 23, 5.5], // Augustendal Brygga: moderate rain now
+  null, // Torsviks Torg
+  [5, 14, 2], // Ulvsunda Lager: light rain in ~25 min
+];
+/** Mean 15-minute rainfall (mm) over the last 72 h per demo property. */
+const DEMO_RAIN_15MIN = [0.13, 0.09, 0.05, 0.04, 0.07, 0.18, 0.06, 0.1];
+const DEMO_DAY_RAIN = [7, 13, 3, 0.4, 1.5];
+
+function demoNowcast(index: number) {
+  const r = DEMO_RADAR[index] ?? null;
+  const points = Array.from({ length: 24 }, (_, i) => ({
+    validAt: new Date(DEMO_NOW.getTime() + i * 300_000).toISOString(),
+    // A gentle ramp towards the peak in the middle of the spell.
+    rateMmH: r && i >= r[0] && i <= r[1] ? Math.round(r[2] * (0.6 + 0.4 * Math.sin(((i - r[0] + 1) / (r[1] - r[0] + 2)) * Math.PI)) * 10) / 10 : 0,
+  }));
+  return {
+    sourceId: 'met_nowcast' as const, coverage: 'ok' as const, updatedAt: DEMO_REFERENCE_TIME, fetchedAt: DEMO_REFERENCE_TIME, freshness: 'fresh' as const,
+    points, summary: summarizeNowcast(points, DEMO_NOW, 5), attribution: 'Data från MET Norway · bearbetad av FastighetsRadar · syntetisk demo', origin: 'demo_fixture' as const,
+  };
+}
+
+function demoDays(index: number) {
+  const wet = 0.7 + (index % 4) * 0.15;
+  return swedishDayWindows(DEMO_NOW, 5).map(({ from, to }, i) => ({
+    from: from.toISOString(), to: to.toISOString(),
+    temperatureMin: -1.5 + i * 0.5 - (index % 3) * 0.5, temperatureMax: 5 - i * 0.5 + (index % 2),
+    precipitationMean: Math.round(DEMO_DAY_RAIN[i]! * wet * 10) / 10,
+    precipitationMin: Math.round(DEMO_DAY_RAIN[i]! * wet * 0.4 * 10) / 10,
+    precipitationMax: Math.round(DEMO_DAY_RAIN[i]! * wet * 1.7 * 10) / 10,
+    windGustMax: 16 - i * 1.5 + (index % 3),
+    snowPercent: i === 2 ? 30 : i === 1 && index % 2 ? 10 : 0,
+  }));
+}
+
+function demoMeasuredRain(index: number) {
+  const end = Math.floor(DEMO_NOW.getTime() / 900_000) * 900_000;
+  const rainfall = Array.from({ length: 288 }, (_, i) => ({ observedAt: new Date(end - i * 900_000).toISOString(), value: DEMO_RAIN_15MIN[index] ?? 0.1 }));
+  return {
+    sourceId: 'smhi_observations' as const, stationName: 'Demo mätstation', distanceMeters: 800 + index * 350, observedAt: DEMO_REFERENCE_TIME, fetchedAt: DEMO_REFERENCE_TIME,
+    qualityNote: 'Syntetisk demoserie, inga verkliga mätningar', totals: [1, 24, 72].map((h) => measuredPrecipitation(rainfall, DEMO_NOW, h)),
+  };
+}
+
 const snapshots = RAW.map(buildSnapshot).map((s, index) => {
-  const points=Array.from({length:24},(_,i)=>({validAt:new Date(Date.parse(DEMO_REFERENCE_TIME)+i*300_000).toISOString(),rateMmH:i>=4&&i<18?4:0}));
-  if(s.forecast && index<2)s.forecast.days=Array.from({length:5},(_,i)=>({from:new Date(Date.parse(DEMO_REFERENCE_TIME)+i*86400000).toISOString(),to:new Date(Date.parse(DEMO_REFERENCE_TIME)+(i+1)*86400000).toISOString(),temperatureMin:-1+i,temperatureMax:5+i,precipitationMean:12-i*2,precipitationMin:4-i,precipitationMax:20-i*2,windGustMax:15-i,snowPercent:i===0?25:0}));
-  const rainfall=Array.from({length:288},(_,i)=>({observedAt:new Date(Math.floor(Date.parse(DEMO_REFERENCE_TIME)/900000)*900000-i*900000).toISOString(),value:0.13}));
-  return { ...s, measuredRain:index<2?{sourceId:'smhi_observations' as const,stationName:'Demo mätstation',distanceMeters:1200,observedAt:DEMO_REFERENCE_TIME,fetchedAt:DEMO_REFERENCE_TIME,qualityNote:'Syntetisk demoserie, inga verkliga mätningar',totals:[1,24,72].map(h=>measuredPrecipitation(rainfall,new Date(DEMO_REFERENCE_TIME),h))}:null, riskIndex: assessPropertyRisk(s, () => true), nowcast: index<2 ? {sourceId:'met_nowcast' as const,coverage:'ok' as const,updatedAt:DEMO_REFERENCE_TIME,fetchedAt:DEMO_REFERENCE_TIME,freshness:'fresh' as const,points,summary:summarizeNowcast(points,new Date(DEMO_REFERENCE_TIME),5),attribution:'Data från MET Norway · bearbetad av FastighetsRadar · syntetisk demo',origin:'demo_fixture' as const} : null };
+  if (s.forecast) s.forecast.days = demoDays(index);
+  return { ...s, measuredRain: demoMeasuredRain(index), riskIndex: assessPropertyRisk(s, () => true), nowcast: demoNowcast(index) };
 });
 
 const feed: FeedItem[] = RAW_FEED.map((f, i) => ({

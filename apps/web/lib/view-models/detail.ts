@@ -164,7 +164,7 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
       source:'SMHI · mätning '+formatWeekdayClock(s.measuredRain.observedAt)+' · hämtad '+formatWeekdayClock(s.measuredRain.fetchedAt)+(p.origin==='demo_fixture'?' · demo':''),note:s.measuredRain.qualityNote,
     }:null,
     nowcast: nowcastVM(s, portfolio.generatedAt),
-    forecastDays: forecastDaysVM(s), precipitationIntervals: precipitationIntervalsVM(s),
+    forecastDays: forecastDaysVM(s, portfolio.generatedAt),precipitationIntervals: precipitationIntervalsVM(s),
     forecastSource: s.forecast ? 'SMHI · modellkörning ' + formatWeekdayClock(s.forecast.issuedAt ?? s.forecast.fetchedAt) + (p.origin === 'demo_fixture' ? ' · demo' : '') : 'SMHI · ej tillgänglig',
     temp: show(temp),
     feels: show(feels),

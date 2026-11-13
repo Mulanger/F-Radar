@@ -48,6 +48,64 @@ export function formatShortDate(iso: string): string {
   return shortDate.format(new Date(iso));
 }
 
+/* ------------------------------------------------------------------ */
+/* Swedish calendar days (DST-safe)                                    */
+/* ------------------------------------------------------------------ */
+
+const dateKey = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: DISPLAY_TIME_ZONE });
+const zoneParts = new Intl.DateTimeFormat('en-US', {
+  timeZone: DISPLAY_TIME_ZONE,
+  hourCycle: 'h23',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+});
+const weekdayLong = new Intl.DateTimeFormat(DISPLAY_LOCALE, { weekday: 'long', timeZone: DISPLAY_TIME_ZONE });
+
+/** Calendar date in Swedish time, e.g. "2026-11-13". */
+export function swedishDateKey(at: Date | string): string {
+  return dateKey.format(new Date(at));
+}
+
+/** Milliseconds Swedish local time is ahead of UTC at `at` (3 600 000 in winter, 7 200 000 in summer). */
+function zoneOffsetMs(at: number): number {
+  const p = Object.fromEntries(zoneParts.formatToParts(at).map((x) => [x.type, x.value]));
+  return Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour) % 24, Number(p.minute), Number(p.second)) - at;
+}
+
+/** Start (00:00 Swedish time) of the calendar day `offsetDays` after the day that contains `at`. */
+export function swedishMidnight(at: Date, offsetDays = 0): Date {
+  const [y, m, d] = swedishDateKey(at).split('-').map(Number);
+  const wall = Date.UTC(y!, m! - 1, d! + offsetDays);
+  // Two passes so a day that starts on the other side of a DST change gets its own offset.
+  const first = wall - zoneOffsetMs(wall);
+  return new Date(wall - zoneOffsetMs(first));
+}
+
+/**
+ * Calendar-day windows in Swedish time: the rest of today (only when at least `minHoursToday`
+ * remain, so late evenings do not show a stub day), then whole days. DST days are 23 or 25 h.
+ */
+export function swedishDayWindows(now: Date, count = 5, minHoursToday = 6): Array<{ from: Date; to: Date }> {
+  const out: Array<{ from: Date; to: Date }> = [];
+  const endOfToday = swedishMidnight(now, 1);
+  if (endOfToday.getTime() - now.getTime() >= minHoursToday * 3_600_000) out.push({ from: now, to: endOfToday });
+  for (let k = 1; out.length < count; k++) out.push({ from: swedishMidnight(now, k), to: swedishMidnight(now, k + 1) });
+  return out;
+}
+
+/** "Idag" / "Imorgon" / "Fredag 15 nov" for the day that contains `iso`, relative to `nowIso`. */
+export function formatDayLabel(iso: string, nowIso: string): string {
+  const key = swedishDateKey(iso);
+  if (key === swedishDateKey(nowIso)) return 'Idag';
+  if (key === swedishDateKey(swedishMidnight(new Date(nowIso), 1))) return 'Imorgon';
+  const d = new Date(iso);
+  return `${cap(weekdayLong.format(d))} ${shortDate.format(d).replace(/\.$/, '')}`;
+}
+
 /** Swedish decimal formatting: 2.6 → "2,6"; `digits` fixes the number of decimals. Null → "—". */
 export function formatNumber(v: number | null | undefined, digits?: number): string {
   if (v === null || v === undefined || Number.isNaN(v)) return '—';

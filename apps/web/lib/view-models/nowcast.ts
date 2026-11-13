@@ -14,7 +14,8 @@ export function nowcastVM(s: PropertySnapshot, nowIso: string) {
     const minutes=summary.startsAt?Math.max(0,Math.round((Date.parse(summary.startsAt)-+now)/60_000)):null;
     text=summary.state==='dry'?'Ingen nederbörd på radarn under den tillgängliga prognosperioden.':summary.state==='starting'?`${type} väntas börja ca ${formatClock(summary.startsAt)} (om ~${minutes} min).`:`Nederbörd på radarn nu.`;
     if(summary.state!=='dry') {
-      text+=` ${summary.intensity}, som mest ca ${formatNumber(summary.peakRateMmH!,1)} mm/h${phase}.`;
+      const intensity=summary.intensity ? summary.intensity[0]!.toUpperCase()+summary.intensity.slice(1) : 'Nederbörd';
+      text+=` ${intensity}, som mest ca ${formatNumber(summary.peakRateMmH!,1)} mm/h${phase}.`;
       if(summary.endsAt)text+=` Väntas avta runt ${formatClock(summary.endsAt)}.`;
       if(!stale && (summary.state!=='starting'||minutes!<=60))badge=summary.state==='starting'?`${type} om ~${minutes} min`:n?.summary.phase==='rain'?'Regnar nu':'Nederbörd nu';
     }

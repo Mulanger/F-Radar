@@ -189,12 +189,17 @@ describe('property snapshot from stored data', () => {
     expect(s.metrics.filter((m) => m.kind === 'forecast')).toHaveLength(0);
   });
 
-  it('pro-rates six-hour day totals without including temperature samples after the window',()=>{
+  it('pro-rates six-hour totals into Swedish calendar days without samples from the next day',()=>{
     const row=data().forecasts[0]!;
     const extended=Array.from({length:22},(_,i)=>({...steps[0]!,time:new Date(+NOW+(i+1)*6*3600000).toISOString(),intervalStart:new Date(+NOW+i*6*3600000).toISOString(),precipitationMean:6,precipitationMin:3,precipitationMax:9,airTemperature:i===4?100:i,windGust:10,frozenPartPercent:50,precipitationMedian:6,frozenProbability:50,precipitationType:2}));
-    const at=new Date(+NOW+3*3600000);
+    const at=new Date(+NOW+3*3600000); // 09:00 Swedish time
     const forecast=buildForecast(PID,{...row,series:{v:2,steps:extended}},at)!;
-    expect(forecast.days![0]).toMatchObject({precipitationMean:24,precipitationMin:12,precipitationMax:36,temperatureMax:3,snowPercent:50});
+    // "Idag" = 09:00–24:00 Swedish time (15 h at 1 mm/h); the 06:00 sample tomorrow is not today's.
+    expect(forecast.days![0]).toMatchObject({from:at.toISOString(),to:'2026-11-13T23:00:00.000Z',precipitationMean:15,precipitationMin:7.5,precipitationMax:22.5,temperatureMax:2,snowPercent:50});
+    // "Imorgon" is a whole calendar day.
+    expect(forecast.days![1]).toMatchObject({from:'2026-11-13T23:00:00.000Z',to:'2026-11-14T23:00:00.000Z',precipitationMean:24,precipitationMin:12,precipitationMax:36});
+    // Late evening: no stub "today", the list starts with tomorrow.
+    expect(buildForecast(PID,{...row,series:{v:2,steps:extended}},new Date('2026-11-13T20:00:00Z'))!.days![0]!.from).toBe('2026-11-13T23:00:00.000Z');
     extended.splice(2,1);
     expect(buildForecast(PID,{...row,series:{v:2,steps:extended}},at)!.days![0]!.precipitationMean).toBeNull();
   });
@@ -223,6 +228,19 @@ describe('property snapshot from stored data', () => {
     const s = buildPropertySnapshot(record, 'o', data(), statuses, NOW);
     const up = buildUpcoming([s], data().forecasts, NOW);
     expect(up.map((u) => u.id)).toEqual(expect.arrayContaining([`gust-${PID}`, `rain-${PID}`, `frost-${PID}`]));
+    // Forecast-derived rows never use the red tone; that is reserved for red warnings and VMA (ADR 0004).
+    expect(up.filter((u) => !u.official).every((u) => u.tone !== 'critical')).toBe(true);
+  });
+
+  it('tones forecast gusts and 24 h rain at most as warning', () => {
+    const s = buildPropertySnapshot(record, 'o', data(), statuses, NOW);
+    const row = data().forecasts[0]!;
+    const at = (gust: number, rain: number) => buildUpcoming([s], [{ ...row, series: { v: 2, steps: forecastSteps(row).map((x) => ({ ...x, windGust: gust, precipitationMean: rain / 24 })) } }], NOW);
+    const tone = (up: ReturnType<typeof buildUpcoming>, id: string) => up.find((u) => u.id === `${id}-${PID}`)?.tone;
+    expect(tone(at(16, 20), 'gust')).toBe('monitor');
+    expect(tone(at(16, 20), 'rain')).toBe('monitor');
+    expect(tone(at(30, 60), 'gust')).toBe('warning');
+    expect(tone(at(30, 60), 'rain')).toBe('warning');
   });
 });
 

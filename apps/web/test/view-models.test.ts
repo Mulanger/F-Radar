@@ -228,10 +228,22 @@ describe('chart helpers', () => {
 });
 
 describe('five-day forecast view-model', () => {
-  it('formats days and keeps gaps unavailable', () => {
+  const NOW = '2026-11-13T08:00:00Z'; // Friday 09:00 Swedish time
+  const day = (from: string, to: string) => ({ from, to, temperatureMin: -2.4, temperatureMax: 4.2, precipitationMean: 12.4, precipitationMin: 4.1, precipitationMax: 20, windGustMax: 15.2, snowPercent: 25 });
+
+  it('labels Swedish calendar days and formats compact values', () => {
     const s = structuredClone(demoPortfolio.properties[0]!);
-    s.forecast!.days = [{ from: '2026-11-13T00:00:00Z', to: '2026-11-14T00:00:00Z', temperatureMin: -2, temperatureMax: 4, precipitationMean: null, precipitationMin: null, precipitationMax: null, windGustMax: 12, snowPercent: null }];
-    expect(forecastDaysVM(s)[0]).toMatchObject({ rain: 'Ej tillgänglig', interval: 'Osäkerhetsintervall ej tillgängligt', snow: 'Ej tillgänglig' });
-    s.forecast!.availability = 'stale'; expect(forecastDaysVM(s)).toEqual([]);
+    s.forecast!.days = [day(NOW, '2026-11-13T23:00:00Z'), day('2026-11-13T23:00:00Z', '2026-11-14T23:00:00Z'), day('2026-11-15T23:00:00Z', '2026-11-16T23:00:00Z')];
+    const vm = forecastDaysVM(s, NOW);
+    expect(vm.map((d) => d.label)).toEqual(['Idag', 'Imorgon', 'Måndag 16 nov']);
+    expect(vm[0]).toMatchObject({ temperature: '−2° / 4°', rain: '12 mm', interval: '4,1–20 mm', gust: 'Byar 15 m/s', snow: '25 % som snö' });
+  });
+
+  it('keeps gaps explicit and never shows a 0 % snow line', () => {
+    const s = structuredClone(demoPortfolio.properties[0]!);
+    s.forecast!.days = [{ ...day(NOW, '2026-11-13T23:00:00Z'), temperatureMin: null, precipitationMean: null, precipitationMin: null, precipitationMax: null, windGustMax: null, snowPercent: 0 }];
+    expect(forecastDaysVM(s, NOW)[0]).toMatchObject({ temperature: 'Temperatur ej tillgänglig', rain: 'Nederbörd ej tillgänglig', interval: null, gust: 'Byar ej tillgängliga', snow: null });
+    s.forecast!.availability = 'stale';
+    expect(forecastDaysVM(s, NOW)).toEqual([]);
   });
 });

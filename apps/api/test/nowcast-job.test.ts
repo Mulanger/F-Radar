@@ -11,7 +11,7 @@ it('skips absent contact, respects Expires and preserves series on 304',async()=
     return {rows:(sql.includes('FROM properties WHERE')?[{id:'p',lat:59.331,lon:18.061}]:sql.includes('FROM nowcast_points')?[cached]:[]) as R[]};
   }}};
   expect((await runNowcast(ctx)).status).toBe('skipped');expect(statements).toHaveLength(0);
-  ctx.adapter.env.MET_NORWAY_CONTACT='https://f-radar.se';
+  ctx.adapter.env.MET_NORWAY_CONTACT='https://f-radar.fr-2.instapods.app';
   expect((await runNowcast(ctx)).items).toBe(0);expect(fetchMock).not.toHaveBeenCalled();
   cached.expires_at=new Date(+now-1);
   expect((await runNowcast(ctx)).items).toBe(1);expect(fetchMock).toHaveBeenCalledTimes(1);

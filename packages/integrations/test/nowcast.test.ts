@@ -13,8 +13,8 @@ it('parses the real GeoJSON fixture and preserves missing rates',()=>{
 });
 it('sends identifying and conditional headers, handles 304 without JSON',async()=>{
   const modified='Fri, 13 Nov 2026 17:00:00 GMT',expires='Fri, 13 Nov 2026 17:10:00 GMT';
-  const ctx:AdapterContext={env:loadServerEnv({MET_NORWAY_CONTACT:'https://f-radar.se'}),now:()=>new Date('2026-11-13T17:05:00Z'),logger:{debug(){},info(){},warn(){},error(){}},fetch:(async(_url,init)=>{
-    expect(init?.headers).toMatchObject({'If-Modified-Since':modified,'User-Agent':'FastighetsRadar/0.4 (https://f-radar.se)'});
+  const ctx:AdapterContext={env:loadServerEnv({MET_NORWAY_CONTACT:'https://f-radar.fr-2.instapods.app'}),now:()=>new Date('2026-11-13T17:05:00Z'),logger:{debug(){},info(){},warn(){},error(){}},fetch:(async(_url,init)=>{
+    expect(init?.headers).toMatchObject({'If-Modified-Since':modified,'User-Agent':'FastighetsRadar/0.4 (https://f-radar.fr-2.instapods.app)'});
     return new Response(null,{status:304,headers:{Expires:expires,'Last-Modified':modified}});
   }) as typeof fetch};
   expect(await fetchMetNowcast(59.33,18.06,ctx,modified)).toMatchObject({ok:true,data:{notModified:true,data:null,expiresAt:'2026-11-13T17:10:00.000Z',lastModified:modified}});
