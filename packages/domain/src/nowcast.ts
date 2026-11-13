@@ -30,7 +30,6 @@ export function summarizeNowcast(points: NowcastPoint[], now: Date, temperature:
   const p = sorted.filter(x => Date.parse(x.validAt) + 300_000 > +now && Date.parse(x.validAt) < +now + 7_200_000);
   if (p.length < 2 || Date.parse(p[0]!.validAt) > +now + 300_000 || p.some((x,i) => x.rateMmH == null || (i > 0 && Date.parse(x.validAt) - Date.parse(p[i-1]!.validAt) !== 300_000))) return empty;
   const wet = p.filter(x => x.rateMmH! >= T.nowcastNoiseMmH), first = wet[0];
-  const peak = wet.reduce<NowcastPoint | null>((a,b)=>!a || b.rateMmH! > a.rateMmH! ? b : a, null);
   const currentlyWet = p[0]!.rateMmH! >= T.nowcastNoiseMmH && Date.parse(p[0]!.validAt) <= +now;
   // First end of the first contiguous precipitation spell; a later shower is not merged into it.
   const firstIndex = first ? p.indexOf(first) : -1;
@@ -40,6 +39,8 @@ export function summarizeNowcast(points: NowcastPoint[], now: Date, temperature:
     const overlap = Math.min(+now+3_600_000, Date.parse(x.validAt)+300_000) - Math.max(+now, Date.parse(x.validAt));
     if (overlap > 0) { covered += overlap; total += (x.rateMmH! >= T.nowcastNoiseMmH ? x.rateMmH! : 0) * overlap / 3_600_000; }
   }
+  const spell=firstIndex<0?[]:p.slice(firstIndex,end?p.indexOf(end):undefined);
+  const peak=spell.reduce<NowcastPoint|null>((a,b)=>!a||b.rateMmH!>a.rateMmH!?b:a,null);
   const rate = peak?.rateMmH ?? 0;
   return { state: !first ? 'dry' : !currentlyWet ? 'starting' : end ? 'ending' : 'ongoing',
     startsAt: first?.validAt ?? null, endsAt: end?.validAt ?? null, peakRateMmH: rate, peakAt: peak?.validAt ?? null,

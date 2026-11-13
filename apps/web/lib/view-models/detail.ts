@@ -226,6 +226,10 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
     tabs: (Object.keys(CHART_METAS) as ChartMetric[]).map((k) => ({ key: k, label: CHART_METAS[k].label, active: k === ui.metric })),
     chart: vals.length
       ? {
+          precipitationTooltips:ui.metric==='rain' ? forecastPts.filter(p=>p.value!=null).map((p,i,all)=>({
+            x:i/Math.max(1,all.length-1)*640,
+            text:formatWeekdayClock(p.validAt)+' · medel '+formatNumber(p.value!,1)+' mm · '+(p.min!=null&&p.max!=null?'osäkerhetsintervall '+formatNumber(p.min,1)+'–'+formatNumber(p.max,1)+' mm':'osäkerhetsintervall ej tillgängligt'),
+          })):[],
           line: ch.line,
           area: ch.area,
           c: mt.c,

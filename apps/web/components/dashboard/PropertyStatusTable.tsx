@@ -93,6 +93,7 @@ export function PropertyStatusTable({
           ))}
         </div>
       </div>
+      {vm.rows.some(r=>r.nowcast.badge) && <p style={{fontSize:11,color:C.text3,lineHeight:1.6}}>Data från MET Norway · bearbetad av FastighetsRadar · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></p>}
     </div>
   );
 }

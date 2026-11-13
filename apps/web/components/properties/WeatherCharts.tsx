@@ -12,7 +12,7 @@ export function WeatherCharts({ d, isDemo, onMetric }: { d: DetailVM; isDemo: bo
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <div style={cardTitle}>Väderförhållanden</div>
-          <div style={cardSub}>{isDemo ? 'SMHI punktprognos · kommande 24 h · syntetisk demoserie' : 'SMHI punktprognos · kommande 24 h'}</div>
+          <div style={cardSub}>{isDemo ? 'SMHI punktprognos · kommande 24 h · syntetisk demoserie' : 'SMHI punktprognos · kommande 24 h'}<br/>{d.forecastSource}</div>
         </div>
         <div role="tablist" aria-label="Prognosvärde" className="fr-tabs" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 16, background: C.page }}>
           {d.tabs.map((t) => (
@@ -70,6 +70,7 @@ export function WeatherCharts({ d, isDemo, onMetric }: { d: DetailVM; isDemo: bo
                 </defs>
                 <path d={ch.area} fill="url(#envGrad)" />
                 <path d={ch.line} fill="none" stroke={ch.c} strokeWidth="2.2" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+                {ch.precipitationTooltips.map((p,i)=><rect key={i} x={Math.max(0,p.x-12)} y={0} width={24} height={196} fill="transparent"><title>{p.text}</title></rect>)}
               </svg>
               <div style={{ position: 'absolute', left: ch.pL, top: ch.pT, transform: 'translate(-50%,-50%)', transition: 'all .6s' }}>
                 <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#fff', border: `3px solid ${ch.c}`, boxSizing: 'border-box' }} />

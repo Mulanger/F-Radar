@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { forecastInformation } from '../src';
 import { describe, expect, it } from 'vitest';
 import {
@@ -164,6 +165,17 @@ describe('assessPropertyRisk', () => {
     expect(noTraffic.score).toBe(0);
     expect(f(noTraffic, 'access').assessed).toBe(false);
     expect(noTraffic.assessedFactors).toBe(3); // air has no station either
+  });
+
+  it('checks all new weather and water presentation texts for prohibited wording', () => {
+    for(const path of [
+      'packages/domain/src/weather-information.ts','packages/domain/src/water-information.ts','packages/domain/src/nowcast.ts',
+      'apps/web/lib/view-models/weather-information.ts','apps/web/lib/view-models/nowcast.ts','apps/web/lib/view-models/detail.ts',
+      'apps/web/components/properties/ForecastDays.tsx','apps/web/components/properties/NowcastPanel.tsx','apps/web/components/properties/MeasuredRainPanel.tsx',
+    ]) {
+      const own=readFileSync(new URL('../../../'+path,import.meta.url),'utf8').replace(/Krisinformation(\.se)?/gi,'');
+      expect(own,path).not.toMatch(/\bkris|fara|akut|katastrof|allvarlig|kritisk/i);
+    }
   });
 
   it('never uses alarming words of its own', () => {

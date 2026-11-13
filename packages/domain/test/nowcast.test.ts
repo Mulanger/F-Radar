@@ -11,6 +11,10 @@ describe('radar summary',()=>{
     p[0]!.rateMmH=1;p[1]!.rateMmH=0;
     expect(summarizeNowcast(p,now,5)).toMatchObject({state:'ending',endsAt:p[1]!.validAt});
   });
+  it('keeps the first spell peak consistent with its end when another shower follows',()=>{
+    const p=points(0);p[0]!.rateMmH=1;p[4]!.rateMmH=10;
+    expect(summarizeNowcast(p,now,5)).toMatchObject({state:'ending',endsAt:p[1]!.validAt,peakRateMmH:1,peakAt:p[0]!.validAt});
+  });
   it.each(['no coverage','temporarily unavailable'] as const)('does not invent dry weather during %s',coverage=>expect(summarizeNowcast(points(0),now,5,{coverage}).state).toBe('unavailable'));
   it('expires after 30 minutes and rejects gaps, unknown rates and old series',()=>{
     expect(summarizeNowcast(points(0),now,5,{fetchedAt:new Date(+now-31*60_000).toISOString()}).state).toBe('unavailable');

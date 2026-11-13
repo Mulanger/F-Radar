@@ -1,3 +1,4 @@
+import { WEATHER_WATER } from '@fastighetsradar/domain';
 import type { ServerEnv } from '@fastighetsradar/config';
 import type { DataSourceStatus, Freshness, SourceId } from '@fastighetsradar/domain';
 import type { JobRow } from '@fastighetsradar/db';
@@ -12,9 +13,9 @@ import { SOURCE_MANIFEST, resolveSourceStatuses } from '@fastighetsradar/integra
  *  source_unavailable – never succeeded and the latest run failed
  */
 export const FRESHNESS_WINDOW_S: Partial<Record<SourceId, number>> = {
-  smhi_hydrology: 45 * 60,
-  smhi_oceanography: 30 * 60,
-  met_nowcast: 15 * 60,
+  smhi_hydrology: WEATHER_WATER.flowSourceFreshSeconds,
+  smhi_oceanography: WEATHER_WATER.seaSourceFreshSeconds,
+  met_nowcast: WEATHER_WATER.nowcastFreshMinutes * 60,
   smhi_warnings: 20 * 60,
   krisinformation: 40 * 60,
   trafikverket: 20 * 60,

@@ -12,8 +12,8 @@ export function PropertyHero3D({ d, isDemo }: { d: DetailVM; isDemo: boolean }) 
   const panel = (label: string, value: string, sub: string, subColor: string) => (
     <div style={{ padding: '12px 14px', borderRadius: 16, ...glass(0.62, 16), minWidth: 168 }}>
       <div style={{ fontSize: 11.5, color: C.text3 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.02em' }}>{value}</div>
-      <div style={{ fontSize: 11.5, color: subColor }}>{sub}</div>
+      <div style={{ fontSize: value.length > 12 ? 16 : 22, fontWeight: 500, letterSpacing: '-0.02em', overflowWrap:'anywhere' }}>{value}</div>
+      <div style={{ fontSize: 11.5, color: subColor, maxWidth:240, overflowWrap:'anywhere', lineHeight:1.45 }}>{sub}</div>
     </div>
   );
   const stat = (label: string, value: string) => (
@@ -41,7 +41,7 @@ export function PropertyHero3D({ d, isDemo }: { d: DetailVM; isDemo: boolean }) 
         {isDemo ? 'Illustrerad fastighet (demo)' : 'Illustration – inte en modell av den verkliga byggnaden'} · {d.area}
       </div>
       <div className="fr-hero-stats" style={{ position: 'absolute', top: 20, right: 20, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
-        {panel(`Vattennivå · ${d.water.body}`, d.water.level, d.water.trend, d.water.fc)}
+        {panel(`Vattennivå · ${d.water.body}`, d.water.level, [d.water.reference,d.water.trend,d.water.source].join(' · '), d.water.fc)}
         {panel('I närheten', `${d.trafficN} ${d.trafficN === 1 ? 'trafikhändelse' : 'trafikhändelser'}`, `${d.crisisN} ${d.crisisN === 1 ? 'regionalt meddelande' : 'regionala meddelanden'} (län)`, C.text4)}
       </div>
       <div className="fr-hero-bottom" style={{ position: 'absolute', left: 20, bottom: 20, right: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>

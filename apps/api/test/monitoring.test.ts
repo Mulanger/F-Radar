@@ -7,7 +7,7 @@ import type { JobRow, OrgMonitoringData, Queryable } from '@fastighetsradar/db';
 import { buildApp } from '../src/app';
 import { MonitoringBus } from '../src/monitoring/bus';
 import { MonitoringService } from '../src/monitoring/service';
-import { buildFeed, buildPropertySnapshot, buildUpcoming, forecastSteps } from '../src/monitoring/snapshot';
+import { buildFeed, buildPropertySnapshot, buildUpcoming, forecastSteps, buildForecast } from '../src/monitoring/snapshot';
 import { freshnessOf, resolveRuntimeStatuses } from '../src/monitoring/status';
 import { nextRunSeconds } from '../src/monitoring/jobs';
 import type { AuthVerifier } from '../src/auth';
@@ -187,6 +187,16 @@ describe('property snapshot from stored data', () => {
     old.forecasts[0]!.fetched_at = new Date(NOW.getTime() - 7 * 3_600_000);
     const s = buildPropertySnapshot(record, 'o', old, statuses, NOW);
     expect(s.metrics.filter((m) => m.kind === 'forecast')).toHaveLength(0);
+  });
+
+  it('pro-rates six-hour day totals without including temperature samples after the window',()=>{
+    const row=data().forecasts[0]!;
+    const extended=Array.from({length:22},(_,i)=>({...steps[0]!,time:new Date(+NOW+(i+1)*6*3600000).toISOString(),intervalStart:new Date(+NOW+i*6*3600000).toISOString(),precipitationMean:6,precipitationMin:3,precipitationMax:9,airTemperature:i===4?100:i,windGust:10,frozenPartPercent:50,precipitationMedian:6,frozenProbability:50,precipitationType:2}));
+    const at=new Date(+NOW+3*3600000);
+    const forecast=buildForecast(PID,{...row,series:{v:2,steps:extended}},at)!;
+    expect(forecast.days![0]).toMatchObject({precipitationMean:24,precipitationMin:12,precipitationMax:36,temperatureMax:3,snowPercent:50});
+    extended.splice(2,1);
+    expect(buildForecast(PID,{...row,series:{v:2,steps:extended}},at)!.days![0]!.precipitationMean).toBeNull();
   });
 
   it('reads old v1 and new v2 forecast storage without inventing missing fields', () => {

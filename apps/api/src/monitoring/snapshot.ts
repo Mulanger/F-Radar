@@ -43,8 +43,8 @@ import { freshnessOf, FRESHNESS_WINDOW_S } from './status';
  *  - Missing/old data is never shown as normal: unavailable values are omitted (UI shows "—").
  */
 
-export const OBS_MAX_DISTANCE_M = 50_000;
-export const AIR_MAX_DISTANCE_M = 25_000;
+export const OBS_MAX_DISTANCE_M = WEATHER_WATER.observationDistanceM;
+export const AIR_MAX_DISTANCE_M = WEATHER_WATER.airDistanceM;
 const FORECAST_USABLE_S = 6 * 3_600;
 
 const iso = (d: Date | null | undefined) => (d ? d.toISOString() : null);
@@ -150,7 +150,8 @@ export function buildForecast(propertyId: string, row: OrgForecastRow | undefine
       const day = steps.filter(s => Date.parse(s.time) > start.getTime() && Date.parse(s.intervalStart ?? s.time) < end.getTime());
       const total = (key: 'precipitationMean' | 'precipitationMin' | 'precipitationMax') => precipitationTotal(steps.map(s => ({ ...s, precipitationMean: s[key] })), start, 24);
       const complete = total('precipitationMean') !== null;
-      const extreme = (key: 'airTemperature' | 'windGust', max: boolean) => complete && day.length && day.every(s => s[key] != null) ? (max ? Math.max : Math.min)(...day.map(s => s[key]!)) : null;
+      const samples = day.filter(s => Date.parse(s.time) <= end.getTime());
+      const extreme = (key: 'airTemperature' | 'windGust', max: boolean) => complete && samples.length && samples.every(s => s[key] != null) ? (max ? Math.max : Math.min)(...samples.map(s => s[key]!)) : null;
       const mean = total('precipitationMean');
       const frozen = precipitationTotal(steps.map(s => ({ ...s, precipitationMean: s.precipitationMean === 0 ? 0 : s.precipitationMean != null && s.frozenPartPercent != null ? s.precipitationMean * s.frozenPartPercent / 100 : null })), start, 24);
       return { from: start.toISOString(), to: end.toISOString(), temperatureMin: extreme('airTemperature', false), temperatureMax: extreme('airTemperature', true), precipitationMean: mean, precipitationMin: total('precipitationMin'), precipitationMax: total('precipitationMax'), windGustMax: extreme('windGust', true), snowPercent: mean != null && mean > 0 && frozen != null ? Math.round(frozen / mean * 100) : null };
@@ -383,10 +384,10 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
   const history=(source:string,station:string,parameter:string):TimedReading[] => (data.history??[]).filter(x=>x.source_id===source&&x.station_id===station&&x.parameter===parameter).map(x=>({observedAt:x.observed_at.toISOString(),value:x.value}));
   const floodParts = floodFromContext(p.id, ctxOf(contexts, 'mcf_flood', 'flood_scenarios'), now);
   const sea=obs.find(o=>o.source_id==='smhi_oceanography'&&o.parameter==='sea_level'&&o.distance_m<=WEATHER_WATER.seaDistanceM&&o.extra.referenceSystem==='RW');
-  if(sea) floodParts.flood.waterBody={name:'Havsvattenstånd · '+sea.name,stationName:sea.name,referenceSystem:'RW',level:{value:sea.value,unit:'cm',sourceId:'smhi_oceanography',kind:'observation',sourceTimestamp:iso(sea.observed_at),fetchedAt:sea.fetched_at.toISOString(),freshness:freshnessOf(sea.observed_at,3600,now),availability:'ok',geo:{match:'nearest_station',distanceMeters:Math.round(sea.distance_m),note:sea.name},origin:'live',qualityFlags:sea.quality?[sea.quality]:[]},trendLabel:measurementTrend(history('smhi_oceanography',sea.station_id,'sea_level'),now,6,'cm',WEATHER_WATER.seaTrendDeadbandCm)??measurementTrend((sea.extra.points??[]) as TimedReading[],now,1,'cm',WEATHER_WATER.seaTrendDeadbandCm)};
+  if(sea) floodParts.flood.waterBody={name:'Havsvattenstånd · '+sea.name,stationName:sea.name,referenceSystem:'RW',level:{value:sea.value,unit:'cm',sourceId:'smhi_oceanography',kind:'observation',sourceTimestamp:iso(sea.observed_at),fetchedAt:sea.fetched_at.toISOString(),freshness:freshnessOf(sea.observed_at,WEATHER_WATER.stationMeasurementFreshSeconds,now),availability:'ok',geo:{match:'nearest_station',distanceMeters:Math.round(sea.distance_m),note:sea.name},origin:'live',qualityFlags:sea.quality?[sea.quality]:[]},trendLabel:measurementTrend(history('smhi_oceanography',sea.station_id,'sea_level'),now,6,'cm',WEATHER_WATER.seaTrendDeadbandCm)??measurementTrend((sea.extra.points??[]) as TimedReading[],now,1,'cm',WEATHER_WATER.seaTrendDeadbandCm)};
   const flow=obs.find(o=>o.source_id==='smhi_hydrology'&&o.parameter==='water_flow'&&o.distance_m<=WEATHER_WATER.flowDistanceM);
   const reference=flow?data.hydrologyReferences?.find(r=>r.station_id===flow.station_id&&r.month===now.getUTCMonth()+1&&now.getTime()-r.fetched_at.getTime()<=WEATHER_WATER.referenceUsableDays*86_400_000):null;
-  if(flow)floodParts.flood.watercourse={stationId:flow.station_id,stationName:flow.name,distanceMeters:Math.round(flow.distance_m),measurement:{value:flow.value,unit:'m³/s',sourceId:'smhi_hydrology',kind:'observation',sourceTimestamp:iso(flow.observed_at),fetchedAt:flow.fetched_at.toISOString(),freshness:freshnessOf(flow.observed_at,3600,now),availability:'ok',geo:{match:'nearest_station',distanceMeters:Math.round(flow.distance_m),note:flow.name},origin:'live',qualityFlags:flow.quality?[flow.quality]:[]},classification:classifyFlow(flow.value,reference??null),trendLabel:measurementTrend(history('smhi_hydrology',flow.station_id,'water_flow'),now,24,'m³/s'),note:'Närmaste mätstation – kan ligga i ett annat vattendrag än det närmast fastigheten',reference:reference?{p75:reference.p75,p95:reference.p95,samples:reference.samples,years:reference.years,month:reference.month,fetchedAt:reference.fetched_at.toISOString()}:null};
+  if(flow)floodParts.flood.watercourse={stationId:flow.station_id,stationName:flow.name,distanceMeters:Math.round(flow.distance_m),measurement:{value:flow.value,unit:'m³/s',sourceId:'smhi_hydrology',kind:'observation',sourceTimestamp:iso(flow.observed_at),fetchedAt:flow.fetched_at.toISOString(),freshness:freshnessOf(flow.observed_at,WEATHER_WATER.stationMeasurementFreshSeconds,now),availability:'ok',geo:{match:'nearest_station',distanceMeters:Math.round(flow.distance_m),note:flow.name},origin:'live',qualityFlags:flow.quality?[flow.quality]:[]},classification:classifyFlow(flow.value,reference??null),trendLabel:measurementTrend(history('smhi_hydrology',flow.station_id,'water_flow'),now,24,'m³/s'),note:'Närmaste mätstation – kan ligga i ett annat vattendrag än det närmast fastigheten',reference:reference?{p75:reference.p75,p95:reference.p95,samples:reference.samples,years:reference.years,month:reference.month,fetchedAt:reference.fetched_at.toISOString()}:null};
   const nearby = obs.map((o) => toNearby(o, now));
   const coverage: PropertyMonitoringContext['coverage'] = [
     { sourceId: 'smhi_forecast', status: forecastRow ? 'ok' : 'loading', note: forecastRow ? null : 'Prognos hämtas' },
