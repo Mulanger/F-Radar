@@ -3,6 +3,7 @@ import {
   HISTORY,
   HistoryQuerySchema,
   aggregateHistoryDay,
+  aggregateTemperatureCrossings,
   frostWeeks,
   historyDates,
   historyKpis,
@@ -16,10 +17,20 @@ import {
 } from '../src';
 import { buildDemoHistory, demoPortfolio } from '../src/fixtures';
 
-const propertyId = demoPortfolio.properties[0].property.id;
+const propertyId = 'demo-augustendal-brygga';
 const period = { from: '2025-10-01', to: '2025-10-31' };
 
 describe('history calendar and aggregation', () => {
+  it('counts observed hourly sign changes across zeros and refuses gaps', () => {
+    const date = '2026-03-29';
+    const from = +swedishMidnight(new Date(date + 'T12:00:00Z'));
+    const points = Array.from({ length: 24 }, (_, i) => ({
+      at: new Date(from + i * HISTORY.hourMs).toISOString(),
+      value: i === 0 ? -1 : i === 1 ? 0 : i < 12 ? 1 : -1,
+    }));
+    expect(aggregateTemperatureCrossings(points, date)).toMatchObject({ value: 2, coverage: 1 });
+    expect(aggregateTemperatureCrossings(points.slice(1), date).value).toBeNull();
+  });
   it.each([
     ['2026-03-29', 23],
     ['2026-10-25', 25],
@@ -96,6 +107,15 @@ describe('history facts and versions', () => {
     expect(counts.count).toBe(2);
     expect(counts.levels.Orange).toBe(2);
     expect(counts.levels.Yellow).toBe(1);
+  });
+
+  it('does not count a cancelled warning that ended before its valid start', () => {
+    const h = buildDemoHistory(propertyId, { from: '2025-11-01', to: '2025-11-11' });
+    const event = h.events.find((e) => e.id === 'demo-wind')!;
+    event.versions = event.versions
+      .slice(0, 1)
+      .map((v) => ({ ...v, endType: 'cancelled', endedAt: '2025-11-10T10:00:00.000Z' }));
+    expect(warningDays(['2025-11-11'], [event]).count).toBe(0);
   });
 
   it('computes KPIs from complete readings and leaves gaps visible', () => {

@@ -8,13 +8,15 @@ import {
   historyKpis,
   historyMonths,
   roundHistory,
+  type HistoryHourly,
   type HistoryEvent,
   type HistoryEventVersion,
   type HistoryPeriod,
   type HistorySeries,
   type HistoryStation,
 } from '../history';
-import { demoPortfolio } from './demo-portfolio';
+import { DEMO_REFERENCE_TIME, demoPortfolio } from './demo-portfolio';
+import { swedishMidnight } from '../format';
 
 const NORMALS = [39, 27, 26, 30, 35, 56, 72, 66, 55, 50, 53, 48];
 
@@ -50,6 +52,8 @@ function demoEvent(
     validTo: end,
     publishedAt: addHistoryDays(date, -1) + 'T09:00:00.000Z',
     endedAt: end,
+    matchedUntil: null,
+    matches: [],
     endType: 'ended',
     matchMethod:
       category === 'Traffic'
@@ -111,6 +115,7 @@ export function buildDemoHistory(
     'temperature_min',
     'temperature_max',
     'temperature_mean',
+    'temperature_crossings',
     'wind_gust',
     'sea_level',
   ];
@@ -135,8 +140,9 @@ export function buildDemoHistory(
     const rain = pulse < 10 ? 0 : pulse === 22 ? 20 + (seed % 7) : (pulse - 9) * 0.65;
     const mean = 7 + 10 * season + Math.sin(day * 0.7) * 3;
     const autumn = [8, 9, 10].includes(d.getUTCMonth());
+    const daysInMonth = new Date(d.getUTCFullYear(), d.getUTCMonth() + 1, 0).getDate();
     return {
-      rain: roundHistory(rain * (autumn ? 1.65 : 0.7)),
+      rain: roundHistory(((rain * NORMALS[d.getUTCMonth()]) / daysInMonth / 3.3) * (autumn ? 1.55 : 1)),
       min: roundHistory(mean - 3.5),
       max: roundHistory(mean + 4),
       mean: roundHistory(mean),
@@ -154,6 +160,7 @@ export function buildDemoHistory(
         temperature_min: r.min,
         temperature_max: r.max,
         temperature_mean: r.mean,
+        temperature_crossings: r.min < 0 && r.max > 0 ? 2 : 0,
         wind_gust: r.wind,
         sea_level: r.sea,
       }[key]!;
@@ -162,7 +169,15 @@ export function buildDemoHistory(
       key,
       station: station.id,
       unit:
-        key === 'precipitation' ? 'mm' : key === 'wind_gust' ? 'm/s' : key === 'sea_level' ? 'cm RW' : '°C',
+        key === 'precipitation'
+          ? 'mm'
+          : key === 'wind_gust'
+            ? 'm/s'
+            : key === 'sea_level'
+              ? 'cm RW'
+              : key === 'temperature_crossings'
+                ? 'passager'
+                : '°C',
       dayDefinition:
         key === 'precipitation'
           ? 'smhi_06_utc'
@@ -201,22 +216,55 @@ export function buildDemoHistory(
     ),
     demoEvent('demo-wind', '2025-11-11', 'Orange', 'Weather', 'Vind i Nacka', true),
   ];
+  const localEvents = allEvents.filter((e) => {
+    if (e.category === 'VMA') return propertyId === 'demo-ulvsunda-lager';
+    if (e.id === 'demo-wind') return propertyId === 'demo-augustendal-brygga';
+    return true;
+  });
   const events =
     scenario === 'empty'
       ? []
-      : allEvents.filter(
+      : localEvents.filter(
           (e) =>
             e.versions[0].validFrom!.slice(0, 10) <= period.to &&
             e.versions[0].validTo!.slice(0, 10) >= period.from,
         );
   const normals = NORMALS.map((value, i) => ({ month: i + 1, value, years: 30 }));
   const monthly = historyMonths(dates, series[0], normals);
+  let hourly: HistoryHourly | null = null;
+  if (dates.length <= HISTORY.hourlyDetailMaxDays && period.from >= '2025-10-08') {
+    const from = swedishMidnight(new Date(period.from + 'T12:00:00Z'));
+    const to = swedishMidnight(new Date(period.to + 'T12:00:00Z'), 1);
+    const length = (+to - +from) / HISTORY.hourMs;
+    const values = Array.from({ length }, (_, hour) =>
+      +from + (hour + 1) * HISTORY.hourMs > Date.parse(DEMO_REFERENCE_TIME) ||
+      scenario === 'empty' ||
+      (scenario === 'gaps' && period.from === '2025-11-03')
+        ? null
+        : roundHistory(Math.max(0, Math.sin((hour + (seed % 7)) * 0.7)) * (1 + (seed % 3))),
+    );
+    hourly = {
+      station: {
+        ...stations[0],
+        id: 'smhi_observations:demo-quarter:precipitation_15min',
+        stationId: 'demo-quarter',
+        parameter: 'precipitation_15min',
+        name: 'Stockholm, kvartsmätning (demo)',
+      },
+      from: from.toISOString(),
+      to: to.toISOString(),
+      stepMinutes: 60,
+      values,
+      coverage: values.map((v) => (v === null ? 0 : 1)),
+    };
+  }
   return PropertyHistorySchema.parse({
     propertyId,
     period,
     stations,
     daily: { dates, series },
     monthly,
+    hourly,
     events,
     kpis: historyKpis(dates, series, monthly, events),
     gaps: historyGaps(dates, series),

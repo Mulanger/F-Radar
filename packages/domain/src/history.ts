@@ -6,11 +6,13 @@ export const HISTORY = {
   eventRetentionMonths: 24,
   dailyRetentionYears: 5,
   rawRetentionDays: 35,
+  hourlyDetailMaxDays: 2,
   maxRangeMonths: 24,
   normalFromYear: 1991,
   normalToYear: 2020,
   normalMinimumYears: 24,
   normalRefreshYears: 1,
+  flowReferenceRefreshYears: 1,
   rainDistanceM: 25_000,
   weatherDistanceM: 50_000,
   seaDistanceM: 15_000,
@@ -95,6 +97,16 @@ export const HistoryStationSchema = z.object({
 });
 export type HistoryStation = z.infer<typeof HistoryStationSchema>;
 
+export const HistoryHourlySchema = z.object({
+  station: HistoryStationSchema,
+  from: z.iso.datetime(),
+  to: z.iso.datetime(),
+  stepMinutes: z.literal(60),
+  values: z.array(z.number().nullable()),
+  coverage: z.array(z.number().min(0).max(1)),
+});
+export type HistoryHourly = z.infer<typeof HistoryHourlySchema>;
+
 export const HistorySeriesSchema = z.object({
   key: z.string(),
   station: z.string(),
@@ -121,6 +133,8 @@ export const HistoryEventVersionSchema = z.object({
   validTo: z.iso.datetime().nullable(),
   publishedAt: z.iso.datetime().nullable(),
   endedAt: z.iso.datetime().nullable(),
+  matchedUntil: z.iso.datetime().nullable(),
+  matches: z.array(z.object({ from: z.iso.datetime(), to: z.iso.datetime().nullable() })),
   endType: z.enum(['ended', 'cancelled']).nullable(),
   matchMethod: z.enum(['polygon_intersection', 'municipality', 'county', 'within_radius']),
   distanceMeters: z.number().nullable(),
@@ -157,6 +171,7 @@ export const PropertyHistorySchema = z
     stations: z.array(HistoryStationSchema),
     daily: z.object({ dates: z.array(HistoryDateSchema), series: z.array(HistorySeriesSchema) }),
     monthly: z.array(HistoryMonthSchema),
+    hourly: HistoryHourlySchema.nullable(),
     kpis: z.object({
       rainMm: z.number().nullable(),
       rainComplete: z.boolean(),
@@ -195,6 +210,9 @@ export const PropertyHistorySchema = z
       if ([s.values, s.coverage, s.min, s.max].some((a) => a && a.length !== h.daily.dates.length)) {
         ctx.addIssue({ code: 'custom', message: 'Series length differs from date axis.' });
       }
+    }
+    if (h.hourly && h.hourly.values.length !== h.hourly.coverage.length) {
+      ctx.addIssue({ code: 'custom', message: 'Hourly coverage differs from value axis.' });
     }
   });
 export type PropertyHistory = z.infer<typeof PropertyHistorySchema>;
@@ -289,16 +307,27 @@ export function warningDays(dates: string[], events: HistoryEvent[]) {
     const active = new Set<string>();
     for (const e of events.filter((e) => e.official)) {
       e.versions.forEach((v, i) => {
+        if (v.level === 'VMA' && v.matchMethod === 'county') return;
         const start = Math.max(
           Date.parse(v.validFrom ?? v.publishedAt ?? v.changedAt),
-          i ? Date.parse(v.changedAt) : -Infinity,
+          i || v.version > 1 ? Date.parse(v.changedAt) : -Infinity,
         );
         const end = Math.min(
           Date.parse(v.validTo ?? v.endedAt ?? '9999-01-01T00:00:00Z'),
           v.endedAt ? Date.parse(v.endedAt) : Infinity,
+          v.matchedUntil ? Date.parse(v.matchedUntil) : Infinity,
           e.versions[i + 1] ? Date.parse(e.versions[i + 1]!.changedAt) : Infinity,
         );
-        if (start < to && end > from && v.level !== 'Info') active.add(v.level);
+        const intervals = v.matches.length ? v.matches : [{ from: '0001-01-01T00:00:00.000Z', to: null }];
+        if (
+          v.level !== 'Info' &&
+          intervals.some((match) => {
+            const a = Math.max(start, Date.parse(match.from), from);
+            const b = Math.min(end, match.to ? Date.parse(match.to) : Infinity, to);
+            return b > a;
+          })
+        )
+          active.add(v.level);
       });
     }
     if (active.size) count++;
@@ -345,26 +374,55 @@ export function historyKpis(
   };
 }
 
-/** Daily extrema establish a crossing day, not the unobserved number of temperature oscillations. */
+/** Only observed hourly sign changes are counted; daily extrema cannot establish their number. */
 export function frostWeeks(dates: string[], series: HistorySeries[]): PropertyHistory['frostWeeks'] {
-  const min = series.find((s) => s.key === 'temperature_min');
-  const max = series.find((s) => s.key === 'temperature_max');
+  const crossings = series.find((s) => s.key === 'temperature_crossings');
+  const byWeek = new Map<string, number[]>();
+  dates.forEach((date, index) => {
+    const weekday = new Date(date + 'T12:00:00Z').getUTCDay();
+    const monday = addHistoryDays(date, -((weekday + 6) % 7));
+    byWeek.set(monday, [...(byWeek.get(monday) ?? []), index]);
+  });
   const weeks: PropertyHistory['frostWeeks'] = [];
-  for (let start = 0; start < dates.length; start += 7) {
-    const indexes = dates.slice(start, start + 7).map((_, i) => start + i);
-    const complete = indexes.every(
-      (i) =>
-        min?.values[i] != null &&
-        max?.values[i] != null &&
-        min.station.split(':').slice(0, 2).join(':') === max.station.split(':').slice(0, 2).join(':'),
-    );
+  for (const [monday, indexes] of byWeek) {
+    const complete =
+      indexes.length === 7 &&
+      indexes.every((i) => crossings?.values[i] != null && crossings.coverage[i] === 1);
     weeks.push({
-      from: dates[start]!,
+      from: monday,
       complete,
-      crossings: complete ? indexes.filter((i) => min!.values[i]! < 0 && max!.values[i]! > 0).length : null,
+      crossings: complete ? indexes.reduce((sum, i) => sum + crossings!.values[i]!, 0) : null,
     });
   }
   return weeks;
+}
+
+/** Includes the midnight baseline; missing hours never become zero crossings. */
+export function aggregateTemperatureCrossings(
+  points: Array<{ at: string; value: number }>,
+  date: string,
+): DailyValue {
+  const from = +swedishMidnight(new Date(date + 'T12:00:00Z'));
+  const to = +swedishMidnight(new Date(date + 'T12:00:00Z'), 1);
+  const unique = new Map(
+    points
+      .filter((p) => {
+        const at = Date.parse(p.at);
+        return at >= from && at <= to && (at - from) % HISTORY.hourMs === 0;
+      })
+      .map((p) => [Date.parse(p.at), p.value]),
+  );
+  const values = [...unique].sort(([a], [b]) => a - b);
+  const expected = (to - from) / HISTORY.hourMs + 1;
+  let previous = 0;
+  let crossings = 0;
+  for (const [, value] of values) {
+    const sign = Math.sign(value);
+    if (sign && previous && sign !== previous) crossings++;
+    if (sign) previous = sign;
+  }
+  const coverage = values.length / expected;
+  return { date, value: coverage === 1 ? crossings : null, coverage, origin: 'own_aggregate' };
 }
 
 export function selectHistoryStation<
