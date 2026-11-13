@@ -15,7 +15,7 @@
  *
  * The token is read from INSTAPOD_TOKEN; secret values are never printed.
  */
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execSync, execFileSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { ALLOWED_POD, api } from './instapods.mjs';
@@ -77,6 +77,8 @@ if (!args.has('--env-only')) {
   cpSync(join(root, 'packages/db/migrations'), join(rel, 'db/migrations'), { recursive: true });
   cpSync(join(root, 'apps/web/.next/standalone'), join(rel, 'web'), { recursive: true });
   cpSync(join(root, 'apps/web/.next/static'), join(rel, 'web/apps/web/.next/static'), { recursive: true });
+  // Next standalone does not include public/ (landing images etc.); serve it next to server.js.
+  if (existsSync(join(root, 'apps/web/public'))) cpSync(join(root, 'apps/web/public'), join(rel, 'web/apps/web/public'), { recursive: true });
   // Never ship env files that Next may have traced.
   for (const f of ['.env', 'apps/web/.env', '.env.local']) rmSync(join(rel, 'web', f), { force: true });
   writeFileSync(join(rel, 'RELEASE'), `${new Date().toISOString()}\n${execFileSync('git',['-c',`safe.directory=${root.replace(/\\/g,'/')}`,'rev-parse','--short','HEAD'], { cwd: root }).toString().trim()}\n`);
