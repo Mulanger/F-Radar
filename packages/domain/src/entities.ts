@@ -339,6 +339,9 @@ export const PropertySnapshotSchema = z.object({
   /** Live monitoring context (Phase 3). Absent in demo fixtures. */
   monitoring: PropertyMonitoringContextSchema.nullable().optional(),
   nowcast: NowcastSchema.nullable().optional(),
+  measuredRain: z.object({sourceId:z.literal('smhi_observations'),stationName:z.string(),distanceMeters:z.number(),observedAt:IsoDateTimeSchema.nullable(),fetchedAt:IsoDateTimeSchema,qualityNote:z.string(),
+    totals:z.array(z.object({hours:z.number(),from:IsoDateTimeSchema,to:IsoDateTimeSchema,coverage:z.number(),totalMm:z.number().nullable(),complete:z.boolean()})),
+  }).nullable().optional(),
 });
 export type PropertySnapshot = z.infer<typeof PropertySnapshotSchema>;
 
@@ -364,6 +367,8 @@ export const UpcomingConditionSchema = z.object({
   explanation: z.string().optional(),
   sourceId: SourceIdSchema.optional(),
   validAt: IsoDateTimeSchema.optional(),
+  sourceUpdatedAt: IsoDateTimeSchema.nullable().optional(),
+  official: z.boolean().optional(),
   origin: DataOriginSchema,
 });
 export type UpcomingCondition = z.infer<typeof UpcomingConditionSchema>;

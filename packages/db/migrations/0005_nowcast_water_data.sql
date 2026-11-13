@@ -24,3 +24,11 @@ CREATE TABLE hydrology_references (
 CREATE TABLE hydrology_reference_checks (
   station_id text PRIMARY KEY, checked_at timestamptz NOT NULL DEFAULT now(), success boolean NOT NULL
 );
+
+CREATE TABLE observation_history (
+  source_id text NOT NULL REFERENCES source_catalog(id),
+  station_id text NOT NULL, parameter text NOT NULL, observed_at timestamptz NOT NULL,
+  value double precision NOT NULL, quality text,
+  PRIMARY KEY(source_id,station_id,parameter,observed_at)
+);
+CREATE INDEX observation_history_recent_idx ON observation_history(source_id,station_id,parameter,observed_at DESC);

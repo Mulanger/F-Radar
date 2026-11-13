@@ -233,7 +233,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     healthPct: assessed ? Math.round((counts.normal / assessed) * 100) : null,
     health: STATUS_ORDER.map((k) => ({ key: k, label: SEV[k].label, c: SEV[k].c, n: counts[k], pct: Math.round((counts[k] / n) * 100) + '%' })),
     cats: catsRaw.map((c) => ({ ...c, w: ready ? (c.n / catMax) * 100 + '%' : '0%' })),
-    upcoming: portfolio.upcoming.map((u) => ({ ...u, c: upcomingTone[u.tone] })),
+    upcoming: portfolio.upcoming.map((u) => ({ ...u, source:u.sourceId ? (u.sourceId==='krisinformation'?'Krisinformation':'SMHI')+' · uppdaterad '+formatClock(u.sourceUpdatedAt) : null, c: upcomingTone[u.tone] })),
   };
 }
 

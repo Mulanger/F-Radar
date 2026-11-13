@@ -58,7 +58,7 @@ export const SOURCE_MANIFEST: Record<Exclude<SourceId, 'demo_other'>, SourceMani
     docsUrl: 'https://opendata.smhi.se/metobs/examples', access: 'public', commercialReuseReviewed: false,
     attributionText: 'Källa: SMHI', dataKind: 'observation', geographicPrecision: 'station',
     coverageNote: 'Station may be far from the property; distance and observation time must be shown.',
-    updatePolicy: 'Hourly per station; latest-hour sets collected every 30 min (6 parameters)', retentionPolicy: 'Latest value per station/parameter; stations silent > 2 days dropped',
+    updatePolicy: 'Hourly per station; latest-hour sets collected every 15 min (7 parameters, including 15-minute precipitation)', retentionPolicy: 'Latest value per station/parameter; nearby history retained 35 days; stations silent > 2 days dropped',
     displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_SMHI_OBSERVATIONS_ENABLED', reviewedAt: VERIFIED,
   },
   met_nowcast: {
@@ -74,7 +74,7 @@ export const SOURCE_MANIFEST: Record<Exclude<SourceId, 'demo_other'>, SourceMani
     id:'smhi_hydrology',authority:'SMHI',label:'SMHI hydrologi',docsUrl:'https://opendata.smhi.se/hydroobs/',access:'public',commercialReuseReviewed:false,
     licenseUrl:'https://creativecommons.org/licenses/by/4.0/',attributionText:'Källa: SMHI',dataKind:'observation',geographicPrecision:'station',
     coverageNote:'Nearest station within 5 km; may be in a different watercourse. Parameter 2, 15-minute water flow in m³/s.',
-    updatePolicy:'Latest hour every 15 min; corrected archive streamed weekly only for nearby stations',retentionPolicy:'Latest station value; monthly percentiles per station',
+    updatePolicy:'Latest hour every 15 min; corrected archive streamed weekly only for nearby stations',retentionPolicy:'Latest station value; nearby 15-minute history retained 35 days, plus monthly percentiles per station',
     displayPermitted:false,alertsPermitted:false,requiredSecrets:[],enableFlag:'SOURCE_SMHI_HYDROLOGY_ENABLED',reviewedAt:VERIFIED,
   },
   smhi_oceanography: {
@@ -82,7 +82,7 @@ export const SOURCE_MANIFEST: Record<Exclude<SourceId, 'demo_other'>, SourceMani
     docsUrl: 'https://opendata.smhi.se/', access: 'public', commercialReuseReviewed: false,
     attributionText: 'Källa: SMHI', dataKind: 'observation', geographicPrecision: 'station',
     coverageNote: 'Parameter 14 in cm RW, relative to the station annual calculated mean; nearest station within 15 km. Not a building water level.',
-    licenseUrl:'https://creativecommons.org/licenses/by/4.0/', updatePolicy: 'Minute readings, latest-hour collected every 10 min', retentionPolicy: 'Latest station value and minute trend; nearby history added in part 4',
+    licenseUrl:'https://creativecommons.org/licenses/by/4.0/', updatePolicy: 'Minute readings, latest-hour collected every 10 min', retentionPolicy: 'Latest station value; 10-minute history within 15 km of monitored properties retained 35 days',
     displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag:'SOURCE_SMHI_OCEANOGRAPHY_ENABLED', reviewedAt: VERIFIED,
   },
   krisinformation: {

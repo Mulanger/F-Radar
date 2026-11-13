@@ -1,3 +1,4 @@
+import { measuredPrecipitation } from '../water-information';
 import { summarizeNowcast } from '../nowcast';
 /**
  * DEMO FIXTURES — NOT REAL DATA.
@@ -390,7 +391,9 @@ function buildSnapshot(p: RawProperty): PropertySnapshot {
 // Demo uses the same documented method as live data (all demo sources count as current).
 const snapshots = RAW.map(buildSnapshot).map((s, index) => {
   const points=Array.from({length:24},(_,i)=>({validAt:new Date(Date.parse(DEMO_REFERENCE_TIME)+i*300_000).toISOString(),rateMmH:i>=4&&i<18?4:0}));
-  return { ...s, riskIndex: assessPropertyRisk(s, () => true), nowcast: index<2 ? {sourceId:'met_nowcast' as const,coverage:'ok' as const,updatedAt:DEMO_REFERENCE_TIME,fetchedAt:DEMO_REFERENCE_TIME,freshness:'fresh' as const,points,summary:summarizeNowcast(points,new Date(DEMO_REFERENCE_TIME),5),attribution:'Data från MET Norway · bearbetad av FastighetsRadar · syntetisk demo',origin:'demo_fixture' as const} : null };
+  if(s.forecast && index<2)s.forecast.days=Array.from({length:5},(_,i)=>({from:new Date(Date.parse(DEMO_REFERENCE_TIME)+i*86400000).toISOString(),to:new Date(Date.parse(DEMO_REFERENCE_TIME)+(i+1)*86400000).toISOString(),temperatureMin:-1+i,temperatureMax:5+i,precipitationMean:12-i*2,precipitationMin:4-i,precipitationMax:20-i*2,windGustMax:15-i,snowPercent:i===0?25:0}));
+  const rainfall=Array.from({length:288},(_,i)=>({observedAt:new Date(Math.floor(Date.parse(DEMO_REFERENCE_TIME)/900000)*900000-i*900000).toISOString(),value:0.13}));
+  return { ...s, measuredRain:index<2?{sourceId:'smhi_observations' as const,stationName:'Demo mätstation',distanceMeters:1200,observedAt:DEMO_REFERENCE_TIME,fetchedAt:DEMO_REFERENCE_TIME,qualityNote:'Syntetisk demoserie, inga verkliga mätningar',totals:[1,24,72].map(h=>measuredPrecipitation(rainfall,new Date(DEMO_REFERENCE_TIME),h))}:null, riskIndex: assessPropertyRisk(s, () => true), nowcast: index<2 ? {sourceId:'met_nowcast' as const,coverage:'ok' as const,updatedAt:DEMO_REFERENCE_TIME,fetchedAt:DEMO_REFERENCE_TIME,freshness:'fresh' as const,points,summary:summarizeNowcast(points,new Date(DEMO_REFERENCE_TIME),5),attribution:'Data från MET Norway · bearbetad av FastighetsRadar · syntetisk demo',origin:'demo_fixture' as const} : null };
 });
 
 const feed: FeedItem[] = RAW_FEED.map((f, i) => ({

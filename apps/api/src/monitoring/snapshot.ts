@@ -17,7 +17,7 @@ import type {
   WarningLevel,
   WeatherForecast,
 } from '@fastighetsradar/domain';
-import { assessPropertyRisk, formatWeekdayClock, forecastInformation, WEATHER_WATER, summarizeNowcast, measurementTrend, type TimedReading, classifyFlow } from '@fastighetsradar/domain';
+import { assessPropertyRisk, formatWeekdayClock, forecastInformation, WEATHER_WATER, summarizeNowcast, measurementTrend, type TimedReading, classifyFlow, measuredPrecipitation } from '@fastighetsradar/domain';
 import type { OrgContextRow, OrgEventRow, OrgForecastRow, OrgMonitoringData, OrgObservationRow } from '@fastighetsradar/db';
 import {
   AIR_PHENOMENA,
@@ -380,12 +380,13 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
     reason = sourceOk(statuses, 'krisinformation') ? 'Inga aktiva officiella varningar för fastighetens läge' : 'Inga aktiva SMHI-varningar för fastighetens läge (Krisinformation ej aktuell)';
   }
 
+  const history=(source:string,station:string,parameter:string):TimedReading[] => (data.history??[]).filter(x=>x.source_id===source&&x.station_id===station&&x.parameter===parameter).map(x=>({observedAt:x.observed_at.toISOString(),value:x.value}));
   const floodParts = floodFromContext(p.id, ctxOf(contexts, 'mcf_flood', 'flood_scenarios'), now);
   const sea=obs.find(o=>o.source_id==='smhi_oceanography'&&o.parameter==='sea_level'&&o.distance_m<=WEATHER_WATER.seaDistanceM&&o.extra.referenceSystem==='RW');
-  if(sea) floodParts.flood.waterBody={name:'Havsvattenstånd · '+sea.name,stationName:sea.name,referenceSystem:'RW',level:{value:sea.value,unit:'cm',sourceId:'smhi_oceanography',kind:'observation',sourceTimestamp:iso(sea.observed_at),fetchedAt:sea.fetched_at.toISOString(),freshness:freshnessOf(sea.observed_at,3600,now),availability:'ok',geo:{match:'nearest_station',distanceMeters:Math.round(sea.distance_m),note:sea.name},origin:'live',qualityFlags:sea.quality?[sea.quality]:[]},trendLabel:measurementTrend((sea.extra.points??[]) as TimedReading[],now,1,'cm',WEATHER_WATER.seaTrendDeadbandCm)};
+  if(sea) floodParts.flood.waterBody={name:'Havsvattenstånd · '+sea.name,stationName:sea.name,referenceSystem:'RW',level:{value:sea.value,unit:'cm',sourceId:'smhi_oceanography',kind:'observation',sourceTimestamp:iso(sea.observed_at),fetchedAt:sea.fetched_at.toISOString(),freshness:freshnessOf(sea.observed_at,3600,now),availability:'ok',geo:{match:'nearest_station',distanceMeters:Math.round(sea.distance_m),note:sea.name},origin:'live',qualityFlags:sea.quality?[sea.quality]:[]},trendLabel:measurementTrend(history('smhi_oceanography',sea.station_id,'sea_level'),now,6,'cm',WEATHER_WATER.seaTrendDeadbandCm)??measurementTrend((sea.extra.points??[]) as TimedReading[],now,1,'cm',WEATHER_WATER.seaTrendDeadbandCm)};
   const flow=obs.find(o=>o.source_id==='smhi_hydrology'&&o.parameter==='water_flow'&&o.distance_m<=WEATHER_WATER.flowDistanceM);
   const reference=flow?data.hydrologyReferences?.find(r=>r.station_id===flow.station_id&&r.month===now.getUTCMonth()+1&&now.getTime()-r.fetched_at.getTime()<=WEATHER_WATER.referenceUsableDays*86_400_000):null;
-  if(flow)floodParts.flood.watercourse={stationId:flow.station_id,stationName:flow.name,distanceMeters:Math.round(flow.distance_m),measurement:{value:flow.value,unit:'m³/s',sourceId:'smhi_hydrology',kind:'observation',sourceTimestamp:iso(flow.observed_at),fetchedAt:flow.fetched_at.toISOString(),freshness:freshnessOf(flow.observed_at,3600,now),availability:'ok',geo:{match:'nearest_station',distanceMeters:Math.round(flow.distance_m),note:flow.name},origin:'live',qualityFlags:flow.quality?[flow.quality]:[]},classification:classifyFlow(flow.value,reference??null),trendLabel:measurementTrend((flow.extra.points??[]) as TimedReading[],now,24,'m³/s'),note:'Närmaste mätstation – kan ligga i ett annat vattendrag än det närmast fastigheten',reference:reference?{p75:reference.p75,p95:reference.p95,samples:reference.samples,years:reference.years,month:reference.month,fetchedAt:reference.fetched_at.toISOString()}:null};
+  if(flow)floodParts.flood.watercourse={stationId:flow.station_id,stationName:flow.name,distanceMeters:Math.round(flow.distance_m),measurement:{value:flow.value,unit:'m³/s',sourceId:'smhi_hydrology',kind:'observation',sourceTimestamp:iso(flow.observed_at),fetchedAt:flow.fetched_at.toISOString(),freshness:freshnessOf(flow.observed_at,3600,now),availability:'ok',geo:{match:'nearest_station',distanceMeters:Math.round(flow.distance_m),note:flow.name},origin:'live',qualityFlags:flow.quality?[flow.quality]:[]},classification:classifyFlow(flow.value,reference??null),trendLabel:measurementTrend(history('smhi_hydrology',flow.station_id,'water_flow'),now,24,'m³/s'),note:'Närmaste mätstation – kan ligga i ett annat vattendrag än det närmast fastigheten',reference:reference?{p75:reference.p75,p95:reference.p95,samples:reference.samples,years:reference.years,month:reference.month,fetchedAt:reference.fetched_at.toISOString()}:null};
   const nearby = obs.map((o) => toNearby(o, now));
   const coverage: PropertyMonitoringContext['coverage'] = [
     { sourceId: 'smhi_forecast', status: forecastRow ? 'ok' : 'loading', note: forecastRow ? null : 'Prognos hämtas' },
@@ -397,6 +398,7 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
     }),
   ];
 
+  const rainStation=obs.find(o=>o.source_id==='smhi_observations'&&o.parameter==='precipitation_15min'&&o.distance_m<=WEATHER_WATER.observationDistanceM);
   const radar = data.nowcasts?.find(x => x.property_id === p.id);
   const radarAge = radar ? (now.getTime()-radar.fetched_at.getTime())/60_000 : Infinity;
   const snapshot: PropertySnapshot = {
@@ -404,6 +406,7 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
     property: { ...base.property, countyCode: county?.code ?? null, status, statusReason: reason },
     metrics: [...forecastMetrics(p.id, forecastRow, now), ...airMetrics(p.id, obs, now)],
     forecast: buildForecast(p.id, forecastRow, now),
+    measuredRain:rainStation?{sourceId:'smhi_observations',stationName:rainStation.name,distanceMeters:Math.round(rainStation.distance_m),observedAt:iso(rainStation.observed_at),fetchedAt:rainStation.fetched_at.toISOString(),qualityNote:'Stationsmätningar; senaste värden kan vara preliminära eller grovt kontrollerade',totals:[1,24,72].map(h=>measuredPrecipitation(history('smhi_observations',rainStation.station_id,'precipitation_15min'),now,h))}:null,
     nowcast: radar ? { sourceId:'met_nowcast', coverage:radar.radar_coverage, updatedAt:iso(radar.source_updated_at), fetchedAt:radar.fetched_at.toISOString(), freshness:radarAge<=WEATHER_WATER.nowcastFreshMinutes?'fresh':radarAge<=WEATHER_WATER.nowcastUsableMinutes?'stale':'expired', points:radar.series.points, summary:summarizeNowcast(radar.series.points,now,radar.series.temperature,{coverage:radar.radar_coverage,fetchedAt:radar.fetched_at.toISOString()}), attribution:'Data från MET Norway · bearbetad av FastighetsRadar (CC BY 4.0)', origin:'live' } : null,
     warnings,
     events: publicEvents,
@@ -457,24 +460,25 @@ export function buildFeed(changes: Array<{ id: string; property_id: string; sour
 export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForecastRow[], now: Date): UpcomingCondition[] {
   const out: UpcomingCondition[] = [];
   for (const s of snapshots) {
+    for (const w of s.warnings) if(w.validFrom && Date.parse(w.validFrom)>now.getTime() && Date.parse(w.validFrom)<=now.getTime()+48*3600000) out.push({id:'official-'+s.property.id+'-'+w.id,label:w.type,where:s.property.name,when:formatWeekdayClock(w.validFrom),validAt:w.validFrom,sourceId:w.sourceId,sourceUpdatedAt:w.issuedAt,official:true,value:LEVEL_SV[w.level],tone:w.level==='Red'||w.level==='VMA'?'critical':w.level==='Orange'?'warning':'monitor',origin:w.origin});
     const row = forecasts.find(f => f.property_id === s.property.id);
     if (!row || now.getTime() - row.fetched_at.getTime() > WEATHER_WATER.forecastUsableHours * 3_600_000) continue;
-    for (const info of forecastInformation(forecastSteps(row), now)) out.push({ id: info.key + '-' + s.property.id, label: info.label, where: s.property.name, when: formatWeekdayClock(info.at), validAt: info.at, sourceId: 'smhi_forecast', value: info.value, explanation: info.explanation, tone: info.tone, origin: 'live' });
+    for (const info of forecastInformation(forecastSteps(row), now)) out.push({ id: info.key + '-' + s.property.id, label: info.label, where: s.property.name, when: formatWeekdayClock(info.at), validAt: info.at, sourceId: 'smhi_forecast', sourceUpdatedAt:iso(row.reference_time), value: info.value, explanation: info.explanation, tone: info.tone, origin: 'live' });
     const steps = forecastSteps(forecasts.find((f) => f.property_id === s.property.id)).filter((x) => Date.parse(x.time) > now.getTime() && Date.parse(x.time) <= now.getTime() + 24 * 3_600_000);
     if (!steps.length) continue;
     const gust = steps.reduce<ForecastStep | null>((a, b) => ((b.windGust ?? -1) > (a?.windGust ?? -1) ? b : a), null);
     if (gust?.windGust !== null && gust && gust.windGust >= 15) {
-      out.push({ id: `gust-${s.property.id}`, label: 'Hårda vindbyar (prognos)', where: s.property.name, when: formatWeekdayClock(gust.time), value: `${gust.windGust.toFixed(0)} m/s`, tone: gust.windGust >= 21 ? 'critical' : 'warning', origin: 'live' });
+      out.push({ id: `gust-${s.property.id}`, label: 'Hårda vindbyar (prognos)', where: s.property.name, when: formatWeekdayClock(gust.time), validAt:gust.time,sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${gust.windGust.toFixed(0)} m/s`, tone: gust.windGust >= 21 ? 'critical' : 'warning', origin: 'live' });
     }
     const rain = precipitationTotal(forecastSteps(forecasts.find((f) => f.property_id === s.property.id)), now, 24);
     if (rain !== null && rain >= 15) {
-      out.push({ id: `rain-${s.property.id}`, label: 'Kraftig nederbörd (prognos, 24 h)', where: s.property.name, when: 'Närmaste 24 h', value: `${rain.toFixed(0)} mm`, tone: rain >= 30 ? 'critical' : 'warning', origin: 'live' });
+      out.push({ id: `rain-${s.property.id}`, label: 'Kraftig nederbörd (prognos, 24 h)', where: s.property.name, when: 'Närmaste 24 h', validAt:now.toISOString(),sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${rain.toFixed(0)} mm`, tone: rain >= 30 ? 'critical' : 'warning', origin: 'live' });
     }
     const cold = steps.find((x) => x.airTemperature !== null && x.airTemperature < 0);
     if (cold && cold.airTemperature !== null) {
-      out.push({ id: `frost-${s.property.id}`, label: 'Minusgrader (prognos)', where: s.property.name, when: formatWeekdayClock(cold.time), value: `${cold.airTemperature.toFixed(0)}°`, tone: 'cold', origin: 'live' });
+      out.push({ id: `frost-${s.property.id}`, label: 'Minusgrader (prognos)', where: s.property.name, when: formatWeekdayClock(cold.time), validAt:cold.time,sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${cold.airTemperature.toFixed(0)}°`, tone: 'cold', origin: 'live' });
     }
   }
   const rank = { critical: 0, warning: 1, monitor: 2, cold: 3 };
-  return out.sort((a,b) => rank[a.tone] - rank[b.tone] || (a.validAt ?? '').localeCompare(b.validAt ?? '')).slice(0, 8);
+  return out.sort((a,b) => Number(!!b.official)-Number(!!a.official) || rank[a.tone] - rank[b.tone] || (a.validAt ?? '').localeCompare(b.validAt ?? '')).slice(0, 8);
 }

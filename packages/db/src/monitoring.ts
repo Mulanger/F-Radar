@@ -1,4 +1,4 @@
-import { WEATHER_WATER } from '@fastighetsradar/domain';
+import { WEATHER_WATER, stationMatchDistance } from '@fastighetsradar/domain';
 import { createHash } from 'node:crypto';
 import type { Queryable } from './migrations';
 
@@ -522,6 +522,7 @@ export const RETENTION = {
   runsDays: 14,
   stationSilentDays: 2,
   nowcastDays: 1,
+  observationHistoryDays: 35,
 } as const;
 
 export async function applyRetention(db: Queryable): Promise<Record<string, number>> {
@@ -530,6 +531,7 @@ export async function applyRetention(db: Queryable): Promise<Record<string, numb
     events: await del(`DELETE FROM source_events WHERE status <> 'active' AND ended_at < now() - make_interval(days => $1)`, [RETENTION.endedEventsDays]),
     changes: await del(`DELETE FROM monitoring_changes WHERE created_at < now() - make_interval(days => $1)`, [RETENTION.changesDays]),
     runs: await del(`DELETE FROM integration_runs WHERE started_at < now() - make_interval(days => $1)`, [RETENTION.runsDays]),
+    observationHistory: await del(`DELETE FROM observation_history WHERE observed_at < now() - make_interval(days => $1)`, [RETENTION.observationHistoryDays]),
     nowcast: await del(`DELETE FROM nowcast_points WHERE fetched_at < now() - make_interval(days => $1)`, [RETENTION.nowcastDays]),
     stations: await del(`DELETE FROM observation_stations WHERE fetched_at < now() - make_interval(days => $1)`, [RETENTION.stationSilentDays]),
   };
@@ -607,6 +609,7 @@ export interface OrgObservationRow {
 }
 
 export interface OrgMonitoringData {
+  history?: ObservationHistoryRow[];
   hydrologyReferences?: HydrologyReferenceRow[];
   nowcasts?: Array<NowcastRow & { property_id: string }>;
   forecasts: OrgForecastRow[];
@@ -626,6 +629,7 @@ export const NEAREST_PARAMETERS: Array<[string, string, number]> = [
   ['smhi_observations', 'wind_direction', 3],
   ['smhi_observations', 'relative_humidity', 3],
   ['smhi_observations', 'precipitation_1h', 3],
+  ['smhi_observations', 'precipitation_15min', 3],
   ['air_quality', 'pm25', 6],
   ['air_quality', 'pm10', 6],
   ['air_quality', 'no2', 6],
@@ -638,7 +642,7 @@ export const NEAREST_PARAMETERS: Array<[string, string, number]> = [
  */
 export async function loadOrgMonitoring(db: Queryable, organizationId: string, propertyId?: string): Promise<OrgMonitoringData> {
   const pid = propertyId ?? null;
-  const [forecasts, events, contexts, observations, counties, nowcasts, hydrologyReferences] = await Promise.all([
+  const [forecasts, events, contexts, observations, counties, nowcasts, hydrologyReferences, history] = await Promise.all([
     db.query<OrgForecastRow>(
       `SELECT f.property_id, f.source_id, f.reference_time, f.created_time, ST_Y(f.grid_point::geometry) AS grid_lat, ST_X(f.grid_point::geometry) AS grid_lon,
               f.distance_m, f.series, f.fetched_at
@@ -690,8 +694,13 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
         WHERE p.organization_id = $1 AND ($2::uuid IS NULL OR p.id = $2)`, [organizationId, pid]),
     db.query<HydrologyReferenceRow>(`SELECT r.* FROM hydrology_references r JOIN observation_stations s ON s.source_id=r.source_id AND s.station_id=r.station_id AND s.parameter='water_flow'
       WHERE EXISTS(SELECT 1 FROM properties p WHERE p.organization_id=$1 AND ($2::uuid IS NULL OR p.id=$2) AND ST_DWithin(s.location,p.location,$3))`,[organizationId,pid,WEATHER_WATER.flowDistanceM]),
+    db.query<ObservationHistoryRow>(`SELECT h.* FROM observation_history h JOIN observation_stations s ON s.source_id=h.source_id AND s.station_id=h.station_id AND s.parameter=h.parameter
+      WHERE h.parameter IN ('sea_level','water_flow','precipitation_15min') AND h.observed_at > now()-interval '73 hours'
+        AND EXISTS(SELECT 1 FROM properties p WHERE p.organization_id=$1 AND ($2::uuid IS NULL OR p.id=$2)
+          AND ST_DWithin(p.location,s.location,CASE h.source_id WHEN 'smhi_oceanography' THEN $3 WHEN 'smhi_hydrology' THEN $4 ELSE $5 END))
+      ORDER BY h.source_id,h.station_id,h.parameter,h.observed_at`,[organizationId,pid,WEATHER_WATER.seaDistanceM,WEATHER_WATER.flowDistanceM,WEATHER_WATER.observationDistanceM]),
   ]);
-  return { hydrologyReferences:hydrologyReferences.rows, nowcasts: nowcasts.rows, forecasts: forecasts.rows, events: events.rows, contexts: contexts.rows, observations: observations.rows, counties: counties.rows };
+  return { history:history.rows, hydrologyReferences:hydrologyReferences.rows, nowcasts: nowcasts.rows, forecasts: forecasts.rows, events: events.rows, contexts: contexts.rows, observations: observations.rows, counties: counties.rows };
 }
 
 export async function listRecentChangesForOrg(db: Queryable, organizationId: string, limit = 50) {
@@ -737,4 +746,22 @@ export async function saveFlowReferences(db:Queryable,stationId:string,months:Ar
   if(success)for(const m of months)if(m.reference)await db.query(`INSERT INTO hydrology_references(source_id,station_id,month,p75,p95,samples,years) VALUES('smhi_hydrology',$1,$2,$3,$4,$5,$6)
     ON CONFLICT(source_id,station_id,month) DO UPDATE SET p75=EXCLUDED.p75,p95=EXCLUDED.p95,samples=EXCLUDED.samples,years=EXCLUDED.years,fetched_at=now()`,[stationId,m.month,m.reference.p75,m.reference.p95,m.reference.samples,m.reference.years]);
   await db.query('INSERT INTO hydrology_reference_checks(station_id,success) VALUES($1,$2) ON CONFLICT(station_id) DO UPDATE SET checked_at=now(),success=EXCLUDED.success',[stationId,success]);
+}
+
+export interface ObservationHistoryRow { source_id:string; station_id:string; parameter:string; observed_at:Date; value:number; quality:string|null }
+/** System write: history is retained only around active monitored properties; deduplicates retries. */
+export async function insertObservationHistory(db:Queryable,sourceId:string,obs:StationObservationInput[]):Promise<number> {
+  const filtered=obs.filter(o=>o.value!=null&&Number.isFinite(o.value)&&o.observedAt&&(sourceId!=='smhi_oceanography'||Date.parse(o.observedAt)%600000===0));
+  let count=0;
+  for(let i=0;i<filtered.length;i+=500){
+    const values=filtered.slice(i,i+500).map(o=>({station_id:o.stationId,parameter:o.parameter,observed_at:o.observedAt,value:o.value,quality:o.quality,lat:o.lat,lon:o.lon}));
+    const r=await db.query(`INSERT INTO observation_history(source_id,station_id,parameter,observed_at,value,quality)
+      SELECT $1,x.station_id,x.parameter,x.observed_at,x.value,x.quality FROM jsonb_to_recordset($2::jsonb)
+        AS x(station_id text,parameter text,observed_at timestamptz,value double precision,quality text,lat double precision,lon double precision)
+      WHERE x.observed_at>=now()-make_interval(days=>$4) AND x.observed_at<=now()
+        AND EXISTS(SELECT 1 FROM properties p WHERE p.status<>'paused' AND ST_DWithin(p.location,ST_SetSRID(ST_MakePoint(x.lon,x.lat),4326)::geography,$3))
+      ON CONFLICT(source_id,station_id,parameter,observed_at) DO NOTHING`,[sourceId,JSON.stringify(values),stationMatchDistance(sourceId),RETENTION.observationHistoryDays]);
+    count+=r.rowCount??0;
+  }
+  return count;
 }

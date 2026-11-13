@@ -3,6 +3,7 @@ import type { ServerEnv } from '@fastighetsradar/config';
 import { NotificationService } from '../notifications/service';
 import {
   stationsNeedingFlowReference, saveFlowReferences,
+  insertObservationHistory,
   applyRetention,
   loadNowcastCache, saveNowcastPoint, revalidateNowcastPoint,
   countCountyAreas,
@@ -240,7 +241,8 @@ async function runMetObs(ctx: JobContext): Promise<JobResult> {
       lastErr = fail(r);
       continue;
     }
-    items += await upsertStationObservations(ctx.db, 'smhi_observations', r.data);
+    await insertObservationHistory(ctx.db,'smhi_observations',r.data);
+    items += await upsertStationObservations(ctx.db, 'smhi_observations', latestStationReadings(r.data));
     for (const o of r.data) if (o.observedAt && (!newest || o.observedAt > newest)) newest = o.observedAt;
   }
   if (failures === METOBS_PARAMETERS.length) return lastErr!;
@@ -260,7 +262,8 @@ async function runAirQuality(ctx: JobContext): Promise<JobResult> {
       lastErr = fail(r);
       continue;
     }
-    items += await upsertStationObservations(ctx.db, 'air_quality', r.data);
+    await insertObservationHistory(ctx.db,'air_quality',r.data);
+    items += await upsertStationObservations(ctx.db, 'air_quality', latestStationReadings(r.data));
     for (const o of r.data) if (o.observedAt && (!newest || o.observedAt > newest)) newest = o.observedAt;
   }
   if (failures === AIR_PHENOMENA.length) return lastErr!;
@@ -384,7 +387,7 @@ export function buildJobs(env: ServerEnv): MonitoringJob[] {
     { jobId: 'smhi_oceanography', sourceId:'smhi_oceanography', intervalSeconds:600, enabled:env.SOURCE_SMHI_OCEANOGRAPHY_ENABLED, timeoutMs:90000, run:runOceanography },
     { jobId: 'met_nowcast', sourceId: 'met_nowcast', intervalSeconds: 300, enabled: env.SOURCE_MET_NOWCAST_ENABLED, timeoutMs: 180_000, run: runNowcast },
     { jobId: 'smhi_forecast', sourceId: 'smhi_forecast', intervalSeconds: 900, enabled: env.SOURCE_SMHI_FORECAST_ENABLED, timeoutMs: 180_000, run: runForecasts },
-    { jobId: 'smhi_observations', sourceId: 'smhi_observations', intervalSeconds: 1_800, enabled: env.SOURCE_SMHI_OBSERVATIONS_ENABLED, timeoutMs: 180_000, run: runMetObs },
+    { jobId: 'smhi_observations', sourceId: 'smhi_observations', intervalSeconds: 900, enabled: env.SOURCE_SMHI_OBSERVATIONS_ENABLED, timeoutMs: 180_000, run: runMetObs },
     { jobId: 'sgu_groundwater', sourceId: 'sgu_groundwater', intervalSeconds: 3_600, enabled: env.SOURCE_SGU_ENABLED, timeoutMs: 180_000, run: runSgu },
     { jobId: 'mcf_flood', sourceId: 'mcf_flood', intervalSeconds: 3_600, enabled: env.MCF_FLOOD_ENABLED, timeoutMs: 300_000, run: runMcf },
     { jobId: 'scb', sourceId: 'scb', intervalSeconds: 3_600, enabled: env.SOURCE_SCB_ENABLED, timeoutMs: 120_000, run: runScb },
@@ -437,6 +440,7 @@ export async function runOceanography(ctx:JobContext):Promise<JobResult> {
   const byStation=new Map<string,typeof r.data>();
   for(const o of r.data) byStation.set(o.stationId,[...(byStation.get(o.stationId)??[]),o]);
   const latest=[...byStation.values()].map(series=>({...series.at(-1)!,extra:{...series.at(-1)!.extra,points:series.map(x=>({observedAt:x.observedAt,value:x.value}))}}));
+  await insertObservationHistory(ctx.db,'smhi_oceanography',r.data);
   const items=await upsertStationObservations(ctx.db,'smhi_oceanography',latest);
   return {status:'ok',items,changed:{all:true}};
 }
@@ -446,6 +450,7 @@ export async function runHydrology(ctx:JobContext):Promise<JobResult> {
   const byStation=new Map<string,typeof r.data>();
   for(const o of r.data)byStation.set(o.stationId,[...(byStation.get(o.stationId)??[]),o]);
   const latest=[...byStation.values()].map(points=>({...points.at(-1)!,extra:{points:points.map(x=>({observedAt:x.observedAt,value:x.value}))}}));
+  await insertObservationHistory(ctx.db,'smhi_hydrology',r.data);
   const items=await upsertStationObservations(ctx.db,'smhi_hydrology',latest);
   return {status:'ok',items,changed:{all:true}};
 }
@@ -458,4 +463,10 @@ export async function runHydrologyReferences(ctx:JobContext):Promise<JobResult> 
     if(r.ok)items+=r.data.filter(x=>x.reference).length;else failed=true;
   }
   return {status:failed?(items?'partial':'error'):'ok',items,moreWork:ids.length===2,changed:{all:true}};
+}
+
+function latestStationReadings<T extends {stationId:string;parameter:string;observedAt:string|null}>(series:T[]):T[] {
+  const map=new Map<string,T>();
+  for(const o of series){const key=o.stationId+':'+o.parameter,old=map.get(key);if(!old||(o.observedAt??'')>(old.observedAt??''))map.set(key,o);}
+  return [...map.values()];
 }

@@ -27,3 +27,9 @@ SMHI OCObs parameter 14, cm RW. RW betyder Relative Water Level, relativt årets
 ## Vattenföring (2026-11-13)
 
 SMHI HydroObs parameter 2, m³/s, alla 15-minutersvärden från latest-hour. Stationsnära månadsreferenser kan hämtas från corrected-archive/data.csv. Riktig fixture, parser-, percentil-, gränsvärdes- och matchningstester finns. Liveprov `npm run test:live -- -t "SMHI hydrology flow and corrected archive"`: 1 passed, 27 s; VÄSTERSEL (1583), tolv användbara månadsreferenser och mer än tre års data. Arkivet strömmas, bara G-värden används. Stationer inom 5 km kan få veckovis referenshämtning. Saknad referens ger ingen klassning. Parameter 3 används inte (station-set/latest-hour saknar användbar väg). Inget aktiverat i produktion.
+
+## Historik och kvartsmätt nederbörd (2026-11-13)
+
+Migration 0005 omfattar nowcast_points, hydrology_references/checks och observation_history, inklusive källkatalogens nya poster. Historik 35 dygn, hav nedsamplat till exakta 10 min; bara stationer nära aktiva fastigheter lagras. MetObs parameter 14 och alla värden i latest-hour samlas varje 15 min. Täckningskontrollerade summor 1/24/72 h och 6/24 h-trender visas utan ändrat riskindex. Se ADR 0004 för volym och avgränsningar.
+
+Kommande-listan prioriterar kommande officiella perioder före härledda rader, därefter ton och tid. Nya rader visar källans uppdateringstid och förklaringen för växlande grader; långa värden radbryts på mobil.

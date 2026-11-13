@@ -1,5 +1,6 @@
 'use client';
 
+import { MeasuredRainPanel } from './MeasuredRainPanel';
 import { NowcastPanel } from './NowcastPanel';
 import { ForecastDays } from './ForecastDays';
 
@@ -134,6 +135,7 @@ export function PropertyDetail() {
       <NowcastPanel d={d} />
       <ForecastDays d={d} />
 
+      <MeasuredRainPanel d={d} />
       {d.live && <MonitoringContextPanel d={d} />}
 
       <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>

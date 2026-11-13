@@ -89,6 +89,15 @@ describe('SMHI SNOW1gv1 point forecast', () => {
   });
 });
 
+describe('SMHI MetObs quarter-hour series', () => {
+  it('preserves every quarter-hour value from a recorded response', () => {
+    const raw = fx('smhi-metobs-14.json');
+    const data = parseMetObs(raw, METOBS_PARAMETERS.find(p=>p.key==='precipitation_15min')!)!;
+    expect(data.length).toBe(raw.station.reduce((n:number,s:{value:unknown[]})=>n+s.value.length,0));
+    expect(data.every(x=>x.parameter==='precipitation_15min')).toBe(true);
+  });
+});
+
 describe('SMHI IBWW warnings', () => {
   it('maps every warning area to one event with level, polygon and unaltered text', () => {
     const { events, skipped } = parseSmhiWarnings(fx('smhi-ibww-warning.json'));

@@ -5,7 +5,7 @@ export const WEATHER_WATER = {
   zeroCrossings: 2, forecastUsableHours: 6,
   nowcastNoiseMmH: 0.2, moderateMmH: 2.5, heavyMmH: 10, cloudburstMmH: 50,
   snowMaxC: 0.5, mixedMaxC: 2, nowcastFreshMinutes: 15, nowcastUsableMinutes: 30,
-  seaDistanceM: 15_000, flowDistanceM: 5_000, observationDistanceM: 50_000,
+  seaDistanceM: 15_000, flowDistanceM: 5_000, observationDistanceM: 50_000, airDistanceM: 25_000,
   trendCoverage: 0.75, referenceMinYears: 3, referenceMinDays: 30, referenceRefreshDays: 7, referenceUsableDays: 14,
   seaTrendDeadbandCm: 2, historyCoverage: 0.9, flowNormalPercentile: 0.75, flowHighPercentile: 0.95,
 } as const;

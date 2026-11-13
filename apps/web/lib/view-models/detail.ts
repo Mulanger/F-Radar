@@ -158,6 +158,11 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
     prevId: all[(idx - 1 + all.length) % all.length]!.property.id,
     nextId: all[(idx + 1) % all.length]!.property.id,
     updatedAt: formatClock(portfolio.generatedAt),
+    measuredRain:s.measuredRain?{
+      station:'Uppmätt nederbörd vid '+s.measuredRain.stationName+' ('+formatDistance(s.measuredRain.distanceMeters)+')',
+      totals:s.measuredRain.totals.map(t=>({hours:t.hours,label:t.hours===1?'Senaste timmen':t.hours+' h',value:t.totalMm==null?'Ofullständig mätserie':formatNumber(t.totalMm,1)+' mm',coverage:Math.round(t.coverage*100)+' % täckning · till '+formatWeekdayClock(t.to)})),
+      source:'SMHI · mätning '+formatWeekdayClock(s.measuredRain.observedAt)+' · hämtad '+formatWeekdayClock(s.measuredRain.fetchedAt)+(p.origin==='demo_fixture'?' · demo':''),note:s.measuredRain.qualityNote,
+    }:null,
     nowcast: nowcastVM(s, portfolio.generatedAt),
     forecastDays: forecastDaysVM(s), precipitationIntervals: precipitationIntervalsVM(s),
     forecastSource: s.forecast ? 'SMHI · modellkörning ' + formatWeekdayClock(s.forecast.issuedAt ?? s.forecast.fetchedAt) + (p.origin === 'demo_fixture' ? ' · demo' : '') : 'SMHI · ej tillgänglig',

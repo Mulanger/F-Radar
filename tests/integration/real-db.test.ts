@@ -33,6 +33,7 @@ import {
   upsertPropertyContext,
   upsertSourceEvents,
   upsertStationObservations,
+  insertObservationHistory, saveNowcastPoint, revalidateNowcastPoint, saveFlowReferences,
   type SourceEventInput,
 } from '../../packages/db/src';
 import { buildApp } from '../../apps/api/src/app';
@@ -77,6 +78,7 @@ const sveavagen = {
 async function resetSchema() {
   await pool.query(`
     DROP TABLE IF EXISTS sms_delivery_callbacks,notification_attempts,notification_properties,notification_outbox,notification_daily_usage,notification_usage,notification_global_usage,notification_rate_buckets,alert_evaluation_state,alert_rule_recipients,alert_rule_properties,sms_recipients,
+      observation_history, nowcast_points, hydrology_references, hydrology_reference_checks,
       monitoring_changes, property_event_matches, source_events, observation_stations, property_forecasts,
       property_context, admin_areas, provider_jobs, property_monitoring, integration_runs, alert_rules, property_source_profiles, properties,
       source_catalog, organization_members, users, organizations, schema_migrations CASCADE;
@@ -374,10 +376,47 @@ describe('real PostgreSQL / PostGIS', () => {
       await app.close();
     }
 
+
+    // Nearby-only observation history: idempotent writes, actual timestamp PK, organization scoped reads.
+    const quarter=Math.floor(Date.now()/900000)*900000;
+    const historyBase={stationId:'rain-history',parameter:'precipitation_15min',name:'Historikstation',lat:59.3368,lon:18.0627,value:1.5,unit:'mm',observedAt:new Date(quarter).toISOString(),quality:'G',extra:{}};
+    const history=Array.from({length:8},(_,i)=>({...historyBase,observedAt:new Date(quarter-i*900000).toISOString()}));
+    assert.equal(await insertObservationHistory(pool,'smhi_observations',history),8);
+    assert.equal(await insertObservationHistory(pool,'smhi_observations',history),0,'retry is deduplicated');
+    assert.equal(await insertObservationHistory(pool,'smhi_observations',[{...historyBase,stationId:'far-history',lat:65,lon:20}]),0,'distant station is not stored');
+    await upsertStationObservations(pool,'smhi_observations',[historyBase]);
+    assert.equal((await loadOrgMonitoring(pool,A.organizationId)).history!.filter(h=>h.station_id==='rain-history').length,8);
+    assert.equal((await loadOrgMonitoring(pool,B.organizationId)).history!.filter(h=>h.station_id==='rain-history').length,0);
+    const ten=Math.floor(Date.now()/600000)*600000;
+    assert.equal(await insertObservationHistory(pool,'smhi_oceanography',[
+      {...historyBase,parameter:'sea_level',observedAt:new Date(ten).toISOString()},
+      {...historyBase,parameter:'sea_level',observedAt:new Date(ten-300000).toISOString()},
+    ]),1,'only exact ten-minute sea readings are stored');
+
+    await saveNowcastPoint(pool,'59.34,18.06',59.34,18.06,{coverage:'ok',updatedAt:new Date().toISOString(),temperature:2,points:[{validAt:new Date().toISOString(),rateMmH:1}]},new Date().toISOString(),new Date(Date.now()+300000).toISOString(),'Fri, 13 Nov 2026 17:00:00 GMT');
+    const before304=(await pool.query('SELECT series FROM nowcast_points WHERE point_key=$1',['59.34,18.06'])).rows[0];
+    await revalidateNowcastPoint(pool,'59.34,18.06',new Date().toISOString(),new Date(Date.now()+600000).toISOString(),'Fri, 13 Nov 2026 17:00:00 GMT');
+    assert.deepEqual((await pool.query('SELECT series FROM nowcast_points WHERE point_key=$1',['59.34,18.06'])).rows[0],before304);
+    assert.equal((await loadOrgMonitoring(pool,A.organizationId,pa.id)).nowcasts!.length,1);
+    assert.equal((await loadOrgMonitoring(pool,B.organizationId,pb.id)).nowcasts!.length,0);
+
+    await upsertStationObservations(pool,'smhi_hydrology',[{...historyBase,stationId:'flow-ref',parameter:'water_flow',unit:'m³/s'}]);
+    await saveFlowReferences(pool,'flow-ref',[{month:new Date().getUTCMonth()+1,reference:{p75:20,p95:40,samples:5000,years:5}}],true);
+    await saveFlowReferences(pool,'flow-ref',[],false);
+    assert.equal((await loadOrgMonitoring(pool,A.organizationId)).hydrologyReferences!.find(r=>r.station_id==='flow-ref')!.p75,20,'failed fetch preserves references');
+    assert.equal((await loadOrgMonitoring(pool,B.organizationId)).hydrologyReferences!.length,0);
+
+    // Retention keeps recent records and deletes only values beyond each configured window.
+    await pool.query(`INSERT INTO observation_history(source_id,station_id,parameter,observed_at,value) VALUES
+      ('smhi_observations','expired','precipitation_15min',now()-interval '36 days',1),
+      ('smhi_observations','retained','precipitation_15min',now()-interval '34 days',1)`);
+    await pool.query(`UPDATE nowcast_points SET fetched_at=now()-interval '2 days'`);
     // Retention removes ended events after the window (cascade removes their matches).
     await pool.query(`UPDATE source_events SET ended_at = now() - interval '8 days' WHERE status <> 'active'`);
     const del = await applyRetention(pool);
     assert.ok(del.events >= 2, JSON.stringify(del));
+    assert.equal(del.observationHistory,1);assert.equal(del.nowcast,1);
+    assert.equal((await pool.query("SELECT count(*)::int AS n FROM observation_history WHERE station_id='retained'")).rows[0].n,1);
     await deleteProperty(pool, A, pa.id);
     await deleteProperty(pool, B, pb.id);
     const { rows: left } = await pool.query(`SELECT count(*)::int AS n FROM property_event_matches`);

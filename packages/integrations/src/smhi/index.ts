@@ -304,6 +304,7 @@ export const METOBS_PARAMETERS = [
   { id: 3, key: 'wind_direction', label: 'Vindriktning', unit: '°' },
   { id: 6, key: 'relative_humidity', label: 'Relativ luftfuktighet', unit: '%' },
   { id: 7, key: 'precipitation_1h', label: 'Nederbörd senaste timmen', unit: 'mm' },
+  { id: 14, key: 'precipitation_15min', label: 'Nederbörd senaste 15 min', unit: 'mm' },
 ] as const;
 
 const MetObsSchema = z
@@ -329,9 +330,8 @@ export function parseMetObs(raw: unknown, parameter: (typeof METOBS_PARAMETERS)[
   if (!p.success) return null;
   const out: StationObservation[] = [];
   for (const s of p.data.station) {
-    const last = s.value?.at(-1);
-    if (!last) continue;
-    const value = num(last.value);
+    for (const last of s.value ?? []) {
+    const value = num(last.value, [9999]);
     if (value === null) continue;
     out.push({
       sourceId: 'smhi_observations',
@@ -346,8 +346,9 @@ export function parseMetObs(raw: unknown, parameter: (typeof METOBS_PARAMETERS)[
       quality: last.quality ?? null,
       extra: {},
     });
+    }
   }
-  return out;
+  return out.sort((a,b)=>(a.observedAt??'').localeCompare(b.observedAt??''));
 }
 
 export async function fetchMetObsLatest(parameter: (typeof METOBS_PARAMETERS)[number], ctx: AdapterContext): Promise<AdapterResult<StationObservation[]>> {

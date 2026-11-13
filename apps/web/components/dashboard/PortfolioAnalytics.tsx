@@ -60,11 +60,11 @@ export function UpcomingConditions({ vm }: { vm: OverviewVM }) {
     <div style={{ ...card, flex: '1 1 380px', padding: 22, display: 'flex', flexDirection: 'column', gap: 6 }}>
       <div style={{ marginBottom: 8 }}>
         <div style={cardTitle}>Kommande förhållanden</div>
-        <div style={cardSub}>Prognos för portföljen · kommande 24 h</div>
+        <div style={cardSub}>Prognos och officiell information · kommande 48 h</div>
       </div>
       {vm.upcoming.length === 0 && (
         <div style={{ fontSize: 13, color: C.text3, padding: '12px 0' }}>
-          {!vm.avail.weather ? 'Prognos otillgänglig' : 'Inga prognoser över tröskelvärdena (byvind ≥ 15 m/s, nederbörd ≥ 15 mm/24 h, minusgrader) de närmaste 24 h'}
+          {!vm.avail.weather ? 'Prognos otillgänglig' : 'Inga tillgängliga prognoser över de valda tröskelvärdena under de närmaste 48 h'}
         </div>
       )}
       {vm.upcoming.map((u) => (
@@ -73,9 +73,9 @@ export function UpcomingConditions({ vm }: { vm: OverviewVM }) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 12, color: C.text3 }}>{u.label}</div>
             <div style={{ fontSize: 14, fontWeight: 500, marginTop: 2 }}>{u.where}</div>
-            <div style={{ fontSize: 12, color: C.text4, marginTop: 2 }}>{u.when}</div>
+            <div style={{ fontSize: 12, color: C.text4, marginTop: 2 }}>{u.when}</div>{u.explanation && <div style={{fontSize:11,color:C.text3,marginTop:2}}>{u.explanation}</div>}{u.source && <div style={{fontSize:11,color:C.text4,marginTop:2}}>{u.source}</div>}
           </div>
-          <div style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.03em', whiteSpace: 'nowrap' }}>{u.value}</div>
+          <div style={{ fontSize: u.value.length > 12 ? 14 : 22, fontWeight: 500, letterSpacing: '-0.03em', whiteSpace: 'normal', maxWidth:'45%', overflowWrap:'anywhere' }}>{u.value}</div>
         </div>
       ))}
     </div>

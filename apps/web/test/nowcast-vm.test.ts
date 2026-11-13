@@ -17,3 +17,12 @@ it('formats fresh, stale, expired and interrupted radar data neutrally',()=>{
     expect([vm.text,vm.source,vm.attribution].join(' ')).not.toMatch(/\bkris|fara|akut|katastrof|allvarlig|kritisk/i);
   }
 });
+
+it('keeps measured rain gaps and own texts neutral',async()=>{
+  const {buildDetailVM}=await import('@/lib/view-models/detail');
+  const s=structuredClone(demoPortfolio.properties[0]!);
+  s.measuredRain!.totals[1]!.totalMm=null;s.measuredRain!.totals[1]!.complete=false;
+  const vm=buildDetailVM(demoPortfolio,s,{ready:true,metric:'rain',smsOn:false,isRuleOn:(_id,fallback)=>fallback});
+  expect(vm.measuredRain!.totals[1]!.value).toBe('Ofullständig mätserie');
+  expect(JSON.stringify([vm.measuredRain,vm.forecastDays,vm.water.watercourse,vm.water.source])).not.toMatch(/\bkris|fara|akut|katastrof|allvarlig|kritisk/i);
+});

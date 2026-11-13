@@ -1,5 +1,18 @@
 import { WEATHER_WATER as T } from './weather-information';
 export interface TimedReading { observedAt:string; value:number|null }
+export function stationMatchDistance(source:string) {
+  return source==='smhi_oceanography'?T.seaDistanceM:source==='smhi_hydrology'?T.flowDistanceM:source==='air_quality'?T.airDistanceM:T.observationDistanceM;
+}
+/** Quarter-hour amounts at interval end; sum only whole, aligned intervals with ≥90% coverage. */
+export function measuredPrecipitation(points:TimedReading[],now:Date,hours:number) {
+  const end=Math.floor(+now/900_000)*900_000, start=end-hours*3_600_000;
+  const unique=new Map(points.filter(p=>Date.parse(p.observedAt)>start&&Date.parse(p.observedAt)<=end&&Date.parse(p.observedAt)%900_000===0).map(p=>[p.observedAt,p]));
+  const valid=[...unique.values()].filter(p=>p.value!=null&&Number.isFinite(p.value)&&p.value>=0);
+  const expected=hours*4,coverage=valid.length/expected;
+  return {hours,from:new Date(start).toISOString(),to:new Date(end).toISOString(),coverage:Math.min(1,coverage),
+    totalMm:coverage>=T.historyCoverage?Math.round(valid.reduce((n,p)=>n+p.value!,0)*10)/10:null,
+    complete:coverage>=T.historyCoverage};
+}
 export function percentile(values:number[], p:number):number|null {
   const sorted=values.filter(Number.isFinite).sort((a,b)=>a-b);
   if(!sorted.length||p<0||p>1)return null;
