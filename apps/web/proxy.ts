@@ -3,10 +3,11 @@ import { NextResponse } from 'next/server';
 
 /**
  * Next.js 16 proxy (formerly middleware). Clerk authenticates every request; all routes
- * except the ones below require a signed-in user. Organization checks happen server-side
- * in the dashboard layout and again in the Fastify API.
+ * except the ones below require a signed-in user. `/` is the public landing page. Organization
+ * checks happen server-side in the dashboard layout and again in the Fastify API.
  */
-const isPublicRoute = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)', '/onboarding(.*)']);
+const PUBLIC_ROUTES = ['/', '/sign-in(.*)', '/sign-up(.*)', '/onboarding(.*)'];
+const isPublicRoute = createRouteMatcher(PUBLIC_ROUTES);
 const isDemoRoute = createRouteMatcher(['/demo(.*)']);
 // API route handlers enforce auth themselves and answer 401 JSON instead of an HTML redirect.
 const isApiRoute = createRouteMatcher(['/api(.*)']);

@@ -28,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           signUpUrl="/sign-up"
           signInFallbackRedirectUrl="/overview"
           signUpFallbackRedirectUrl="/onboarding"
-          afterSignOutUrl="/sign-in"
+          afterSignOutUrl="/"
           taskUrls={{ 'choose-organization': '/onboarding' }}
         >
           {children}

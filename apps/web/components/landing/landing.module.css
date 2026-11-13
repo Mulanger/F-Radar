@@ -1,0 +1,57 @@
+/* Landing page (`/`) – interaction states and responsive rules the design expressed with
+   `style-hover` / `style-focus`. Layout and visual values stay inline in the components. */
+
+.root {
+  min-height: 100vh;
+  background: #f3f4f2;
+  color: #14171a;
+  overflow-x: clip;
+  font-family: var(--font-geist-sans), 'Geist', ui-sans-serif, system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+.root ::selection { background: #d6e6ec; }
+.root a { color: #14171a; text-decoration: none; }
+.root a:hover { color: #4a5157; }
+
+.navLink { color: #4a5157 !important; transition: background 0.2s, color 0.2s; }
+.navLink:hover { background: rgba(20, 23, 26, 0.05); color: #14171a !important; }
+.ghost { transition: background 0.2s; }
+.ghost:hover { background: rgba(20, 23, 26, 0.05); }
+.primary { color: #ffffff !important; transition: background 0.2s; }
+.primary:hover { background: #2a2f34 !important; color: #ffffff !important; }
+.secondary { transition: background 0.2s; }
+.secondary:hover { background: #ffffff !important; color: #14171a !important; }
+.footerLink:hover { color: #4a5157 !important; }
+
+.emailInput { transition: border-color 0.2s, box-shadow 0.2s; }
+.emailInput:focus { border-color: rgba(20, 23, 26, 0.35) !important; box-shadow: 0 0 0 4px rgba(20, 23, 26, 0.06); outline: none; }
+
+.root a:focus-visible,
+.root button:focus-visible {
+  outline: 2px solid oklch(0.6 0.1 225);
+  outline-offset: 2px;
+}
+
+.canvas { touch-action: pan-y; cursor: grab; }
+
+/* Scroll-reveal: only animate when the visitor has not asked for reduced motion. */
+.reveal { transition: opacity 0.6s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.revealHidden { opacity: 0; transform: translateY(20px); }
+@media (prefers-reduced-motion: reduce) {
+  .reveal { transition: none; }
+  .revealHidden { opacity: 1; transform: none; }
+}
+
+/* Phones: the hero 3D column gets a fixed, comfortable height; secondary nav links are hidden by
+   the design's own overflow trick, the drag hint is not useful on touch. */
+@media (max-width: 640px) {
+  .heroCol { min-height: 520px !important; }
+  .dragHint { display: none; }
+  .navCtaSecondary { display: none !important; }
+}
+
+/* The section links only make sense when at least one fits whole; below that only logo + CTA remain. */
+.navLinks { white-space: nowrap; }
+@media (max-width: 560px) {
+  .navLinks { visibility: hidden; }
+}
