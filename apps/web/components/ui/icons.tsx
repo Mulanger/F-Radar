@@ -84,3 +84,9 @@ export const IconDrop = ({ size = 14, sw = 1.8, ...r }: P) => (
 export const IconLeaf = ({ size = 14, sw = 1.8, ...r }: P) => (
   <svg {...base(size, sw, r)}><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z" /><path d="M2 21c0-3 1.9-5.4 5.1-6" /></svg>
 );
+export const IconMenu = ({ size = 20, sw = 1.8, ...r }: P) => (
+  <svg {...base(size, sw, r)}><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+);
+export const IconClose = ({ size = 18, sw = 1.8, ...r }: P) => (
+  <svg {...base(size, sw, r)}><path d="M6 6l12 12M18 6 6 18" /></svg>
+);

@@ -14,7 +14,7 @@ export function WeatherCharts({ d, isDemo, onMetric }: { d: DetailVM; isDemo: bo
           <div style={cardTitle}>Väderförhållanden</div>
           <div style={cardSub}>{isDemo ? 'SMHI punktprognos · kommande 24 h · syntetisk demoserie' : 'SMHI punktprognos · kommande 24 h'}</div>
         </div>
-        <div role="tablist" aria-label="Prognosvärde" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 16, background: C.page }}>
+        <div role="tablist" aria-label="Prognosvärde" className="fr-tabs" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 16, background: C.page }}>
           {d.tabs.map((t) => (
             <button
               key={t.key}

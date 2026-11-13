@@ -69,7 +69,7 @@ export function LocalEventsMap({ d }: { d: DetailVM }) {
         <div style={{ fontSize: 15, fontWeight: 600 }}>Närområde</div>
         <div style={{ fontSize: 12, color: C.text3 }}>Larmradie 1 km · händelser · översvämningszon</div>
       </div>
-      <div style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 500, display: 'flex', gap: 14, padding: '10px 14px', borderRadius: 14, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(16px)', fontSize: 12, color: C.text2 }}>
+      <div className="fr-map-legend" style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 500, display: 'flex', gap: 14, padding: '10px 14px', borderRadius: 14, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(16px)', fontSize: 12, color: C.text2 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', border: `1.5px dashed ${d.c}` }} />Larmradie</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: 'oklch(0.65 0.15 55)' }} />Händelse</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: 'rgba(84,148,176,0.45)' }} />Översvämningszon</span>

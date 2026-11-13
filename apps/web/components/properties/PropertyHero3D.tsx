@@ -25,6 +25,7 @@ export function PropertyHero3D({ d, isDemo }: { d: DetailVM; isDemo: boolean }) 
 
   return (
     <div
+      className="fr-hero"
       style={{
         ...card,
         flex: '1.7 1 640px',
@@ -35,16 +36,17 @@ export function PropertyHero3D({ d, isDemo }: { d: DetailVM; isDemo: boolean }) 
       }}
     >
       <ThreeScene config={config} />
-      <div style={{ position: 'absolute', top: 20, left: 22, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 20, ...glass(0.6, 14), fontSize: 12, color: C.text2 }}>
+      <div className="fr-hero-intro" style={{ position: 'absolute', top: 20, left: 22, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 20, ...glass(0.6, 14), fontSize: 12, color: C.text2 }}>
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: d.c, animation: 'frBreath 2s infinite' }} />
         {isDemo ? 'Illustrerad fastighet (demo)' : 'Illustration – inte en modell av den verkliga byggnaden'} · {d.area}
       </div>
-      <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
+      <div className="fr-hero-stats" style={{ position: 'absolute', top: 20, right: 20, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
         {panel(`Vattennivå · ${d.water.body}`, d.water.level, d.water.trend, d.water.fc)}
         {panel('Larmradie 1 km', `${d.eventsN} händelser`, `${d.crisisN} kris · ${d.trafficN} trafik`, C.text4)}
       </div>
-      <div style={{ position: 'absolute', left: 20, bottom: 20, right: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      <div className="fr-hero-bottom" style={{ position: 'absolute', left: 20, bottom: 20, right: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <div
+          className="fr-hero-strip"
           style={{
             display: 'flex', gap: 22, padding: '14px 18px', borderRadius: 18, background: 'rgba(255,255,255,0.62)',
             backdropFilter: 'blur(18px) saturate(1.4)', WebkitBackdropFilter: 'blur(18px) saturate(1.4)', border: '1px solid rgba(255,255,255,0.9)',

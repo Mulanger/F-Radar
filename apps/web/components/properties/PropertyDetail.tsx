@@ -113,7 +113,7 @@ export function PropertyDetail() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+      <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         <PropertyHero3D d={d} isDemo={isDemo} />
         <div style={{ flex: '1 1 340px', display: 'flex', flexDirection: 'column', gap: 20 }}>
           <PropertyRiskPanel d={d} isDemo={isDemo} />
@@ -123,19 +123,19 @@ export function PropertyDetail() {
 
       <EnvironmentalMetrics d={d} isDemo={isDemo} />
 
-      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+      <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         <WeatherCharts d={d} isDemo={isDemo} onMetric={ds.setMetric} />
         <WaterRiskPanel d={d} />
       </div>
 
       {d.live && <MonitoringContextPanel d={d} />}
 
-      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+      <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         <LocalEventsPanel d={d} />
         <LocalEventsMap d={d} />
       </div>
 
-      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+      <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         <PropertyTimeline d={d} />
         <SMSRulesPanel ref={smsRef} d={d} onToggleSms={() => ds.toggleSms(s)} onToggleRule={ds.toggleRule} />
       </div>

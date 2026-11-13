@@ -1,11 +1,12 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { C, monoChip } from '@/lib/design/tokens';
 import { formatClock } from '@fastighetsradar/domain';
-import { IconAlert, IconAnalytics, IconBuilding, IconDashboard, IconMap, IconMessage, IconSliders } from '../ui/icons';
+import { IconAlert, IconAnalytics, IconBuilding, IconClose, IconDashboard, IconMap, IconMenu, IconMessage, IconSliders } from '../ui/icons';
 
 const navItem: React.CSSProperties = {
   display: 'flex',
@@ -39,9 +40,24 @@ function PendingLink({ icon, label, badge }: { icon: React.ReactNode; label: str
 export function Sidebar() {
   const pathname = usePathname() ?? '';
   const { portfolio, selectedId, mode, basePath, openProperty, goOverview } = useDashboard();
+  // Below 900 px the sidebar becomes a slide-in drawer (see `.fr-sidebar` in globals.css);
+  // on desktop this state has no visual effect.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPath, setMenuPath] = useState(pathname);
+  if (menuPath !== pathname) {
+    setMenuPath(pathname);
+    setMenuOpen(false);
+  }
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
   const nav = (fn: () => void) => (e: React.MouseEvent) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
     e.preventDefault();
+    setMenuOpen(false);
     fn();
   };
   const isSms = pathname === '/sms-rules';
@@ -62,74 +78,108 @@ export function Sidebar() {
   const STATUS_SV: Record<string, string> = { degraded: 'väntar/fel', stale: 'inaktuell', source_unavailable: 'otillgänglig' };
 
   return (
-    <aside
-      style={{
-        width: 236, flexShrink: 0, position: 'sticky', top: 0, height: '100vh', boxSizing: 'border-box', padding: '22px 16px',
-        display: 'flex', flexDirection: 'column', gap: 28, borderRight: '1px solid rgba(20,23,26,0.06)', background: C.sidebar,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 8px' }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: C.ink, display: 'grid', placeItems: 'center', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ width: 16, height: 16, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.9)', boxSizing: 'border-box', display: 'grid', placeItems: 'center' }}>
-            <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'oklch(0.78 0.11 215)' }} />
-          </div>
-        </div>
-        <div style={{ fontSize: 17, fontWeight: 600, letterSpacing: '-0.02em' }}>FastighetsRadar</div>
-      </div>
-
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }} aria-label="Huvudmeny">
-        <div style={sectionLabel}>Bevakning</div>
-        <Link href={`${basePath}/overview`} onClick={nav(goOverview)} aria-current={isOverview ? 'page' : undefined} style={{ ...navItem, ...(isOverview ? navOn : navOff) }}>
-          <IconDashboard />
-          Översikt
-        </Link>
-        <Link
-          href={selectedId ? `${basePath}/properties/${encodeURIComponent(selectedId)}` : `${basePath}/overview`}
-          onClick={nav(() => (selectedId ? openProperty(selectedId) : goOverview()))}
-          aria-current={!isOverview && !isSms ? 'page' : undefined}
-          style={{ ...navItem, ...(!isOverview && !isSms ? navOn : navOff) }}
+    <>
+      <div className="fr-mobilebar">
+        <Logo />
+        <button
+          type="button"
+          onClick={() => setMenuOpen(true)}
+          aria-label="Öppna meny"
+          aria-expanded={menuOpen}
+          aria-controls="fr-sidebar"
+          style={menuBtn}
         >
-          <IconBuilding />
-          Fastigheter
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: C.text4 }}>{portfolio.properties.length}</span>
-        </Link>
-        <PendingLink
-          icon={<IconAlert />}
-          label="Larm"
-          badge={totalAlerts > 0 ? <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: '#fff', background: 'oklch(0.6 0.18 28)', borderRadius: 20, padding: '2px 7px' }}>{totalAlerts}</span> : undefined}
-        />
-        <PendingLink icon={<IconMap />} label="Kartvy" />
-        <PendingLink icon={<IconAnalytics />} label="Analys" />
-        <div style={{ ...sectionLabel, padding: '22px 12px 8px' }}>Konfiguration</div>
-        {isDemo ? <PendingLink icon={<IconMessage />} label="SMS-regler" /> : <Link href="/sms-rules" aria-current={isSms?'page':undefined} style={{...navItem,...(isSms?navOn:navOff)}}><IconMessage/>SMS-regler</Link>}
-        <PendingLink icon={<IconSliders />} label="Inställningar" />
-      </nav>
-
-      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ borderRadius: 18, padding: 14, background: C.white, border: '1px solid rgba(20,23,26,0.05)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600 }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: isDemo ? C.demo : allOk ? C.live : 'oklch(0.6 0.15 55)', animation: 'frBreath 2.4s ease-in-out infinite' }} />
-            {isDemo ? 'Demodata · inte live' : allOk ? 'Alla källor aktuella' : connected.length ? `${problems.length} av ${active.length} källor ej aktuella` : 'Offentliga data ej anslutna'}
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {chips.length === 0 && <span style={{ fontSize: 11.5, color: C.text3 }}>Inga datakällor är anslutna ännu.</span>}
-            {chips.map((s) => (
-              <span key={s.sourceId} style={{ ...monoChip, ...(s.status !== 'ok' && !isDemo ? { color: 'oklch(0.55 0.13 55)' } : {}) }} title={`${s.label}: ${SOURCE_STATUS_SV[s.status] ?? s.status}${s.note ? ' – ' + s.note : ''}`}>
-                {s.label}
-              </span>
-            ))}
-          </div>
-          {!isDemo && problems.length > 0 && (
-            <div style={{ fontSize: 11, color: C.text3, lineHeight: 1.4 }}>
-              {problems.map((s) => `${s.label}: ${STATUS_SV[s.status] ?? s.status}`).join(' · ')}
+          <IconMenu />
+        </button>
+      </div>
+      <div className={`fr-sidebar-backdrop${menuOpen ? ' fr-open' : ''}`} onClick={() => setMenuOpen(false)} aria-hidden="true" />
+      <aside
+        id="fr-sidebar"
+        className={`fr-sidebar${menuOpen ? ' fr-open' : ''}`}
+        style={{
+          width: 236, flexShrink: 0, position: 'sticky', top: 0, height: '100vh', boxSizing: 'border-box', padding: '22px 16px',
+          display: 'flex', flexDirection: 'column', gap: 28, borderRight: '1px solid rgba(20,23,26,0.06)', background: C.sidebar,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 8px' }}>
+          <Logo />
+          <button type="button" className="fr-only-compact" onClick={() => setMenuOpen(false)} aria-label="Stäng meny" style={menuBtn}>
+            <IconClose />
+          </button>
+        </div>
+  
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }} aria-label="Huvudmeny">
+          <div style={sectionLabel}>Bevakning</div>
+          <Link href={`${basePath}/overview`} onClick={nav(goOverview)} aria-current={isOverview ? 'page' : undefined} style={{ ...navItem, ...(isOverview ? navOn : navOff) }}>
+            <IconDashboard />
+            Översikt
+          </Link>
+          <Link
+            href={selectedId ? `${basePath}/properties/${encodeURIComponent(selectedId)}` : `${basePath}/overview`}
+            onClick={nav(() => (selectedId ? openProperty(selectedId) : goOverview()))}
+            aria-current={!isOverview && !isSms ? 'page' : undefined}
+            style={{ ...navItem, ...(!isOverview && !isSms ? navOn : navOff) }}
+          >
+            <IconBuilding />
+            Fastigheter
+            <span style={{ marginLeft: 'auto', fontSize: 12, color: C.text4 }}>{portfolio.properties.length}</span>
+          </Link>
+          <PendingLink
+            icon={<IconAlert />}
+            label="Larm"
+            badge={totalAlerts > 0 ? <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: '#fff', background: 'oklch(0.6 0.18 28)', borderRadius: 20, padding: '2px 7px' }}>{totalAlerts}</span> : undefined}
+          />
+          <PendingLink icon={<IconMap />} label="Kartvy" />
+          <PendingLink icon={<IconAnalytics />} label="Analys" />
+          <div style={{ ...sectionLabel, padding: '22px 12px 8px' }}>Konfiguration</div>
+          {isDemo ? <PendingLink icon={<IconMessage />} label="SMS-regler" /> : <Link href="/sms-rules" aria-current={isSms?'page':undefined} style={{...navItem,...(isSms?navOn:navOff)}}><IconMessage/>SMS-regler</Link>}
+          <PendingLink icon={<IconSliders />} label="Inställningar" />
+        </nav>
+  
+        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ borderRadius: 18, padding: 14, background: C.white, border: '1px solid rgba(20,23,26,0.05)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600 }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: isDemo ? C.demo : allOk ? C.live : 'oklch(0.6 0.15 55)', animation: 'frBreath 2.4s ease-in-out infinite' }} />
+              {isDemo ? 'Demodata · inte live' : allOk ? 'Alla källor aktuella' : connected.length ? `${problems.length} av ${active.length} källor ej aktuella` : 'Offentliga data ej anslutna'}
             </div>
-          )}
-          <div style={{ fontSize: 11.5, color: C.text4 }}>
-            {isDemo ? `Demoögonblick ${formatClock(portfolio.generatedAt)} · ingen synk` : lastSync ? `Senast synkad ${formatClock(lastSync)}` : 'Ingen data synkad ännu'}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {chips.length === 0 && <span style={{ fontSize: 11.5, color: C.text3 }}>Inga datakällor är anslutna ännu.</span>}
+              {chips.map((s) => (
+                <span key={s.sourceId} style={{ ...monoChip, ...(s.status !== 'ok' && !isDemo ? { color: 'oklch(0.55 0.13 55)' } : {}) }} title={`${s.label}: ${SOURCE_STATUS_SV[s.status] ?? s.status}${s.note ? ' – ' + s.note : ''}`}>
+                  {s.label}
+                </span>
+              ))}
+            </div>
+            {!isDemo && problems.length > 0 && (
+              <div style={{ fontSize: 11, color: C.text3, lineHeight: 1.4 }}>
+                {problems.map((s) => `${s.label}: ${STATUS_SV[s.status] ?? s.status}`).join(' · ')}
+              </div>
+            )}
+            <div style={{ fontSize: 11.5, color: C.text4 }}>
+              {isDemo ? `Demoögonblick ${formatClock(portfolio.generatedAt)} · ingen synk` : lastSync ? `Senast synkad ${formatClock(lastSync)}` : 'Ingen data synkad ännu'}
+            </div>
           </div>
         </div>
+      </aside>
+    </>
+  );
+}
+
+const menuBtn: React.CSSProperties = {
+  marginLeft: 'auto', width: 40, height: 40, borderRadius: 12, border: '1px solid rgba(20,23,26,0.06)', background: C.white,
+  display: 'grid', placeItems: 'center', cursor: 'pointer', color: C.ink, padding: 0,
+};
+
+function Logo() {
+  return (
+    <>
+      <div style={{ width: 32, height: 32, borderRadius: 10, background: C.ink, display: 'grid', placeItems: 'center', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ width: 16, height: 16, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.9)', boxSizing: 'border-box', display: 'grid', placeItems: 'center' }}>
+          <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'oklch(0.78 0.11 215)' }} />
+        </div>
       </div>
-    </aside>
+      <div style={{ fontSize: 17, fontWeight: 600, letterSpacing: '-0.02em' }}>FastighetsRadar</div>
+    </>
   );
 }
 

@@ -19,6 +19,7 @@ export function PortfolioHero3D({ vm, isDemo }: { vm: OverviewVM; isDemo: boolea
 
   return (
     <div
+      className="fr-hero"
       style={{
         ...card,
         flex: '1.5 1 620px',
@@ -30,7 +31,7 @@ export function PortfolioHero3D({ vm, isDemo }: { vm: OverviewVM; isDemo: boolea
       }}
     >
       <ThreeScene config={config} />
-      <div style={{ position: 'absolute', top: 22, left: 24, display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 300 }}>
+      <div className="fr-hero-intro" style={{ position: 'absolute', top: 22, left: 24, display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 300 }}>
         <div style={{ display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 20, ...glass(0.6, 14), fontSize: 12, color: C.text2 }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: isDemo ? C.demo : C.live, animation: 'frBreath 2.4s ease-in-out infinite' }} />
           {isDemo ? 'Demoportfölj' : 'Illustration av portföljen'} · {h.count} {h.count === 1 ? 'fastighet' : 'fastigheter'}
@@ -43,6 +44,7 @@ export function PortfolioHero3D({ vm, isDemo }: { vm: OverviewVM; isDemo: boolea
         )}
       </div>
       <div
+        className="fr-hero-bottom"
         style={{
           position: 'absolute', left: 24, bottom: 22, width: 260, padding: 16, borderRadius: 20,
           background: 'rgba(255,255,255,0.62)', backdropFilter: 'blur(18px) saturate(1.4)', WebkitBackdropFilter: 'blur(18px) saturate(1.4)',
@@ -69,7 +71,7 @@ export function PortfolioHero3D({ vm, isDemo }: { vm: OverviewVM; isDemo: boolea
           </div>
         </div>
       </div>
-      <div style={{ position: 'absolute', right: 20, top: 20, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
+      <div className="fr-hero-stats" style={{ position: 'absolute', right: 20, top: 20, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
         {stat('Medeltemperatur', `${h.avgTemp}°C`)}
         {stat('Mest nederbörd 24 h', `${h.maxRain} mm`, h.maxRainAt)}
         {stat('Hårdaste byvind', `${h.gust} m/s`, h.gustAt)}

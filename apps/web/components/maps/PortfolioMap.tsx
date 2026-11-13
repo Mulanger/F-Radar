@@ -89,15 +89,15 @@ export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen }: Pr
   return (
     <div style={{ ...card, flex: '1.5 1 620px', height: 460, position: 'relative', overflow: 'hidden', background: C.mapBg }}>
       <div ref={elRef} style={{ position: 'absolute', inset: 0, zIndex: 0 }} role="region" aria-label="Portföljkarta" />
-      <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 500, padding: '12px 16px', borderRadius: 16, ...overlay }}>
+      <div className="fr-map-title" style={{ position: 'absolute', top: 16, left: 16, zIndex: 500, padding: '12px 16px', borderRadius: 16, ...overlay }}>
         <div style={{ fontSize: 15, fontWeight: 600 }}>Portföljkarta</div>
         <div style={{ fontSize: 12, color: C.text3 }}>Klicka på en nål för att öppna fastigheten</div>
       </div>
-      <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 500, display: 'flex', gap: 4, padding: 4, borderRadius: 16, ...overlay }}>
+      <div className="fr-map-layers" style={{ position: 'absolute', top: 16, right: 16, zIndex: 500, display: 'flex', gap: 4, padding: 4, borderRadius: 16, ...overlay }}>
         <button onClick={() => onToggleLayer('weather')} aria-pressed={layers.weather} style={layerBtn(layers.weather)}>Nederbördslager</button>
         <button onClick={() => onToggleLayer('flood')} aria-pressed={layers.flood} style={layerBtn(layers.flood)}>Översvämningszoner</button>
       </div>
-      <div style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 500, display: 'flex', gap: 14, padding: '10px 14px', borderRadius: 14, ...overlay }}>
+      <div className="fr-map-legend" style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 500, display: 'flex', gap: 14, padding: '10px 14px', borderRadius: 14, ...overlay }}>
         {legend.map((l) => (
           <div key={l.key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.text2 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: l.c }} />
@@ -106,7 +106,7 @@ export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen }: Pr
           </div>
         ))}
       </div>
-      <div style={{ position: 'absolute', bottom: 16, right: 16, zIndex: 500, display: 'flex', flexDirection: 'column', borderRadius: 14, overflow: 'hidden', background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(255,255,255,0.9)' }}>
+      <div className="fr-map-zoom" style={{ position: 'absolute', bottom: 16, right: 16, zIndex: 500, display: 'flex', flexDirection: 'column', borderRadius: 14, overflow: 'hidden', background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(255,255,255,0.9)' }}>
         <button onClick={() => mapRef.current?.map.zoomIn()} aria-label="Zooma in" style={zoomBtn}>+</button>
         <div style={{ height: 1, background: 'rgba(20,23,26,0.08)' }} />
         <button onClick={() => mapRef.current?.map.zoomOut()} aria-label="Zooma ut" style={zoomBtn}>−</button>

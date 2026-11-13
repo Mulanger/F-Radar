@@ -36,7 +36,7 @@ export function PortfolioOverview() {
               : 'Bevakning av väder, varningar och offentliga data för dina fastigheter'}
           </p>
         </div>
-        <div role="tablist" aria-label="Fastighetsgrupp" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 24, background: C.white, border: '1px solid rgba(20,23,26,0.06)' }}>
+        <div role="tablist" aria-label="Fastighetsgrupp" className="fr-tabs" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 24, background: C.white, border: '1px solid rgba(20,23,26,0.06)' }}>
           {vm.groups.map((g) => (
             <button
               key={g.id}
@@ -55,19 +55,19 @@ export function PortfolioOverview() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+      <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         <PortfolioHero3D vm={vm} isDemo={isDemo} />
         <PortfolioKPIs vm={vm} />
       </div>
 
-      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+      <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         <PortfolioMap list={mapList} legend={vm.legend} layers={ds.layers} onToggleLayer={ds.toggleLayer} onOpen={(id) => ds.openProperty(id)} />
         <AlertFeed vm={vm} isDemo={isDemo} onOpen={(id) => ds.openProperty(id)} />
       </div>
 
       {vm.isEmpty ? <EmptyPortfolio /> : <PropertyStatusTable vm={vm} smsInteractive={ds.smsInteractive} onOpen={(id) => ds.openProperty(id)} onToggleSms={ds.toggleSms} />}
 
-      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+      <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         <PortfolioAnalytics vm={vm} />
         <UpcomingConditions vm={vm} />
       </div>

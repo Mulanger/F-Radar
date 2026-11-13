@@ -40,6 +40,79 @@ button { font-family: inherit; }
   overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
 }
 
+/*
+ * Responsive shell (phones and small tablets). Desktop styles live inline in the components and are
+ * untouched; everything below only applies under 900 px. `!important` is needed to win over inline styles.
+ */
+.fr-mobilebar, .fr-sidebar-backdrop { display: none; }
+.fr-only-compact { display: none !important; }
+
+@media (max-width: 899.98px) {
+  .fr-shell { flex-direction: column; }
+  /* overflow-x: clip guards against decorative overflow (e.g. chart tooltips at the edge) without breaking sticky. */
+  .fr-main { padding: 16px 16px 40px !important; overflow-x: clip; }
+
+  /* Compact top bar with the hamburger; the sidebar becomes a slide-in drawer. */
+  .fr-mobilebar {
+    display: flex; align-items: center; gap: 10px;
+    position: sticky; top: 0; z-index: 1500;
+    padding: 10px 16px;
+    background: rgba(247, 248, 246, 0.92);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(20, 23, 26, 0.06);
+  }
+  .fr-sidebar {
+    position: fixed !important; top: 0; left: 0; bottom: 0; z-index: 1700;
+    width: min(300px, 86vw) !important; height: 100vh !important; height: 100dvh !important;
+    overflow-y: auto; gap: 24px !important;
+    box-shadow: 0 24px 60px -20px rgba(20, 23, 26, 0.35);
+    transform: translateX(-100%); visibility: hidden;
+    transition: transform .25s ease, visibility 0s linear .25s;
+  }
+  .fr-sidebar.fr-open { transform: none; visibility: visible; transition: transform .25s ease; }
+  .fr-sidebar-backdrop.fr-open {
+    display: block; position: fixed; inset: 0; z-index: 1600;
+    background: rgba(20, 23, 26, 0.28);
+  }
+  .fr-only-compact { display: grid !important; }
+
+  /* Header: search on its own full-width row, controls wrap below. */
+  .fr-header { margin-bottom: 20px !important; gap: 10px !important; }
+  .fr-header-search { flex: 1 1 100% !important; max-width: none !important; }
+  .fr-header-actions { margin-left: 0 !important; flex-wrap: wrap; }
+  .fr-hide-compact { display: none !important; }
+
+  /* Segmented tab bars scroll sideways instead of squeezing their labels. */
+  .fr-tabs { max-width: 100%; overflow-x: auto; scrollbar-width: none; box-sizing: border-box; }
+  .fr-tabs > * { flex-shrink: 0; white-space: nowrap; }
+}
+
+/* Phones: one card per row, hero/map overlays stacked instead of overlapping. */
+@media (max-width: 599.98px) {
+  .fr-main h1 { font-size: 32px !important; }
+  .fr-row > * { flex-basis: 100% !important; min-width: 0 !important; }
+
+  /* 3D heroes: intro, stats and readouts flow around a fixed-height scene. */
+  .fr-hero { display: flex; flex-direction: column; gap: 10px; padding: 16px; min-height: 0 !important; }
+  .fr-hero > :first-child { position: relative !important; inset: auto !important; height: 270px; order: 2; margin: -10px -16px; }
+  .fr-hero > .fr-hero-intro, .fr-hero > .fr-hero-stats, .fr-hero > .fr-hero-bottom {
+    position: relative !important; top: auto !important; right: auto !important; bottom: auto !important; left: auto !important;
+    max-width: none !important; width: auto !important; box-sizing: border-box;
+  }
+  .fr-hero > .fr-hero-intro { order: 1; }
+  .fr-hero > .fr-hero-stats { order: 3; flex-direction: row !important; flex-wrap: wrap; align-items: stretch !important; }
+  .fr-hero-stats > * { flex: 1 1 130px; min-width: 0 !important; box-sizing: border-box; }
+  .fr-hero > .fr-hero-bottom { order: 4; }
+  .fr-hero-strip { flex: 1 1 100%; flex-wrap: wrap; gap: 12px 20px !important; }
+
+  /* Portfolio map: title full width, layer switch beneath it, legend wraps clear of the zoom buttons. */
+  .fr-map-title { right: 16px; }
+  .fr-map-layers { top: 92px !important; right: auto !important; left: 16px; }
+  .fr-map-legend { right: 68px; flex-wrap: wrap; gap: 4px 12px !important; }
+  /* Keep the (wrapping) Leaflet attribution visible below the overlays. */
+  .fr-map-legend, .fr-map-zoom { bottom: 40px !important; }
+}
+
 /* IMPLEMENTATION.md §14.3: prefers-reduced-motion disables non-essential animation. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

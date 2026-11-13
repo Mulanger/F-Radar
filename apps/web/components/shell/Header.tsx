@@ -29,15 +29,15 @@ export function Header() {
   const viewer = portfolio.viewer;
 
   return (
-    <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 26, flexWrap: 'wrap' }}>
-      <label style={{ ...pill, flex: '1 1 280px', maxWidth: 420, padding: '0 16px', color: C.text4, fontSize: 14 }}>
+    <header className="fr-header" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 26, flexWrap: 'wrap' }}>
+      <label className="fr-header-search" style={{ ...pill, flex: '1 1 280px', maxWidth: 420, padding: '0 16px', color: C.text4, fontSize: 14 }}>
         <IconSearch />
         <span className="fr-sr-only">Sök</span>
         <input
           placeholder="Sök fastigheter, adresser, larm…"
           style={{ border: 'none', outline: 'none', background: 'transparent', font: 'inherit', color: C.ink, flex: 1, minWidth: 0 }}
         />
-        <span style={{ fontFamily: FONT_MONO, fontSize: 11, padding: '2px 6px', borderRadius: 6, background: C.chip }}>⌘K</span>
+        <span className="fr-hide-compact" style={{ fontFamily: FONT_MONO, fontSize: 11, padding: '2px 6px', borderRadius: 6, background: C.chip }}>⌘K</span>
       </label>
 
       <div style={{ position: 'relative' }}>
@@ -68,7 +68,7 @@ export function Header() {
       </div>
       {!isDemo && <LiveStatus generatedAt={portfolio.generatedAt} />}
 
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div className="fr-header-actions" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
         <button
           aria-label="Aviseringar"
           style={{ width: 44, height: 44, borderRadius: '50%', background: C.white, border: '1px solid rgba(20,23,26,0.06)', display: 'grid', placeItems: 'center', position: 'relative', cursor: 'pointer', color: C.ink }}

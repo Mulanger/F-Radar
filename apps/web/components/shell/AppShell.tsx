@@ -12,9 +12,9 @@ export function AppShell({ mode, basePath, portfolio, children }: { mode: DataMo
   return (
     <DashboardStateProvider mode={mode} basePath={basePath} portfolio={portfolio}>
       <PropertyEditorHost>
-        <div style={{ display: 'flex', minHeight: '100vh', background: C.page }}>
+        <div className="fr-shell" style={{ display: 'flex', minHeight: '100vh', background: C.page }}>
           <Sidebar />
-          <main style={{ flex: 1, minWidth: 0, padding: '18px 28px 48px', boxSizing: 'border-box' }}>
+          <main className="fr-main" style={{ flex: 1, minWidth: 0, padding: '18px 28px 48px', boxSizing: 'border-box' }}>
             <Header />
             {children}
           </main>
