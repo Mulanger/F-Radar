@@ -16,6 +16,8 @@ import {
   parseKrisinformation,
   parseMcfHit,
   parseMetObs,
+  parseMetObsStationSeries,
+  fetchMetObsStationSeries,
   parseScbMunicipalities,
   parseScbStats,
   parseSguArea,
@@ -95,6 +97,38 @@ describe('SMHI MetObs quarter-hour series', () => {
     const data = parseMetObs(raw, METOBS_PARAMETERS.find(p=>p.key==='precipitation_15min')!)!;
     expect(data.length).toBe(raw.station.reduce((n:number,s:{value:unknown[]})=>n+s.value.length,0));
     expect(data.every(x=>x.parameter==='precipitation_15min')).toBe(true);
+  });
+});
+
+describe('SMHI MetObs per-station series (backfill)', () => {
+  const P15 = METOBS_PARAMETERS.find((p) => p.key === 'precipitation_15min')!;
+  const station = { stationId: '98230', name: 'Stockholm-Observatoriekullen A', lat: 59.3417, lon: 18.0549 };
+
+  it('parses every quarter-hour value of a recorded latest-day response, sorted and tagged with the stored station', () => {
+    const raw = fx('smhi-metobs-14-station-latest-day.json');
+    const data = parseMetObsStationSeries(raw, station, P15)!;
+    expect(data).toHaveLength(raw.value.length);
+    expect(data[0]).toMatchObject({ sourceId: 'smhi_observations', stationId: '98230', parameter: 'precipitation_15min', lat: 59.3417, lon: 18.0549, unit: 'mm' });
+    expect(data.every((x, i) => i === 0 || data[i - 1]!.observedAt! < x.observedAt!)).toBe(true);
+    expect(data.every((x) => Date.parse(x.observedAt!) % 900_000 === 0)).toBe(true);
+  });
+
+  it('skips missing values instead of turning them into 0', () => {
+    const raw = fx('smhi-metobs-14-station-latest-day.json');
+    raw.value[0].value = null;
+    raw.value[1].value = '9999';
+    expect(parseMetObsStationSeries(raw, station, P15)).toHaveLength(raw.value.length - 2);
+    expect(parseMetObsStationSeries({ value: 'nope' }, station, P15)).toBeNull();
+  });
+
+  it('builds the per-station URL and refuses a malformed station id', async () => {
+    const seen: string[] = [];
+    const c = ctx(async (url) => (seen.push(url), json(fx('smhi-metobs-14-station-latest-day.json'))));
+    const r = await fetchMetObsStationSeries(station, P15, 'latest-months', c);
+    expect(r.ok).toBe(true);
+    expect(seen[0]).toBe('https://opendata-download-metobs.smhi.se/api/version/1.0/parameter/14/station/98230/period/latest-months/data.json');
+    expect(await fetchMetObsStationSeries({ ...station, stationId: '../x' }, P15, 'latest-day', c)).toMatchObject({ ok: false, error: 'invalid_payload' });
+    expect(seen).toHaveLength(1);
   });
 });
 

@@ -165,4 +165,6 @@ SMHI HydroObs parameter 2, m³/s, alla 15-minutersvärden från latest-hour. Sta
 
 ## Historik och kvartsmätt nederbörd (2026-11-13)
 
+Bakåtfyllning: SMHI MetObs per station, `{base}/version/1.0/parameter/14/station/{id}/period/latest-months/data.json` (verifierad 2026-11-13: ca 4 månader kvartsvärden, ca 0,6 MB per station; perioderna latest-hour, latest-day, latest-months och corrected-archive finns). Används bara av jobbet `observation_backfill` för stationer med luckor nära aktiva fastigheter; högst tre stationer per körning och ett försök per station per 6 timmar. Live-rökprov: `npm run test:live -- -t "per-station"`.
+
 Migration 0005 omfattar nowcast_points, hydrology_references/checks och observation_history, inklusive källkatalogens nya poster. Historik 35 dygn, hav nedsamplat till exakta 10 min; bara stationer nära aktiva fastigheter lagras. MetObs parameter 14 och alla värden i latest-hour samlas varje 15 min. Täckningskontrollerade summor 1/24/72 h och 6/24 h-trender visas utan ändrat riskindex. Se ADR 0004 för volym och avgränsningar.

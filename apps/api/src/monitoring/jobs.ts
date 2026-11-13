@@ -3,6 +3,7 @@ import type { ServerEnv } from '@fastighetsradar/config';
 import { NotificationService } from '../notifications/service';
 import {
   stationsNeedingFlowReference, saveFlowReferences,
+  stationsNeedingBackfill, markBackfillChecked,
   insertObservationHistory,
   applyRetention,
   loadNowcastCache, saveNowcastPoint, revalidateNowcastPoint,
@@ -33,6 +34,7 @@ import {
   SGU_ATTRIBUTION,
   TRAFIKVERKET_POINTS_PER_REQUEST,
   fetchHydrology, fetchHydrologyReference,
+  fetchMetObsStationSeries,
   fetchOceanography,
   fetchMetNowcast,
   sleep,
@@ -388,6 +390,8 @@ export function buildJobs(env: ServerEnv): MonitoringJob[] {
     { jobId: 'met_nowcast', sourceId: 'met_nowcast', intervalSeconds: 300, enabled: env.SOURCE_MET_NOWCAST_ENABLED, timeoutMs: 180_000, run: runNowcast },
     { jobId: 'smhi_forecast', sourceId: 'smhi_forecast', intervalSeconds: 900, enabled: env.SOURCE_SMHI_FORECAST_ENABLED, timeoutMs: 180_000, run: runForecasts },
     { jobId: 'smhi_observations', sourceId: 'smhi_observations', intervalSeconds: 900, enabled: env.SOURCE_SMHI_OBSERVATIONS_ENABLED, timeoutMs: 180_000, run: runMetObs },
+    // After the latest-hour collection so newly listed stations exist; also triggered when a property is added.
+    { jobId: 'observation_backfill', sourceId: 'smhi_observations', intervalSeconds: 3_600, enabled: env.SOURCE_SMHI_OBSERVATIONS_ENABLED, timeoutMs: 180_000, run: runObservationBackfill },
     { jobId: 'sgu_groundwater', sourceId: 'sgu_groundwater', intervalSeconds: 3_600, enabled: env.SOURCE_SGU_ENABLED, timeoutMs: 180_000, run: runSgu },
     { jobId: 'mcf_flood', sourceId: 'mcf_flood', intervalSeconds: 3_600, enabled: env.MCF_FLOOD_ENABLED, timeoutMs: 300_000, run: runMcf },
     { jobId: 'scb', sourceId: 'scb', intervalSeconds: 3_600, enabled: env.SOURCE_SCB_ENABLED, timeoutMs: 120_000, run: runScb },
@@ -398,7 +402,7 @@ export function buildJobs(env: ServerEnv): MonitoringJob[] {
 }
 
 /** Jobs that compute per-property data and must run soon after a property is created/moved. */
-export const PER_PROPERTY_JOBS = ['met_nowcast', 'smhi_forecast', 'sgu_groundwater', 'mcf_flood', 'scb'];
+export const PER_PROPERTY_JOBS = ['met_nowcast', 'smhi_forecast', 'observation_backfill', 'sgu_groundwater', 'mcf_flood', 'scb'];
 
 /** Backoff after failures: interval × 2^(n−1), min 60 s, max 6 h; Retry-After wins when longer. */
 export function nextRunSeconds(intervalSeconds: number, consecutiveFailures: number, result: JobResult): number {
@@ -463,6 +467,39 @@ export async function runHydrologyReferences(ctx:JobContext):Promise<JobResult> 
     if(r.ok)items+=r.data.filter(x=>x.reference).length;else failed=true;
   }
   return {status:failed?(items?'partial':'error'):'ok',items,moreWork:ids.length===2,changed:{all:true}};
+}
+
+/**
+ * Fills history gaps for the nearest 15-min rain station of each active property (ADR 0004), so a
+ * property added in a new area – or a station after collector downtime – shows 24 h / 72 h totals
+ * at once instead of after three days. One SMHI request per station (latest-months ≈ 4 months; only
+ * values inside the history retention are stored), at most a few stations per run, each station
+ * retried at most every few hours. Never runs on page views.
+ */
+export async function runObservationBackfill(ctx: JobContext): Promise<JobResult> {
+  const parameter = METOBS_PARAMETERS.find((p) => p.key === 'precipitation_15min')!;
+  const limit = WEATHER_WATER.backfillStationsPerRun;
+  const stations = await stationsNeedingBackfill(ctx.db, {
+    sourceId: 'smhi_observations', parameter: parameter.key, distanceM: WEATHER_WATER.observationDistanceM,
+    maxAgeHours: WEATHER_WATER.backfillStationMaxAgeHours, hours: WEATHER_WATER.backfillHours,
+    minCoverage: WEATHER_WATER.backfillCoverage, retryHours: WEATHER_WATER.backfillRetryHours, limit,
+  });
+  if (!stations.length) return { status: 'ok', items: 0, errorDetail: 'no gaps' };
+  let items = 0;
+  let failure: JobResult | null = null;
+  for (const s of stations) {
+    const r = await fetchMetObsStationSeries(s, parameter, 'latest-months', ctx.adapter);
+    if (r.ok) items += await insertObservationHistory(ctx.db, 'smhi_observations', r.data);
+    // Recorded either way: a station SMHI cannot complete is not re-downloaded every run.
+    await markBackfillChecked(ctx.db, 'smhi_observations', s.stationId, parameter.key, r.ok);
+    if (!r.ok) {
+      failure = fail(r);
+      if (r.error === 'rate_limited') break;
+    }
+  }
+  const detail = `${stations.length} station(s), ${items} value(s) added`;
+  if (failure) return { ...failure, status: items ? 'partial' : 'error', items, errorDetail: `${detail}; ${failure.errorDetail ?? ''}`, changed: items ? { all: true } : undefined };
+  return { status: 'ok', items, errorDetail: detail, moreWork: stations.length === limit, changed: items ? { all: true } : undefined };
 }
 
 function latestStationReadings<T extends {stationId:string;parameter:string;observedAt:string|null}>(series:T[]):T[] {

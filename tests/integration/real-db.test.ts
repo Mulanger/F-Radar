@@ -34,6 +34,7 @@ import {
   upsertSourceEvents,
   upsertStationObservations,
   insertObservationHistory, saveNowcastPoint, revalidateNowcastPoint, saveFlowReferences,
+  stationsNeedingBackfill, markBackfillChecked,
   type SourceEventInput,
 } from '../../packages/db/src';
 import { buildApp } from '../../apps/api/src/app';
@@ -78,7 +79,7 @@ const sveavagen = {
 async function resetSchema() {
   await pool.query(`
     DROP TABLE IF EXISTS sms_delivery_callbacks,notification_attempts,notification_properties,notification_outbox,notification_daily_usage,notification_usage,notification_global_usage,notification_rate_buckets,alert_evaluation_state,alert_rule_recipients,alert_rule_properties,sms_recipients,
-      observation_history, nowcast_points, hydrology_references, hydrology_reference_checks,
+      observation_history, observation_backfill_checks, nowcast_points, hydrology_references, hydrology_reference_checks,
       monitoring_changes, property_event_matches, source_events, observation_stations, property_forecasts,
       property_context, admin_areas, provider_jobs, property_monitoring, integration_runs, alert_rules, property_source_profiles, properties,
       source_catalog, organization_members, users, organizations, schema_migrations CASCADE;
@@ -393,6 +394,23 @@ describe('real PostgreSQL / PostGIS', () => {
     await upsertStationObservations(pool,'smhi_observations',[historyBase]);
     assert.equal((await loadOrgMonitoring(pool,A.organizationId)).history!.filter(h=>h.station_id==='rain-history').length,8);
     assert.equal((await loadOrgMonitoring(pool,B.organizationId)).history!.filter(h=>h.station_id==='rain-history').length,0);
+
+    // Backfill selection: the nearest rain station of an active property with gaps, as the snapshot shows it.
+    const backfillOpts={sourceId:'smhi_observations',parameter:'precipitation_15min',distanceM:50_000,maxAgeHours:3,hours:72,minCoverage:0.97,retryHours:6,limit:10};
+    const needing=await stationsNeedingBackfill(pool,backfillOpts);
+    assert.deepEqual(needing.map(s=>s.stationId),['rain-history'],'Göteborg has no rain station within 50 km; Stockholm station has 8 of 288 values');
+    assert.equal(needing[0]!.stored,8);
+    assert.ok(Math.abs(needing[0]!.lat-59.3368)<1e-6 && Math.abs(needing[0]!.lon-18.0627)<1e-6,'station position comes from the stored station');
+    await markBackfillChecked(pool,'smhi_observations','rain-history','precipitation_15min',false);
+    assert.equal((await stationsNeedingBackfill(pool,backfillOpts)).length,0,'a tried station waits for the retry window');
+    await pool.query(`UPDATE observation_backfill_checks SET checked_at=now()-interval '7 hours' WHERE station_id='rain-history'`);
+    assert.equal((await stationsNeedingBackfill(pool,backfillOpts)).length,1,'retried after the window');
+    const full=Array.from({length:288},(_,i)=>({...historyBase,observedAt:new Date(quarter-i*900000).toISOString()}));
+    assert.equal(await insertObservationHistory(pool,'smhi_observations',full),280,'only the missing quarter-hours are added');
+    assert.equal((await stationsNeedingBackfill(pool,backfillOpts)).length,0,'a complete station is not backfilled');
+    await markBackfillChecked(pool,'smhi_observations','rain-history','precipitation_15min',true);
+    assert.equal((await pool.query(`SELECT count(*)::int AS n FROM observation_backfill_checks WHERE station_id='rain-history' AND success`)).rows[0].n,1,'check row is upserted');
+
     const ten=Math.floor(Date.now()/600000)*600000;
     assert.equal(await insertObservationHistory(pool,'smhi_oceanography',[
       {...historyBase,parameter:'sea_level',observedAt:new Date(ten).toISOString()},

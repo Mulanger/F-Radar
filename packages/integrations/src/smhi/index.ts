@@ -358,3 +358,67 @@ export async function fetchMetObsLatest(parameter: (typeof METOBS_PARAMETERS)[nu
   const parsed = parseMetObs(r.data, parameter);
   return parsed ? { ok: true, data: parsed, fetchedAt: r.fetchedAt } : { ok: false, error: 'invalid_payload', detail: `smhi_metobs_${parameter.id}: schema mismatch` };
 }
+
+/* ------------------------------------------------------------------ */
+/* MetObs per-station series (history backfill)                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Per-station endpoint: {base}/version/1.0/parameter/{p}/station/{id}/period/{period}/data.json
+ * (verified 2026-11-13: parameter 14 offers latest-hour, latest-day, latest-months ≈ 4 months,
+ * corrected-archive). Used once per station to fill history gaps, never on page views.
+ */
+export type MetObsStationPeriod = 'latest-day' | 'latest-months';
+
+/** Station identity/position as already stored from the latest-hour collection. */
+export interface MetObsStationRef {
+  stationId: string;
+  name: string;
+  lat: number;
+  lon: number;
+}
+
+const MetObsStationSeriesSchema = z
+  .object({
+    value: z.array(z.object({ date: z.number(), value: z.union([z.string(), z.number()]).nullable(), quality: z.string().optional() }).passthrough()).nullable().optional(),
+  })
+  .passthrough();
+
+export function parseMetObsStationSeries(raw: unknown, station: MetObsStationRef, parameter: (typeof METOBS_PARAMETERS)[number]): StationObservation[] | null {
+  const p = MetObsStationSeriesSchema.safeParse(raw);
+  if (!p.success) return null;
+  const out: StationObservation[] = [];
+  for (const v of p.data.value ?? []) {
+    const value = num(v.value, [9999]);
+    const observedAt = iso(v.date);
+    if (value === null || !observedAt) continue;
+    out.push({
+      sourceId: 'smhi_observations',
+      stationId: station.stationId,
+      parameter: parameter.key,
+      name: station.name,
+      lat: station.lat,
+      lon: station.lon,
+      value,
+      unit: parameter.unit,
+      observedAt,
+      quality: v.quality ?? null,
+      extra: {},
+    });
+  }
+  return out.sort((a, b) => a.observedAt!.localeCompare(b.observedAt!));
+}
+
+export async function fetchMetObsStationSeries(
+  station: MetObsStationRef,
+  parameter: (typeof METOBS_PARAMETERS)[number],
+  period: MetObsStationPeriod,
+  ctx: AdapterContext,
+): Promise<AdapterResult<StationObservation[]>> {
+  if (!/^\d{1,10}$/.test(station.stationId)) return { ok: false, error: 'invalid_payload', detail: 'smhi_metobs_station: invalid station id' };
+  const url = `${ctx.env.SMHI_OBSERVATIONS_BASE_URL.replace(/\/+$/, '')}/version/1.0/parameter/${parameter.id}/station/${station.stationId}/period/${period}/data.json`;
+  const r = await httpJson(url, ctx, { label: `smhi_metobs_${parameter.id}_station`, timeoutMs: 60_000 });
+  if (!r.ok) return r;
+  const parsed = parseMetObsStationSeries(r.data, station, parameter);
+  return parsed ? { ok: true, data: parsed, fetchedAt: r.fetchedAt } : { ok: false, error: 'invalid_payload', detail: `smhi_metobs_${parameter.id}_station: schema mismatch` };
+}

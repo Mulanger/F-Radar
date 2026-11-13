@@ -9,6 +9,13 @@ export const WEATHER_WATER = {
   trendCoverage: 0.75, referenceMinYears: 3, referenceMinDays: 30, referenceRefreshDays: 7, referenceUsableDays: 14,
   seaSourceFreshSeconds: 1800, flowSourceFreshSeconds: 2700, stationMeasurementFreshSeconds: 3600,
   seaTrendDeadbandCm: 2, historyCoverage: 0.9, flowNormalPercentile: 0.75, flowHighPercentile: 0.95,
+  /**
+   * History backfill for the nearest 15-min rain station of each active property: when fewer than
+   * `backfillCoverage` of the last `backfillHours` quarter-hours are stored, the station's recent
+   * series (SMHI latest-months) is fetched once; a station is retried at most every `backfillRetryHours`.
+   * `backfillStationMaxAgeHours` matches the snapshot's nearest-station rule.
+   */
+  backfillHours: 72, backfillCoverage: 0.97, backfillRetryHours: 6, backfillStationsPerRun: 3, backfillStationMaxAgeHours: 3,
 } as const;
 
 export interface InformationStep {

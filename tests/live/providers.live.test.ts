@@ -18,6 +18,7 @@ import {
   fetchAirQuality,
   fetchKrisinformation,
   fetchMetObsLatest,
+  fetchMetObsStationSeries,
   fetchMunicipalityStats,
   fetchSguAreaId,
   fetchSguLatestLevel,
@@ -84,6 +85,14 @@ describe('live providers', () => {
     const r = await fetchMetObsLatest(METOBS_PARAMETERS[0], ctx);
     expect(r.ok && r.data.length).toBeGreaterThan(50);
   }, 45_000);
+
+  it('SMHI MetObs per-station 15-min rain (backfill source, ~4 months)', async () => {
+    const p15 = METOBS_PARAMETERS.find((p) => p.key === 'precipitation_15min')!;
+    const r = await fetchMetObsStationSeries({ stationId: '98230', name: 'Stockholm-Observatoriekullen A', lat: 59.3417, lon: 18.0549 }, p15, 'latest-months', ctx);
+    expect(r.ok, r.ok ? '' : r.detail).toBe(true);
+    // At least 72 h of quarter-hour values must be available for an immediate backfill.
+    if (r.ok) expect(Date.now() - Date.parse(r.data[0]!.observedAt!)).toBeGreaterThan(72 * 3_600_000);
+  }, 60_000);
 
   it('Air quality PM2.5 (slow endpoint)', async () => {
     const r = await fetchAirQuality(AIR_PHENOMENA[0], ctx);

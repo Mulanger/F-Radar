@@ -748,6 +748,59 @@ export async function saveFlowReferences(db:Queryable,stationId:string,months:Ar
   await db.query('INSERT INTO hydrology_reference_checks(station_id,success) VALUES($1,$2) ON CONFLICT(station_id) DO UPDATE SET checked_at=now(),success=EXCLUDED.success',[stationId,success]);
 }
 
+/* ------------------------------------------------------------------ */
+/* History backfill (system)                                           */
+/* ------------------------------------------------------------------ */
+
+export interface BackfillStation { stationId: string; name: string; lat: number; lon: number; stored: number }
+
+/**
+ * Stations whose recent history should be backfilled: for every active property, the SAME station
+ * the snapshot shows (nearest station of `parameter` with a value in the last `maxAgeHours`, within
+ * `distanceM`), when fewer than `minCoverage` of the expected quarter-hours of the last `hours` are
+ * stored and the station was not tried within `retryHours`. Least recently tried first.
+ */
+export async function stationsNeedingBackfill(
+  db: Queryable,
+  o: { sourceId: string; parameter: string; distanceM: number; maxAgeHours: number; hours: number; minCoverage: number; retryHours: number; limit: number },
+): Promise<BackfillStation[]> {
+  const { rows } = await db.query<{ station_id: string; name: string; lat: number; lon: number; stored: number }>(
+    `WITH nearest AS (
+       SELECT DISTINCT o.station_id, o.name, ST_Y(o.location::geometry) AS lat, ST_X(o.location::geometry) AS lon
+         FROM properties p
+         CROSS JOIN LATERAL (
+           SELECT s.station_id, s.name, s.location FROM observation_stations s
+            WHERE s.source_id = $1 AND s.parameter = $2 AND s.value IS NOT NULL
+              AND s.observed_at > now() - make_interval(hours => $4)
+            ORDER BY s.location <-> p.location
+            LIMIT 1) o
+        WHERE p.status <> 'paused' AND ST_DWithin(o.location, p.location, $3::double precision)
+     )
+     SELECT n.station_id, n.name, n.lat, n.lon, x.stored
+       FROM nearest n
+       CROSS JOIN LATERAL (
+         SELECT count(*)::int AS stored FROM observation_history h
+          WHERE h.source_id = $1 AND h.station_id = n.station_id AND h.parameter = $2
+            AND h.observed_at > now() - make_interval(hours => $5)) x
+       LEFT JOIN observation_backfill_checks c ON c.source_id = $1 AND c.station_id = n.station_id AND c.parameter = $2
+      WHERE x.stored < $6::double precision * $5 * 4
+        AND (c.checked_at IS NULL OR c.checked_at < now() - make_interval(hours => $7))
+      ORDER BY c.checked_at NULLS FIRST, n.station_id
+      LIMIT $8`,
+    [o.sourceId, o.parameter, o.distanceM, o.maxAgeHours, o.hours, o.minCoverage, o.retryHours, o.limit],
+  );
+  return rows.map((r) => ({ stationId: r.station_id, name: r.name, lat: Number(r.lat), lon: Number(r.lon), stored: r.stored }));
+}
+
+/** Records a backfill attempt (success or not) so the station is not retried before the retry window. */
+export async function markBackfillChecked(db: Queryable, sourceId: string, stationId: string, parameter: string, success: boolean): Promise<void> {
+  await db.query(
+    `INSERT INTO observation_backfill_checks (source_id, station_id, parameter, success) VALUES ($1, $2, $3, $4)
+     ON CONFLICT (source_id, station_id, parameter) DO UPDATE SET checked_at = now(), success = EXCLUDED.success`,
+    [sourceId, stationId, parameter, success],
+  );
+}
+
 export interface ObservationHistoryRow { source_id:string; station_id:string; parameter:string; observed_at:Date; value:number; quality:string|null }
 /** System write: history is retained only around active monitored properties; deduplicates retries. */
 export async function insertObservationHistory(db:Queryable,sourceId:string,obs:StationObservationInput[]):Promise<number> {
