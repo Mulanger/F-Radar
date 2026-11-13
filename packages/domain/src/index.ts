@@ -10,3 +10,4 @@ export * from './risk-index';
 export * from './weather-information';
 export * from './nowcast';
 export * from './water-information';
+export * from './history';
