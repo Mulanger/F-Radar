@@ -193,7 +193,13 @@ export type GeographicEvent = z.infer<typeof GeographicEventSchema>;
 export const ExposureClassSchema = z.enum(['High', 'Medium', 'Low', 'unknown']);
 export type ExposureClass = z.infer<typeof ExposureClassSchema>;
 
+export const WatercourseSchema = z.object({
+  stationId:z.string(), stationName:z.string(), distanceMeters:z.number().nonnegative(), measurement:MeasurementSchema,
+  classification:z.string().nullable(), trendLabel:z.string().nullable(), note:z.string(),
+  reference:z.object({p75:z.number(),p95:z.number(),samples:z.number(),years:z.number(),month:z.number(),fetchedAt:IsoDateTimeSchema}).nullable().optional(),
+});
 export const FloodExposureSchema = z.object({
+  watercourse: WatercourseSchema.nullable().optional(),
   propertyId: z.string(),
   /** Static mapped scenario exposure (MCF). This is NOT a current water level. */
   mapped: z.object({

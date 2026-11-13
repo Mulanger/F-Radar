@@ -1,5 +1,20 @@
 import { WEATHER_WATER as T } from './weather-information';
 export interface TimedReading { observedAt:string; value:number|null }
+export function percentile(values:number[], p:number):number|null {
+  const sorted=values.filter(Number.isFinite).sort((a,b)=>a-b);
+  if(!sorted.length||p<0||p>1)return null;
+  const i=(sorted.length-1)*p,lo=Math.floor(i),hi=Math.ceil(i);
+  return sorted[lo]!+(sorted[hi]!-sorted[lo]!)*(i-lo);
+}
+export function classifyFlow(value:number|null,reference:{p75:number;p95:number}|null):string|null {
+  if(value==null||!Number.isFinite(value)||!reference||!Number.isFinite(reference.p75)||!Number.isFinite(reference.p95)||reference.p75>reference.p95)return null;
+  return value<reference.p75?'Normalt för årstiden':value<=reference.p95?'Högt för årstiden':'Mycket högt för årstiden';
+}
+export function monthlyFlowReference(values:number[], years:number,days:number) {
+  if(years<T.referenceMinYears||days<T.referenceMinDays)return null;
+  const p75=percentile(values,T.flowNormalPercentile),p95=percentile(values,T.flowHighPercentile);
+  return p75==null||p95==null?null:{p75,p95,samples:values.length,years,days};
+}
 /** End-to-end measured change; no extrapolation when the window has insufficient coverage. */
 export function measurementTrend(points:TimedReading[],now:Date,hours:number,unit:string,deadband=0):string|null {
   const p=[...new Map(points.filter(x=>x.value!=null&&Date.parse(x.observedAt)<=+now&&Date.parse(x.observedAt)>=+now-hours*3_600_000).map(x=>[x.observedAt,x])).values()].sort((a,b)=>a.observedAt.localeCompare(b.observedAt));

@@ -197,6 +197,16 @@ describe('property snapshot from stored data', () => {
     expect(forecastSteps(undefined)).toEqual([]);
   });
 
+  it('matches measured sea level within 15 km and flow within 5 km, without inventing a seasonal class',()=>{
+    const sea={...data().observations[0]!,source_id:'smhi_oceanography',parameter:'sea_level',extra:{referenceSystem:'RW'},distance_m:15000};
+    const flow={...sea,source_id:'smhi_hydrology',parameter:'water_flow',distance_m:5000,extra:{}};
+    const matched=buildPropertySnapshot(record,'o',data({observations:[sea,flow]}),statuses,NOW);
+    expect(matched.flood.waterBody?.level.value).toBe(1.8);expect(matched.flood.watercourse?.classification).toBeNull();
+    const distant=buildPropertySnapshot(record,'o',data({observations:[{...sea,distance_m:15001},{...flow,distance_m:5001}]}),statuses,NOW);
+    expect(distant.flood.waterBody).toBeNull();expect(distant.flood.watercourse).toBeUndefined();
+    expect(matched.riskIndex).toEqual(distant.riskIndex);
+  });
+
   it('builds feed items and forecast-derived upcoming conditions', () => {
     const feed = buildFeed([{ id: '7', property_id: PID, source_id: 'smhi_warnings', change_type: 'new', severity: 'monitor', headline: 'Snöfall', created_at: NOW }], new Set([PID]));
     expect(feed[0]).toMatchObject({ title: 'Ny: Snöfall', severity: 'monitor', origin: 'live' });

@@ -93,6 +93,10 @@ export function WaterRiskPanel({ d }: { d: DetailVM }) {
           </div>
         ))}
       </div>
+      {w.watercourse ? <div style={{fontSize:12,lineHeight:1.7,borderTop:'1px solid rgba(20,23,26,0.08)',paddingTop:12}}>
+        <div>{w.watercourse.text} · {w.watercourse.value}</div><div>{w.watercourse.classification} · {w.watercourse.trend}</div>
+        <div style={{fontSize:11,color:C.text3}}>{w.watercourse.source}<br/>{w.watercourse.note}</div>
+      </div> : <div style={{fontSize:12,color:C.text3}}>Vattendrag: mätning ej tillgänglig inom 5 km · SMHI</div>}
       {w.note && <div style={{ fontSize: 11, color: C.text4, lineHeight: 1.45 }}>{w.note} Källa: MCF Översvämningsportalen.</div>}
     </div>
   );

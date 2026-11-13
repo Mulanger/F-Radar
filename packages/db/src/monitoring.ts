@@ -1,3 +1,4 @@
+import { WEATHER_WATER } from '@fastighetsradar/domain';
 import { createHash } from 'node:crypto';
 import type { Queryable } from './migrations';
 
@@ -606,6 +607,7 @@ export interface OrgObservationRow {
 }
 
 export interface OrgMonitoringData {
+  hydrologyReferences?: HydrologyReferenceRow[];
   nowcasts?: Array<NowcastRow & { property_id: string }>;
   forecasts: OrgForecastRow[];
   events: OrgEventRow[];
@@ -616,6 +618,7 @@ export interface OrgMonitoringData {
 
 /** Parameters looked up per property: [source, parameter, max age (h)]. */
 export const NEAREST_PARAMETERS: Array<[string, string, number]> = [
+  ['smhi_hydrology', 'water_flow', 3],
   ['smhi_oceanography', 'sea_level', 3],
   ['smhi_observations', 'air_temperature', 3],
   ['smhi_observations', 'wind_speed', 3],
@@ -635,7 +638,7 @@ export const NEAREST_PARAMETERS: Array<[string, string, number]> = [
  */
 export async function loadOrgMonitoring(db: Queryable, organizationId: string, propertyId?: string): Promise<OrgMonitoringData> {
   const pid = propertyId ?? null;
-  const [forecasts, events, contexts, observations, counties, nowcasts] = await Promise.all([
+  const [forecasts, events, contexts, observations, counties, nowcasts, hydrologyReferences] = await Promise.all([
     db.query<OrgForecastRow>(
       `SELECT f.property_id, f.source_id, f.reference_time, f.created_time, ST_Y(f.grid_point::geometry) AS grid_lat, ST_X(f.grid_point::geometry) AS grid_lon,
               f.distance_m, f.series, f.fetched_at
@@ -685,8 +688,10 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
       `SELECT p.id AS property_id, n.* FROM properties p JOIN nowcast_points n ON n.point_key =
         round(ST_Y(p.location::geometry)::numeric,2)::text || ',' || round(ST_X(p.location::geometry)::numeric,2)::text
         WHERE p.organization_id = $1 AND ($2::uuid IS NULL OR p.id = $2)`, [organizationId, pid]),
+    db.query<HydrologyReferenceRow>(`SELECT r.* FROM hydrology_references r JOIN observation_stations s ON s.source_id=r.source_id AND s.station_id=r.station_id AND s.parameter='water_flow'
+      WHERE EXISTS(SELECT 1 FROM properties p WHERE p.organization_id=$1 AND ($2::uuid IS NULL OR p.id=$2) AND ST_DWithin(s.location,p.location,$3))`,[organizationId,pid,WEATHER_WATER.flowDistanceM]),
   ]);
-  return { nowcasts: nowcasts.rows, forecasts: forecasts.rows, events: events.rows, contexts: contexts.rows, observations: observations.rows, counties: counties.rows };
+  return { hydrologyReferences:hydrologyReferences.rows, nowcasts: nowcasts.rows, forecasts: forecasts.rows, events: events.rows, contexts: contexts.rows, observations: observations.rows, counties: counties.rows };
 }
 
 export async function listRecentChangesForOrg(db: Queryable, organizationId: string, limit = 50) {
@@ -716,4 +721,20 @@ export async function saveNowcastPoint(db: Queryable, pointKey: string, lat: num
 }
 export async function revalidateNowcastPoint(db: Queryable, key: string, fetchedAt: string, expiresAt: string, lastModified: string | null) {
   await db.query('UPDATE nowcast_points SET fetched_at=$2, expires_at=$3, last_modified=$4 WHERE point_key=$1', [key,fetchedAt,expiresAt,lastModified]);
+}
+
+export interface HydrologyReferenceRow { source_id:string; station_id:string; month:number; p75:number; p95:number; samples:number; years:number; fetched_at:Date }
+export async function stationsNeedingFlowReference(db:Queryable,distance:number,days:number,limit:number):Promise<string[]> {
+  const {rows}=await db.query<{station_id:string}>(`SELECT s.station_id FROM observation_stations s LEFT JOIN hydrology_reference_checks c ON c.station_id=s.station_id
+    WHERE s.source_id='smhi_hydrology' AND s.parameter='water_flow' AND s.observed_at>now()-interval '3 hours'
+      AND (c.checked_at IS NULL OR c.checked_at<now()-make_interval(days=>$2))
+      AND EXISTS(SELECT 1 FROM properties p WHERE p.status<>'paused' AND ST_DWithin(p.location,s.location,$1))
+    ORDER BY c.checked_at NULLS FIRST,s.station_id LIMIT $3`,[distance,days,limit]);
+  return rows.map(r=>r.station_id);
+}
+export async function saveFlowReferences(db:Queryable,stationId:string,months:Array<{month:number;reference:{p75:number;p95:number;samples:number;years:number}|null}>,success:boolean) {
+  // A failed or insufficient archive never clears prior references.
+  if(success)for(const m of months)if(m.reference)await db.query(`INSERT INTO hydrology_references(source_id,station_id,month,p75,p95,samples,years) VALUES('smhi_hydrology',$1,$2,$3,$4,$5,$6)
+    ON CONFLICT(source_id,station_id,month) DO UPDATE SET p75=EXCLUDED.p75,p95=EXCLUDED.p95,samples=EXCLUDED.samples,years=EXCLUDED.years,fetched_at=now()`,[stationId,m.month,m.reference.p75,m.reference.p95,m.reference.samples,m.reference.years]);
+  await db.query('INSERT INTO hydrology_reference_checks(station_id,success) VALUES($1,$2) ON CONFLICT(station_id) DO UPDATE SET checked_at=now(),success=EXCLUDED.success',[stationId,success]);
 }

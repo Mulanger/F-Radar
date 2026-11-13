@@ -1,0 +1,30 @@
+Stationsnamn;StationsId;Stationsnät;Stationens latitud;Stationens longitud
+VÄSTERSEL;1583;SMHIs stationsnät;63.4332;18.3034
+
+Parameternamn;Enhet
+Vattenföring (15 min);m³/s
+
+Datum Tid (UTC);Vattenföring (15 min);Kvalitet;;
+1983-05-04 12:15:00;106;G;;;Tidsperiod (fr.o.m.) = 1983-05-04 12:15:00 (UTC)
+1983-05-04 12:30:00;106;G;;;Tidsperiod (t.o.m.) = 2026-11-12 11:59:59 (UTC)
+1983-05-04 12:45:00;105;G;;;
+1983-05-04 13:00:00;105;G;;;Tidstämpeln anger starttidpunkten på tidssteget i UTC.
+1983-05-04 13:15:00;105;G;;;
+1983-05-04 13:30:00;105;G;;;Kvalitetskoderna:
+1983-05-04 13:45:00;105;G;;;Grön (G) = Kontrollerade och godkända värden.
+1983-05-04 14:00:00;105;G;;;Gul (Y) = Grovt kontrollerade värden.
+1983-05-04 14:15:00;105;G;;;Orange (O) = Okontrollerade värden.
+1983-05-04 14:30:00;105;G;;;
+1983-05-04 14:45:00;105;G;;;Nätinformation:
+1983-05-04 15:00:00;105;G;;;SMHIs stationsnät: Data samlas in och lagras i SMHIs databaser. Data rimlighetskontrolleras vilket innebär att felaktiga data korrigeras och att databortfall kompletteras utifrån expertbedömning där det är möjligt. Fysiska stationer övervakas, inspekteras och underhålls löpande av SMHI.
+1983-05-04 15:15:00;105;G;;;Övriga stationer: Stationerna ingår ej i SMHIs stationsnät men data samlas in och lagras i SMHIs databaser genom avtal med en tredje part.
+1983-05-04 15:30:00;105;G;;;
+1983-05-04 15:45:00;105;G;;;Orsaker till saknade data:
+1983-05-04 16:00:00;105;G;;;  stationen eller givaren har varit ur funktion.
+1983-05-04 16:15:00;105;G;;;  kvalitetskontrollerna har felmarkerat data (röd kvalitetskod). Efterföljande manuell granskning godkänner, rättar eller underkänner data.
+1983-05-04 16:30:00;105;G;
+1983-05-04 16:45:00;105;G;
+1983-05-04 17:00:00;105;G;
+1983-05-04 17:15:00;105;G;
+1983-05-04 17:30:00;105;G;
+1983-05-04 17:45:00;105;G;

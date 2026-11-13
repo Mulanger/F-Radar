@@ -118,6 +118,8 @@ export const ServerEnvSchema = z.object({
 
   SOURCE_MET_NOWCAST_ENABLED: bool(false),
   MET_NORWAY_CONTACT: optionalUrl.pipe(z.string().regex(/^https?:\/\//).optional()),
+  SOURCE_SMHI_HYDROLOGY_ENABLED: bool(false),
+  SMHI_HYDROLOGY_BASE_URL: z.string().url().default('https://opendata-download-hydroobs.smhi.se/api'),
   SOURCE_SMHI_OCEANOGRAPHY_ENABLED: bool(false),
   SMHI_OCEANOGRAPHY_BASE_URL: z.string().url().default('https://opendata-download-ocobs.smhi.se/api'),
   MET_NOWCAST_BASE_URL: z.string().url().default('https://api.met.no/weatherapi/nowcast/2.0'),

@@ -10,6 +10,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadServerEnv } from '@fastighetsradar/config';
 import {
+  fetchHydrology, fetchHydrologyReference,
   fetchOceanography,
   fetchMetNowcast,
   AIR_PHENOMENA,
@@ -35,6 +36,12 @@ const STHLM = { lat: 59.3367656, lon: 18.0627049 }; // Sveavägen 42
 const UPPSALA_FYRIS = { lat: 59.8586, lon: 17.6389 }; // inside mapped Fyrisån flood areas (verified)
 
 describe('live providers', () => {
+  it('SMHI hydrology flow and corrected archive',async()=>{
+    const r=await fetchHydrology(ctx);expect(r.ok,r.ok?'':r.detail).toBe(true);
+    if(r.ok)expect(r.data.length).toBeGreaterThan(50);
+    const ref=await fetchHydrologyReference('1583',ctx);expect(ref.ok,ref.ok?'':ref.detail).toBe(true);
+    if(ref.ok){expect(ref.data.filter(m=>m.reference).length).toBe(12);expect(ref.data[10]!.reference!.years).toBeGreaterThan(3);}
+  },240000);
   it('SMHI oceanography RW minute data',async()=>{
     const r=await fetchOceanography(ctx);expect(r.ok,r.ok?'':r.detail).toBe(true);
     if(r.ok){expect(r.data.length).toBeGreaterThan(60);expect(r.data.every(x=>x.extra.referenceSystem==='RW'&&x.unit==='cm')).toBe(true);}

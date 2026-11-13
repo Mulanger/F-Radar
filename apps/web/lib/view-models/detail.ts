@@ -245,6 +245,13 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
         }
       : null,
     water: {
+      watercourse:s.flood.watercourse ? {
+        text:'Vattendrag: '+s.flood.watercourse.stationName+' ('+formatDistance(s.flood.watercourse.distanceMeters)+')',
+        value:typeof s.flood.watercourse.measurement.value==='number'?formatNumber(s.flood.watercourse.measurement.value,1)+' m³/s':'Ej tillgänglig',
+        classification:s.flood.watercourse.classification??'Referens för årstiden ej tillgänglig',
+        trend:s.flood.watercourse.trendLabel??'Trend ej tillgänglig',note:s.flood.watercourse.note,
+        source:'SMHI · mätning '+formatWeekdayClock(s.flood.watercourse.measurement.sourceTimestamp)+(s.flood.watercourse.measurement.freshness!=='fresh'?' · inaktuell':''),
+      } : null,
       flood: EXPOSURE_SV[flood] ?? flood,
       fc: fS.c,
       fbg: fS.bg,

@@ -70,6 +70,13 @@ export const SOURCE_MANIFEST: Record<Exclude<SourceId, 'demo_other'>, SourceMani
     retentionPolicy: 'Latest point series; removed after 1 day', displayPermitted: true, alertsPermitted: false,
     requiredSecrets: ['MET_NORWAY_CONTACT'], enableFlag: 'SOURCE_MET_NOWCAST_ENABLED', reviewedAt: VERIFIED,
   },
+  smhi_hydrology: {
+    id:'smhi_hydrology',authority:'SMHI',label:'SMHI hydrologi',docsUrl:'https://opendata.smhi.se/hydroobs/',access:'public',commercialReuseReviewed:false,
+    licenseUrl:'https://creativecommons.org/licenses/by/4.0/',attributionText:'Källa: SMHI',dataKind:'observation',geographicPrecision:'station',
+    coverageNote:'Nearest station within 5 km; may be in a different watercourse. Parameter 2, 15-minute water flow in m³/s.',
+    updatePolicy:'Latest hour every 15 min; corrected archive streamed weekly only for nearby stations',retentionPolicy:'Latest station value; monthly percentiles per station',
+    displayPermitted:false,alertsPermitted:false,requiredSecrets:[],enableFlag:'SOURCE_SMHI_HYDROLOGY_ENABLED',reviewedAt:VERIFIED,
+  },
   smhi_oceanography: {
     id: 'smhi_oceanography', authority: 'SMHI', label: 'SMHI oceanografi (havsvattenstånd)',
     docsUrl: 'https://opendata.smhi.se/', access: 'public', commercialReuseReviewed: false,

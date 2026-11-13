@@ -23,3 +23,7 @@ Fixture och identifierat live-rökprov godkända lokalt: `npm run test:live -- -
 ## Havsvattenstånd (2026-11-13)
 
 SMHI OCObs parameter 14, cm RW. RW betyder Relative Water Level, relativt årets beräknade medelvattenstånd. Parameter 13 avser RH 2000 och används inte. Verifierat via parameterresurs, station 33097 (Göteborg-Hisingsbron) och SMHI:s officiella databeskrivning: https://www.smhi.se/data/sok-oppna-data-i-utforskaren/se-of-oceanografiska-observationer-havsvattenstand-rw-minutvarde och https://www.smhi.se/kunskapsbanken/oceanografi/vattenstand-i-havet/hojdsystem-och-vattenstand. Fixture och `npm run test:live -- -t "SMHI oceanography RW minute data"` godkända (1 passed). 600 s jobb, station inom 15 km, timtrend med 2 cm dödband. Flaggan avstängd som standard. Den dekorativa linjen ”Översvämningsgräns +60 cm” togs bort eftersom en stationsnivå inte anger byggnadens gräns.
+
+## Vattenföring (2026-11-13)
+
+SMHI HydroObs parameter 2, m³/s, alla 15-minutersvärden från latest-hour. Stationsnära månadsreferenser kan hämtas från corrected-archive/data.csv. Riktig fixture, parser-, percentil-, gränsvärdes- och matchningstester finns. Liveprov `npm run test:live -- -t "SMHI hydrology flow and corrected archive"`: 1 passed, 27 s; VÄSTERSEL (1583), tolv användbara månadsreferenser och mer än tre års data. Arkivet strömmas, bara G-värden används. Stationer inom 5 km kan få veckovis referenshämtning. Saknad referens ger ingen klassning. Parameter 3 används inte (station-set/latest-hour saknar användbar väg). Inget aktiverat i produktion.

@@ -1,6 +1,8 @@
+import { WEATHER_WATER } from '@fastighetsradar/domain';
 import type { ServerEnv } from '@fastighetsradar/config';
 import { NotificationService } from '../notifications/service';
 import {
+  stationsNeedingFlowReference, saveFlowReferences,
   applyRetention,
   loadNowcastCache, saveNowcastPoint, revalidateNowcastPoint,
   countCountyAreas,
@@ -29,6 +31,7 @@ import {
   SCB_TABLE,
   SGU_ATTRIBUTION,
   TRAFIKVERKET_POINTS_PER_REQUEST,
+  fetchHydrology, fetchHydrologyReference,
   fetchOceanography,
   fetchMetNowcast,
   sleep,
@@ -376,6 +379,8 @@ export function buildJobs(env: ServerEnv): MonitoringJob[] {
     { jobId: 'smhi_warnings', sourceId: 'smhi_warnings', intervalSeconds: 300, enabled: env.SOURCE_SMHI_WARNINGS_ENABLED, timeoutMs: 90_000, run: runSmhiWarnings },
     { jobId: 'krisinformation', sourceId: 'krisinformation', intervalSeconds: 600, enabled: env.SOURCE_KRISINFORMATION_ENABLED, timeoutMs: 90_000, run: runKrisinformation },
     { jobId: 'trafikverket', sourceId: 'trafikverket', intervalSeconds: 300, enabled: Boolean(env.TRAFIKVERKET_ENABLED && env.TRAFIKVERKET_API_KEY), timeoutMs: 120_000, run: runTrafikverket },
+    { jobId:'smhi_hydrology',sourceId:'smhi_hydrology',intervalSeconds:900,enabled:env.SOURCE_SMHI_HYDROLOGY_ENABLED,timeoutMs:90000,run:runHydrology },
+    { jobId:'hydrology_reference',sourceId:'smhi_hydrology',intervalSeconds:3600,enabled:env.SOURCE_SMHI_HYDROLOGY_ENABLED,timeoutMs:600000,run:runHydrologyReferences },
     { jobId: 'smhi_oceanography', sourceId:'smhi_oceanography', intervalSeconds:600, enabled:env.SOURCE_SMHI_OCEANOGRAPHY_ENABLED, timeoutMs:90000, run:runOceanography },
     { jobId: 'met_nowcast', sourceId: 'met_nowcast', intervalSeconds: 300, enabled: env.SOURCE_MET_NOWCAST_ENABLED, timeoutMs: 180_000, run: runNowcast },
     { jobId: 'smhi_forecast', sourceId: 'smhi_forecast', intervalSeconds: 900, enabled: env.SOURCE_SMHI_FORECAST_ENABLED, timeoutMs: 180_000, run: runForecasts },
@@ -434,4 +439,23 @@ export async function runOceanography(ctx:JobContext):Promise<JobResult> {
   const latest=[...byStation.values()].map(series=>({...series.at(-1)!,extra:{...series.at(-1)!.extra,points:series.map(x=>({observedAt:x.observedAt,value:x.value}))}}));
   const items=await upsertStationObservations(ctx.db,'smhi_oceanography',latest);
   return {status:'ok',items,changed:{all:true}};
+}
+
+export async function runHydrology(ctx:JobContext):Promise<JobResult> {
+  const r=await fetchHydrology(ctx.adapter);if(!r.ok)return fail(r);
+  const byStation=new Map<string,typeof r.data>();
+  for(const o of r.data)byStation.set(o.stationId,[...(byStation.get(o.stationId)??[]),o]);
+  const latest=[...byStation.values()].map(points=>({...points.at(-1)!,extra:{points:points.map(x=>({observedAt:x.observedAt,value:x.value}))}}));
+  const items=await upsertStationObservations(ctx.db,'smhi_hydrology',latest);
+  return {status:'ok',items,changed:{all:true}};
+}
+export async function runHydrologyReferences(ctx:JobContext):Promise<JobResult> {
+  const ids=await stationsNeedingFlowReference(ctx.db,WEATHER_WATER.flowDistanceM,WEATHER_WATER.referenceRefreshDays,2);
+  let items=0,failed=false;
+  for(const id of ids) {
+    const r=await fetchHydrologyReference(id,ctx.adapter);
+    await saveFlowReferences(ctx.db,id,r.ok?r.data:[],r.ok);
+    if(r.ok)items+=r.data.filter(x=>x.reference).length;else failed=true;
+  }
+  return {status:failed?(items?'partial':'error'):'ok',items,moreWork:ids.length===2,changed:{all:true}};
 }

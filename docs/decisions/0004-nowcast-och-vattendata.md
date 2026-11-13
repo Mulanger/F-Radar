@@ -38,3 +38,11 @@ MET Norway nowcast 2.0 complete, CC BY 4.0. Villkoren https://api.met.no/doc/Ter
 ## Havsvattenstånd
 
 SMHI OCObs parameter 14: cm RW (Relative Water Level), relativt årets beräknade medelvattenstånd. Parameter 13 är RH 2000 och används inte. https://opendata.smhi.se/ocobs/resources/parameter och SMHI:s databeskrivning https://www.smhi.se/data/sok-oppna-data-i-utforskaren/se-of-oceanografiska-observationer-havsvattenstand-rw-minutvarde verifierades med parameterresursen och stationsresurs 33097. Därmed används befintligt vattennivåkontrakt med explicit RW. Närmaste station inom 15 km, jobbkadens 10 min. Alla minutvärden behålls för timtrend; ±2 cm uppmätt ändring är dödband. Minst 75 procent av trendfönstret måste spännas av mätningar, med senaste värde i sista fjärdedelen. Ingen slutsats om byggnaden, inget +60 cm-gränsvärde.
+
+## Vattenföring
+
+SMHI HydroObs parameter 2 (15 min, m³/s), CC BY 4.0. Närmaste station inom 5 km. Det är ett geografiskt avstånd, inte en hydrologisk koppling; texten om att stationen kan ligga i ett annat vattendrag visas alltid. Parameter 3 används inte.
+
+corrected-archive har CSV-format (verifierat station 1583), med UTC-datum/tid, värde och kvalitetskod. Filen strömmas och bara G-värden används. Referenser beräknas för var och en av årets tolv UTC-kalendermånader från stationens hela tillgängliga serie; ingen fast klimatnormalperiod påstås. Kräver minst 3 olika år och 30 olika mätdagar per månad. P75 och P95 beräknas med linjär interpolation vid index (n−1)×p. Under P75: Normalt för årstiden; P75 till och med P95: Högt för årstiden; över P95: Mycket högt för årstiden. Detta är vår beskrivande klassning, ingen officiell flödesvarning.
+
+En separat källflaggad collector söker stationsnära referenser, högst två stationer per körning, högst en arkivhämtning per station och vecka. Upp till 14 dagar gamla referenser får visas. Misslyckade hämtningar skriver inte över referenser; saknad/gammal referens ger null och en tydlig text. Lång historik lagras endast som tolv percentilpar samt antal värden/år, inte som alla arkivvärden.
