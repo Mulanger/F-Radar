@@ -697,7 +697,7 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
     db.query<ObservationHistoryRow>(`SELECT h.* FROM observation_history h JOIN observation_stations s ON s.source_id=h.source_id AND s.station_id=h.station_id AND s.parameter=h.parameter
       WHERE h.parameter IN ('sea_level','water_flow','precipitation_15min') AND h.observed_at > now()-interval '73 hours'
         AND EXISTS(SELECT 1 FROM properties p WHERE p.organization_id=$1 AND ($2::uuid IS NULL OR p.id=$2)
-          AND ST_DWithin(p.location,s.location,CASE h.source_id WHEN 'smhi_oceanography' THEN $3 WHEN 'smhi_hydrology' THEN $4 ELSE $5 END))
+          AND ST_DWithin(p.location,s.location,CASE h.source_id WHEN 'smhi_oceanography' THEN $3::double precision WHEN 'smhi_hydrology' THEN $4::double precision ELSE $5::double precision END))
       ORDER BY h.source_id,h.station_id,h.parameter,h.observed_at`,[organizationId,pid,WEATHER_WATER.seaDistanceM,WEATHER_WATER.flowDistanceM,WEATHER_WATER.observationDistanceM]),
   ]);
   return { history:history.rows, hydrologyReferences:hydrologyReferences.rows, nowcasts: nowcasts.rows, forecasts: forecasts.rows, events: events.rows, contexts: contexts.rows, observations: observations.rows, counties: counties.rows };

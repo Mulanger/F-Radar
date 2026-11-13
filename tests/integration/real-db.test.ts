@@ -110,6 +110,11 @@ describe('real PostgreSQL / PostGIS', () => {
     assert.ok(status.every((s) => s.state === 'applied'));
   });
 
+  it('loads empty monitoring with all new spatial joins on real PostgreSQL',async()=>{
+    const data=await loadOrgMonitoring(pool,'00000000-0000-4000-8000-000000000001');
+    assert.deepEqual(data.history,[]);assert.deepEqual(data.nowcasts,[]);assert.deepEqual(data.hydrologyReferences,[]);
+  });
+
   it('creates the expected tables, foreign keys and indexes', async () => {
     const { rows: tables } = await pool.query<{ t: string }>(`SELECT tablename AS t FROM pg_tables WHERE schemaname = 'public'`);
     const names = tables.map((r) => r.t);
@@ -216,6 +221,7 @@ describe('real PostgreSQL / PostGIS', () => {
       const app2 = await buildApp(loadServerEnv({ NODE_ENV: 'test' }), { logger: false, verifyAuth: verify, db: pool });
       const portfolio = await app2.inject({ method: 'GET', url: '/v1/portfolio', headers: A });
       await app2.close();
+      assert.equal(portfolio.statusCode,200,portfolio.body);
       const pj = portfolio.json();
       assert.equal(pj.origin, 'live');
       assert.equal(pj.properties.length, 1);
