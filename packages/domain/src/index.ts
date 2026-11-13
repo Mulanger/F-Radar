@@ -9,3 +9,4 @@ export * from './notifications';
 export * from './risk-index';
 export * from './weather-information';
 export * from './nowcast';
+export * from './water-information';

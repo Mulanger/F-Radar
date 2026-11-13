@@ -17,7 +17,7 @@ import type {
   WarningLevel,
   WeatherForecast,
 } from '@fastighetsradar/domain';
-import { assessPropertyRisk, formatWeekdayClock, forecastInformation, WEATHER_WATER, summarizeNowcast } from '@fastighetsradar/domain';
+import { assessPropertyRisk, formatWeekdayClock, forecastInformation, WEATHER_WATER, summarizeNowcast, measurementTrend, type TimedReading } from '@fastighetsradar/domain';
 import type { OrgContextRow, OrgEventRow, OrgForecastRow, OrgMonitoringData, OrgObservationRow } from '@fastighetsradar/db';
 import {
   AIR_PHENOMENA,
@@ -381,6 +381,8 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
   }
 
   const floodParts = floodFromContext(p.id, ctxOf(contexts, 'mcf_flood', 'flood_scenarios'), now);
+  const sea=obs.find(o=>o.source_id==='smhi_oceanography'&&o.parameter==='sea_level'&&o.distance_m<=WEATHER_WATER.seaDistanceM&&o.extra.referenceSystem==='RW');
+  if(sea) floodParts.flood.waterBody={name:'Havsvattenstånd · '+sea.name,stationName:sea.name,referenceSystem:'RW',level:{value:sea.value,unit:'cm',sourceId:'smhi_oceanography',kind:'observation',sourceTimestamp:iso(sea.observed_at),fetchedAt:sea.fetched_at.toISOString(),freshness:freshnessOf(sea.observed_at,3600,now),availability:'ok',geo:{match:'nearest_station',distanceMeters:Math.round(sea.distance_m),note:sea.name},origin:'live',qualityFlags:sea.quality?[sea.quality]:[]},trendLabel:measurementTrend((sea.extra.points??[]) as TimedReading[],now,1,'cm',WEATHER_WATER.seaTrendDeadbandCm)};
   const nearby = obs.map((o) => toNearby(o, now));
   const coverage: PropertyMonitoringContext['coverage'] = [
     { sourceId: 'smhi_forecast', status: forecastRow ? 'ok' : 'loading', note: forecastRow ? null : 'Prognos hämtas' },

@@ -209,6 +209,8 @@ export const FloodExposureSchema = z.object({
   waterBody: z
     .object({
       name: z.string(),
+      stationName: z.string().optional(),
+      referenceSystem: z.enum(['RW','RH2000']).optional(),
       level: MeasurementSchema,
       trendLabel: z.string().nullable(),
     })

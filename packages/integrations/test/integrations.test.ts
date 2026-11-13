@@ -55,7 +55,7 @@ describe('resolveSourceStatuses', () => {
     expect(byId.lantmateriet_address!.status).toBe('disabled');
     // Implemented + configured, but never 'ok' before a real collector run succeeds.
     expect(byId.smhi_forecast!.status).toBe('degraded');
-    expect(byId.smhi_oceanography!.status).toBe('not_implemented');
+    expect(byId.smhi_oceanography!.status).toBe('disabled');
 
     const tv = resolveSourceStatuses(loadServerEnv({ TRAFIKVERKET_ENABLED: 'true' })).find((s) => s.sourceId === 'trafikverket');
     expect(tv!.status).toBe('pending_access');

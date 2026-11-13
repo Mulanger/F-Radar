@@ -19,3 +19,7 @@ SMHI-serier sparas som v2; v1 läses med null för nya fält. Informativa trösk
 ## MET Norway nowcast (2026-11-13)
 
 Fixture och identifierat live-rökprov godkända lokalt: `npm run test:live -- -t "MET Norway nowcast"` (1 passed). CC BY 4.0; Data från MET Norway, bearbetad av FastighetsRadar. Villkor: https://api.met.no/doc/TermsOfService. Kontaktwebbadress bekräftad av ägaren: https://f-radar.se. Flaggan är false som standard, ingen produktionsaktivering. Cache och 304 verifieras i enhetstester; databasverifiering görs i slutsteget.
+
+## Havsvattenstånd (2026-11-13)
+
+SMHI OCObs parameter 14, cm RW. RW betyder Relative Water Level, relativt årets beräknade medelvattenstånd. Parameter 13 avser RH 2000 och används inte. Verifierat via parameterresurs, station 33097 (Göteborg-Hisingsbron) och SMHI:s officiella databeskrivning: https://www.smhi.se/data/sok-oppna-data-i-utforskaren/se-of-oceanografiska-observationer-havsvattenstand-rw-minutvarde och https://www.smhi.se/kunskapsbanken/oceanografi/vattenstand-i-havet/hojdsystem-och-vattenstand. Fixture och `npm run test:live -- -t "SMHI oceanography RW minute data"` godkända (1 passed). 600 s jobb, station inom 15 km, timtrend med 2 cm dödband. Flaggan avstängd som standard. Den dekorativa linjen ”Översvämningsgräns +60 cm” togs bort eftersom en stationsnivå inte anger byggnadens gräns.

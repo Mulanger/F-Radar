@@ -616,6 +616,7 @@ export interface OrgMonitoringData {
 
 /** Parameters looked up per property: [source, parameter, max age (h)]. */
 export const NEAREST_PARAMETERS: Array<[string, string, number]> = [
+  ['smhi_oceanography', 'sea_level', 3],
   ['smhi_observations', 'air_temperature', 3],
   ['smhi_observations', 'wind_speed', 3],
   ['smhi_observations', 'wind_gust', 3],

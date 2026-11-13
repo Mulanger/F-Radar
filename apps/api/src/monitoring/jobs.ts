@@ -29,6 +29,7 @@ import {
   SCB_TABLE,
   SGU_ATTRIBUTION,
   TRAFIKVERKET_POINTS_PER_REQUEST,
+  fetchOceanography,
   fetchMetNowcast,
   sleep,
   fetchAirQuality,
@@ -375,6 +376,7 @@ export function buildJobs(env: ServerEnv): MonitoringJob[] {
     { jobId: 'smhi_warnings', sourceId: 'smhi_warnings', intervalSeconds: 300, enabled: env.SOURCE_SMHI_WARNINGS_ENABLED, timeoutMs: 90_000, run: runSmhiWarnings },
     { jobId: 'krisinformation', sourceId: 'krisinformation', intervalSeconds: 600, enabled: env.SOURCE_KRISINFORMATION_ENABLED, timeoutMs: 90_000, run: runKrisinformation },
     { jobId: 'trafikverket', sourceId: 'trafikverket', intervalSeconds: 300, enabled: Boolean(env.TRAFIKVERKET_ENABLED && env.TRAFIKVERKET_API_KEY), timeoutMs: 120_000, run: runTrafikverket },
+    { jobId: 'smhi_oceanography', sourceId:'smhi_oceanography', intervalSeconds:600, enabled:env.SOURCE_SMHI_OCEANOGRAPHY_ENABLED, timeoutMs:90000, run:runOceanography },
     { jobId: 'met_nowcast', sourceId: 'met_nowcast', intervalSeconds: 300, enabled: env.SOURCE_MET_NOWCAST_ENABLED, timeoutMs: 180_000, run: runNowcast },
     { jobId: 'smhi_forecast', sourceId: 'smhi_forecast', intervalSeconds: 900, enabled: env.SOURCE_SMHI_FORECAST_ENABLED, timeoutMs: 180_000, run: runForecasts },
     { jobId: 'smhi_observations', sourceId: 'smhi_observations', intervalSeconds: 1_800, enabled: env.SOURCE_SMHI_OBSERVATIONS_ENABLED, timeoutMs: 180_000, run: runMetObs },
@@ -423,4 +425,13 @@ export async function runNowcast(ctx: JobContext): Promise<JobResult> {
     if(results.some(r=>'errorCode' in r && (r.errorCode==='rate_limited'||r.errorCode==='unauthorized')))break;
   }
   return failure ? {...failure,status:items?'partial':'error',items} : {status:'ok',items,changed:{all:true}};
+}
+
+export async function runOceanography(ctx:JobContext):Promise<JobResult> {
+  const r=await fetchOceanography(ctx.adapter); if(!r.ok)return fail(r);
+  const byStation=new Map<string,typeof r.data>();
+  for(const o of r.data) byStation.set(o.stationId,[...(byStation.get(o.stationId)??[]),o]);
+  const latest=[...byStation.values()].map(series=>({...series.at(-1)!,extra:{...series.at(-1)!.extra,points:series.map(x=>({observedAt:x.observedAt,value:x.value}))}}));
+  const items=await upsertStationObservations(ctx.db,'smhi_oceanography',latest);
+  return {status:'ok',items,changed:{all:true}};
 }

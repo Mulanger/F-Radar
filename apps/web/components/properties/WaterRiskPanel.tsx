@@ -73,14 +73,13 @@ export function WaterRiskPanel({ d }: { d: DetailVM }) {
       </div>
       <div style={{ position: 'relative', height: 190, borderRadius: 18, overflow: 'hidden', background: 'linear-gradient(180deg,#F7FAFB,#E9F0F2)' }}>
         <WaveCanvas level={w.levelFill} />
-        {w.hasLevel && <div style={{ position: 'absolute', left: 0, right: 0, top: w.thTop, borderTop: '1.5px dashed oklch(0.6 0.17 28)', transition: 'top 1s' }}>
-          <span style={{ position: 'absolute', right: 10, top: -22, fontSize: 11, color: 'oklch(0.55 0.17 28)', background: 'rgba(255,255,255,0.8)', padding: '2px 6px', borderRadius: 6 }}>Översvämningsgräns +60 cm</span>
-        </div>}
+
         <div style={{ position: 'absolute', left: 14, top: 14, padding: '8px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(10px)' }}>
           <div style={{ fontSize: 11, color: C.text3 }}>{w.body}</div>
-          <div style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.02em' }}>{w.level}</div>
+          <div style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.02em' }}>{w.level}</div><div style={{fontSize:11,color:C.text3}}>{w.hasLevel ? w.reference : "Ej tillgänglig"}</div>
         </div>
       </div>
+      <div style={{fontSize:11,color:C.text3,lineHeight:1.5}}>{w.source}</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {[
           ['Karterad översvämningszon', w.dist],

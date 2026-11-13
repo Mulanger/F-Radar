@@ -74,9 +74,9 @@ export const SOURCE_MANIFEST: Record<Exclude<SourceId, 'demo_other'>, SourceMani
     id: 'smhi_oceanography', authority: 'SMHI', label: 'SMHI oceanografi (havsvattenstånd)',
     docsUrl: 'https://opendata.smhi.se/', access: 'public', commercialReuseReviewed: false,
     attributionText: 'Källa: SMHI', dataKind: 'observation', geographicPrecision: 'station',
-    coverageNote: 'Shown in the approved design (sea level). Not yet listed in IMPLEMENTATION.md §3 – endpoint and terms must be verified before use.',
-    updatePolicy: 'unknown', retentionPolicy: 'Short window',
-    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], reviewedAt: REVIEWED,
+    coverageNote: 'Parameter 14 in cm RW, relative to the station annual calculated mean; nearest station within 15 km. Not a building water level.',
+    licenseUrl:'https://creativecommons.org/licenses/by/4.0/', updatePolicy: 'Minute readings, latest-hour collected every 10 min', retentionPolicy: 'Latest station value and minute trend; nearby history added in part 4',
+    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag:'SOURCE_SMHI_OCEANOGRAPHY_ENABLED', reviewedAt: VERIFIED,
   },
   krisinformation: {
     id: 'krisinformation', authority: 'MCF / Krisinformation.se', label: 'Krisinformation v3',
