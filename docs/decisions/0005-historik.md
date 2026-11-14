@@ -1,6 +1,6 @@
 # ADR 0005 – Historik per fastighet
 
-**Status:** Implementeras och verifieras lokalt 2026-11-13. Ingen produktionsaktivering.
+**Status:** Implementerad och verifierad lokalt 2026-11-13–14. Ingen produktionsaktivering.
 
 ## Bakgrund
 
@@ -11,6 +11,8 @@ En fastighetsägare behöver kunna se mätningar och tidigare myndighetshändels
 Migration `0007_property_history.sql` inför `property_event_history`. Databastriggers sparar en version när en geografisk matchning skapas/uppdateras och sparar avslut/återkallelse innan den aktuella matchningen tas bort. Samma version är idempotent. Text, rubrik, område, källänk och källangivelse bevaras. Insamlingens tidigare trunkering av rubrik/beskrivning tas bort för att arkivet ska kunna återge den officiella texten.
 
 Arkivet har ingen främmande nyckel till `source_events`, som fortsätter att rensas efter sju dygn. Fastighet och organisation har däremot `ON DELETE CASCADE`. Organisationen hämtas från fastigheten vid arkivering, och alla läsningar filtrerar både organisation och fastighet. Händelser grupperas på källa och externt id; versionerna ligger i samma tidslinjerad. Versionernas tidsintervall klipps vid nästa publicerade ändring, så en senare orange nivå inte färgar en tidigare gul period.
+
+En ändrad polygon eller adresspunkt kan upphöra att matcha medan källhändelsen fortsätter. Därför lagras `matched_until` och separata matchningsintervall utan att den officiella giltigheten ändras. En matchning som återkommer skapar ett nytt matchningsintervall i samma myndighetsversion. Diagram, varningsdygn och CSV använder dessa intervall. Om den första bevarade versionen redan är en uppdatering börjar dess nivå vid den dokumenterade ändringstidpunkten.
 
 Varningsgeometrier sparas inte i långtidsarkivet. Kartan behöver dem för aktuell matchning men historikvyn behöver bara utfallet: metod, avstånd och områdesnamn. Därmed kan historiken återge den då gjorda matchningen men inte räkna om gamla polygoner mot en ny adresspunkt. Vid flytt av en befintlig fastighetsmarkör följer gamla matchningar fastighetens id. Arkivet är inte ett geospatialt revisionsbevis för en flyttad adress.
 
@@ -69,9 +71,9 @@ Nyckeltalet dygn med minst **10 mm** är statistik. Blötaste dygn och vattenmax
 
 ## API och UI
 
-`GET /v1/properties/:id/history` kräver verifierad organisation och ägd fastighet; annars 404. Zod validerar `30d`, `90d`, `12m` eller en datumperiod på högst **24 kalendermånader**, utan framtida slutdatum. Perioder är inkluderande datum, och förval slutar igår i svensk tid. Serier delar datumaxel och skickar värden/täckning som parallella arrayer. Servern sammanställer månader, nyckeltal, veckor och tidslinje. Tolkningen av varje serie följer dess dokumenterade dygn.
+`GET /v1/properties/:id/history` kräver verifierad organisation och ägd fastighet; annars 404. Zod validerar `30d`, `90d`, `12m` eller en datumperiod på högst **24 kalendermånader**, utan framtida slutdatum. Perioder är inkluderande datum, och förval slutar igår i svensk tid. Serier delar datumaxel och skickar värden/täckning som parallella arrayer. Kompakta ursprungskoder anger per datum SMHI-fil (`s`), egen aggregering (`o`) eller ingen lagrad rad (`-`); CSV skriver ut hela ursprungsnamnet. Servern sammanställer månader, nyckeltal, veckor och tidslinje. Stationskvalificering räknar bara dygn med rätt definition, och ”historik sedan” gäller den lagrade serien även när vald period inte överlappar den.
 
-Endast en GET-rad läggs till i BFF-allowlistan. Historiken laddas separat när `?vy=historik` öppnas. Hero, WebGL och aktuella kartkomponenter avmonteras inte vid vybyte. Periodchips, diagram med luckor, tidslinjefilter, versioner och CSV använder befintliga designtokens. När fler än **60** dygnsstaplar inte får plats på mobil visas hela veckoblock; ett block med lucka får ingen summa. Månadsbandens varningsfärg omfattar bara de verkliga varningstimmarna, inte en hel månad med en tvådagarsvarning.
+Endast en GET-rad läggs till i BFF-allowlistan. Historiken laddas separat när `?vy=historik` öppnas. Hero, WebGL och aktuella kartkomponenter avmonteras inte vid vybyte; den dolda kartan behåller positiva layoutmått också vid en direktlänk. Historikvalet följer med när fastighetsväljaren används. Periodchips, diagram med luckor, tidslinjefilter, versioner och CSV använder befintliga designtokens. När fler än **60** dygnsstaplar inte får plats på mobil visas veckoblock; ett block med lucka får ingen summa. Månadsbandens varningsfärg omfattar bara de verkliga varningstimmarna, inte en hel månad med en tvådagarsvarning. Min/max från olika temperaturstationer visas separat.
 
 Tabellalternativ och tangentbords-/tryckstyrda diagramdetaljer finns. CSV är UTF-8 med BOM, semikolon, tydliga radtyper, tomma celler för saknade värden, station/avstånd, källor, definitioner, versioner och källangivelser. Formelprefix i källtext neutraliseras för kalkylprogram. Ingen PDF ingår.
 
