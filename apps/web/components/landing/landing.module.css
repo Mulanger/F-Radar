@@ -43,6 +43,8 @@
 }
 
 .mobileOnly, .mobileHeroDescription, .mobileHeroPrimary, .mobileNavCta, .mobileIllustration { display: none; }
+.mobileFeatureDetails, .stepsPagination { display: none; }
+.stepsList { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,320px),1fr)); gap: 20px; }
 
 @keyframes mobileCardFloat {
   0%, 100% { transform: translateY(0); }
@@ -62,7 +64,7 @@
     gap: 8px !important;
     justify-content: space-between;
     border-radius: 18px !important;
-    background: #fff !important;
+    background: rgba(255,255,255,.88) !important;
     box-shadow: 0 1px 2px rgba(20,23,26,.03), 0 12px 32px -18px rgba(20,23,26,.14) !important;
   }
   .navBrand > span:first-child { width: 30px !important; height: 30px !important; border-radius: 8px !important; }
@@ -90,7 +92,7 @@
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.7), 0 1px 2px rgba(20,23,26,.03), 0 12px 32px -18px rgba(20,23,26,.14) !important;
   }
   .heroLayout {
-    min-height: max(500px, calc(100svh - 78px)) !important;
+    min-height: clamp(500px, calc(100svh - 78px), 820px) !important;
     flex-flow: column nowrap !important;
   }
   .heroCol { order: -1; flex: 1 1 0 !important; min-height: 190px !important; }
@@ -188,6 +190,200 @@
   .navCtaSecondary { display: none !important; }
 }
 
+/* The complete mobile landing reference: copy, illustration, then supporting details.
+   All selectors stay scoped to the public landing page; the customer dashboard is unaffected. */
+@media (max-width: 640px) {
+  .sectionIntro, .featureCopy { gap: 0 !important; max-width: none !important; }
+  .sectionIntro > span:first-child, .featureCopy > span,
+  .transparencyPanel > div > span:first-child, .sourcesSection > span {
+    font-size: 11px !important;
+  }
+  .sectionIntro h2, .featureCopy h2 { margin-top: 12px !important; font-size: 34px !important; line-height: 1.04 !important; text-wrap: initial !important; }
+  .splitMobileHeading > span { display: block; }
+  .sectionIntro > p, .featureCopy > p { margin-top: 14px !important; font-size: 15px !important; line-height: 1.5 !important; }
+  .howSection { padding: 56px 0 8px !important; }
+  .howContainer { padding: 0 !important; gap: 24px !important; }
+  .howContainer > .sectionIntro { padding: 0 20px; }
+  .stepsCarousel { min-width: 0; }
+  .stepsList {
+    display: flex;
+    position: relative;
+    gap: 10px;
+    padding: 4px 20px 16px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 0 20px;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+  .stepsList::-webkit-scrollbar { display: none; }
+  .stepsList > li { flex: 0 0 min(312px, calc(100vw - 56px)); scroll-snap-align: start; }
+  .stepsList > li > div { padding: 10px !important; border-radius: 20px !important; gap: 0 !important; }
+  .stepsList > li > div > div:first-child { height: 168px !important; border-radius: 14px !important; padding: 14px !important; }
+  .stepsList > li:nth-child(2) > div > div:first-child { padding: 0 !important; }
+  .stepsList > li:first-child > div > div:first-child > div:first-child { height: 30px !important; flex-shrink: 0; font-size: 13px !important; padding: 0 12px !important; }
+  .stepsList > li:first-child > div > div:first-child > div:last-child > div { padding: 8px 10px !important; }
+  .stepsList > li:first-child > div > div:first-child > div:last-child > div > span:first-child { font-size: 13px !important; }
+  .stepsList > li:first-child > div > div:first-child > div:last-child > div > span:last-child { font-size: 11px !important; }
+  .stepsList > li > div > div:last-child { padding: 16px 8px 8px !important; gap: 6px !important; }
+  .stepsList h3 { font-size: 18px !important; }
+  .stepsList p { font-size: 14px !important; line-height: 1.5 !important; }
+  .stepsList > li > div > div:last-child > span { font-size: 11px !important; }
+  .stepsList > li:last-child > div > div:first-child > div { padding: 10px 12px !important; font-size: 13px !important; max-width: none !important; }
+  .stepsPagination { display: flex; justify-content: center; gap: 0; }
+  .stepsPagination button { display: grid; place-items: center; width: 32px; height: 28px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+  .stepsPagination span { width: 4px; height: 4px; background: #c9cdcf; border-radius: 2px; transition: width .2s, background .2s; }
+  .stepsPagination [aria-pressed='true'] span { width: 18px; background: #14171a; }
+  .featuresSection { padding-top: 64px !important; }
+  .featuresContainer { padding: 0 20px !important; gap: 72px !important; }
+  .featureRow { flex-direction: column !important; flex-wrap: nowrap !important; align-items: stretch !important; gap: 0 !important; }
+  .featureCopy { order: 0; flex: none !important; }
+  .featureCopy > ul, .featureCopy > .statusLegend { display: none !important; }
+  .featureVisual { order: 1; flex: none !important; width: 100%; margin-top: 24px; box-sizing: border-box; }
+  .mobileFeatureDetails { display: block; order: 2; margin-top: 12px; }
+  .illustrationCaption { font-size: 10px; color: #59636b; }
+  .mobileFeatureDetails ul { padding-top: 12px !important; gap: 9px !important; }
+  .mobileFeatureDetails li { font-size: 14px !important; line-height: 1.4 !important; gap: 10px !important; }
+  .mobileFeatureDetails li > span { width: 4px !important; height: 4px !important; }
+  .mobileFeatureDetails .statusLegend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+  .portfolioIllustration { border-radius: 20px; border: 1px solid rgba(20,23,26,.05); background: #fff; overflow: hidden; box-shadow: 0 12px 32px -18px rgba(20,23,26,.14); }
+  .portfolioMap { height: 190px; aspect-ratio: auto !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+  .portfolioMap > div { top: 10px !important; left: 10px !important; padding: 7px 10px !important; border-radius: 10px !important; }
+  .portfolioMap > div > span:first-child { font-size: 12.5px !important; }
+  .portfolioMap > div > span:last-child { font-size: 10.5px !important; }
+  .portfolioMap > span { font-size: 8.5px !important; }
+  .portfolioStatus { margin: 0 !important; width: 100% !important; border: 0 !important; border-radius: 0 !important; padding: 14px 16px 6px !important; box-shadow: none !important; }
+  .portfolioStatus > div:first-child > span:first-child { font-size: 14px !important; }
+  .portfolioStatus > div:first-child > span:last-child { font-size: 10.5px !important; }
+  .portfolioRow { grid-template-columns: minmax(0,1fr) auto !important; gap: 7px 10px !important; padding: 12px 0 !important; }
+  .portfolioRow > :first-child { grid-area: 1 / 1; }
+  .portfolioRow > :first-child > span:first-child { font-size: 13.5px !important; }
+  .portfolioRow > :first-child > span:last-child { font-size: 11.5px !important; }
+  .portfolioRow > :nth-child(2) { grid-area: 1 / 2; align-self: start; font-size: 11.5px !important; }
+  .portfolioRow > :nth-child(3) { grid-area: 2 / 2; font-size: 13px !important; justify-self: end; }
+  .portfolioRow > :last-child { grid-area: 2 / 1; font-size: 11.5px !important; padding: 2px 7px !important; }
+  .warningPanel, .waterPanel, .forecastPanel, .nearbyPanel { padding: 16px !important; border-radius: 20px !important; gap: 10px !important; box-sizing: border-box; }
+  .warningPanel > div:first-child > div > span:first-child,
+  .waterPanel > div:first-child > div > span:first-child,
+  .forecastPanel > div:first-child > span:first-child,
+  .nearbyPanel > div:first-child > div > span:first-child { font-size: 14px !important; }
+  .warningPanel > div:first-child > div > span:last-child,
+  .waterPanel > div:first-child > div > span:last-child,
+  .forecastPanel > div:first-child > span:last-child,
+  .nearbyPanel > div:first-child > div > span:last-child { font-size: 11.5px !important; }
+  .warningPanel > div:first-child > span, .nearbyPanel > div:first-child > span { font-size: 10.5px !important; }
+  .warningPanel article { padding: 13px 14px !important; border-radius: 14px !important; gap: 8px !important; }
+  .warningPanel article h3 { font-size: 14px !important; }
+  .warningPanel article > div:first-child > span { font-size: 11px !important; padding: 2px 7px !important; }
+  .warningPanel article p { font-size: 13px !important; line-height: 1.45 !important; }
+  .warningPanel article > div:last-child { font-size: 11.5px !important; gap: 2px 12px !important; }
+  .waterPanel > div:first-child > span { font-size: 11px !important; padding: 3px 8px !important; background: #e3ecf9 !important; color: #3463ae !important; }
+  .waterPanel > div:nth-child(2) > div[aria-hidden] { border-top-color: #4a7fd0 !important; }
+  .waterPanel > div:nth-child(2) { height: 150px !important; border-radius: 14px !important; }
+  .waterPanel > div:nth-child(2) > span { font-size: 9.5px !important; padding: 1px 6px !important; right: 8px !important; top: 20px !important; }
+  .waterPanel > div:nth-child(2) > div:last-child { left: 10px !important; top: 42px !important; padding: 5px 9px !important; border-radius: 9px !important; }
+  .waterPanel > div:nth-child(2) > div:last-child > span:first-child { font-size: 9.5px !important; }
+  .waterPanel > div:nth-child(2) > div:last-child > span:last-child { font-size: 16px !important; }
+  .waterPanel dl { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 6px !important; }
+  .waterPanel dl > div { padding: 9px 10px !important; border-radius: 10px !important; }
+  .waterPanel dt { font-size: 10.5px !important; }
+  .waterPanel dd { font-size: 13px !important; font-weight: 400 !important; }
+  .instrumentsSection { gap: 24px !important; }
+  .instrumentTiles { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 8px !important; }
+  .instrumentTiles > div { min-width: 0; min-height: 0 !important; border-radius: 16px !important; padding: 13px !important; gap: 6px !important; }
+  .instrumentTiles > div > span:first-child { font-size: 11px !important; }
+  .instrumentTiles > div > span:nth-child(2), .instrumentTiles > div > div:nth-child(2) > span { font-size: 28px !important; }
+  .instrumentTiles > div > span:nth-child(2) > span, .instrumentTiles > div > div:nth-child(2) > span > span { font-size: 12px !important; }
+  .instrumentTiles > div > span:last-child { font-size: 10.5px !important; }
+  .instrumentTiles svg, .instrumentTiles > div:nth-child(2) > div { height: 18px !important; }
+  .instrumentTiles [role='img'] { width: 26px !important; height: 26px !important; }
+  .instrumentTiles [role='img'] > span:first-child { display: none; }
+  .instrumentTiles [role='img'] > span:nth-child(2) { height: 14px !important; margin-top: -7px !important; }
+  .instrumentTiles > div:nth-child(3) > div:nth-child(3), .instrumentTiles > div:nth-child(4) > div { height: 3px !important; margin-top: 8px !important; }
+  .instrumentPanels { grid-template-columns: minmax(0,1fr) !important; gap: 8px !important; margin-top: -16px; }
+  .forecastPanel { gap: 14px !important; }
+  .forecastPanel [role='tablist'] { padding: 3px !important; gap: 2px !important; flex-wrap: nowrap !important; max-width: 100%; }
+  .forecastPanel [role='tab'] { height: 28px !important; padding: 0 12px !important; font-size: 12px !important; }
+  .forecastPanel dl { display: grid !important; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 4px !important; }
+  .forecastPanel dt { font-size: 10.5px !important; }
+  .forecastPanel dd { font-size: 17px !important; white-space: nowrap; }
+  .forecastGraph { height: 120px !important; }
+  .forecastTooltip { left: auto !important; right: 0; transform: translateY(-150%) !important; font-size: 10.5px !important; padding: 3px 7px !important; border-radius: 6px !important; }
+  .forecastPanel > div:last-child { font-size: 10px !important; }
+  .nearbyPanel { padding-bottom: 6px !important; }
+  .nearbyPanel li { grid-template-columns: 26px minmax(0,1fr) auto !important; gap: 4px 11px !important; padding: 12px 0 !important; }
+  .nearbyPanel li > span:first-child { width: 26px !important; height: 26px !important; border-radius: 8px !important; }
+  .nearbyPanel li > span:last-child { font-size: 10.5px !important; }
+  .nearbyPanel li > div > span:first-child { font-size: 13px !important; line-height: 1.35 !important; }
+  .nearbyPanel li > div > span:last-child > span { font-size: 10px !important; }
+  .smsDemo { padding-bottom: 0 !important; }
+  .smsRule { width: 100% !important; padding: 16px 16px 28px !important; border-radius: 20px !important; gap: 14px !important; }
+  .smsRule > div:first-child { gap: 6px !important; }
+  .smsRule > div:first-child > span:first-child { font-size: 14px !important; }
+  .smsRule > div:first-child > span:last-child { font-size: 10px !important; padding: 2px 6px !important; }
+  .smsRule legend, .smsRule fieldset > span, .smsRule > div:nth-child(3) > span { font-size: 11.5px !important; }
+  .smsRule fieldset { gap: 7px !important; }
+  .smsRule fieldset button { height: 32px !important; padding: 0 12px !important; font-size: 12.5px !important; gap: 6px !important; }
+  .smsRule fieldset button > span { width: 9px !important; height: 9px !important; }
+  .smsRule > div:nth-child(3) > div { gap: 6px !important; }
+  .smsRule > div:nth-child(3) > div > span { height: 28px !important; font-size: 12px !important; padding: 0 10px !important; }
+  .smsRule > div:nth-child(4) { padding: 11px 12px !important; gap: 12px !important; }
+  .smsRule [role='switch'] { width: 36px !important; height: 22px !important; }
+  .smsRule [role='switch'] > span { top: 2px !important; left: 2px !important; width: 18px !important; height: 18px !important; }
+  .smsRule [role='switch'][aria-checked='true'] > span { transform: translateX(14px) !important; }
+  .smsRule > div:nth-child(4) > div > span:first-child { font-size: 13px !important; }
+  .smsRule > div:nth-child(4) > div > span:last-child { font-size: 11px !important; }
+  .smsRule > div:last-child { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 6px !important; }
+  .smsRule > div:last-child > div { padding: 9px 11px !important; border-radius: 12px !important; }
+  .smsRule > div:last-child > div > span:first-child { font-size: 10.5px !important; }
+  .smsRule > div:last-child > div > span:last-child { font-size: 14px !important; }
+  .smsPreview { position: relative !important; width: auto !important; margin: -14px 10px 0 34px; padding: 12px !important; border-radius: 18px !important; gap: 9px !important; }
+  .smsPreview > div:first-child { gap: 7px !important; }
+  .smsPreview > div:first-child > span:first-child { width: 20px !important; height: 20px !important; border-radius: 6px !important; }
+  .smsPreview > div:first-child > span:nth-child(2) { font-size: 12px !important; }
+  .smsPreview > div:first-child > span:last-child, .smsPreview > span { font-size: 10px !important; }
+  .smsPreview > div:nth-child(2) { padding: 9px 11px !important; border-radius: 12px !important; font-size: 12.5px !important; line-height: 1.4 !important; }
+  .dataSection { padding-top: 72px !important; }
+  .dataContainer { padding: 0 8px !important; }
+  .transparencyPanel { padding: 28px 20px 12px !important; border-radius: 22px !important; flex-direction: column; gap: 20px !important; }
+  .transparencyPanel > div { flex: none !important; gap: 14px !important; }
+  .transparencyPanel h2 { font-size: 32px !important; line-height: 1.04 !important; }
+  .transparencyPanel p { font-size: 14.5px !important; line-height: 1.5 !important; }
+  .transparencyPanel > div > div { padding: 6px 10px 6px 6px !important; gap: 8px !important; border-radius: 10px !important; }
+  .transparencyPanel > div > div > span { font-size: 12px !important; }
+  .transparencyPanel dl { flex: none !important; }
+  .transparencyPanel dl > div { display: flex !important; flex-direction: column; gap: 7px !important; padding: 13px 0 !important; border-top: 1px solid rgba(20,23,26,.07); border-bottom: 0 !important; }
+  .transparencyPanel dt { font-size: 10.5px !important; padding: 2px 7px !important; }
+  .transparencyPanel dd > span:first-child { font-size: 14px !important; }
+  .transparencyPanel dd > span:last-child { font-size: 12px !important; }
+  .sourcesSection { padding: 48px 12px 0 !important; gap: 14px !important; }
+  .sourcesSection ul { gap: 6px !important; }
+  .sourcesSection li { font-size: 10.5px !important; padding: 6px 10px !important; gap: 6px !important; }
+  .sourcesSection li > span { width: 4px !important; height: 4px !important; }
+  .getStartedSection { padding: 64px 8px 0 !important; }
+  .getStartedPanel { border-radius: 22px !important; padding: 40px 22px !important; gap: 18px !important; }
+  .getStartedPanel > span:first-child { border-radius: 11px !important; box-shadow: none !important; }
+  .getStartedPanel > span:first-child > span { width: 40px !important; height: 40px !important; border-radius: 11px !important; }
+  .getStartedPanel h2 { font-size: 32px !important; line-height: 1.05 !important; }
+  .getStartedPanel p { font-size: 14px !important; }
+  .getStartedPanel > a { height: 48px !important; padding: 0 24px !important; font-size: 15px !important; }
+  .getStartedPanel form { padding-top: 0 !important; min-width: 0; }
+  .getStartedPanel form input { flex-basis: 100% !important; min-width: 0; width: 100%; height: 48px !important; }
+  .getStartedPanel form button { height: 48px !important; }
+  .footer { padding: 40px 0 28px !important; }
+  .footer > div { gap: 24px !important; padding: 0 20px !important; }
+  .footer > div > div:first-child { flex-direction: column; gap: 24px !important; }
+  .footer > div > div:first-child > div { gap: 10px !important; max-width: none !important; }
+  .footer > div > div:first-child > div > span { font-size: 12.5px !important; line-height: 1.5 !important; }
+  .footer > div > div:first-child > div > a > span:first-child { width: 24px !important; height: 24px !important; border-radius: 7px !important; }
+  .footer > div > div:first-child > div > a > span:last-child { font-size: 14px !important; }
+  .footer nav { display: grid !important; grid-template-columns: 1fr 1fr; gap: 16px !important; }
+  .footer nav > div { gap: 2px !important; font-size: 14px !important; }
+  .footer nav > div > span { font-size: 10.5px !important; margin-bottom: 6px; }
+  .footer nav a { padding: 6px 0; }
+  .footer > div > div:last-child { flex-direction: column; gap: 6px !important; padding-top: 16px !important; font-size: 11px !important; line-height: 1.5; }
+}
+
 @media (max-width: 359px) {
   .navBrand { gap: 7px !important; }
   .navBrand > span:last-child { font-size: 13px !important; }
@@ -195,6 +391,7 @@
   .heroCopy { padding-right: 14px !important; padding-left: 14px !important; }
   .heroActions > a { padding: 0 10px !important; font-size: 12.5px !important; }
   .mobileWeather { gap: 8px; padding: 6px 9px; font-size: 11px; }
+  .forecastPanel dd { font-size: 13px !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {

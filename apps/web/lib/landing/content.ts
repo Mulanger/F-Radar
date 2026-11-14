@@ -12,7 +12,7 @@ export const SEVERITY: Record<SeverityKey, { label: string; bg: string; fg: stri
   normal: { label: 'Ingen aktiv varning', bg: '#E2F3E8', fg: '#2B7D4D', dot: '#3FA66B' },
   monitor: { label: 'Bevaka', bg: '#E3ECF9', fg: '#3463AE', dot: '#4A7FD0' },
   warning: { label: 'Varning', bg: '#FDEBD8', fg: '#A9530C', dot: '#E08A2E' },
-  critical: { label: 'Kritisk', bg: '#FCE4E1', fg: '#B8362B', dot: '#D8473A' },
+  critical: { label: 'VMA', bg: '#FCE4E1', fg: '#B8362B', dot: '#D8473A' },
 };
 export const SEVERITY_ORDER: SeverityKey[] = ['normal', 'monitor', 'warning', 'critical'];
 

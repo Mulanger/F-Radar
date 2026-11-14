@@ -78,7 +78,7 @@ export function ForecastPanel() {
   const [tab, setTab] = useState<ForecastTab>('t');
   const ch = chartModel(tab);
   return (
-    <div style={{ ...card, boxShadow: '0 1px 2px rgba(20,23,26,0.04)', padding: 'clamp(20px,3vw,28px)', display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div className={css.forecastPanel} style={{ ...card, boxShadow: '0 1px 2px rgba(20,23,26,0.04)', padding: 'clamp(20px,3vw,28px)', display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={cardHead}>
         <span style={cardTitle}>Väderförhållanden</span>
         <span style={cardSub}>SMHI punktprognos · kommande 24 h</span>
@@ -107,7 +107,7 @@ export function ForecastPanel() {
           </div>
         ))}
       </dl>
-      <div style={{ position: 'relative', height: 170 }}>
+      <div className={css.forecastGraph} style={{ position: 'relative', height: 170 }}>
         <svg viewBox="0 0 600 170" preserveAspectRatio="none" role="img" aria-label={`Prognosdiagram: ${FORECAST[tab].label}, ${ch.peakLabel}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
           <defs>
             <linearGradient id="frLandingArea" x1="0" y1="0" x2="0" y2="1">
@@ -122,7 +122,7 @@ export function ForecastPanel() {
           <path d={ch.line} fill="none" stroke={ch.color} strokeWidth="2.2" vectorEffect="non-scaling-stroke" />
         </svg>
         <span aria-hidden="true" style={{ position: 'absolute', width: 12, height: 12, margin: '-6px 0 0 -6px', borderRadius: '50%', background: '#FFFFFF', border: `2.5px solid ${ch.color}`, boxSizing: 'border-box', left: ch.peakX, top: ch.peakY }} />
-        <span aria-hidden="true" style={{ position: 'absolute', transform: 'translate(-100%,-150%)', marginLeft: 8, whiteSpace: 'nowrap', fontSize: 12.5, padding: '5px 9px', borderRadius: 8, background: '#14171A', color: '#FFFFFF', left: ch.peakX, top: ch.peakY }}>{ch.peakLabel}</span>
+        <span className={css.forecastTooltip} aria-hidden="true" style={{ position: 'absolute', transform: 'translate(-100%,-150%)', marginLeft: 8, whiteSpace: 'nowrap', fontSize: 12.5, padding: '5px 9px', borderRadius: 8, background: '#14171A', color: '#FFFFFF', left: ch.peakX, top: ch.peakY }}>{ch.peakLabel}</span>
       </div>
       <div aria-hidden="true" style={{ display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 11.5, color: '#6B737B' }}>
         <span>Nu</span><span>20:00</span><span>02:00</span><span>08:00</span><span>14:00</span>
@@ -146,8 +146,8 @@ export function SmsRuleDemo() {
   const [quiet, setQuiet] = useState(true);
   const p = smsPreview(levels);
   return (
-    <div style={{ position: 'relative', paddingBottom: 40 }}>
-      <div style={{ ...card, padding: 'clamp(20px,3vw,30px)', display: 'flex', flexDirection: 'column', gap: 22, width: '88%', boxSizing: 'border-box' }}>
+    <div className={css.smsDemo} style={{ position: 'relative', paddingBottom: 40 }}>
+      <div className={css.smsRule} style={{ ...card, padding: 'clamp(20px,3vw,30px)', display: 'flex', flexDirection: 'column', gap: 22, width: '88%', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={cardTitle}>Skapa regel</span>
           <span style={{ fontFamily: MONO, fontSize: 12, padding: '4px 8px', borderRadius: 7, background: '#F1F3F2', color: '#4A5157' }}>SMHI officiella varningar</span>
@@ -209,6 +209,7 @@ export function SmsRuleDemo() {
         </div>
       </div>
       <div
+        className={css.smsPreview}
         aria-live="polite"
         style={{ position: 'absolute', right: 0, bottom: 0, width: 'min(330px,72%)', padding: '16px 18px', borderRadius: 22, background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.95)', backdropFilter: 'blur(18px) saturate(1.5)', WebkitBackdropFilter: 'blur(18px) saturate(1.5)', boxShadow: '0 28px 56px -24px rgba(20,23,26,0.4)', display: 'flex', flexDirection: 'column', gap: 10, boxSizing: 'border-box' }}
       >

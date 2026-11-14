@@ -176,6 +176,9 @@ describe('assessPropertyRisk', () => {
       'packages/db/src/history.ts','packages/integrations/src/smhi/history.ts','apps/api/src/monitoring/history.ts',
       'apps/web/lib/data/history.ts','apps/web/lib/view-models/history.ts',
       'apps/web/components/properties/HistoryView.tsx','apps/web/components/properties/HistoryCharts.tsx',
+      'apps/web/components/landing/LandingHero.tsx','apps/web/components/landing/LandingPage.tsx',
+      'apps/web/components/landing/LandingInteractive.tsx','apps/web/components/landing/StepsCarousel.tsx',
+      'apps/web/lib/landing/content.ts',
     ]) {
       const own=readFileSync(new URL('../../../'+path,import.meta.url),'utf8').replace(/Krisinformation(\.se)?/gi,'');
       expect(own,path).not.toMatch(/\bkris|fara|akut|katastrof|allvarlig|kritisk/i);
