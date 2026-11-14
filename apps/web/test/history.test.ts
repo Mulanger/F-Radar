@@ -26,9 +26,9 @@ describe('history presentation', () => {
   it('groups versions inside one timeline row and filters regional information', () => {
     const h = buildDemoHistory(id, period);
     const groups = groupHistoryEvents(h.events, 'Weather');
-    const wind = groups.flatMap((g) => g.events).filter((e) => e.id === 'demo-wind');
-    expect(wind).toHaveLength(1);
-    expect(wind[0].versions).toHaveLength(2);
+    const storm = groups.flatMap((g) => g.events).filter((e) => e.id === 'demo-autumn');
+    expect(storm).toHaveLength(1);
+    expect(storm[0].versions).toHaveLength(2);
     expect(groupHistoryEvents(h.events, 'CountyInfo').flatMap((g) => g.events)).toHaveLength(1);
   });
 
@@ -46,10 +46,11 @@ describe('history presentation', () => {
 
   it('limits monthly warning bands to actual hours and aligns rain days at 06 UTC', () => {
     const h = buildDemoHistory(id, period);
-    const wind = h.events.find((e) => e.id === 'demo-wind')!;
-    const bands = historyWarningBands([wind], '2025-11-01', '2025-11-30', 'smhi_06_utc');
-    expect(bands.reduce((sum, b) => sum + b.width, 0)).toBeLessThan(2 / 30);
-    expect(historyWarnings([wind], '2025-11-10', '2025-11-10', 'smhi_06_utc')).toHaveLength(1);
+    const storm = h.events.find((e) => e.id === 'demo-autumn')!;
+    const bands = historyWarningBands([storm], '2025-10-01', '2025-10-31', 'smhi_06_utc');
+    expect(bands.reduce((sum, b) => sum + b.width, 0)).toBeLessThan(2 / 31);
+    // SMHI rain day 3 Oct (06–06 UTC) ends after the storm started at 00 UTC on 4 Oct.
+    expect(historyWarnings([storm], '2025-10-03', '2025-10-03', 'smhi_06_utc')).toHaveLength(1);
   });
 
   it('exports station distances, source text, versions, definitions, licence and empty missing cells', () => {

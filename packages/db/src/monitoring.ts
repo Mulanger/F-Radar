@@ -196,6 +196,20 @@ export interface UpsertEventsResult {
   unchanged: number;
 }
 
+/**
+ * Upper bounds for stored official texts. Real SMHI/Krisinformation/Trafikverket texts are far
+ * shorter, so they are stored unaltered; the bound only protects the database (and the 24-month
+ * per-property archive, which copies the text) against an abnormal upstream payload. A text that
+ * hits the bound is visibly marked as shortened – it is never silently cut.
+ */
+export const OFFICIAL_TEXT_LIMITS = { headline: 1_000, description: 20_000 } as const;
+export const SHORTENED_TEXT_MARKER = ' … [Texten är förkortad. Se källan för hela texten.]';
+
+export function capOfficialText(text: string, max: number): string {
+  if (text.length <= max) return text;
+  return text.slice(0, max - SHORTENED_TEXT_MARKER.length) + SHORTENED_TEXT_MARKER;
+}
+
 /** Upserts events in chunks. Events whose validity already ended are stored as `ended`. */
 export async function upsertSourceEvents(db: Queryable, sourceId: string, events: SourceEventInput[]): Promise<UpsertEventsResult> {
   const result: UpsertEventsResult = { inserted: 0, updated: 0, unchanged: 0 };
@@ -207,8 +221,8 @@ export async function upsertSourceEvents(db: Queryable, sourceId: string, events
       level: e.level,
       severity: e.severity,
       event_type: e.eventType.slice(0, 200),
-      headline: e.headline,
-      description: e.description,
+      headline: capOfficialText(e.headline, OFFICIAL_TEXT_LIMITS.headline),
+      description: e.description === null ? null : capOfficialText(e.description, OFFICIAL_TEXT_LIMITS.description),
       area_label: e.areaLabel?.slice(0, 500) ?? null,
       county_names: e.countyNames,
       geojson: e.geometry ? JSON.stringify(e.geometry) : null,

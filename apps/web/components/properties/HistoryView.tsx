@@ -153,7 +153,7 @@ function HistoryKpis({ history }: { history: PropertyHistory }) {
         }
         note={
           <>
-            {days} dygn i vald period{!kpis.rainComplete ? ' · ofullständig mätserie' : ''}.{' '}
+            {days} dygn i vald period{!kpis.rainComplete ? ' · ofullständig mätserie' : ''} ·{' '}
             {historyStationLabel(history, rain)}
           </>
         }

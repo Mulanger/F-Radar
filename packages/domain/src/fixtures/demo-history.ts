@@ -37,9 +37,11 @@ function demoEvent(
   category: HistoryEvent['category'],
   title: string,
   upgrade = false,
+  /** Exact validity (UTC ISO) when the default "date 00Z → next day 18Z" does not fit the story. */
+  window?: { from: string; to: string },
 ): HistoryEvent {
-  const start = date + 'T00:00:00.000Z';
-  const end = addHistoryDays(date, 1) + 'T18:00:00.000Z';
+  const start = window?.from ?? date + 'T00:00:00.000Z';
+  const end = window?.to ?? addHistoryDays(date, 1) + 'T18:00:00.000Z';
   const version: HistoryEventVersion = {
     version: 1,
     changedAt: addHistoryDays(date, -1) + 'T09:00:00.000Z',
@@ -98,6 +100,78 @@ function demoEvent(
   };
 }
 
+/** Deterministic 0..1 value per day (integer hash, identical in every runtime). */
+function dayNoise(day: number, salt: number): number {
+  let x = (day * 374_761_393 + salt * 668_265_263) >>> 0;
+  x = Math.imul(x ^ (x >>> 13), 1_274_126_177) >>> 0;
+  return ((x ^ (x >>> 16)) >>> 0) / 4_294_967_296;
+}
+
+/** Storm surges in the demo story: peak day → extra cm, decaying over the following days. */
+const DEMO_SURGES: Array<[string, number]> = [
+  ['2025-01-08', 16],
+  ['2025-10-04', 30],
+  ['2025-11-03', 12],
+  ['2025-11-11', 18],
+];
+
+/**
+ * Plausible Baltic sea level around Stockholm in cm RW (0 = the year's mean): highest around
+ * midwinter and lowest in early summer, irregular week-scale weather variation, storm surges on
+ * the demo's windy days and small day-to-day noise. Daily min/max widen on surge days.
+ */
+function demoSeaLevel(date: string, day: number, seed: number): { mean: number; min: number; max: number } {
+  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+  const dayOfYear = (Date.UTC(y, m - 1, d) - Date.UTC(y, 0, 0)) / HISTORY.dayMs;
+  const seasonal = 12 * Math.cos((2 * Math.PI * (dayOfYear - 354)) / 365);
+  const weather = 9 * Math.sin((2 * Math.PI * day) / 23.7 + (seed % 7)) + 5 * Math.sin((2 * Math.PI * day) / 9.3 + 1.7);
+  let surge = 0;
+  for (const [peak, cm] of DEMO_SURGES) {
+    const after = (Date.parse(date) - Date.parse(peak)) / HISTORY.dayMs;
+    if (after >= 0 && after < 4) surge += cm * Math.exp(-after * 0.9);
+  }
+  const mean = seasonal + weather + surge + (dayNoise(day, 11) - 0.5) * 6;
+  const range = 5 + dayNoise(day, 29) * 7 + surge * 0.4;
+  return { mean, min: mean - range * 0.45, max: mean + range * 0.55 };
+}
+
+/** Demo story days: date → [rain mm, extra gust m/s, temperature anomaly °C]. */
+const DEMO_WEATHER_DAYS: Record<string, [number, number, number]> = {
+  '2025-01-08': [6, 6, -2], // snowfall (yellow)
+  '2025-02-19': [3, 2, 2], // rain on frozen ground (yellow ice)
+  '2025-07-18': [26, 4, 2], // summer downpour (yellow heavy rain)
+  '2025-10-04': [12, 12, 0], // autumn storm (yellow → orange wind)
+  '2025-11-03': [17, 3, 1], // heavy rain (yellow)
+  '2025-11-11': [4, 8, 0], // windy day (yellow wind, closed after 18 h)
+};
+
+/**
+ * Plausible Stockholm daily weather without a visible pattern: smooth seasonal curve by day of
+ * year (no month steps), irregular multi-day weather swings, ~45 % wet days with a skewed amount
+ * distribution scaled to the monthly normal, and the demo story's warning days on top.
+ */
+function demoWeather(date: string, day: number, seed: number, normalPerDay: number, autumn: boolean) {
+  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+  const dayOfYear = (Date.UTC(y, m - 1, d) - Date.UTC(y, 0, 0)) / HISTORY.dayMs;
+  const summer = Math.cos((2 * Math.PI * (dayOfYear - 200)) / 365); // +1 mid-July, −1 mid-January
+  const story = DEMO_WEATHER_DAYS[date];
+  const swing = 2.6 * Math.sin((2 * Math.PI * day) / 11.3 + (seed % 5)) + 1.8 * Math.sin((2 * Math.PI * day) / 5.1 + 0.8);
+  const mean = 7 + 10.5 * summer + swing + (dayNoise(day, 3) - 0.5) * 3 + (story?.[2] ?? 0);
+  const range = 4 + 3 * Math.max(0, summer) + dayNoise(day, 5) * 3;
+  const wet = dayNoise(day + seed, 7) < 0.45;
+  const scale = (normalPerDay / 0.45) * (autumn ? 1.4 : 1);
+  const rain = story ? story[0] : wet ? -Math.log(1 - dayNoise(day + seed, 13) * 0.97) * scale : 0;
+  const gustSwing = 2 * Math.sin((2 * Math.PI * day) / 6.7 + (seed % 3)) + 1.5 * Math.sin((2 * Math.PI * day) / 2.9 + 0.4);
+  const gust = Math.max(3, 8.5 + 2.5 * -summer + gustSwing + (dayNoise(day, 17) - 0.5) * 7 + (story?.[1] ?? 0));
+  return {
+    rain: roundHistory(rain),
+    mean: roundHistory(mean),
+    min: roundHistory(mean - range / 2),
+    max: roundHistory(mean + range / 2),
+    gust: roundHistory(gust),
+  };
+}
+
 /** Fixed seasonal model, stable across runtimes. No live data or random state enters the demo. */
 export function buildDemoHistory(
   propertyId: string,
@@ -147,19 +221,19 @@ export function buildDemoHistory(
   const rows = dates.map((date) => {
     const d = new Date(date + 'T12:00:00Z');
     const day = Math.floor(+d / HISTORY.dayMs);
-    const season = Math.cos(((d.getUTCMonth() - 6) / 12) * Math.PI * 2);
-    const pulse = (day * 17 + seed) % 23;
-    const rain = pulse < 10 ? 0 : pulse === 22 ? 20 + (seed % 7) : (pulse - 9) * 0.65;
-    const mean = 7 + 10 * season + Math.sin(day * 0.7) * 3;
     const autumn = [8, 9, 10].includes(d.getUTCMonth());
     const daysInMonth = new Date(d.getUTCFullYear(), d.getUTCMonth() + 1, 0).getDate();
+    const sea = demoSeaLevel(date, day, seed);
+    const weather = demoWeather(date, day, seed, NORMALS[d.getUTCMonth()]! / daysInMonth, autumn);
     return {
-      rain: roundHistory(((rain * NORMALS[d.getUTCMonth()]) / daysInMonth / 3.3) * (autumn ? 1.55 : 1)),
-      min: roundHistory(mean - 3.5),
-      max: roundHistory(mean + 4),
-      mean: roundHistory(mean),
-      wind: roundHistory(5 + Math.abs(Math.sin(day * 0.3)) * 9 + (date === '2025-11-11' ? 9 : 0)),
-      sea: roundHistory(10 + Math.sin(day * 0.15) * 25 + (autumn ? 13 : 0)),
+      rain: weather.rain,
+      min: weather.min,
+      max: weather.max,
+      mean: weather.mean,
+      wind: weather.gust,
+      sea: roundHistory(sea.mean),
+      seaMin: roundHistory(sea.min),
+      seaMax: roundHistory(sea.max),
       flow: roundHistory(2 + Math.sin(day * 0.04) * 1.2 + (autumn ? 1.5 : 0)),
     };
   });
@@ -211,8 +285,8 @@ export function buildDemoHistory(
       since: '2024-11-12',
       ...(key === 'sea_level'
         ? {
-            min: values.map((v) => (v === null ? null : roundHistory(v - 7))),
-            max: values.map((v) => (v === null ? null : roundHistory(v + 8))),
+            min: values.map((v, i) => (v === null ? null : rows[i]!.seaMin)),
+            max: values.map((v, i) => (v === null ? null : rows[i]!.seaMax)),
           }
         : {}),
     };
@@ -223,7 +297,8 @@ export function buildDemoHistory(
     demoEvent('demo-flow', '2025-04-09', 'Yellow', 'Water', 'Höga flöden'),
     demoEvent('demo-shower', '2025-07-18', 'Yellow', 'Weather', 'Kraftigt regn'),
     demoEvent('demo-vma', '2025-08-14', 'VMA', 'VMA', 'Viktigt meddelande till allmänheten'),
-    demoEvent('demo-autumn', '2025-10-04', 'Orange', 'Weather', 'Vind'),
+    // The autumn storm shows how an upgrade (yellow → orange) is kept inside one timeline row.
+    demoEvent('demo-autumn', '2025-10-04', 'Orange', 'Weather', 'Vind', true),
     demoEvent('demo-rain', '2025-11-03', 'Yellow', 'Weather', 'Regn'),
     demoEvent('demo-traffic', '2025-11-07', 'Info', 'Traffic', 'Vägen avstängd'),
     demoEvent(
@@ -233,7 +308,12 @@ export function buildDemoHistory(
       'CountyInfo',
       'Information om störningar i kollektivtrafiken',
     ),
-    demoEvent('demo-wind', '2025-11-11', 'Orange', 'Weather', 'Vind i Nacka', true),
+    // Matches the "Nu" demo: yesterday's yellow wind warning, closed after 18 h (00–18 Swedish time).
+    // Today's orange wind and yellow rain warnings are current, not history.
+    demoEvent('demo-wind', '2025-11-11', 'Yellow', 'Weather', 'Vind i Nacka', false, {
+      from: '2025-11-10T23:00:00.000Z',
+      to: '2025-11-11T17:00:00.000Z',
+    }),
   ];
   const localEvents = allEvents.filter((e) => {
     if (e.category === 'VMA') return propertyId === 'demo-ulvsunda-lager';

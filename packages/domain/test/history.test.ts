@@ -97,25 +97,51 @@ describe('normal and station requirements', () => {
   });
 });
 
+describe('demo history story', () => {
+  const augustendal = 'demo-augustendal-brygga';
+  const year = { from: '2024-11-12', to: '2025-11-11' };
+
+  it('matches the "Nu" demo: yesterday only a yellow wind warning, closed after 18 h', () => {
+    const wind = buildDemoHistory(augustendal, year).events.find((e) => e.id === 'demo-wind')!;
+    expect(wind.versions.map((v) => v.level)).toEqual(['Yellow']);
+    expect(wind.versions[0]!.validTo).toBe('2025-11-11T17:00:00.000Z');
+    expect(Date.parse(wind.versions[0]!.validTo!) - Date.parse(wind.versions[0]!.validFrom!)).toBe(18 * 3_600_000);
+  });
+
+  it('gives an irregular sea level around the yearly mean with the October storm surge near the top', () => {
+    const sea = buildDemoHistory(augustendal, year).daily.series.find((s) => s.key === 'sea_level')!;
+    const values = sea.values.filter((v): v is number => v !== null);
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    expect(Math.abs(mean)).toBeLessThan(5); // 0 RW = the year's mean
+    const sorted = [...values].sort((a, b) => b - a);
+    const storm = sea.values[buildDemoHistory(augustendal, year).daily.dates.indexOf('2025-10-04')]!;
+    expect(storm).toBeGreaterThanOrEqual(sorted[Math.floor(values.length * 0.05)]!);
+    // Not a fixed-period wave: day-to-day changes vary in size and direction.
+    const steps = values.slice(1).map((v, i) => v - values[i]!);
+    expect(new Set(steps.map((s) => Math.sign(s))).size).toBeGreaterThan(1);
+    expect(Math.max(...steps) - Math.min(...steps)).toBeGreaterThan(10);
+  });
+});
+
 describe('history facts and versions', () => {
   it('keeps one event with two versions, clipping the upgrade to its actual day', () => {
-    const h = buildDemoHistory(propertyId, { from: '2025-11-01', to: '2025-11-11' });
-    const wind = h.events.find((e) => e.id === 'demo-wind')!;
-    expect(wind.versions).toHaveLength(2);
-    expect(warningDays(['2025-11-10'], [wind]).levels.Orange).toBe(0);
-    const counts = warningDays(['2025-11-11', '2025-11-12'], [wind]);
+    const h = buildDemoHistory(propertyId, { from: '2025-10-01', to: '2025-10-11' });
+    const storm = h.events.find((e) => e.id === 'demo-autumn')!;
+    expect(storm.versions).toHaveLength(2);
+    expect(warningDays(['2025-10-03'], [storm]).levels.Orange).toBe(0);
+    const counts = warningDays(['2025-10-04', '2025-10-05'], [storm]);
     expect(counts.count).toBe(2);
     expect(counts.levels.Orange).toBe(2);
     expect(counts.levels.Yellow).toBe(1);
   });
 
   it('does not count a cancelled warning that ended before its valid start', () => {
-    const h = buildDemoHistory(propertyId, { from: '2025-11-01', to: '2025-11-11' });
-    const event = h.events.find((e) => e.id === 'demo-wind')!;
+    const h = buildDemoHistory(propertyId, { from: '2025-10-01', to: '2025-10-11' });
+    const event = h.events.find((e) => e.id === 'demo-autumn')!;
     event.versions = event.versions
       .slice(0, 1)
-      .map((v) => ({ ...v, endType: 'cancelled', endedAt: '2025-11-10T10:00:00.000Z' }));
-    expect(warningDays(['2025-11-11'], [event]).count).toBe(0);
+      .map((v) => ({ ...v, endType: 'cancelled', endedAt: '2025-10-03T10:00:00.000Z' }));
+    expect(warningDays(['2025-10-04'], [event]).count).toBe(0);
   });
 
   it('computes KPIs from complete readings and leaves gaps visible', () => {
