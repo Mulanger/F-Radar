@@ -18,9 +18,8 @@ Branch `claude/stromavbrott-fas1` (worktree `.worktrees/stromavbrott`, based on 
 - **Dashboard**: red/orange/blue/green feed rows, property status raised by matched outages, "Elnät" panel,
   outage polygons on the property map.
 - **SMS** category `power_outage`: start/planned/reminder/restored/changes with the anti-spam rules of ADR 0006.
-- **Tests**: 53 new unit/DOM tests; live test of all 14 operators passed; real-DB suite
-  (`tests/integration/utility-outages.ts`) written but **not yet run** – the pod's shared `fastighetsradar_test`
-  database was in use by a parallel agent. Manual browser verification needs a running API + database and is
+- **Tests**: 53 new unit/DOM tests; live test of all 14 operators passed; real-PostGIS suite in the pod
+  26/26 (`tests/integration/utility-outages.ts`). Manual browser verification needs a running API + database and is
   **not done**.
 
 ---

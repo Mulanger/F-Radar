@@ -764,7 +764,7 @@ och **inget** SMS; Tekniska verken/Mälarenergi klarar 10.
 
 | Fas | Datum | Commit | Operatörer live-verifierade | Tester (antal gröna) | Avvikelser / öppna frågor |
 |---|---|---|---|---|---|
-| 1 | 2026-11-14 | ej committad (gren `claude/stromavbrott-fas1`) | Vattenfall, Göteborg Energi, 12 Digpro-bolag (14/14 livetest gröna) | 280 enhets-/DOM-tester gröna (53 nya); lint, typecheck, build gröna | PostGIS-sviten skriven men **ej körd** (podens testdatabas användes av parallell agent). Manuell webbläsarverifiering ej gjord (kräver API + databas). Göteborg: planerade elavbrott i förväg ej observerade. |
+| 1 | 2026-11-14 | `12c64b4`, `44c9fd9` (gren `claude/stromavbrott-fas1`) | Vattenfall, Göteborg Energi, 12 Digpro-bolag (14/14 livetest gröna) | 280 enhets-/DOM-tester gröna (53 nya); PostGIS-sviten i podden 26/26 (även tillsammans med parallell säkerhetshärdning); lint, typecheck, build gröna | Manuell webbläsarverifiering ej gjord (kräver API + databas lokalt). Göteborg: planerade elavbrott i förväg ej observerade. |
 | 2 | | | | | |
 | 3 | | | | | |
 | 4 | | | | | |

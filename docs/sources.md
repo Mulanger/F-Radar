@@ -24,7 +24,7 @@ shows the data with attribution, and no alerts/SMS are sent.
 | MCF översvämningskartering (WFS) | `mcf_flood` | STATIC_GEODATA | **Working and live-tested** | Uppsala/Fyrisån hits all 3 scenarios; Stockholm property: no mapped area within 1 km |
 | SCB PxWebApi v2 (TAB628) | `scb` | REGIONAL_STATISTIC | **Working and live-tested** | Stockholm 0180: population, density, land area (2025) |
 | SMHI oceanography (sea level) | `smhi_oceanography` | OBSERVATION | **Working and live-tested 2026-11-14** | Parameter 6 RH 2000, station catalogue + latest-day series; fixture contracts and real adapter test |
-| Grid operators’ outage maps (Vattenfall, Göteborg Energi, 12 Digpro operators) | `utility_outages` | UTILITY_OUTAGE | **Implemented, off by default (`SOURCE_UTILITY_OUTAGES_ENABLED`)** | Fixture contracts from real responses + live test of all 14 operators 2026-11-14; real-DB suite written (see below) |
+| Grid operators’ outage maps (Vattenfall, Göteborg Energi, 12 Digpro operators) | `utility_outages` | UTILITY_OUTAGE | **Implemented, off by default (`SOURCE_UTILITY_OUTAGES_ENABLED`)** | Fixture contracts from real responses + live test of all 14 operators 2026-11-14; real-PostGIS suite 26/26 in the pod |
 | SL boats (Trafiklab) | `sl_deviations` | PUBLIC_EVENT | **Off; locally gated adapter not live-enabled** | Keyless messages and sites endpoints verified HTTP 200; fixtures cover localisation; separate key variable and flag missing |
 | Geoapify geocoding | `geoapify_geocoding` | – | Working and live-tested (Agent 2) | onboarding only |
 | Lantmäteriet address | `lantmateriet_address` | – | **Disabled pending authorization** | requires approval + credentials |
