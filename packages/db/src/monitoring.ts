@@ -1,3 +1,4 @@
+import { applyUtilityOutageRetention } from './utility-outages';
 import { createHash } from 'node:crypto';
 import type { Queryable } from './migrations';
 
@@ -367,6 +368,8 @@ export async function rematchEvents(db: Queryable): Promise<MatchChange[]> {
      ), gone AS (
        DELETE FROM property_event_matches m
         WHERE NOT EXISTS (SELECT 1 FROM cand c WHERE c.property_id = m.property_id AND c.event_id = m.event_id)
+          -- Utility outages are matched by rematchUtilityOutages (per-property precision/severity).
+          AND NOT EXISTS (SELECT 1 FROM source_events se WHERE se.id = m.event_id AND se.source_id = 'utility_outages')
        RETURNING m.property_id, m.event_id, m.organization_id, m.matched_version
      ), end_changes AS (
        INSERT INTO monitoring_changes (organization_id, property_id, event_id, source_id, change_type, data_class, severity, headline, dedup_key)
@@ -539,7 +542,9 @@ export const RETENTION = {
 export async function applyRetention(db: Queryable): Promise<Record<string, number>> {
   const del = async (sql: string, params: unknown[]) => (await db.query(sql, params)).rowCount ?? 0;
   return {
-    events: await del(`DELETE FROM source_events WHERE status <> 'active' AND ended_at < now() - make_interval(days => $1)`, [RETENTION.endedEventsDays]),
+    // Utility outages keep 30 days of history (applyUtilityOutageRetention).
+    events: await del(`DELETE FROM source_events WHERE status <> 'active' AND source_id <> 'utility_outages' AND ended_at < now() - make_interval(days => $1)`, [RETENTION.endedEventsDays]),
+    utilityOutages: await applyUtilityOutageRetention(db),
     changes: await del(`DELETE FROM monitoring_changes WHERE created_at < now() - make_interval(days => $1)`, [RETENTION.changesDays]),
     runs: await del(`DELETE FROM integration_runs WHERE started_at < now() - make_interval(days => $1)`, [RETENTION.runsDays]),
     stations: await del(`DELETE FROM observation_stations WHERE fetched_at < now() - make_interval(days => $1)`, [RETENTION.stationSilentDays]),

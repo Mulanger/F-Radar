@@ -4,6 +4,26 @@
 
 ---
 
+# Strömavbrott – Fas 1 (Claude, 2026-11-14)
+
+Branch `claude/stromavbrott-fas1` (worktree `.worktrees/stromavbrott`, based on `771532e`). Plan:
+[`docs/plans/stromavbrott.md`](docs/plans/stromavbrott.md) · ADR: [`0006`](docs/decisions/0006-stromavbrott.md).
+
+- **Source** `utility_outages` with one collector job per operator (Vattenfall, Göteborg Energi, 12 Digpro
+  operators) and weekly concession jobs. Off by default (`SOURCE_UTILITY_OUTAGES_ENABLED`).
+- **Migration 0006**: `utility_outages`, `grid_concession_areas`, new data class/categories/match methods,
+  `property_event_matches.effective_severity`. (Renumber if another 0006 lands first.)
+- **Matching/lifecycle** (`packages/db/src/utility-outages.ts`): per-property precision and severity,
+  debounce (2 missed complete polls), material-only versioning, 30-day retention.
+- **Dashboard**: red/orange/blue/green feed rows, property status raised by matched outages, "Elnät" panel,
+  outage polygons on the property map.
+- **SMS** category `power_outage`: start/planned/reminder/restored/changes with the anti-spam rules of ADR 0006.
+- **Tests**: 53 new unit/DOM tests; live test of all 14 operators passed; real-PostGIS suite in the pod
+  26/26 (`tests/integration/utility-outages.ts`). Manual browser verification needs a running API + database and is
+  **not done**.
+
+---
+
 # Agent 4 — Phase 4: persisted SMS rules, safe evaluation and local simulations
 
 Base verified clean: `agent3/public-data-monitoring` at **d38f78e**. Dedicated branch:

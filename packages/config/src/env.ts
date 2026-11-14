@@ -77,6 +77,12 @@ export const ServerEnvSchema = z.object({
   SOURCE_SGU_OBSERVED_ENABLED: bool(true),
   SOURCE_SL_DEVIATIONS_ENABLED: bool(false),
   SL_DEVIATIONS_API_KEY: optionalString,
+  /** Grid operators' outage maps (docs/plans/stromavbrott.md). Off until the product owner enables it. */
+  SOURCE_UTILITY_OUTAGES_ENABLED: bool(false),
+  /** Comma-separated operator ids to collect (empty = every implemented operator). "none" disables all. */
+  UTILITY_OUTAGE_OPERATORS: optionalString,
+  /** Poll interval per operator in seconds (minimum 120). */
+  UTILITY_OUTAGE_POLL_SECONDS: intWithDefault(300).pipe(z.number().int().min(120)),
   KRISINFORMATION_BASE_URL: z.string().url().default('https://api.krisinformation.se/v3'),
   AIR_QUALITY_BASE_URL: z.string().url().default('https://datavardluft.smhi.se/52North/api/'),
   SGU_OBSERVED_GROUNDWATER_BASE_URL: z

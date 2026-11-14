@@ -20,6 +20,7 @@ import { LocalEventsMap } from '../maps/LocalEventsMap';
 import { PropertyTimeline } from './PropertyTimeline';
 import { SMSRulesPanel } from './SMSRulesPanel';
 import { MonitoringContextPanel } from './MonitoringContextPanel';
+import { UtilityOutagePanel } from './UtilityOutagePanel';
 
 /**
  * Page 2 – Property Detail (`/properties/[propertyId]`).
@@ -120,6 +121,12 @@ export function PropertyDetail() {
           <OfficialWarnings d={d} />
         </div>
       </div>
+
+      {d.outages.available && (
+        <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+          <UtilityOutagePanel vm={d.outages} />
+        </div>
+      )}
 
       <EnvironmentalMetrics d={d} isDemo={isDemo} />
 

@@ -18,6 +18,7 @@ export const ADAPTER_IMPLEMENTATION: Record<Exclude<SourceId, 'demo_other'>, Ada
   sgu_groundwater: 'implemented', // Phase 3: fixture tests + live smoke test 2026-11-13
   mcf_flood: 'implemented', // Phase 3: fixture tests + live smoke test 2026-11-13
   scb: 'implemented', // Phase 3: fixture tests + live smoke test 2026-11-13
+  utility_outages: 'implemented', // Fas 1: fixtures + live test of all 14 operators 2026-11-14 (docs/plans/stromavbrott.md)
   trafikverket: 'implemented', // fixtures + road-ferry Situation live test 2026-11-14
   geoapify_geocoding: 'implemented', // contract tests + live smoke test 2026-11-12
   lantmateriet_address: 'interface_only',

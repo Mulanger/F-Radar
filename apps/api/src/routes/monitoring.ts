@@ -180,5 +180,7 @@ export function registerMonitoringRoutes(app: FastifyInstance, deps: MonitoringR
     generatedAt: gen(),
     smsMode: resolveSmsMode(deps.env),
     sources: deps.service ? await deps.service.statuses() : resolveSourceStatuses(deps.env),
+    /** Health per grid operator behind the 'utility_outages' source (docs/plans/stromavbrott.md). */
+    utilityOperators: deps.service ? await deps.service.operatorStatuses() : [],
   }));
 }
