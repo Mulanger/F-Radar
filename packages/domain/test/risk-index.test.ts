@@ -172,6 +172,10 @@ describe('assessPropertyRisk', () => {
       'packages/domain/src/weather-information.ts','packages/domain/src/water-information.ts','packages/domain/src/nowcast.ts',
       'apps/web/lib/view-models/weather-information.ts','apps/web/lib/view-models/nowcast.ts','apps/web/lib/view-models/detail.ts',
       'apps/web/components/properties/ForecastDays.tsx','apps/web/components/properties/NowcastPanel.tsx','apps/web/components/properties/MeasuredRainPanel.tsx',
+      'packages/domain/src/history.ts','packages/domain/src/fixtures/demo-history.ts',
+      'packages/db/src/history.ts','packages/integrations/src/smhi/history.ts','apps/api/src/monitoring/history.ts',
+      'apps/web/lib/data/history.ts','apps/web/lib/view-models/history.ts',
+      'apps/web/components/properties/HistoryView.tsx','apps/web/components/properties/HistoryCharts.tsx',
     ]) {
       const own=readFileSync(new URL('../../../'+path,import.meta.url),'utf8').replace(/Krisinformation(\.se)?/gi,'');
       expect(own,path).not.toMatch(/\bkris|fara|akut|katastrof|allvarlig|kritisk/i);
