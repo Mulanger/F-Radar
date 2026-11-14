@@ -4,6 +4,17 @@
 
 ---
 
+# Strömavbrott – Fas 3 (Claude, 2026-11-14)
+
+Branch `claude/stromavbrott-fas3`. **38 grid operators.**
+- **E.ON** decoded from its map (binary `outstat.bin` + details + station areas, SWEREF 99 TM → WGS84 in code).
+- **ServiceAlert** notices (11 operators; panel only, kind only where the operator splits planned/acute profiles).
+- **Discovery script** `scripts/discover-outage-platforms.mjs`; added Borlänge, Luleå, Nacka, Partille, Sala-Heby,
+  Varbergsortens (Digpro) and Eskilstuna, Habo, Ljusdal, Mölndal, Tranås, Ulricehamn, Österlen (ServiceAlert).
+- Tests: 306 unit/DOM, live 40/40.
+
+---
+
 # Strömavbrott – Fas 2 (Claude, 2026-11-14)
 
 Branch `claude/stromavbrott-fas2` (from `8238d31`). 20 grid operators now collected.

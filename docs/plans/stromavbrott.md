@@ -754,10 +754,10 @@ och **inget** SMS; Tekniska verken/Mälarenergi klarar 10.
 | Göteborg: syns planerade elavbrott i förväg? | Fas 1/4 | Okänt |
 | Nationell nätkoncessionsdata (Ei) – finns, licens? | Fas 2 | **Löst 2026-11-14:** Ei publicerar "Nätkoncession för område – lokalnät" som ZIP/shapefile (SWEREF 99 TM, CC0, ungefärliga gränser); importeras veckovis och täcker alla 144 nätbolag |
 | Ellevio fältbetydelser `p`, `u`, `ie`, `c` | Fas 2 | **Löst:** rader per (ärende, postnummerområde); `ie` = avslutat, `u`/`p`/`c` = berörda i området. Detaljer via `t=ticket`; `affected_site_total_count` är avbrottets totala antal, **inte** postnummerområdets |
-| E.ON `outstat.bin`-format | Fas 3 | Ej utrett |
 | Trimble precision | Fas 2 | **Löst:** avbrott → berörda nätstationer → minsta driftområde (`outage_area`). Egen avbrottsyta vid pågående fel ej observerad |
-| ServiceAlert precision | Fas 3 | Ej utrett |
-| Partille, Umeå exakta Digpro-URL:er | Fas 3 | Ej fångade (Dala Energi verifierad och med i Fas 1) |
+| ServiceAlert precision | Fas 3 | **Löst:** operatörsritad cirkel/polygon + fritext, ingen starttid → områdesprecision, panel; typ bara där profilerna är uppdelade (Mölndal) |
+| E.ON `outstat.bin`-format | Fas 3 | **Löst:** 52-byteposter (område, avbrott, flaggor, kunder, 256-bitars nätstationskarta) + detalj-JSON + stationsområden i SWEREF 99 TM |
+| Partille, Umeå exakta Digpro-URL:er | Fas 3 | Partille hittad och med. Umeå: ingen Digpro-länk på störningssidan. Härryda: Digpro-värd svarar inte (TLS/anslutning). Kraftringen: Digpro-värden är fjärrvärmekartan (Fas 4) |
 
 ---
 
@@ -767,6 +767,6 @@ och **inget** SMS; Tekniska verken/Mälarenergi klarar 10.
 |---|---|---|---|---|---|
 | 1 | 2026-11-14 | `12c64b4`, `44c9fd9` (gren `claude/stromavbrott-fas1`) | Vattenfall, Göteborg Energi, 12 Digpro-bolag (14/14 livetest gröna) | 280 enhets-/DOM-tester gröna (53 nya); PostGIS-sviten i podden 26/26 (även tillsammans med parallell säkerhetshärdning); lint, typecheck, build gröna | Manuell webbläsarverifiering ej gjord (kräver API + databas lokalt). Göteborg: planerade elavbrott i förväg ej observerade. |
 | 2 | 2026-11-14 | gren `claude/stromavbrott-fas2` | Ellevio, Tekniska verken, Trimble (Mälarenergi, Jämtkraft, Sundsvall, Gävle) + Ei-nätområden; 20/20 operatörer + Ei livetest gröna | 296 enhets-/DOM-tester; PostGIS-sviten 28/28 i podden; lint, typecheck, build gröna | Mälarenergis `/api/outages` saknar geometri – deras Trimble-karta används i stället. Områdesträffar når flödet först från 25 berörda kunder. Manuell webbläsarverifiering ej gjord. |
-| 3 | | | | | |
+| 3 | 2026-11-14 | gren `claude/stromavbrott-fas3` | E.ON, 6 nya Digpro (Borlänge, Luleå, Nacka, Partille, Sala-Heby, Varbergsortens), 11 ServiceAlert; totalt 38 operatörer, livetest 40/40 | 306 enhets-/DOM-tester | E.ON och ServiceAlert ger områdesprecision (aldrig SMS). Upptäcktsskript `scripts/discover-outage-platforms.mjs`. |
 | 4 | | | | | |
 | 5 | | | | | |

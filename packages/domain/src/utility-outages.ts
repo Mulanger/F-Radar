@@ -175,7 +175,7 @@ export function outageHeadline(o: { utility: UtilityKind; kind: OutageKind; stat
   const noun = UTILITY_NOUN[o.utility];
   const Noun = noun[0]!.toUpperCase() + noun.slice(1);
   if (o.state === 'restored') return `${UTILITY_BACK[o.utility]} enligt ${operatorName}`;
-  if (o.state === 'withdrawn') return `Planerat ${noun} visas inte längre hos ${operatorName}`;
+  if (o.state === 'withdrawn') return `${o.kind === 'planned' ? `Planerat ${noun}` : Noun} visas inte längre hos ${operatorName}`;
   if (o.kind === 'planned') {
     if (o.state === 'upcoming') {
       const w = formatOutageWindow(o.plannedStart, o.plannedEnd);

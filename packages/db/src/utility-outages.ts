@@ -231,8 +231,9 @@ async function countMissingAndEnd(db: Queryable, operatorId: string, seen: strin
     [operatorId, OUTAGE_MISSING_POLLS_TO_END],
   );
   for (const r of rows) {
-    // A planned outage that vanishes before it started was withdrawn; anything else is treated as over.
-    const state: OutageState = r.state === 'upcoming' ? 'withdrawn' : 'restored';
+    // A planned outage that vanishes before it started was withdrawn, as is a notice whose state was
+    // never known (we cannot claim power is back); anything else is treated as over.
+    const state: OutageState = r.state === 'upcoming' || r.state === 'unknown' ? 'withdrawn' : 'restored';
     const o = { utility: r.utility, kind: r.kind, state, plannedStart: r.planned_start?.toISOString() ?? null, plannedEnd: r.planned_end?.toISOString() ?? null, estimatedRestore: null };
     await db.query(
       `WITH u AS (UPDATE utility_outages SET state = $2, updated_at = now() WHERE event_id = $1 RETURNING 1)

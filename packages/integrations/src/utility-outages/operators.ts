@@ -52,6 +52,13 @@ export const UTILITY_OPERATORS: UtilityOperator[] = [
   digpro('Uddevalla Energi Elnät', 'nisweb.uddevallaenergi.se', 'udd', false, 'Uddevalla Energi Elnät AB'),
   digpro('Västerbergslagens Elnät', 'status.vbenergi.se', 'vbe', false, 'Västerbergslagens Elnät AB'),
   digpro('Dala Energi Elnät', 'dedpweb.dalaenergi.se', 'lre', true, 'Dala Energi Elnät AB'),
+  // Fas 3: found by scripts/discover-outage-platforms.mjs and verified live 2026-11-14.
+  digpro('Borlänge Energi Elnät', 'dpwebmap.borlange-energi.se', 'bee', false, 'AB Borlänge Energi Elnät'),
+  digpro('Luleå Energi Elnät', 'webmap.luleaenergi.se', 'lul', false, 'Luleå Energi Elnät AB'),
+  digpro('Nacka Energi', 'dp-prod.nackaenergi.se', 'nac', false, 'Nacka Energi AB'),
+  digpro('Partille Energi Nät', 'avbrottskarta.partilleenergi.se', 'pen', false, 'Partille Energi Nät AB'),
+  digpro('Sala-Heby Energi Elnät', 'webmap.sheab.se', 'she', false, 'Sala-Heby Energi Elnät AB'),
+  digpro('Varbergsortens Elnät', 'vbgwebmap.digpro.se', 'vbo', false, 'Varbergsortens Elnät AB'),
   // Fas 2 (docs/plans/stromavbrott.md): Ellevio publishes postal areas only (dashboard, never SMS).
   {
     id: 'ellevio',
@@ -81,6 +88,32 @@ export const UTILITY_OPERATORS: UtilityOperator[] = [
       ['gavle', 'Gävle Energi Elnät', 'https://avbrottskartan.gavleenergi.se', 'https://avbrottskartan.gavleenergi.se/', 'Gävle Energi Elnät AB'],
     ] as const
   ).map(([id, name, base, mapUrl, eiName]): UtilityOperator => ({ id: `trimble:${id}`, name, platform: 'trimble', base, scope: 'p', utilities: ['electricity'], mapUrl, eiNames: [eiName] })),
+  // Fas 3: E.ON decoded from its map bundle (station areas → area precision).
+  {
+    id: 'eon',
+    name: 'E.ON Energidistribution',
+    platform: 'eon',
+    utilities: ['electricity'],
+    base: 'https://avbrott.eon.se',
+    mapUrl: 'https://www.eon.se/el/stromavbrott/avbrottskarta',
+    eiNames: ['E.ON Energidistribution AB'],
+  },
+  // Fas 3: ServiceAlert notices (free text, panel only).
+  ...(
+    [
+      ['karlstad', 'Karlstads Elnät', 'https://se.sms-service.dk/api', 'fa39c3a2-d576-40c3-bfa5-ae15f9117d90', 'https://www.karlstadsenergi.se/', 'Karlstads Elnät AB'],
+      ['soderhamn', 'Söderhamn Elnät', 'https://servicealert.se/api', 'f3474119-d249-4f27-ae7b-6678cc0d13b7', 'https://www.soderhamnnara.se/', 'Söderhamn Elnät AB'],
+      ['oxelo', 'Oxelö Energi', 'https://se.sms-service.dk/api', '30fd736a-94e0-45df-a2b0-23c0d166e18e', 'https://www.oxeloenergi.se/', 'Oxelö Energi AB'],
+      ['emmaboda', 'Emmaboda Elnät', 'https://se.sms-service.dk/api', '2fa2eb2b-9e54-4127-94f6-8deaa51be9c4', 'https://www.emmabodaenergi.se/kundservice/driftstorningar.html', 'Emmaboda Elnät AB'],
+      ['eem', 'Eskilstuna Energi och Miljö Elnät', 'https://se.sms-service.dk/api', '85d4733d-c1dc-4e4f-8af1-ae9937e58e12', 'https://www.eem.se/privat/kundservice/driftinformation', 'Eskilstuna Energi och Miljö Elnät AB'],
+      ['habo', 'Habo Kraft', 'https://se.sms-service.dk/api', '13ffa115-3abc-4fd5-bc58-0db7da9892f7', 'https://www.habokraft.se/', 'Habo Energi Kraft AB'],
+      ['ljusdal', 'Ljusdal Elnät', 'https://servicealert.se/api', '3e5cc8fa-9d3c-481b-874c-b8cf15915e0c', 'https://ljusdalenergi.se/kundservice/driftinformation.html', 'Ljusdal Elnät AB'],
+      ['molndal', 'Mölndal Energi Nät', 'https://se.sms-service.dk/api', '1f744d4a-5f2d-494d-b942-a8d6b198c6d5', 'https://www.molndalenergi.se/se-avbrott', 'Mölndal Energi Nät AB'],
+      ['tranas', 'Tranås Energi Elnät', 'https://se.sms-service.dk/api', 'cc551bb5-6411-4cdf-b3b2-726c6dd8d9d2', 'https://tranasenergi.se/privat/driftinformation/driftstatus/', 'Tranås Energi Elnät AB'],
+      ['ulricehamn', 'Ulricehamns Energi Elnät', 'https://se.sms-service.dk/api', '6b77048d-8683-4229-8f1e-8969f6a10e40', 'https://www.ulricehamnsenergi.se/', 'Ulricehamns Energi Elnät AB'],
+      ['osterlen', 'Österlens Kraft Elnät', 'https://se.sms-service.dk/api', 'a3490c54-15ad-40d1-9b56-4436370fde5a', 'https://www.osterlenskraft.se/elnat/driftinfo-felanmalan/', 'Österlens Kraft Elnät AB'],
+    ] as const
+  ).map(([id, name, apiBase, customerIds, mapUrl, eiName]): UtilityOperator => ({ id: `servicealert:${id}`, name, platform: 'servicealert', apiBase, customerIds, utilities: ['electricity'], mapUrl, eiNames: [eiName] })),
 ];
 
 /** Operators enabled by UTILITY_OUTAGE_OPERATORS ("" = all, "none" = none, else comma list of ids). */
