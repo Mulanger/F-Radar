@@ -69,6 +69,19 @@ export async function migrationStatus(db: Queryable, dir = MIGRATIONS_DIR): Prom
 }
 
 export async function migrateUp(db: Queryable, log: (msg: string) => void = console.log, dir = MIGRATIONS_DIR): Promise<number> {
+  // Pool.query() does not reserve a connection across BEGIN/COMMIT. Keep the entire migration
+  // on one client and serialize simultaneous deployers before reading the migration ledger.
+  const pool = db as Queryable & { connect?: () => Promise<Queryable & { release(): void }>; release?: () => void };
+  if (pool.connect && !pool.release) {
+    const client = await pool.connect();
+    try { return await migrateUp(client, log, dir); } finally { client.release(); }
+  }
+  await db.query('SELECT pg_advisory_lock(704005)');
+  try { return await applyMigrations(db, log, dir); }
+  finally { await db.query('SELECT pg_advisory_unlock(704005)'); }
+}
+
+async function applyMigrations(db: Queryable, log: (msg: string) => void, dir: string): Promise<number> {
   const status = await migrationStatus(db, dir);
   const mismatched = status.filter((s) => s.state === 'checksum_mismatch');
   if (mismatched.length) {

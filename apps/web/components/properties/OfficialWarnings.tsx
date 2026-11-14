@@ -18,7 +18,7 @@ export function OfficialWarnings({ d }: { d: DetailVM }) {
         </div>
         <span style={{ fontFamily: FONT_MONO, fontSize: 12, color: C.text3 }}>{d.avail.warnings ? `${d.warnN} aktiva` : 'ej ansluten'}</span>
       </div>
-      {!d.avail.warnings && (
+      {(!d.avail.warnings || (!d.warnings.length && !d.noWarnings)) && (
         <div style={{ flex: 1, display: 'grid', placeItems: 'center', textAlign: 'center', padding: 20, borderRadius: 16, background: '#F8F9F8' }}>
           <div>
             <div style={{ fontSize: 14, fontWeight: 500, color: C.text2 }}>Varningar otillgängliga</div>

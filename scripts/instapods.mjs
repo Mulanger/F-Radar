@@ -43,21 +43,19 @@ export function redact(value) {
   return value;
 }
 
-function assertAllowedPath(path) {
-  if (!path.startsWith('/') || /^[A-Za-z]:/.test(path)) {
-    throw new Error(`Invalid API path "${path}" (on Git Bash set MSYS_NO_PATHCONV=1 to stop path rewriting).`);
+export function assertAllowedPath(path) {
+  const pathname = String(path).split('?')[0];
+  if (!/^\/pods\/f-radar(?:\/|$)/.test(pathname) || /[%\\#]|\.\.|\/\//.test(pathname)) {
+    throw new Error('Only canonical /pods/f-radar paths are authorized.');
   }
-  const m = /^\/pods\/([^/?]+)/.exec(path);
-  if (m && m[1] !== ALLOWED_POD) throw new Error(`Refusing to touch pod "${m[1]}" – only "${ALLOWED_POD}" is allowed.`);
 }
 
 export async function api(method, path, body, { raw = false } = {}) {
   assertAllowedPath(path);
-  if (method !== 'GET' && path === '/pods' && body?.name !== ALLOWED_POD) {
-    throw new Error(`Refusing to create a pod other than "${ALLOWED_POD}".`);
-  }
   const res = await fetch(BASE + path, {
     method,
+    redirect: 'error',
+    signal: AbortSignal.timeout(60_000),
     headers: { Authorization: `Bearer ${loadToken()}`, ...(body && !(body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}) },
     body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
   });
@@ -75,12 +73,8 @@ async function main() {
   const [cmd, ...rest] = process.argv.slice(2);
   let out;
   switch (cmd) {
-    case 'pods': {
-      const r = await api('GET', '/pods?limit=100');
-      const pods = (r.data.pods ?? []).map((p) => ({ name: p.name, status: p.status, plan: p.plan_slug, region: p.region, preset: p.preset }));
-      out = { status: r.status, total: r.data.total, pods };
-      break;
-    }
+    case 'pods':
+      throw new Error('Account-wide pod listing is disabled; use get for f-radar.');
     case 'get':
       out = await api('GET', `/pods/${ALLOWED_POD}`);
       break;
@@ -126,7 +120,7 @@ async function main() {
   console.log(JSON.stringify(out, null, 2));
 }
 
-if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}` || process.argv[1]?.endsWith('instapods.mjs')) {
+if (process.argv[1]?.endsWith('instapods.mjs')) {
   main().catch((e) => {
     console.error(e.message);
     process.exit(1);

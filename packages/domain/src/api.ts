@@ -59,6 +59,9 @@ export const GeocodeMetadataSchema = z.object({
   postcode: trimmed(1, 20).optional(),
   city: trimmed(1, 120).optional(),
   municipality: trimmed(1, 120).optional(),
+  /** Street and house number from the chosen suggestion (address-list outage matching, Fas 4). */
+  street: trimmed(1, 120).optional(),
+  housenumber: trimmed(1, 20).optional(),
 });
 export type GeocodeMetadata = z.infer<typeof GeocodeMetadataSchema>;
 

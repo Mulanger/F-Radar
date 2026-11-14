@@ -25,6 +25,8 @@ export function loggerOptions(env: ServerEnv): FastifyServerOptions['logger'] {
     redact: { paths: REDACT_PATHS, censor: '[REDACTED]' },
     base: { service: 'fastighetsradar-api' },
     serializers: {
+      // Error messages/details/stacks can contain SQL row data, phone numbers or credential URLs.
+      err: (err: { name?: string; code?: string }) => ({ type: err.name ?? 'Error', code: /^[A-Z0-9_]{1,40}$/.test(err.code ?? '') ? err.code : undefined, message: '', stack: '' }),
       // Never log query strings: they can contain API keys or addresses.
       req: (req: { method: string; url: string; id: string }) => ({
         method: req.method,

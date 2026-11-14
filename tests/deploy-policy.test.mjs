@@ -13,7 +13,7 @@ const current = {
 
 describe('pod deployment policy', () => {
   it('allows the verified merge release branch and the existing deployment paths', () => {
-    for (const branch of ['codex/landing-parity-live', 'codex/phase4-sms-notifications', '']) assertDeploymentBranch(branch);
+    for (const branch of ['codex/landing-parity-live', 'codex/phase4-sms-notifications', 'deploy/live-stromavbrott', '']) assertDeploymentBranch(branch);
   });
   it('rejects main and unrelated branches', () => {
     for (const branch of ['main', 'codex/landing-data-parity', 'codex/other']) {
@@ -25,13 +25,13 @@ describe('pod deployment policy', () => {
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'local-key', SOURCE_SMHI_OCEANOGRAPHY_ENABLED: 'false',
       SOURCE_SMHI_HYDROLOGY_ENABLED: 'false', TRAFIKVERKET_ENABLED: 'false',
       SMS_PROVIDER: '46elks', SMS_MONTHLY_LIMIT_PER_ORG: '100' });
-    assert.deepEqual(vars, { ...current, SOURCE_SL_DEVIATIONS_ENABLED: 'false' });
+    assert.deepEqual(vars, { ...current, SOURCE_SL_DEVIATIONS_ENABLED: 'false', SOURCE_UTILITY_OUTAGES_ENABLED: 'true' });
   });
   it('changes only the selected new sources and keeps SL off', () => {
     const overrides = { MET_NORWAY_CONTACT: 'https://github.com/Mulanger/F-Radar/issues',
       SOURCE_MET_NOWCAST_ENABLED: 'true', SOURCE_SGU_OBSERVED_ENABLED: 'true' };
     const vars = deploymentEnvironment(current, { ...overrides, SOURCE_SL_DEVIATIONS_ENABLED: 'true' });
-    assert.deepEqual(vars, { ...current, ...overrides, SOURCE_SL_DEVIATIONS_ENABLED: 'false' });
+    assert.deepEqual(vars, { ...current, ...overrides, SOURCE_SL_DEVIATIONS_ENABLED: 'false', SOURCE_UTILITY_OUTAGES_ENABLED: 'true' });
   });
   it('retains unrecognised runtime options and leaves its inputs untouched', () => {
     const before = { ...current, FUTURE_SOURCE_ENABLED: 'true' };

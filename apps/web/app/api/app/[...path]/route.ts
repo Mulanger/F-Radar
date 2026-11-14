@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { internalApi } from '@/lib/server/internal-api';
+import { isSameOrigin, readBoundedText, RequestBodyTimeout, RequestBodyTooLarge } from '@/lib/server/request-security';
 
 /**
  * Backend-for-frontend proxy: browser → /api/app/<path> → Fastify /v1/<path>.
@@ -36,23 +37,12 @@ function problem(status: number, title: string) {
   return NextResponse.json({ type: 'about:blank', title, status }, { status, headers: { 'content-type': 'application/problem+json', 'cache-control': 'no-store' } });
 }
 
-function sameOrigin(req: NextRequest): boolean {
-  const origin = req.headers.get('origin');
-  if (!origin) return false;
-  const host = req.headers.get('x-forwarded-host') ?? req.headers.get('host');
-  try {
-    return new URL(origin).host === host;
-  } catch {
-    return false;
-  }
-}
-
 async function handle(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const path = (await ctx.params).path.join('/');
   const route = ROUTES.find((r) => r.pattern.test(path));
   if (!route) return problem(404, 'Not Found');
   if (!route.methods.includes(req.method)) return problem(405, 'Method Not Allowed');
-  if (req.method !== 'GET' && !sameOrigin(req)) return problem(403, 'Cross-origin request rejected');
+  if (req.method !== 'GET' && !isSameOrigin(req)) return problem(403, 'Cross-origin request rejected');
 
   const { userId, getToken } = await auth();
   if (!userId) return problem(401, 'Unauthorized');
@@ -60,7 +50,12 @@ async function handle(req: NextRequest, ctx: { params: Promise<{ path: string[] 
   if (!token) return problem(401, 'Unauthorized');
 
   const search = req.nextUrl.search;
-  const body = req.method === 'GET' || req.method === 'DELETE' ? undefined : await req.text();
+  let body: string | undefined;
+  try {
+    if (req.method !== 'GET' && req.method !== 'DELETE') body = await readBoundedText(req, 64 * 1024);
+  } catch (err) {
+    return problem(err instanceof RequestBodyTooLarge ? 413 : err instanceof RequestBodyTimeout ? 408 : 400, 'Request body rejected');
+  }
   let upstream: Response;
   try {
     upstream = await internalApi(`/v1/${path}${search}`, {

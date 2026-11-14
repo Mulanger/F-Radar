@@ -150,6 +150,17 @@ export const SOURCE_MANIFEST: Record<Exclude<SourceId, 'demo_other'>, SourceMani
     updatePolicy: 'Situations queried within 2 km of each property every 5 min (≤ 20 points per request)', retentionPolicy: 'Active + 7 days after end',
     displayPermitted: false, alertsPermitted: false, requiredSecrets: ['TRAFIKVERKET_API_KEY'], enableFlag: 'TRAFIKVERKET_ENABLED', reviewedAt: '2026-11-14',
   },
+  utility_outages: {
+    id: 'utility_outages', authority: 'Respektive elnätsbolag', label: 'Nätbolagens avbrottskartor',
+    docsUrl: 'https://elsamverkan.se/', access: 'public', commercialReuseReviewed: false,
+    attributionText: 'Källa: respektive nätbolags avbrottskarta', dataKind: 'event', geographicPrecision: 'mixed',
+    coverageNote:
+      'Public outage-map data from each grid operator (Vattenfall Eldistribution, Göteborg Energi Nät and Digpro-based operators in Fas 1). ' +
+      'No documented API: feeds are the JSON/KML the operators’ own map pages load. Precision differs per operator; SMS only for polygon/address matches. ' +
+      'Properties outside monitored grids are shown as not monitored, never as "no outages".',
+    updatePolicy: 'Every 5 min per operator (UTILITY_OUTAGE_POLL_SECONDS, min 120 s); concession areas weekly', retentionPolicy: 'Active + 30 days after end',
+    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_UTILITY_OUTAGES_ENABLED', reviewedAt: '2026-11-14',
+  },
   geoapify_geocoding: {
     id: 'geoapify_geocoding', authority: 'Geoapify', label: 'Geoapify adressökning',
     docsUrl: 'https://apidocs.geoapify.com/docs/geocoding/address-autocomplete/', access: 'requires_key', commercialReuseReviewed: false,

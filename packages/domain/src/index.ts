@@ -11,3 +11,4 @@ export * from './weather-information';
 export * from './nowcast';
 export * from './water-information';
 export * from './history';
+export * from './utility-outages';

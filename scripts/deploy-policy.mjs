@@ -1,5 +1,5 @@
 export function assertDeploymentBranch(branch) {
-  if (branch && !['codex/phase4-sms-notifications', 'codex/landing-parity-live'].includes(branch)) {
+  if (branch && !['codex/phase4-sms-notifications', 'codex/landing-parity-live', 'deploy/live-stromavbrott'].includes(branch)) {
     throw new Error('Deployment requires an approved release branch or a detached checkout.');
   }
 }
@@ -28,5 +28,7 @@ export function deploymentEnvironment(current, local) {
     if (!['http:', 'https:'].includes(contact.protocol)) throw new Error('MET contact must be a public HTTP(S) URL.');
   }
   vars.SOURCE_SL_DEVIATIONS_ENABLED = 'false';
+  // Strömavbrott (docs/plans/stromavbrott.md): grid operators' outage maps, enabled by the product owner 2026-11-14.
+  vars.SOURCE_UTILITY_OUTAGES_ENABLED = 'true';
   return vars;
 }

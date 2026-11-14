@@ -61,6 +61,7 @@ const SOURCE_LABEL: Partial<Record<SourceId, string>> = {
   smhi_observations: 'SMHI',
   air_quality: 'SMHI / Naturvårdsverket',
   sl_deviations: 'SL via Trafiklab',
+  utility_outages: 'Nätbolag',
 };
 const AUTHORITY: Partial<Record<SourceId, string>> = {
   smhi_forecast: 'SMHI',
@@ -233,7 +234,7 @@ function toWarning(e: OrgEventRow): OfficialWarning {
     externalId: e.external_id,
     level,
     type: e.event_type,
-    summary: (e.description ?? e.headline).slice(0, 600),
+    summary: e.description ?? e.headline,
     region: e.area_label ?? '',
     validFrom: iso(e.valid_from),
     validTo: iso(e.valid_to),
@@ -292,7 +293,7 @@ function floodFromContext(propertyId: string, c: OrgContextRow | undefined, now:
   const insideScenario = scenarios.find((s) => s.inside);
   const max = p.maxRadiusMeters ?? 1000;
   const note = insideScenario
-    ? `Inom karterat område för ${insideScenario.label} (MCF). Statiskt scenario – inte en aktuell vattennivå.`
+    ? `Träff i en sökruta omkring adresspunkten (±15 m) för ${insideScenario.label} (MCF). Inte en verifierad byggnadsöverlappning. Statiskt scenario – inte en aktuell vattennivå.`
     : nearest
       ? `Karterat område för ${nearest.label} inom ${nearest.withinMeters} m. Statiskt scenario – inte en aktuell vattennivå.`
       : `Inget karterat översvämningsområde inom ${max} m. Karteringen täcker bara utvalda vattendrag – detta betyder inte att risk saknas.`;
@@ -355,7 +356,7 @@ function statsFromContext(c: OrgContextRow | undefined, now: Date): PropertyMoni
 
 const sourceOk = (statuses: DataSourceStatus[], id: SourceId) => {
   const s = statuses.find((x) => x.sourceId === id);
-  return s ? s.status === 'ok' || s.status === 'degraded' ? !!s.lastSuccessAt : false : false;
+  return !!s && s.status === 'ok' && s.freshness === 'fresh' && !!s.lastSuccessAt;
 };
 
 function observedGroundwater(c: OrgContextRow | undefined, now: Date): NearbyObservation | null {
@@ -391,9 +392,9 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
       reason = otherMunicipality ? `VMA för andra kommuner i länet: ${w.type} (${w.sourceLabel})` : `${LEVEL_SV[w.level]}: ${w.type} (${w.sourceLabel})`;
     }
   }
-  if (status === 'unknown' && sourceOk(statuses, 'smhi_warnings')) {
+  if (status === 'unknown' && sourceOk(statuses, 'smhi_warnings') && sourceOk(statuses, 'krisinformation')) {
     status = 'normal';
-    reason = sourceOk(statuses, 'krisinformation') ? 'Inga aktiva officiella varningar för fastighetens läge' : 'Inga aktiva SMHI-varningar för fastighetens läge (Krisinformation ej aktuell)';
+    reason = 'Inga aktiva officiella varningar för fastighetens läge';
   }
 
   const history=(source:string,station:string,parameter:string):TimedReading[] => (data.history??[]).filter(x=>x.source_id===source&&x.station_id===station&&x.parameter===parameter).map(x=>({observedAt:x.observed_at.toISOString(),value:x.value}));
@@ -475,7 +476,8 @@ export function buildFeed(changes: Array<{ id: string; property_id: string; sour
     .map((c) => ({
       id: `chg-${c.id}`,
       publishedAt: c.created_at.toISOString(),
-      title: `${CHANGE_SV[c.change_type] ?? c.change_type}: ${c.headline}`,
+      // Outage rows already carry a complete, state-specific title ("Strömmen är tillbaka …").
+      title: c.source_id === 'utility_outages' ? c.headline : `${CHANGE_SV[c.change_type] ?? c.change_type}: ${c.headline}`,
       sourceLabel: SOURCE_LABEL[c.source_id as SourceId] ?? c.source_id,
       sourceId: c.source_id as SourceId,
       severity: c.change_type === 'ended' || c.change_type === 'cancelled' ? 'normal' : (SEV_STATUS[c.severity] ?? 'unknown'),

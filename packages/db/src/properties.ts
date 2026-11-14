@@ -115,11 +115,11 @@ export async function createProperty(db: Queryable, ctx: OrgContext, input: Prop
        INSERT INTO properties (
          organization_id, name, address, location, geocode_provider, geocode_precision, geocode_confidence,
          geocode_place_id, geocode_label, geocode_result_type, geocoded_location, geocoded_at, postcode, city,
-         municipality, position_source, verified_at, created_by, updated_by
+         municipality, position_source, verified_at, created_by, updated_by, street, housenumber
        ) VALUES (
          $1, $2, $3, ${point('$4', '$5')}, $6, $7, $8, $9, $10, $11,
          CASE WHEN $12::float8 IS NULL THEN NULL ELSE ${point('$13', '$12')} END,
-         CASE WHEN $6 = 'geoapify' THEN now() ELSE NULL END, $14, $15, $16, $17, now(), $18, $18
+         CASE WHEN $6 = 'geoapify' THEN now() ELSE NULL END, $14, $15, $16, $17, now(), $18, $18, $19, $20
        ) RETURNING id, organization_id
      ), mon AS (
        INSERT INTO property_monitoring (property_id, organization_id) SELECT id, organization_id FROM ins
@@ -144,6 +144,8 @@ export async function createProperty(db: Queryable, ctx: OrgContext, input: Prop
       g.municipality ?? null,
       positionSourceFor(input.location, g),
       ctx.userId,
+      g.street ?? null,
+      g.housenumber?.replace(/\s+/g, '').toUpperCase() ?? null,
     ],
   );
   return (await getProperty(db, ctx, rows[0]!.id))!;
@@ -173,7 +175,7 @@ export async function updateProperty(db: Queryable, ctx: OrgContext, id: string,
       `geocode_provider = $1, geocode_precision = $2, geocode_confidence = $3, geocode_place_id = $4, geocode_label = $5,
        geocode_result_type = $6, postcode = $7, city = $8, municipality = $9,
        geocoded_location = CASE WHEN $10::float8 IS NULL THEN NULL ELSE ${point('$11', '$10')} END,
-       geocoded_at = CASE WHEN $1 = 'geoapify' THEN now() ELSE NULL END`,
+       geocoded_at = CASE WHEN $1 = 'geoapify' THEN now() ELSE NULL END, street = $12, housenumber = $13`,
       g.provider,
       g.precision,
       g.confidence ?? null,
@@ -185,6 +187,8 @@ export async function updateProperty(db: Queryable, ctx: OrgContext, id: string,
       g.municipality ?? null,
       g.geocodedPoint?.lat ?? null,
       g.geocodedPoint?.lon ?? null,
+      g.street ?? null,
+      g.housenumber?.replace(/\s+/g, '').toUpperCase() ?? null,
     );
   }
   if (patch.location) {

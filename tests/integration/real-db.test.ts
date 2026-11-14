@@ -41,6 +41,7 @@ import { buildApp } from '../../apps/api/src/app';
 import type { AuthVerifier, VerifiedIdentity } from '../../apps/api/src/auth';
 import { registerNotificationTests } from './notifications';
 import { registerHistoryTests } from './history';
+import { registerUtilityOutageTests } from './utility-outages';
 
 const url = process.env.TEST_DATABASE_URL;
 if (!url) throw new Error('TEST_DATABASE_URL is required');
@@ -83,7 +84,7 @@ async function resetSchema() {
       property_event_history, station_daily, history_stations, history_backfill_checks,
       station_precipitation_normals, history_normal_checks, history_flow_references, history_archive_state,
       observation_history, observation_backfill_checks, nowcast_points, hydrology_references, hydrology_reference_checks,
-      monitoring_changes, property_event_matches, source_events, station_observation_history, observation_stations, property_forecasts,
+      utility_outages, grid_concession_areas, monitoring_changes, property_event_matches, source_events, station_observation_history, observation_stations, property_forecasts,
       property_context, admin_areas, provider_jobs, property_monitoring, integration_runs, alert_rules, property_source_profiles, properties,
       source_catalog, organization_members, users, organizations, schema_migrations CASCADE;
     DROP FUNCTION IF EXISTS fr_set_updated_at() CASCADE;`);
@@ -452,4 +453,5 @@ describe('real PostgreSQL / PostGIS', () => {
   });
   registerNotificationTests(pool);
   registerHistoryTests(pool);
+  registerUtilityOutageTests(pool);
 });

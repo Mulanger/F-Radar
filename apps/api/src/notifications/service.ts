@@ -2,7 +2,10 @@ import { createHash, randomUUID } from "node:crypto";
 import type { Queryable } from "@fastighetsradar/db";
 import type { ServerEnv } from "@fastighetsradar/config";
 import {
+  formatOutageWindow,
   NOTIFICATION_CATEGORIES,
+  utilityNoun,
+  type UtilityKind,
   type NotificationActivity,
   type NotificationDashboard,
 } from "@fastighetsradar/domain";
@@ -17,6 +20,9 @@ import {
   eventEligible,
   forecastValue,
   inQuietHours,
+  inReminderWindow,
+  outageSmsPhase,
+  type OutageSmsPhase,
   metricLabels,
   smsText,
   thresholdTransition,
@@ -52,6 +58,10 @@ interface Trigger {
   emergency: boolean;
   eligible: boolean;
   detail?: string;
+  /** Outage follow-ups (restored/changed) need an earlier SMS about the same outage: dedup-key suffixes. */
+  requiresPrior?: string[];
+  /** Follow-ups to an already-sent outage message (restored/change/reminder) are not stopped by the rule cooldown. */
+  bypassCooldown?: boolean;
   evidence?: {
     eventId?: string;
     version?: number;
@@ -359,12 +369,149 @@ export class NotificationService {
     }
     return test ? triggers.slice(0, 1) : triggers;
   }
+  /**
+   * Grid-operator outages (docs/plans/stromavbrott.md §7): change-driven start/planned/change/restored
+   * messages plus the evening-before reminder. Keys are per outage, so one outage gives at most one
+   * message of each kind per recipient, whatever happens to customer counts or geometry.
+   */
+  private async outageTriggers(
+    tx: Queryable,
+    r: RuleRow,
+    props: Property[],
+    now: Date,
+    test: boolean,
+  ): Promise<Trigger[]> {
+    const c = r.config.condition;
+    if (c.category !== "power_outage" || !props.length) return [];
+    type Row = {
+      id: string;
+      property_id: string;
+      event_id: string;
+      change_type: string;
+      created_at: Date;
+      external_id: string;
+      version: number;
+      last_seen_at: Date;
+      source_updated_at: Date | null;
+      first_seen_at: Date;
+      operator_name: string | null;
+      match_method: string | null;
+      geocode_precision: string | null;
+      position_source: string | null;
+      utility: string;
+      kind: string;
+      state: string;
+      planned_start: Date | null;
+      planned_end: Date | null;
+      actual_start: Date | null;
+      estimated_restore: Date | null;
+    };
+    const cols = `e.external_id,e.version,e.last_seen_at,e.source_updated_at,e.first_seen_at,e.extra->>'operatorName' AS operator_name,
+      m.match_method,p.geocode_precision,p.position_source,u.utility,u.kind,u.state,u.planned_start,u.planned_end,u.actual_start,u.estimated_restore`;
+    const { rows } = await tx.query<Row>(
+      `SELECT c.id,c.property_id,c.event_id,c.change_type,c.created_at,${cols}
+      FROM monitoring_changes c JOIN source_events e ON e.id=c.event_id JOIN utility_outages u ON u.event_id=e.id
+      JOIN properties p ON p.id=c.property_id AND p.organization_id=c.organization_id
+      LEFT JOIN property_event_matches m ON m.event_id=c.event_id AND m.property_id=c.property_id AND m.organization_id=c.organization_id
+      WHERE c.organization_id=$1 AND c.property_id=ANY($2::uuid[]) AND c.source_id='utility_outages'
+      AND ($3 OR c.id > $4::bigint) AND c.created_at > now()-interval '30 days' ORDER BY c.id ${test ? "DESC LIMIT 500" : "LIMIT 5000"}`,
+      [r.organization_id, props.map((p) => p.id), test, r.last_change_id],
+    );
+    if (!test && rows.length)
+      await tx.query(
+        "UPDATE alert_rules SET last_change_id=$3 WHERE organization_id=$1 AND id=$2",
+        [r.organization_id, r.id, rows.at(-1)!.id],
+      );
+    const clock = (d: Date | null) =>
+      d
+        ? new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Stockholm", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d)
+        : null;
+    const describe = (phase: OutageSmsPhase | "reminder", x: Row) => {
+      const window = formatOutageWindow(x.planned_start?.toISOString() ?? null, x.planned_end?.toISOString() ?? null);
+      const noun = utilityNoun(x.utility as UtilityKind);
+      const back = { electricity: "Strömmen", district_heating: "Fjärrvärmen", district_cooling: "Fjärrkylan", gas: "Gasleveransen" }[x.utility as UtilityKind] ?? "Leveransen";
+      switch (phase) {
+        case "start": {
+          const since = clock(x.actual_start);
+          const until = clock(x.estimated_restore);
+          return `Oplanerat ${noun} registrerat som omfattar adressen${since ? `. Sedan ${since}` : ""}${until ? `, beräknat klart ${until}` : ""}`;
+        }
+        case "planned":
+          return `Planerat ${noun} ${window}`;
+        case "reminder":
+          // "i morgon 09:00–14:00" – the date part is implied by "i morgon".
+          return `Påminnelse: planerat ${noun} i morgon ${window.replace(/^\d{1,2}\/\d{1,2} /, "")}`;
+        case "change":
+          return x.state === "withdrawn"
+            ? `Planerat ${noun} ${window} visas inte längre hos nätbolaget`
+            : `Ändrad tid: planerat ${noun} ${window}`;
+        case "restored":
+          return `${back} är tillbaka enligt nätbolaget`;
+      }
+    };
+    const grouped = new Map<string, Trigger>();
+    const add = (x: Row, phase: OutageSmsPhase | "reminder" | null) => {
+      const p = props.find((p) => p.id === x.property_id);
+      if (!p) return;
+      const suffix = r.config.groupProperties ? "" : `:${p.id}`;
+      const tag = phase === "change" ? `change:v${x.version}` : (phase ?? `none:${x.id}`);
+      const key = `uo:${x.external_id}:${tag}${suffix}`;
+      const existing = grouped.get(key);
+      if (existing) {
+        if (!existing.properties.some((v) => v.id === p.id)) existing.properties.push(p);
+        return;
+      }
+      const ended = phase === "restored" || (phase === "change" && x.state === "withdrawn");
+      grouped.set(key, {
+        key,
+        properties: [p],
+        description: describe(phase ?? (x.kind === "unplanned" ? "start" : "planned"), x),
+        source: x.operator_name ?? "Nätbolaget",
+        timestamp: x.source_updated_at ?? x.created_at,
+        emergency: phase === "start",
+        eligible: phase !== null,
+        bypassCooldown: phase === "restored" || phase === "change" || phase === "reminder",
+        requiresPrior:
+          phase === "restored" || phase === "change"
+            ? ["start", "planned", "reminder"].map((t) => `uo:${x.external_id}:${t}${suffix}`)
+            : undefined,
+        detail: test && phase === null ? "Avbrottet uppfyller inte regelns villkor för SMS (precision, typ eller tid)." : undefined,
+        evidence: { eventId: x.event_id, version: x.version, ended },
+      });
+    };
+    // Non-eligible changes are not turned into outbox rows (no "not eligible" noise per poll).
+    for (const x of rows) {
+      const phase = outageSmsPhase(c, x, now, r.activated_at, test);
+      if (phase || test) add(x, phase);
+    }
+    if (c.plannedReminder && !test) {
+      const due = await tx.query<Row>(
+        `SELECT 'reminder' AS id,m.property_id,m.event_id,'reminder' AS change_type,e.first_seen_at AS created_at,${cols}
+        FROM property_event_matches m JOIN source_events e ON e.id=m.event_id JOIN utility_outages u ON u.event_id=e.id
+        JOIN properties p ON p.id=m.property_id AND p.organization_id=m.organization_id
+        WHERE m.organization_id=$1 AND m.property_id=ANY($2::uuid[]) AND e.source_id='utility_outages' AND e.status='active'
+          AND u.state='upcoming' AND u.kind='planned' AND u.planned_start > now() AND u.planned_start < now()+interval '30 hours'
+          AND e.first_seen_at <= u.planned_start - interval '24 hours' AND e.last_seen_at > now()-interval '20 minutes'`,
+        [r.organization_id, props.map((p) => p.id)],
+      );
+      for (const x of due.rows) {
+        const confirmed = x.match_method === "outage_address" || x.position_source === "manual_pin" || x.position_source === "manual_adjusted" || x.geocode_precision === "building";
+        if (!confirmed || !["outage_polygon", "outage_address"].includes(x.match_method ?? "")) continue;
+        if (!(c.utilities as string[]).includes(x.utility) || !x.planned_start || !inReminderWindow(x.planned_start, now)) continue;
+        add(x, "reminder");
+      }
+    }
+    const triggers = [...grouped.values()];
+    return test ? [triggers.find((t) => t.eligible) ?? triggers[0]].filter((t): t is Trigger => !!t) : triggers;
+  }
   private async triggers(tx: Queryable, r: RuleRow, now: Date, test: boolean) {
     const props = await this.properties(tx, r);
     const triggers =
       r.config.condition.category === "forecast"
         ? await this.forecastTriggers(tx, r, props, now, test)
-        : await this.eventTriggers(tx, r, props, now, test);
+        : r.config.condition.category === "power_outage"
+          ? await this.outageTriggers(tx, r, props, now, test)
+          : await this.eventTriggers(tx, r, props, now, test);
     if (test && !triggers.length)
       triggers.push({
         key: "no-source-data",
@@ -467,6 +614,15 @@ export class NotificationService {
       ).rows.length
     )
       return false;
+    // "Strömmen är tillbaka"/changes only to recipients who got an earlier message about the outage.
+    if (!test && t.requiresPrior?.length) {
+      const prior = await tx.query(
+        `SELECT 1 FROM notification_outbox WHERE dedup_key = ANY($1::text[])
+          AND status IN ('queued','processing','retry','simulated','unknown','accepted','sent','delivered') LIMIT 1`,
+        [t.requiresPrior.map((s) => `${org}:${recipient.id}:${r.id}:${s}`)],
+      );
+      if (!prior.rows.length) return false;
+    }
     const message = this.message(t),
       parts = estimateSmsParts(message),
       price = unitPrice(this.env),
@@ -498,7 +654,7 @@ export class NotificationService {
           t.properties.map((p) => p.id),
         ],
       );
-      if (!test && recent.rows.length) status = "suppressed_cooldown";
+      if (!test && recent.rows.length && !t.bypassCooldown) status = "suppressed_cooldown";
       const daily = (
         await tx.query<{ scope_key: string; messages: number }>(
           "SELECT scope_key,messages FROM notification_daily_usage WHERE organization_id=$1 AND day=($2::timestamptz AT TIME ZONE 'UTC')::date",
@@ -750,8 +906,9 @@ export class NotificationService {
           last_seen_at: Date;
           level: string | null;
           source_id: string;
+          severity: string;
         }>(
-          "SELECT version,status,valid_to,last_seen_at,level,source_id FROM source_events WHERE id=$1",
+          "SELECT version,status,valid_to,last_seen_at,level,source_id,severity FROM source_events WHERE id=$1",
           [row.trigger_evidence.eventId],
         )
       ).rows[0];
@@ -766,7 +923,10 @@ export class NotificationService {
               (e.source_id === "krisinformation" ? 40 : 20) * 60000
       )
         return "source_not_current";
-      emergency = e.level === "Red" || e.level === "VMA";
+      emergency =
+        e.level === "Red" ||
+        e.level === "VMA" ||
+        (e.source_id === "utility_outages" && e.severity === "critical");
     } else if (row.trigger_evidence.forecastPropertyId) {
       if (rule.config.condition.category !== "forecast")
         return "source_not_current";

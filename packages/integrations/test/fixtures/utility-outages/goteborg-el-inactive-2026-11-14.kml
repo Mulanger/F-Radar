@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:ns2="http://www.w3.org/2005/Atom" xmlns:ns3="urn:oasis:names:tc:ciq:xsdschema:xAL:2.0">
+  <NetworkLinkControl>
+    <expires>2026-11-13T14:26:00</expires>
+  </NetworkLinkControl>
+  <Document>
+    <Placemark>
+      <styleUrl>#outage_style_0</styleUrl>
+      <ExtendedData>
+        <Data name="status">
+          <value>4</value>
+        </Data>
+        <Data name="type">
+          <value>2</value>
+        </Data>
+        <Data name="current_affected_customers">
+          <value>1</value>
+        </Data>
+        <Data name="occurred">
+          <value>2026-11-12 14:14</value>
+        </Data>
+        <Data name="reported">
+          <value>2026-11-12 14:15</value>
+        </Data>
+        <Data name="planned_restored_time">
+          <value>2026-11-12 18:00</value>
+        </Data>
+        <Data name="restored">
+          <value>2026-11-12 17:54</value>
+        </Data>
+        <Data name="outage_id">
+          <value>473117</value>
+        </Data>
+        <Data name="outage_oid">
+          <value>88127999</value>
+        </Data>
+        <Data name="component_cause">
+          <value>29</value>
+        </Data>
+        <Data name="note_external">
+          <value>
+          </value>
+        </Data>
+        <Data name="simplified_cause">
+          <value>Säkringsfel</value>
+        </Data>
+      </ExtendedData>
+      <Point>
+        <altitudeMode>absolute</altitudeMode>
+        <coordinates>12.208085705852199,57.79294899997621,0.0</coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <styleUrl>#outage_style_1</styleUrl>
+      <ExtendedData>
+        <Data name="status">
+          <value>4</value>
+        </Data>
+        <Data name="type">
+          <value>2</value>
+        </Data>
+        <Data name="current_affected_customers">
+          <value>1</value>
+        </Data>
+        <Data name="occurred">
+          <value>2026-11-12 22:04</value>
+        </Data>
+        <Data name="reported">
+          <value>2026-11-12 22:05</value>
+        </Data>
+        <Data name="planned_restored_time">
+          <value>2026-11-13 01:00</value>
+        </Data>
+        <Data name="restored">
+          <value>2026-11-13 00:05</value>
+        </Data>
+        <Data name="outage_id">
+          <value>473119</value>
+        </Data>
+        <Data name="outage_oid">
+          <value>88130118</value>
+        </Data>
+        <Data name="component_cause">
+          <value>4</value>
+        </Data>
+        <Data name="note_external">
+          <value>
+          </value>
+        </Data>
+        <Data name="simplified_cause">
+          <value>Kabelfel</value>
+        </Data>
+      </ExtendedData>
+      <Point>
+        <altitudeMode>absolute</altitudeMode>
+        <coordinates>11.957627528501485,57.73685088800848,0.0</coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <styleUrl>#outage_style_2</styleUrl>
+      <ExtendedData>
+        <Data name="status">
+          <value>4</value>
+        </Data>
+        <Data name="type">
+          <value>2</value>
+        </Data>
+        <Data name="current_affected_customers">
+          <value>1</value>
+        </Data>
+        <Data name="occurred">
+          <value>2026-11-13 08:34</value>
+        </Data>
+        <Data name="reported">
+          <value>2026-11-13 08:34</value>
+        </Data>
+        <Data name="planned_restored_time">
+          <value>2026-11-13 11:00</value>
+        </Data>
+        <Data name="restored">
+          <value>2026-11-13 09:50</value>
+        </Data>
+        <Data name="outage_id">
+          <value>473121</value>
+        </Data>
+        <Data name="outage_oid">
+          <value>88130930</value>
+        </Data>
+        <Data name="component_cause">
+          <value>29</value>
+        </Data>
+        <Data name="note_external">
+          <value>
+          </value>
+        </Data>
+        <Data name="simplified_cause">
+          <value>Säkringsfel</value>
+        </Data>
+      </ExtendedData>
+      <Point>
+        <altitudeMode>absolute</altitudeMode>
+        <coordinates>11.71991313885919,57.70543798941,0.0</coordinates>
+      </Point>
+    </Placemark>
+    <Style id="outage_style_0">
+      <IconStyle>
+        <Icon>
+          <href>https://www.goteborgenergi.se/Files/Webb20/BILDER/BildersomfinnsiGEsbildbank/Abrott-gron-ny.png?TS=637365288696290166</href>
+        </Icon>
+      </IconStyle>
+      <LineStyle>
+        <color>FF3EAD7A</color>
+        <width>1.5</width>
+      </LineStyle>
+      <PolyStyle>
+        <color>903EAD7A</color>
+        <fill>true</fill>
+        <outline>true</outline>
+      </PolyStyle>
+      <BalloonStyle>
+        <text>&lt;div style="font-family: Arial, sans-serif; margin-bottom: 0em"&gt;&lt;div style="font-weight: bold; font-size: 1.15em; color:#7AAD3E"&gt;Eln&amp;#228;t - &amp;#197;tg&amp;#228;rdad&lt;/div&gt;&lt;div style="font-size: 0.95em;margin-top:0.6em;padding-top:0.6em;line-height:1.6em;border-top: solid #aaaaaa 1px;"&gt;&lt;span style="font-weight:bold"&gt;Ber&amp;#246;rda kunder:&lt;/span&gt;&amp;nbsp;&lt;span&gt;$[current_affected_customers]&lt;/span&gt;&lt;br /&gt;&lt;span style="font-weight:bold"&gt;Uppstod:&lt;/span&gt;&amp;nbsp;&lt;span&gt;$[occurred]&lt;/span&gt;&lt;br /&gt;&lt;span style="font-weight:bold"&gt;Sluttid:&lt;/span&gt;&amp;nbsp;&lt;span&gt;$[restored]&lt;/span&gt;&lt;br /&gt;&lt;span style="font-weight:bold"&gt;Orsak:&lt;/span&gt;&amp;nbsp;&lt;span&gt;S&amp;#228;kringsfel&lt;/span&gt;&lt;/div&gt;</text>
+      </BalloonStyle>
+    </Style>
+    <Style id="outage_style_1">
+      <IconStyle>
+        <Icon>
+          <href>https://www.goteborgenergi.se/Files/Webb20/BILDER/BildersomfinnsiGEsbildbank/Abrott-gron-ny.png?TS=637365288696290166</href>
+        </Icon>
+      </IconStyle>
+      <LineStyle>
+        <color>FF3EAD7A</color>
+        <width>1.5</width>
+      </LineStyle>
+      <PolyStyle>
+        <color>903EAD7A</color>
+        <fill>true</fill>
+        <outline>true</outline>
+      </PolyStyle>
+      <BalloonStyle>
+        <text>&lt;div style="font-family: Arial, sans-serif; margin-bottom: 0em"&gt;&lt;div style="font-weight: bold; font-size: 1.15em; color:#7AAD3E"&gt;Eln&amp;#228;t - &amp;#197;tg&amp;#228;rdad&lt;/div&gt;&lt;div style="font-size: 0.95em;margin-top:0.6em;padding-top:0.6em;line-height:1.6em;border-top: solid #aaaaaa 1px;"&gt;&lt;span style="font-weight:bold"&gt;Ber&amp;#246;rda kunder:&lt;/span&gt;&amp;nbsp;&lt;span&gt;$[current_affected_customers]&lt;/span&gt;&lt;br /&gt;&lt;span style="font-weight:bold"&gt;Uppstod:&lt;/span&gt;&amp;nbsp;&lt;span&gt;$[occurred]&lt;/span&gt;&lt;br /&gt;&lt;span style="font-weight:bold"&gt;Sluttid:&lt;/span&gt;&amp;nbsp;&lt;span&gt;$[restored]&lt;/span&gt;&lt;br /&gt;&lt;span style="font-weight:bold"&gt;Orsak:&lt;/span&gt;&amp;nbsp;&lt;span&gt;Kabelfel&lt;/span&gt;&lt;/div&gt;</text>
+      </BalloonStyle>
+    </Style>
+    <Style id="outage_style_2">
+      <IconStyle>
+        <Icon>
+          <href>https://www.goteborgenergi.se/Files/Webb20/BILDER/BildersomfinnsiGEsbildbank/Abrott-gron-ny.png?TS=637365288696290166</href>
+        </Icon>
+      </IconStyle>
+      <LineStyle>
+        <color>FF3EAD7A</color>
+        <width>1.5</width>
+      </LineStyle>
+      <PolyStyle>
+        <color>903EAD7A</color>
+        <fill>true</fill>
+        <outline>true</outline>
+      </PolyStyle>
+      <BalloonStyle>
+        <text>&lt;div style="font-family: Arial, sans-serif; margin-bottom: 0em"&gt;&lt;div style="font-weight: bold; font-size: 1.15em; color:#7AAD3E"&gt;Eln&amp;#228;t - &amp;#197;tg&amp;#228;rdad&lt;/div&gt;&lt;div style="font-size: 0.95em;margin-top:0.6em;padding-top:0.6em;line-height:1.6em;border-top: solid #aaaaaa 1px;"&gt;&lt;span style="font-weight:bold"&gt;Ber&amp;#246;rda kunder:&lt;/span&gt;&amp;nbsp;&lt;span&gt;$[current_affected_customers]&lt;/span&gt;&lt;br /&gt;&lt;span style="font-weight:bold"&gt;Uppstod:&lt;/span&gt;&amp;nbsp;&lt;span&gt;$[occurred]&lt;/span&gt;&lt;br /&gt;&lt;span style="font-weight:bold"&gt;Sluttid:&lt;/span&gt;&amp;nbsp;&lt;span&gt;$[restored]&lt;/span&gt;&lt;br /&gt;&lt;span style="font-weight:bold"&gt;Orsak:&lt;/span&gt;&amp;nbsp;&lt;span&gt;S&amp;#228;kringsfel&lt;/span&gt;&lt;/div&gt;</text>
+      </BalloonStyle>
+    </Style>
+  </Document>
+</kml>

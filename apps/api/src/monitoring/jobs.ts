@@ -2,6 +2,7 @@ import { HISTORY, WEATHER_WATER } from '@fastighetsradar/domain';
 import type { ServerEnv } from '@fastighetsradar/config';
 import { NotificationService } from '../notifications/service';
 import { runHistoryAggregation, runHistoryBackfill } from './history';
+import { buildUtilityOutageJobs } from './utility-outages';
 import {
   stationsNeedingFlowReference, saveFlowReferences,
   stationsNeedingBackfill, markBackfillChecked,
@@ -119,7 +120,7 @@ const latest = (events: NormalizedSourceEvent[]) =>
 async function runSmhiWarnings(ctx: JobContext): Promise<JobResult> {
   const r = await fetchSmhiWarnings(ctx.adapter);
   if (!r.ok) return fail(r);
-  const { changes, res, ended } = await storeCentralEvents(ctx, 'smhi_warnings', r.data.events, true);
+  const { changes, res, ended } = await storeCentralEvents(ctx, 'smhi_warnings', r.data.events, r.data.skipped === 0);
   return {
     status: r.data.skipped > 0 ? 'partial' : 'ok',
     items: r.data.events.length,
@@ -132,9 +133,9 @@ async function runSmhiWarnings(ctx: JobContext): Promise<JobResult> {
 async function runKrisinformation(ctx: JobContext): Promise<JobResult> {
   const r = await fetchKrisinformation(ctx.adapter);
   if (!r.ok) return fail(r);
-  const { changes, res, ended } = await storeCentralEvents(ctx, 'krisinformation', r.data.events, true);
+  const { changes, res, ended } = await storeCentralEvents(ctx, 'krisinformation', r.data.events, r.data.skipped === 0);
   return {
-    status: 'ok',
+    status: r.data.skipped > 0 ? 'partial' : 'ok',
     items: r.data.events.length,
     errorDetail: `inserted ${res.inserted}, updated ${res.updated}, ended ${ended}, unscoped ${r.data.skipped}`,
     sourceUpdatedAt: latest(r.data.events),
@@ -149,6 +150,7 @@ async function runTrafikverket(ctx: JobContext): Promise<JobResult> {
   const pts = [...new Map(targets.map((t) => [`${t.lat.toFixed(2)},${t.lon.toFixed(2)}`, { lat: t.lat, lon: t.lon }])).values()];
   const all: NormalizedSourceEvent[] = [];
   const deleted: string[] = [];
+  let skipped = 0;
   for (let i = 0; i < pts.length; i += TRAFIKVERKET_POINTS_PER_REQUEST) {
     const r = await fetchTrafikverketNear(pts.slice(i, i + TRAFIKVERKET_POINTS_PER_REQUEST), ctx.adapter);
     if (!r.ok) {
@@ -157,13 +159,14 @@ async function runTrafikverket(ctx: JobContext): Promise<JobResult> {
       return fail(r);
     }
     all.push(...r.data.events);
+    skipped += r.data.skipped;
     deleted.push(...r.data.deletedIds);
   }
   const unique = [...new Map(all.map((e) => [e.externalId, e])).values()];
   await endEventsById(ctx.db, 'trafikverket', deleted, 'deleted_by_source');
-  const { changes, res, ended } = await storeCentralEvents(ctx, 'trafikverket', unique, true);
+  const { changes, res, ended } = await storeCentralEvents(ctx, 'trafikverket', unique, skipped === 0);
   return {
-    status: 'ok',
+    status: skipped > 0 ? 'partial' : 'ok',
     items: unique.length,
     errorDetail: `points ${pts.length}, inserted ${res.inserted}, updated ${res.updated}, ended ${ended}`,
     sourceUpdatedAt: latest(unique),
@@ -438,6 +441,7 @@ export function buildJobs(env: ServerEnv): MonitoringJob[] {
       timeoutMs: 120_000,
       run: runHistoryAggregation,
     },
+    ...buildUtilityOutageJobs(env),
     { jobId: 'retention', sourceId: null, intervalSeconds: 86_400, enabled: true, timeoutMs: 120_000, run: runRetention },
   ];
   return jobs;

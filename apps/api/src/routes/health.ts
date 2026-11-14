@@ -21,8 +21,8 @@ async function runProbe(probe: ReadinessProbe) {
         timer = setTimeout(() => resolve({ status: 'error', detail: 'timeout' }), PROBE_TIMEOUT_MS);
       }),
     ]);
-  } catch (err) {
-    return { status: 'error' as const, detail: err instanceof Error ? err.message : 'probe failed' };
+  } catch {
+    return { status: 'error' as const, detail: 'probe failed' };
   } finally {
     clearTimeout(timer);
   }

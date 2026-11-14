@@ -87,7 +87,8 @@ export function eventEligible(
   activatedAt: Date,
   test = false,
 ): boolean {
-  if (c.category === "forecast") return false;
+  // Forecast rules use thresholds; outage rules use outageSmsPhase.
+  if (c.category === "forecast" || c.category === "power_outage") return false;
   if (
     !test &&
     (e.created_at < activatedAt ||
@@ -174,4 +175,84 @@ export function smsText(
     minute: "2-digit",
   }).format(timestamp);
   return `FastighetsRadar: ${where}. ${description.replace(/[\r\n]+/g, " ").slice(0, 155)}. ${time}. Källa: ${source}. ${link}`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Grid-operator outages (docs/plans/stromavbrott.md §7)                */
+/* ------------------------------------------------------------------ */
+
+export type OutageSmsPhase = "start" | "planned" | "change" | "restored";
+
+export interface OutageCandidate {
+  change_type: string;
+  created_at: Date;
+  last_seen_at: Date;
+  source_updated_at: Date | null;
+  match_method: string | null;
+  geocode_precision: string | null;
+  position_source: string | null;
+  utility: string;
+  kind: string;
+  state: string;
+  planned_start: Date | null;
+}
+
+const SMS_MATCHES = ["outage_polygon", "outage_address"];
+
+/**
+ * Which SMS (if any) a change of a matched outage may produce for a power_outage rule.
+ * Anti-spam: only polygon/address matches with a confirmed property position; never area/near
+ * matches, never kind 'unknown'. "restored"/"change" additionally require an earlier SMS about the
+ * same outage (checked when enqueuing).
+ */
+export function outageSmsPhase(
+  c: Extract<NotificationCondition, { category: "power_outage" }>,
+  e: OutageCandidate,
+  now: Date,
+  activatedAt: Date,
+  test = false,
+): OutageSmsPhase | null {
+  if (!SMS_MATCHES.includes(e.match_method ?? "")) return null;
+  // A polygon match needs a confirmed position; an address-list match is by the property's address.
+  const confirmed =
+    e.match_method === "outage_address" ||
+    e.position_source === "manual_pin" ||
+    e.position_source === "manual_adjusted" ||
+    e.geocode_precision === "building";
+  if (!confirmed) return null;
+  if (!(c.utilities as string[]).includes(e.utility)) return null;
+  if (e.kind === "unknown") return null;
+  if (
+    !test &&
+    (e.created_at < activatedAt ||
+      now.getTime() - e.created_at.getTime() > 30 * 60000)
+  )
+    return null;
+  const ended = e.change_type === "ended";
+  if (ended) {
+    if (e.state === "restored") return c.restored ? "restored" : null;
+    if (e.state === "withdrawn") return c.changes ? "change" : null;
+    return null;
+  }
+  if (!test && now.getTime() - e.last_seen_at.getTime() > 20 * 60000) return null;
+  if (e.change_type === "new") {
+    if (e.kind === "unplanned" && e.state === "ongoing") return c.unplanned ? "start" : null;
+    if (e.kind === "planned" && e.state === "upcoming")
+      return c.planned && !!e.planned_start && e.planned_start.getTime() > now.getTime() + 2 * 3600000 ? "planned" : null;
+    return null;
+  }
+  if (e.change_type === "updated" && e.kind === "planned" && e.state === "upcoming")
+    return c.changes ? "change" : null;
+  return null;
+}
+
+/** Reminder window: 18:00–21:00 Stockholm time on the day before a planned start. */
+export function inReminderWindow(plannedStart: Date, now: Date): boolean {
+  const day = (d: Date) =>
+    new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Stockholm", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+  // Start is on the next local calendar day (now + 24 h stays on that day for 18–21 local times, DST included)…
+  if (day(plannedStart) !== day(new Date(now.getTime() + 24 * 3600000))) return false;
+  const hm = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Stockholm", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(now);
+  // …and it is evening now.
+  return hm >= "18:00" && hm < "21:00";
 }

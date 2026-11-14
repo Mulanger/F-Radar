@@ -180,6 +180,7 @@ export async function saveRule(
       forecast: "smhi_forecast",
       vma: "krisinformation",
       traffic: "trafikverket",
+      power_outage: "utility_outages",
     }[input.condition.category];
     let ruleId = id;
     if (ruleId) {

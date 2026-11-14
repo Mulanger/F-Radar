@@ -25,6 +25,7 @@ import { LocalEventsMap } from '../maps/LocalEventsMap';
 import { PropertyTimeline } from './PropertyTimeline';
 import { SMSRulesPanel } from './SMSRulesPanel';
 import { MonitoringContextPanel } from './MonitoringContextPanel';
+import { UtilityOutagePanel } from './UtilityOutagePanel';
 
 const HistoryView = dynamic(() => import('./HistoryView').then((module) => module.HistoryView));
 
@@ -173,6 +174,12 @@ export function PropertyDetail() {
         aria-hidden={historyOpen}
         inert={historyOpen}
       >
+      {d.outages.available && (
+        <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+          <UtilityOutagePanel vm={d.outages} />
+        </div>
+      )}
+
       <EnvironmentalMetrics d={d} isDemo={isDemo} />
 
       <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>

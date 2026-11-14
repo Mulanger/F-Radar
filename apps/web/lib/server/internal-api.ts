@@ -31,7 +31,9 @@ export async function internalApi(path: string, init: RequestInit & { token?: st
   const headers = new Headers(init.headers);
   if (token) headers.set('authorization', `Bearer ${token}`);
   if (!headers.has('accept')) headers.set('accept', 'application/json');
-  return fetch(`${INTERNAL_API_URL}${path}`, { ...init, headers, cache: 'no-store' });
+  const timeout = AbortSignal.timeout(path.split('?')[0] === '/v1/stream' ? 10 * 60_000 : 15_000);
+  const signal = init.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
+  return fetch(`${INTERNAL_API_URL}${path}`, { ...init, signal, headers, cache: 'no-store', redirect: 'error' });
 }
 
 export async function internalApiJson<T>(path: string, init?: RequestInit & { token?: string | null }): Promise<T> {

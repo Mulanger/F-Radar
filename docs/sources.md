@@ -24,6 +24,7 @@ shows the data with attribution, and no alerts/SMS are sent.
 | MCF översvämningskartering (WFS) | `mcf_flood` | STATIC_GEODATA | **Working and live-tested** | Uppsala/Fyrisån hits all 3 scenarios; Stockholm property: no mapped area within 1 km |
 | SCB PxWebApi v2 (TAB628) | `scb` | REGIONAL_STATISTIC | **Working and live-tested** | Stockholm 0180: population, density, land area (2025) |
 | SMHI oceanography (sea level) | `smhi_oceanography` | OBSERVATION | **Working and live-tested 2026-11-14** | Live adapter: parameter 14, cm RW, 15 km; latest-hour minute series and observation_history trend |
+| Grid operators’ outage maps (Vattenfall, Göteborg Energi, 12 Digpro operators, Ellevio, Tekniska verken, Mälarenergi, Jämtkraft, Sundsvall, Gävle) | `utility_outages` | UTILITY_OUTAGE | **Implemented, off by default (`SOURCE_UTILITY_OUTAGES_ENABLED`)** | Fixture contracts from real responses + live test of all 14 operators 2026-11-14; real-PostGIS suite 28/28 in the pod (Fas 2); live test 20/20 operators + Ei |
 | SL boats (Trafiklab) | `sl_deviations` | PUBLIC_EVENT | **Off; locally gated adapter not live-enabled** | Keyless messages and sites endpoints verified HTTP 200; fixtures cover localisation; separate key variable and flag missing |
 | Geoapify geocoding | `geoapify_geocoding` | – | Working and live-tested (Agent 2) | onboarding only |
 | Lantmäteriet address | `lantmateriet_address` | – | **Disabled pending authorization** | requires approval + credentials |
@@ -169,6 +170,32 @@ shows the data with attribution, and no alerts/SMS are sent.
   decision about the requested key gate plus an enabled adapter smoke test; there is no provider API key to obtain
   for these currently keyless endpoints. The existing Trafikverket key must never be reused here.
 
+### Grid operators' outage maps – `utility_outages` (Fas 1, verified 2026-11-14)
+
+Plan and rules: [`docs/plans/stromavbrott.md`](plans/stromavbrott.md) · decision: [ADR 0006](decisions/0006-stromavbrott.md).
+No official open API exists; these are the JSON/KML feeds the operators' own public maps load (no key,
+no login). Every payload is validated; unknown records are skipped (`partial`), never guessed.
+
+| Operator(s) | Endpoint | Precision | Notes |
+|---|---|---|---|
+| Vattenfall Eldistribution | `GET https://arkmap.vattenfalleldistribution.se/incidents.json` | polygon (flat **lat,lon** array → swapped) | Status codes from the map's own code: 1–4 ongoing fault, 6 ongoing planned, 7 upcoming planned; others → `unknown` (logged, no SMS). Planned end from "mellan HH:MM och HH:MM" only when the first clock equals `startTime`. Postal codes (`areacode`) and municipality (`muni`, 4 digits) kept. |
+| 12 Digpro operators (Växjö, Falun, Hedemora, Halmstad, Härnösand, Bergs Tingslag, Lerum, Linde, Södra Hallands Kraft, Uddevalla, Västerbergslagen, Dala Energi) | `GET https://<host>/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=fpp_<cust>`, concession `/bios/site/concession.kml` (Falun, Hedemora, Halmstad, Södra Hallands Kraft, Dala Energi) | polygon, or point (≤ 30 m, panel only) | `type` 1 planned / 2 fault. State from fields, not `styleUrl` (`#active_outage` can carry a past `restored`). Planned work still "ongoing" > 24 h after its planned end → `unknown`. `planned_no_affected_customers=true` ignored. 0 customers → unknown (—). |
+| Göteborg Energi Nät | `POST https://www.goteborgenergi.se/external-web/api/outages-map-element/current-outages` (body `{}`) → KML `/GoteborgEnergi/Outages/FilteredOutagesKml.ashx?type=36857905&active=1` + `&active=0` (recently restored) | Digpro schema (often points) | Only KML URLs on the company host/handler are followed. Planned electricity outages in advance: not yet observed (none published on 2026-11-14). |
+
+| Ellevio (Fas 2) | `GET https://avbrottskarta.ellevio.se/avbrottskartan/load.php?v=1.4.5&t=today` / `t=forecast` / `t=ticket&ticketIDList=…` / `t=postalCodes&codes=…` | postal area (polygons in **lat,lon** → swapped) | Rows per (ticket, postal area); `ie` = ended. Ticket: `type` interrupt/planned_work, times "YYYY-MM-DD HH.MM", `affected_site_count` now, `affected_site_total_count` over the outage's life (not a postal-area total), `affected_site_forecast_count` planned. Postal shapes cached per process. Dashboard only, never SMS. |
+| Tekniska verken Linköping Nät (Fas 2) | `GET https://avbrott.tekniskaverken.se/api/service-information/outage/list/?utility=electricity&brand=tekniskaverken`, `POST …/outage/shapes/` `{ids}` | polygon | Status Scheduled/Active/Completed/Cancelled/Unknown (map code), `planned` boolean, ISO UTC times. District heating waits for Fas 4. |
+| Trimble NIS: Mälarenergi, Jämtkraft, Sundsvall, Gävle (Fas 2) | `<base>/geoserver-api/GetApplicationData` (JSON string; `scopes.p.outages`), `content/StaticObjects` (district polygons, cached 24 h), `GetObjectsByTiles?zoom=10&tiles=…` (stations with `oid`/`us`) | operating district (`outage_area`) | `t` f fault / p planned ongoing / u upcoming (map configuration). Each outage → smallest district containing an affected station. Mälarenergi's own `/api/outages` has no geometry and is not used. |
+| E.ON Energidistribution (Fas 3) | `https://avbrott.eon.se/conf/h01_config.json` → `<path>/outstat.bin`; `conf/h02_config.json` → `<path>/<outageId>.json`; `conf/res.json` → `static_geom/<g>/01/<län>/<kommun>/<nätområde>.json` | station area (`outage_area`) | outstat.bin = 52-byte LE records: u32 area address, u32 outage id, u16 planned, u16 fault, u32/u32 affected, 256-bit station-area map. Detail `t` 'D' = fault, `ts`/`tc` epoch s, `ca` affected, `cmnt`; malformed `,[{"c"` repaired like the map. Geometry SWEREF 99 TM → WGS84 in code (Lantmäteriet formulas). |
+| ServiceAlert / sms-service.dk (Fas 3): Karlstad, Söderhamn, Oxelö, Emmaboda, Eskilstuna, Habo, Ljusdal, Mölndal, Tranås, Ulricehamn, Österlen | `POST <api>/WebMessage/GetDriftstatusWebMessagesMapModel` body `{customerIds: "<uuid>"}` | operator-drawn circle/polygon (`outage_area`) | Free-text notices per profile ("Elnät", "Elnät - Planerade avbrott", "Fjärrvärme" …). No start time → state unknown, panel only; ended notices become "visas inte längre", never "strömmen är tillbaka". |
+| District heating / cooling (Fas 4) | Göteborg Energi KML types 50935483/50935477 + `POST …/upcoming-outages` (address lists, "YYYY-MM-DD kl HH:MM till [YYYY-MM-DD] kl HH:MM"); Tekniska verken `utility=districtheating,districtcooling`; Digpro `GetOutagesKML?app=fpdh_<cust>` (Halmstad, Uddevalla, Luleå, Partille, Kraftringen `avbrott-fjv.kraftringen.se`); ServiceAlert "Fjärrvärme"/"Fjärrkyla" profiles | polygon / address list / area | Address lists match properties' stored street + house number (migration 0011) within the operator's address area (Göteborg: 25 km). Trimble heating scopes not implemented (no live sample to verify). |
+| Not connected (Fas 5) | Jönköping Energi `api.jonkopingenergi.se/operationalinfoservice/v1/operationalinfo/operationalinfos` (text only, no geometry); Umeå Energi (Mapbox tileset app); Öresundskraft (outage page errors); Kraftringen power map (broken); Härryda Digpro host (no connection); Skellefteå Kraft (no public map) | – | Properties in these grids show "Nätet bevakas inte ännu – <bolag>". |
+| Discovery (Fas 3) | `node scripts/discover-outage-platforms.mjs` | – | Scans Elsamverkan's directory for Digpro/Trimble/ServiceAlert signatures; candidates must be verified live before they are added. |
+| Concession areas (Fas 2) | Ei "Nätkoncession för område – lokalnät" ZIP (`https://ei.se/download/18.4ec39e791a12f902c8eb95c/1792499100007/…lokalnät.zip`) | – | Shapefile Polygon in SWEREF 99 TM (EPSG:3006), DBF `FöretagNa`/`KONCESSION`, CC0, approximate boundaries; 311 areas / 144 holders. Weekly job `utility_concessions:ei`; PostGIS `ST_BuildArea` → 5 m simplify → WGS84. |
+
+Per-property matching, colours and SMS rules: ADR 0006. Health per operator is listed under
+`utilityOperators` in `GET /v1/sources/status`; the `utility_outages` source row summarises them
+(oldest success; error if any operator's last run failed).
+
 ### Derived forecast field
 
 `weather.apparent_temperature` is the SMHI wind-chill formula applied to the same forecast interval's
@@ -194,6 +221,7 @@ Production application is checked separately for each release; see [deployment p
 | Point forecasts | latest run per property only (overwritten) |
 | Station observations | latest value per station/parameter; stations silent > 2 days deleted; shared observation_history 35 days; air hourly input history 7 days (unit/extra and original precision, ADR 0007) |
 | Warnings / events | while active; ended/cancelled events deleted 7 days after ending |
+| Utility outages (`utility_outages`) | while active; matched 24 h after ending (panel "nyligen återställt"); deleted 30 days after ending |
 | Change log (`monitoring_changes`, future SMS input) | 30 days |
 | Collector runs (`integration_runs`) | 14 days |
 | Context (MCF/SGU/SCB) | latest per property; deleted with the property |

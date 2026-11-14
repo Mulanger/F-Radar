@@ -4,6 +4,73 @@
 
 ---
 
+# Strömavbrott – Fas 5 (Claude, 2026-11-14)
+
+- Remaining large operators investigated; not connectable without guessing: Jönköping (text only), Umeå (Mapbox tileset),
+  Öresundskraft, Kraftringen power map, Härryda, Skellefteå Kraft – documented in docs/sources.md.
+- Riskindex factor **"El och värme"** (ADR 0006 §15) and per-operator **feed-health signal** (`attention`, ADR 0006 §16).
+- Implementation of docs/plans/stromavbrott.md is complete: 39 configured sources (power from 38 grid operators, district heating/cooling from 18), national concession areas, dashboard, SMS rules. Tests: 317 unit/DOM, PostGIS 30/30, live 41/41.
+  Not done: manual browser verification (needs a local API + database); production enablement is the product owner's call.
+
+---
+
+# Strömavbrott – Fas 4 (Claude, 2026-11-14)
+
+District heating and cooling on the same pipeline: Göteborg Energi (KML + street-address lists), Tekniska verken,
+Digpro `fpdh` layers (incl. Kraftringen's heating map) and ServiceAlert heating profiles. Migration 0011 (originally 0008) stores
+`properties.street/housenumber` (from the chosen suggestion; conservative back-fill). Panel becomes "El och fjärrvärme",
+SMS rules choose utilities. Feed history older than 30 days is no longer stored, and explicit restore times are kept.
+Tests: 313 unit/DOM, PostGIS 30/30, live 41/41.
+
+---
+
+# Strömavbrott – Fas 3 (Claude, 2026-11-14)
+
+Branch `claude/stromavbrott-fas3`. **38 grid operators.**
+- **E.ON** decoded from its map (binary `outstat.bin` + details + station areas, SWEREF 99 TM → WGS84 in code).
+- **ServiceAlert** notices (11 operators; panel only, kind only where the operator splits planned/acute profiles).
+- **Discovery script** `scripts/discover-outage-platforms.mjs`; added Borlänge, Luleå, Nacka, Partille, Sala-Heby,
+  Varbergsortens (Digpro) and Eskilstuna, Habo, Ljusdal, Mölndal, Tranås, Ulricehamn, Österlen (ServiceAlert).
+- Tests: 306 unit/DOM, live 40/40.
+
+---
+
+# Strömavbrott – Fas 2 (Claude, 2026-11-14)
+
+Branch `claude/stromavbrott-fas2` (from `8238d31`). 20 grid operators now collected.
+
+- **Ellevio** (postal-area precision, dashboard only), **Tekniska verken** (polygons), **Trimble NIS** adapter
+  for Mälarenergi, Jämtkraft, Sundsvall and Gävle (operating-district precision; moved forward from Fas 3).
+- **National concession areas** from Energimarknadsinspektionen (CC0), weekly job `utility_concessions:ei`;
+  migration 0010 (originally 0007) adds `grid_concession_areas.operator_name`. Properties now show their grid operator, unmonitored
+  grids by name, and "Osäkert nätbolag" near boundaries.
+- Area-level outages reach the feed only from 25 affected customers; Ellevio "x av y" share removed (the total is
+  per outage, not per postal area).
+- **Tests**: 296 unit/DOM (16 new), PostGIS 28/28 in the pod, live 22/22 (20 operators + Digpro concessions + Ei).
+  Manual browser verification not done.
+
+---
+
+# Strömavbrott – Fas 1 (Claude, 2026-11-14)
+
+Branch `claude/stromavbrott-fas1` (worktree `.worktrees/stromavbrott`, based on `771532e`). Plan:
+[`docs/plans/stromavbrott.md`](docs/plans/stromavbrott.md) · ADR: [`0006`](docs/decisions/0006-stromavbrott.md).
+
+- **Source** `utility_outages` with one collector job per operator (Vattenfall, Göteborg Energi, 12 Digpro
+  operators) and weekly concession jobs. Off by default (`SOURCE_UTILITY_OUTAGES_ENABLED`).
+- **Migration 0009** (originally 0006): `utility_outages`, `grid_concession_areas`, new data class/categories/match methods,
+  `property_event_matches.effective_severity`. (Renumber if another 0006 lands first.)
+- **Matching/lifecycle** (`packages/db/src/utility-outages.ts`): per-property precision and severity,
+  debounce (2 missed complete polls), material-only versioning, 30-day retention.
+- **Dashboard**: red/orange/blue/green feed rows, property status raised by matched outages, "Elnät" panel,
+  outage polygons on the property map.
+- **SMS** category `power_outage`: start/planned/reminder/restored/changes with the anti-spam rules of ADR 0006.
+- **Tests**: 53 new unit/DOM tests; live test of all 14 operators passed; real-PostGIS suite in the pod
+  26/26 (`tests/integration/utility-outages.ts`). Manual browser verification needs a running API + database and is
+  **not done**.
+
+---
+
 # Agent 4 — Phase 4: persisted SMS rules, safe evaluation and local simulations
 
 Base verified clean: `agent3/public-data-monitoring` at **d38f78e**. Dedicated branch:

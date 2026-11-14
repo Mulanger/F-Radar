@@ -24,3 +24,4 @@ export * from './met-nowcast';
 export * from './smhi/ocobs';
 export * from './smhi/hydroobs';
 export * from './smhi/history';
+export * from './utility-outages';
