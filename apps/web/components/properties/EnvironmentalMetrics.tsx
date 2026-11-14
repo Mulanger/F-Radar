@@ -21,7 +21,7 @@ export function EnvironmentalMetrics({ d, isDemo }: { d: DetailVM; isDemo: boole
         <svg width="100%" height="36" viewBox="0 0 100 36" preserveAspectRatio="none" aria-hidden="true">
           {d.tempSpark && <path d={d.tempSpark} fill="none" stroke="oklch(0.66 0.14 55)" strokeWidth="1.8" vectorEffect="non-scaling-stroke" />}
         </svg>
-        <div style={foot}>Känns som {d.feels}° · {d.tempRange}</div>
+        <div style={foot}>Känns som {d.feels === '—' ? 'Ej bedömd' : `${d.feels}°`}{d.live ? ' · härledd kyleffekt (SMHI)' : ''} · {d.tempRange}</div>
       </div>
 
       <div style={instrument} title={src('SMHI punktprognos')}>
@@ -66,13 +66,13 @@ export function EnvironmentalMetrics({ d, isDemo }: { d: DetailVM; isDemo: boole
       </div>
 
       <div style={instrument} title={src('Närmaste luftmätstation (inte ett värde för byggnaden)')}>
-        <div style={head}><IconLeaf />Luftkvalitet</div>
+        <div style={head}><IconLeaf />{d.live ? 'Luftkvalitet vid station' : 'Luftkvalitet'}</div>
         <div style={value}>{d.aqi}<span style={{ fontSize: 15, color: d.aqC }}> {d.aq}</span></div>
-        <div style={{ position: 'relative', height: 8, borderRadius: 4, background: 'linear-gradient(90deg,oklch(0.75 0.13 155),oklch(0.85 0.13 100),oklch(0.75 0.15 60),oklch(0.62 0.18 28))', marginTop: 'auto' }}>
+        {(!d.live || d.live.monitoring?.airIndex) && <div style={{ position: 'relative', height: 8, borderRadius: 4, background: 'linear-gradient(90deg,oklch(0.75 0.13 155),oklch(0.85 0.13 100),oklch(0.75 0.15 60),oklch(0.62 0.18 28))', marginTop: 'auto' }}>
           <div style={{ position: 'absolute', top: -4, left: d.aqLeft, width: 4, height: 16, marginLeft: -2, borderRadius: 2, background: C.ink, border: '2px solid #fff', transition: 'left 1s' }} />
-        </div>
-        <div style={foot}>PM2,5 {d.pm} µg/m³ · NO₂ {d.no2} µg/m³</div>
-        {d.live && <div style={{ ...foot, fontSize: 10.5 }}>{d.live.airLine} · inget index beräknas</div>}
+        </div>}
+        {!d.live && <div style={foot}>PM2,5 {d.pm} µg/m³ · NO₂ {d.no2} µg/m³</div>}
+        {d.live && <div style={{ ...foot, fontSize: 10.5 }}>{d.live.airLine}</div>}
       </div>
       {d.live && <div style={{ gridColumn: '1 / -1', fontSize: 11, color: C.text4 }}>{d.live.forecastLine}. Temperatur, nederbörd, vind och fuktighet ovan är prognosvärden för aktuell timme – inte mätningar.</div>}
     </div>

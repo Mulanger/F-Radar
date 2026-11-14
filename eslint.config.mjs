@@ -10,6 +10,9 @@ export default tseslint.config(
       '**/.next/**',
       '**/dist/**',
       '**/next-env.d.ts',
+      // Separate checkouts and agent state are not source files in this workspace.
+      '.worktrees/**',
+      '.claude/**',
       // Untouched design reference – never linted or modified.
       'FastighetsRadar dashboard complete/**',
       'dist-deploy/**',
