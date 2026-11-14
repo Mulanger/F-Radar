@@ -21,10 +21,25 @@ import type { NotificationRuleInput } from '../../packages/domain/src';
  * Grid-operator outages on real PostGIS (docs/plans/stromavbrott.md §10): per-property precision,
  * lifecycle/debounce, feed rows and the anti-spam SMS guarantee.
  *
- * Geometry: a ~110 m × ~57 m box around (59.5000, 17.5000) – a test area with no other fixtures.
+ * Isolation: every test gets its own operator id and its own ~110 m × ~57 m box, 2 km north of the
+ * previous one, so outages from one test can never match another test's properties.
  */
-const BOX = { type: 'Polygon', coordinates: [[[17.4995, 59.4995], [17.5005, 59.4995], [17.5005, 59.5005], [17.4995, 59.5005], [17.4995, 59.4995]]] };
-const OP = { id: 'test_operator', name: 'Testnät AB' };
+const LON = 17.5;
+const boxAt = (lat: number) => ({
+  type: 'Polygon',
+  coordinates: [[[LON - 0.0005, lat - 0.0005], [LON + 0.0005, lat - 0.0005], [LON + 0.0005, lat + 0.0005], [LON - 0.0005, lat + 0.0005], [LON - 0.0005, lat - 0.0005]]],
+});
+let seq = 0;
+let LAT = 59.5;
+let BOX = boxAt(LAT);
+let OP = { id: 'test_operator_0', name: 'Testnät AB' };
+/** Starts a fresh, isolated test area (node:test runs these tests sequentially). */
+function newArea() {
+  seq++;
+  LAT = 59.5 + seq * 0.02;
+  BOX = boxAt(LAT);
+  OP = { id: `test_operator_${randomUUID().slice(0, 8)}`, name: 'Testnät AB' };
+}
 
 const outage = (o: Partial<UtilityOutageInput> = {}): UtilityOutageInput => ({
   operatorId: OP.id,
@@ -57,20 +72,21 @@ const outage = (o: Partial<UtilityOutageInput> = {}): UtilityOutageInput => ({
 export function registerUtilityOutageTests(pool: pg.Pool) {
   describe('Grid operator outages on real PostgreSQL/PostGIS', () => {
     async function fixture() {
+      newArea();
       const clerkOrg = `org_uo${randomUUID().replaceAll('-', '')}`;
       const org = await ensureOrganization(pool, clerkOrg);
       const ctx = { organizationId: org, userId: 'user_outageTest' };
       const confirmed = (name: string, lat: number, lon: number) =>
         createProperty(pool, ctx, { name, address: `${name} 1`, location: { lat, lon }, geocode: { provider: 'manual_pin', precision: 'unknown' } });
-      const inside = await confirmed('Inuti', 59.5, 17.5);
-      const outside = await confirmed('200 m bort', 59.5018, 17.5);
-      // ~15 m north of the box edge (edge at 59.5005).
-      const adjacent = await confirmed('Kanten', 59.50064, 17.5);
+      const inside = await confirmed('Inuti', LAT, LON);
+      const outside = await confirmed('200 m bort', LAT + 0.0018, LON);
+      // ~15 m north of the box edge (edge at LAT + 0.0005).
+      const adjacent = await confirmed('Kanten', LAT + 0.00064, LON);
       const approx = await createProperty(pool, ctx, {
         name: 'Ungefärlig',
         address: 'Gatan, Teststad',
-        location: { lat: 59.4999, lon: 17.4999 },
-        geocode: { provider: 'geoapify', precision: 'street', geocodedPoint: { lat: 59.4999, lon: 17.4999 } },
+        location: { lat: LAT - 0.0001, lon: LON - 0.0001 },
+        geocode: { provider: 'geoapify', precision: 'street', geocodedPoint: { lat: LAT - 0.0001, lon: LON - 0.0001 } },
       });
       return { org, clerkOrg, inside, outside, adjacent, approx };
     }
@@ -142,7 +158,8 @@ export function registerUtilityOutageTests(pool: pg.Pool) {
 
     it('planned work: blue when published, version bump only for a material time change', async () => {
       await fixture();
-      const start = new Date(Date.now() + 3 * 86_400_000);
+      // Whole hour, so "+5 min" provably stays in the same 15-minute rounding slot.
+      const start = new Date(Math.ceil((Date.now() + 3 * 86_400_000) / 3_600_000) * 3_600_000);
       const o = outage({ kind: 'planned', state: 'upcoming', plannedStart: start.toISOString(), plannedEnd: new Date(start.getTime() + 4 * 3600_000).toISOString(), actualStart: null, estimatedRestore: null });
       await storeUtilityOutages(pool, OP.id, [o], true);
       await rematchUtilityOutages(pool);
@@ -158,11 +175,11 @@ export function registerUtilityOutageTests(pool: pg.Pool) {
 
     it('concession areas decide coverage, not matching', async () => {
       const f = await fixture();
-      await replaceConcessionAreas(pool, OP.id, 'electricity', 'operator_feed', [{ externalRef: 'k1', geometry: { type: 'Polygon', coordinates: [[[17.49, 59.49], [17.51, 59.49], [17.51, 59.51], [17.49, 59.51], [17.49, 59.49]]] } }]);
+      await replaceConcessionAreas(pool, OP.id, 'electricity', 'operator_feed', [{ externalRef: 'k1', geometry: { type: 'Polygon', coordinates: [[[LON - 0.01, LAT - 0.005], [LON + 0.01, LAT - 0.005], [LON + 0.01, LAT + 0.005], [LON - 0.01, LAT + 0.005], [LON - 0.01, LAT - 0.005]]] } }]);
       const c = await listOrgPropertyConcessions(pool, f.org);
       assert.ok(c.some((x) => x.property_id === f.inside.id && x.operator_id === OP.id));
       // Replacing is idempotent.
-      await replaceConcessionAreas(pool, OP.id, 'electricity', 'operator_feed', [{ externalRef: 'k1', geometry: { type: 'Polygon', coordinates: [[[17.49, 59.49], [17.51, 59.49], [17.51, 59.51], [17.49, 59.51], [17.49, 59.49]]] } }]);
+      await replaceConcessionAreas(pool, OP.id, 'electricity', 'operator_feed', [{ externalRef: 'k1', geometry: { type: 'Polygon', coordinates: [[[LON - 0.01, LAT - 0.005], [LON + 0.01, LAT - 0.005], [LON + 0.01, LAT + 0.005], [LON - 0.01, LAT + 0.005], [LON - 0.01, LAT - 0.005]]] } }]);
       const n = await pool.query(`SELECT count(*)::int AS n FROM grid_concession_areas WHERE operator_id = $1`, [OP.id]);
       assert.equal(n.rows[0].n, 1);
     });

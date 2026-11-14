@@ -340,7 +340,8 @@ export async function rematchUtilityOutages(db: Queryable): Promise<MatchChange[
       event_id: c.event_id,
       change_type: ended ? 'ended' : !o || becameVisible ? 'new' : 'updated',
       severity,
-      headline: outageFeedTitle(c.headline, level, c.match_method, { affected: c.affected_customers, total: c.area_customer_total }).slice(0, 500),
+      // "Strömmen är tillbaka …" needs no position caveat; area-level rows keep theirs (where it applied).
+      headline: (ended && level !== 'area' ? c.headline : outageFeedTitle(c.headline, level, c.match_method, { affected: c.affected_customers, total: c.area_customer_total })).slice(0, 500),
       dedup_key: `${c.property_id}:${c.event_id}:v${c.version}:${level}`,
     });
   }
