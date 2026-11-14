@@ -78,7 +78,7 @@ sammanslagningen. Aktuella omkörningar och eventuella undantag redovisas i
 
 - Hela Vitest-sviten med lokal databas: **328/328**, 40 testfiler, inga överhoppade tester.
 - Separata verkliga PostgreSQL/PostGIS-integrationer: **23/23**.
-- Liveprov: **28 godkända**, 3 överhoppade (två Trafikverket-fall saknar nyckel; MET Norway saknar kontaktvariabel).
+- Uppföljande liveprov med befintliga nycklar och publik kontaktväg: **31/31 godkända**, inga överhoppade.
 - Typkontroll i alla sex paket/appar, lint samt webb- och API-bygge: godkända.
 - Migration **0008_environment_station_history.sql** har provats efter liveversionens 0001–0007
   i en ny tom databas: **8 applicerade**, sedan **0**, med godkända kontrollsummor.
@@ -88,14 +88,14 @@ sammanslagningen. Aktuella omkörningar och eventuella undantag redovisas i
 - Startsidan har granskats i både desktop- och mobilmarkup, inklusive MOBILE_FEATURE_ITEMS.
   Liveversionens mobilstruktur och CSS-klasser bevaras; gränslinjen saknas också i demot.
 - SL är avstängt som standard och kvar som interface_only. SMS, inloggning och licensflaggor är oförändrade.
-- Deployskriptet tillåter endast `codex/phase4-sms-notifications` eller detached HEAD. Spärren är
-  oförändrad och hindrar driftsättning från den begärda grenen. Ingen alternativ väg används.
+- Efter ägarens godkännande tillåter deployskriptet även `codex/landing-parity-live`, bevarar
+  runtime-miljön och återställer automatiskt vid misslyckad hälsokontroll. Se [driftsättningsunderlaget](landing-parity-deployment.md).
 - Föregående `e46b1bf` publicerades enligt chatten ”Add Fastighetshistorik-vy” med det separata
   `.deploy/publish-mobile-web.mjs`: enbart webb, API och runtime-miljö oförändrade, API ready och
   startsida HTTP 200. Återställningskopian var `/home/instapod/web-prev-mobile3a-e46b1bf`.
   Det verifierar inte en release av det nu sammanslagna API:t eller migration 0008.
-- Poddens aktuella miljö och produktionsschema har inte lästs: denna worktree saknar `.env`
-  och `INSTAPOD_TOKEN`. Ingen produktion, annan worktree eller huvudkatalog har ändrats.
+- Efter ägarens godkännande lästes befintlig token från huvudkatalogens `.env`. Poddens miljö
+  och alla sju befintliga migrationskontrollsummor är verifierade. Huvudkatalogens arbetsfiler är orörda.
 - Kyleffekt och grundvattenstationer: [ADR 0006](decisions/0006-stationer-och-kyleffekt.md).
   Luftindex: [ADR 0007](decisions/0007-luftkvalitetsindex.md).
   Havsvattenstånd, hydrologi och nowcast: [ADR 0004](decisions/0004-nowcast-och-vattendata.md).

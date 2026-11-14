@@ -1,75 +1,101 @@
 #!/usr/bin/env node
-/**
- * Deterministic deployment to the InstaPods `f-radar` pod (and ONLY that pod).
- *
- *   node scripts/deploy-pod.mjs [--skip-build] [--env-only]
- *
- * Steps:
- *  1. Build: tsup deploy bundles (API, migrate CLI) + Next.js standalone (web).
- *  2. Assemble .deploy/release: index.js supervisor, api/, db/, web/ (no .env, no .git,
- *     no node_modules except Next's traced runtime deps, no fixtures as customer data).
- *  3. Secret scan of the release (fails on any .env secret value).
- *  4. Upload to /home/instapod/app-next, run migrations, swap app ↔ app-next (previous
- *     release kept as app.prev for rollback), set ONLY the required runtime env vars,
- *     restart the `app` service and health-check.
- *
- * The token is read from INSTAPOD_TOKEN; secret values are never printed.
- */
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { execSync, execFileSync } from 'node:child_process';
-import { join, resolve } from 'node:path';
+/** Full f-radar release: preserve live configuration, migrate, swap, verify and roll back on failure. */
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { join, resolve, sep } from 'node:path';
 import { ALLOWED_POD, api } from './instapods.mjs';
+import { assertDeploymentBranch, deploymentEnvironment } from './deploy-policy.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const args = new Set(process.argv.slice(2));
-const sh = (cmd) => execSync(cmd, { cwd: root, stdio: 'inherit', env: { ...process.env, MSYS_NO_PATHCONV: '1' } });
-
+const git = (...argv) => execFileSync('git', ['-c', `safe.directory=${root.replace(/\\/g, '/')}`, ...argv], { cwd: root }).toString().trim();
+const runNode = (argv, cwd = root) => execFileSync(process.execPath, argv, { cwd, stdio: 'inherit', env: process.env });
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 function readEnv() {
-  const env = {};
-  for (const line of readFileSync(join(root, '.env'), 'utf8').split(/\r?\n/)) {
+  return Object.fromEntries(readFileSync(join(root, '.env'), 'utf8').split(/\r?\n/).flatMap((line) => {
     const m = /^\s*([A-Z0-9_]+)\s*=\s*["']?([^"'\r\n]*)["']?\s*$/.exec(line);
-    if (m) env[m[1]] = m[2].trim();
-  }
-  return env;
+    return m ? [[m[1], m[2].trim()]] : [];
+  }));
 }
-
 async function exec(command) {
   const r = await api('POST', `/pods/${ALLOWED_POD}/exec`, { command: ['sh', '-c', command], workdir: '/home/instapod' });
-  const out = String(r.data?.output ?? '');
-  if (r.status !== 200 || r.data?.exit_code) throw new Error(`exec failed (${r.status}, exit ${r.data?.exit_code}): ${out.slice(-1500)}`);
-  return out;
+  if (r.status !== 200 || r.data?.exit_code) throw new Error(`Pod command failed (${r.status}, exit ${r.data?.exit_code}): ${String(r.data?.output ?? '').slice(-1200)}`);
+  return String(r.data?.output ?? '');
+}
+function removeLocal(target) {
+  const absolute = resolve(target);
+  if (!absolute.startsWith(root + sep) || absolute === root) throw new Error('Refusing removal outside this checkout.');
+  rmSync(absolute, { recursive: true, force: true });
+}
+function removeTracedEnv(dir) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) removeTracedEnv(path);
+    else if (entry.name === '.env' || entry.name.startsWith('.env.')) removeLocal(path);
+  }
+}
+async function waitHealthy(previousPid) {
+  for (let i = 0; i < 70; i++) {
+    await pause(2000);
+    try {
+      const output = await exec('systemctl is-active app; systemctl show app --property=MainPID --value; curl -fsS -m 3 http://127.0.0.1:4000/health/ready; printf "\\n"; curl -s -o /dev/null -w "web:%{http_code}" -m 5 http://127.0.0.1:3000/sign-in');
+      const lines = output.trim().split(/\r?\n/);
+      if (lines[0] === 'active' && lines[1] !== '0' && lines[1] !== previousPid
+          && /"status":"ready"/.test(output) && /web:200/.test(output)) {
+        console.log(output.trim());
+        return true;
+      }
+    } catch { /* systemd may still be stopping the preceding release */ }
+    if (i % 10 === 9) console.log(`Waiting for app restart (${(i + 1) * 2}s minimum elapsed).`);
+  }
+  return false;
 }
 
 const local = readEnv();
-const branch=execFileSync('git',['-c',`safe.directory=${root.replace(/\\/g,'/')}`,'branch','--show-current'],{cwd:root}).toString().trim();
-if(branch && branch!=='codex/phase4-sms-notifications')throw new Error('Phase 4 deployment requires codex/phase4-sms-notifications (or its detached verification checkout).');
-const pod = (await api('GET', `/pods/${ALLOWED_POD}`)).data;
-if (pod.name !== ALLOWED_POD || pod.plan_slug !== 'build') throw new Error(`Unexpected pod state: ${pod.name}/${pod.plan_slug}`);
+if (local.INSTAPOD_TOKEN) process.env.INSTAPOD_TOKEN ??= local.INSTAPOD_TOKEN;
+assertDeploymentBranch(git('branch', '--show-current'));
+if (git('status', '--porcelain', '--untracked-files=no')) throw new Error('Commit tracked changes before deployment.');
+const podResponse = await api('GET', `/pods/${ALLOWED_POD}`);
+const pod = podResponse.data;
+if (podResponse.status !== 200 || pod.name !== ALLOWED_POD || pod.plan_slug !== 'build') throw new Error('Unexpected pod state.');
 const appUrl = `https://${pod.domain}`;
-
-// Development pair (NEXT_PUBLIC_CLERK_DEVELOPMENT_KEY + CLERK_SECRET) wins when complete – see selectClerkKeys().
-const devPair = local.NEXT_PUBLIC_CLERK_DEVELOPMENT_KEY?.startsWith('pk_test_') && local.CLERK_SECRET?.startsWith('sk_test_');
-const pk = (devPair ? local.NEXT_PUBLIC_CLERK_DEVELOPMENT_KEY : local.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) ?? '';
-const sk = (devPair ? local.CLERK_SECRET : local.CLERK_SECRET_KEY) ?? '';
-console.log('Clerk instance for this deployment:', pk.startsWith('pk_test_') ? 'development' : 'production');
-if (!pk || !sk) throw new Error('Clerk keys missing in .env');
-if ((pk.startsWith('pk_live_') || sk.startsWith('sk_live_')) && !args.has('--allow-live-clerk')) {
-  throw new Error('Production Clerk keys only work on their configured domain, not on ' + appUrl + '. Use development keys or pass --allow-live-clerk.');
+const envResponse = await api('GET', `/pods/${ALLOWED_POD}/env`, undefined, { raw: true });
+if (envResponse.status !== 200) throw new Error('Cannot snapshot the running environment.');
+const beforeEnv = envResponse.data.vars;
+const vars = deploymentEnvironment(beforeEnv, local);
+if (beforeEnv.APP_URL !== appUrl) throw new Error('Running APP_URL differs from the pod domain.');
+const pk = beforeEnv.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const sk = beforeEnv.CLERK_SECRET_KEY;
+if (!pk?.startsWith('pk_') || !sk?.startsWith('sk_')) throw new Error('Cannot preserve running Clerk credentials.');
+if ((local.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && local.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== pk)
+    || local.NEXT_PUBLIC_CLERK_DEVELOPMENT_KEY || local.CLERK_SECRET) {
+  throw new Error('Build-time Clerk configuration must match the running pod; remove development-pair overrides from this checkout.');
 }
-
-// Map tiles (build-time, public): a separate origin-restricted Geoapify browser key.
+process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = pk;
+process.env.CLERK_SECRET_KEY = sk;
 const mapKey = local.NEXT_PUBLIC_GEOAPIFY_MAP_KEY ?? '';
-if (mapKey && mapKey === local.GEOAPIFY_API_KEY) throw new Error('NEXT_PUBLIC_GEOAPIFY_MAP_KEY must not reuse the server GEOAPIFY_API_KEY');
-console.log('Map tiles for this deployment:', mapKey ? `geoapify (${local.NEXT_PUBLIC_MAP_STYLE || 'positron'})` : 'NOT CONFIGURED – maps render without tiles');
+if (mapKey && mapKey === local.GEOAPIFY_API_KEY) throw new Error('Browser map key must differ from the server key.');
+const beforeRelease = (await exec('cat /home/instapod/app/RELEASE')).trim();
+const previousCommit = beforeRelease.split(/\r?\n/)[1];
+if (!/^[a-f0-9]{7,40}$/.test(previousCommit ?? '')) throw new Error('Running release has no commit id.');
+git('merge-base', '--is-ancestor', previousCommit, 'HEAD');
+const previousPid = (await exec('systemctl show app --property=MainPID --value')).trim();
+const stamp = new Date().toISOString().replace(/[^0-9TZ]/g, '');
+const commit = git('rev-parse', '--short', 'HEAD');
+const backupEnv = `/home/instapod/.f-radar-env-${stamp}`;
+mkdirSync(join(root, '.ci'), { recursive: true });
+writeFileSync(join(root, '.ci', `pod-env-before-${stamp}.json`), JSON.stringify(beforeEnv));
+console.log(`Preparing ${commit} over ${previousCommit}; Clerk and SMS policy preserved.`);
+console.log('Runtime keys changed:', Object.keys(vars).filter((k) => vars[k] !== beforeEnv[k]).join(', ') || '(none)');
 
-/* 1–3: build, assemble, scan */
 if (!args.has('--env-only')) {
   if (!args.has('--skip-build')) {
-    sh('node node_modules/tsup/dist/cli-default.js --config tsup.deploy.config.ts');
-    sh('npm run build -w @fastighetsradar/web');
+    runNode(['node_modules/tsup/dist/cli-default.js', '--config', 'tsup.deploy.config.ts']);
+    runNode(['../../node_modules/next/dist/bin/next', 'build'], join(root, 'apps/web'));
   }
-  const rel = join(root, '.deploy', 'release');
-  rmSync(join(root, '.deploy'), { recursive: true, force: true });
+  const deploy = join(root, '.deploy');
+  const rel = join(deploy, 'release');
+  removeLocal(deploy);
   mkdirSync(rel, { recursive: true });
   cpSync(join(root, 'deploy/pod/index.js'), join(rel, 'index.js'));
   cpSync(join(root, 'dist-deploy/api'), join(rel, 'api'), { recursive: true });
@@ -77,74 +103,54 @@ if (!args.has('--env-only')) {
   cpSync(join(root, 'packages/db/migrations'), join(rel, 'db/migrations'), { recursive: true });
   cpSync(join(root, 'apps/web/.next/standalone'), join(rel, 'web'), { recursive: true });
   cpSync(join(root, 'apps/web/.next/static'), join(rel, 'web/apps/web/.next/static'), { recursive: true });
-  // Next standalone does not include public/ (landing images etc.); serve it next to server.js.
   if (existsSync(join(root, 'apps/web/public'))) cpSync(join(root, 'apps/web/public'), join(rel, 'web/apps/web/public'), { recursive: true });
-  // Never ship env files that Next may have traced.
-  for (const f of ['.env', 'apps/web/.env', '.env.local']) rmSync(join(rel, 'web', f), { force: true });
-  writeFileSync(join(rel, 'RELEASE'), `${new Date().toISOString()}\n${execFileSync('git',['-c',`safe.directory=${root.replace(/\\/g,'/')}`,'rev-parse','--short','HEAD'], { cwd: root }).toString().trim()}\n`);
-  sh(`node scripts/check-no-secrets.mjs .deploy/release`);
-  sh(`tar -czf .deploy/release.tar.gz -C .deploy/release .`);
-
-  /* 4: upload + migrate + swap */
-  await exec('rm -rf /home/instapod/app-next && mkdir -p /home/instapod/app-next');
-  const form = new FormData();
-  form.set('archive', new Blob([readFileSync(join(root, '.deploy/release.tar.gz'))], { type: 'application/gzip' }), 'release.tar.gz');
-  form.set('path', '/home/instapod/app-next');
-  const up = await api('POST', `/pods/${ALLOWED_POD}/files/upload-archive`, form);
-  if (up.status !== 200) throw new Error(`upload failed: ${JSON.stringify(up.data)}`);
-  console.log(await exec('cd /home/instapod/app-next && DATABASE_URL="postgresql:///fastighetsradar?host=/var/run/postgresql" FASTIGHETSRADAR_MIGRATIONS_DIR=/home/instapod/app-next/db/migrations node db/migrate.mjs up'));
-  await exec('cd /home/instapod && rm -rf app.prev && mv app app.prev && mv app-next app');
+  removeTracedEnv(join(rel, 'web'));
+  writeFileSync(join(rel, 'RELEASE'), `${new Date().toISOString()}\n${commit}\n`);
+  runNode(['scripts/check-no-secrets.mjs', '.deploy/release']);
+  execFileSync('tar', ['-czf', join(deploy, 'release.tar.gz'), '-C', rel, '.'], { cwd: root, stdio: 'inherit' });
 }
 
-/* Runtime env: only what the processes need. DATABASE_URL uses the local socket + peer auth (no password). */
-const vars = {
-  APP_URL: appUrl,
-  CLERK_AUTHORIZED_PARTIES: appUrl,
-  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk,
-  CLERK_SECRET_KEY: sk,
-  GEOCODING_PROVIDER: 'geoapify',
-  GEOAPIFY_API_KEY: local.GEOAPIFY_API_KEY ?? '',
-  TRAFIKVERKET_API_KEY: local.TRAFIKVERKET_API_KEY ?? '',
-  // Phase 3: Trafikverket is collected only when the key exists (key value is never printed).
-  TRAFIKVERKET_ENABLED: local.TRAFIKVERKET_API_KEY ? 'true' : 'false',
-  MCF_FLOOD_ENABLED: 'true',
-  // In-process collector scheduler inside the API service (no extra pod/service).
-  MONITORING_SCHEDULER_ENABLED: 'true',
-  DATABASE_URL: 'postgresql:///fastighetsradar?host=/var/run/postgresql',
-  FASTIGHETSRADAR_INTERNAL_API_URL: 'http://127.0.0.1:4000',
-  FASTIGHETSRADAR_DEMO_ENABLED: 'false',
-  SMS_ENABLED: 'false',
-  SMS_PROVIDER: 'simulated',
-  SMS_LIVE_SENDING_APPROVED: 'false',
-  SMS_MAX_GLOBAL_MONTHLY_COST_SEK: '0',
-  SMS_GLOBAL_DAILY_BUDGET_SEK: '0',
-  SMS_MONTHLY_LIMIT_PER_ORG: '0',
-  SMS_SIMULATION_MONTHLY_LIMIT: '100',
-  SMS_MAX_MESSAGES_PER_MINUTE: '10',
-  SMS_ESTIMATED_PRICE_PER_PART_SEK: local.SMS_ESTIMATED_PRICE_PER_PART_SEK ?? '',
-  SMS_DRY_RUN: 'true',
-  LOG_LEVEL: 'info',
-  TZ: 'Europe/Stockholm',
-};
-const envRes = await api('PUT', `/pods/${ALLOWED_POD}/env`, { vars });
-if (envRes.status !== 200) throw new Error(`env update failed: ${JSON.stringify(envRes.data)}`);
-console.log('Env keys set:', Object.keys(vars).join(', '));
-if (envRes.data?.warnings?.length) console.log('Env warnings:', envRes.data.warnings);
-
-await exec('sudo systemctl restart app');
-let ok = false;
-for (let i = 0; i < 30 && !ok; i++) {
-  await new Promise((r) => setTimeout(r, 2000));
-  try {
-    const out = await exec('curl -fsS -m 3 http://127.0.0.1:4000/health/ready && echo && curl -s -o /dev/null -w "web:%{http_code}" -m 5 http://127.0.0.1:3000/sign-in');
-    console.log(out);
-    ok = /"status":"ready"/.test(out) && /web:200/.test(out);
-  } catch {
-    /* not up yet */
+// No remote changes until the build and secret scan have succeeded.
+if ((await exec('cat /home/instapod/app/RELEASE')).trim() !== beforeRelease) throw new Error('The running release changed during preparation.');
+const latestEnv = await api('GET', `/pods/${ALLOWED_POD}/env`, undefined, { raw: true });
+if (latestEnv.status !== 200 || Object.keys({ ...beforeEnv, ...latestEnv.data.vars }).some((k) => beforeEnv[k] !== latestEnv.data.vars[k])) {
+  throw new Error('The running environment changed during preparation.');
+}
+await exec(`sudo cp -p /etc/instapods/app.env ${backupEnv}`);
+let swapped = false;
+let envAttempted = false;
+try {
+  if (!args.has('--env-only')) {
+    await exec('test ! -L /home/instapod/app-next && rm -rf /home/instapod/app-next && mkdir -p /home/instapod/app-next');
+    const form = new FormData();
+    form.set('archive', new Blob([readFileSync(join(root, '.deploy/release.tar.gz'))], { type: 'application/gzip' }), 'release.tar.gz');
+    form.set('path', '/home/instapod/app-next');
+    const upload = await api('POST', `/pods/${ALLOWED_POD}/files/upload-archive`, form);
+    if (upload.status !== 200) throw new Error(`Upload failed (${upload.status}).`);
+    console.log(await exec('cd /home/instapod/app-next && DATABASE_URL="postgresql:///fastighetsradar?host=/var/run/postgresql" FASTIGHETSRADAR_MIGRATIONS_DIR=/home/instapod/app-next/db/migrations node db/migrate.mjs up'));
+    await exec(`cd /home/instapod && test -d app && test -d app-next && test ! -L app && test ! -L app.prev && test ! -L app-next && if [ -e app.prev ]; then mv app.prev app.prev-${stamp}; fi && mv app app.prev && if mv app-next app; then true; else mv app.prev app; exit 1; fi`);
+    swapped = true;
   }
+  envAttempted = true;
+  const update = await api('PUT', `/pods/${ALLOWED_POD}/env`, { vars });
+  if (update.status !== 200) throw new Error(`Environment update failed (${update.status}).`);
+  await exec('sudo systemctl restart --no-block app');
+  if (!await waitHealthy(previousPid)) throw new Error('New release health check failed.');
+} catch (error) {
+  if (swapped || envAttempted) {
+    console.error('Deployment failed; restoring the previous application and exact environment.');
+    await exec(`sudo cp -p ${backupEnv} /etc/instapods/app.env`);
+    if (swapped) await exec(`cd /home/instapod && test -d app.prev && test ! -L app && test ! -L app.prev && mv app app.failed-${stamp} && mv app.prev app`);
+    const rollbackPid = (await exec('systemctl show app --property=MainPID --value')).trim();
+    await exec('sudo systemctl restart --no-block app');
+    if (!await waitHealthy(rollbackPid)) throw new Error('Rollback health check failed; manual recovery is required.', { cause: error });
+    console.error(`Rollback healthy: restored ${previousCommit}. Migration 0008 is additive and is retained.`);
+  }
+  throw error;
 }
-if (!ok) {
-  console.error((await api('GET', `/pods/${ALLOWED_POD}/logs?lines=80&service=app`)).data?.logs);
-  throw new Error('Health check failed – previous release is in /home/instapod/app.prev');
-}
-console.log(`Deployed to ${appUrl}`);
+console.log(`Deployed ${commit} to ${appUrl}; previous application retained as app.prev.`);
+writeFileSync(join(root, '.ci', `deploy-result-${commit}.json`), JSON.stringify({
+  commit, previousCommit, appUrl, checkedAt: new Date().toISOString(), ready: true,
+  changedEnvironmentKeys: Object.keys(vars).filter((key) => vars[key] !== beforeEnv[key]),
+  rollbackApplication: '/home/instapod/app.prev',
+}, null, 2));

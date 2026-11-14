@@ -57,6 +57,9 @@ förekomma i båda tabellerna med olika kontrakt. Ingen extra vattenhistorik inf
 
 ## Liveprov mot offentliga API:er
 
+Tabellen nedan avser den första körningen utan huvudkatalogens nycklar. Efter ägarens godkännande
+gjordes en full körning med **31/31 godkända**, inga överhoppade. Se [driftsättningsunderlaget](landing-parity-deployment.md).
+
 | Svitsfil | Godkända | Överhoppade |
 |---|---:|---:|
 | environment.live.test.ts | 2 | 1 |
@@ -81,11 +84,13 @@ behålls som tidigare illustration. Inga rester av den borttagna alternativa hav
 konfliktmarkeringar finns i arbetskopians källfiler. Liveversionens RH2000-enum och presentation
 behålls som del av det befintliga kontraktet; den insamlade havsserien är enbart RW.
 
-## Driftsättning och begränsningar
+## Ursprungligt driftstopp och senare godkännande
 
-Ingen driftsättning görs. `scripts/deploy-pod.mjs` tillåter endast
-`codex/phase4-sms-notifications` eller detached HEAD och blockerar därför den begärda grenen.
-Spärren och skriptet är oförändrade; ingen detached checkout eller alternativ publiceringsväg används.
+Vid den ursprungliga körningen gjordes ingen driftsättning. `scripts/deploy-pod.mjs` tillät då endast
+`codex/phase4-sms-notifications` eller detached HEAD och blockerade därför den begärda grenen.
+Ägaren har därefter godkänt att spärren anpassas och att huvudkatalogens .env läses.
+Se [driftsättningsunderlaget](landing-parity-deployment.md) för den bevarande miljöhanteringen,
+produktionsschemats verifierade kontrollsummor och samtliga 31 godkända liveprov.
 
 Enligt kommandoutdata i chatten ”Add Fastighetshistorik-vy” driftsattes e46b1bf med
 `.deploy/stage-mobile-web.mjs` och `.deploy/publish-mobile-web.mjs`. Det var en webbuppdatering:
@@ -93,11 +98,11 @@ hemlighetsskanningen var ren, API/migrationer/runtime-konfiguration var undantag
 och startsidan svarade 200. Webbens återställningskopia låg i
 `/home/instapod/web-prev-mobile3a-e46b1bf`. Den metoden verifierar inte den här fullständiga releasen.
 
-Den aktuella worktreen saknar både .env och INSTAPOD_TOKEN; poddklienten bekräftar att token saknas.
+Vid den ursprungliga körningen saknade worktreen både .env och INSTAPOD_TOKEN.
 Poddens aktuella miljövariabler, körande jobb, RELEASE, faktiska produktionsschema, migration 0008
-samt startsidan efter en ny release har därför inte verifierats. Ingen poddmiljö, SMS-konfiguration,
-inloggning eller återställningskopia har ändrats. Hälsokontroll och rollback efter ny release är
-inte aktuella eftersom inget har publicerats.
+samt startsidan efter en ny release hade då inte verifierats. Ingen poddmiljö, SMS-konfiguration,
+inloggning eller återställningskopia ändrades under det ursprungliga driftstoppet.
+Efterföljande release använder det nya driftsättningsunderlaget och kontrolleras separat.
 
 Node-pg 8 ger sin befintliga deprecationsvarning om köade SELECT på samma Client i transaktionstesterna;
 alla databasfall är gröna. Ingen pg-uppgradering eller beteendeändring görs för att dölja varningen.

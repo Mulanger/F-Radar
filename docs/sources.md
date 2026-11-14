@@ -178,14 +178,14 @@ not observation. Formula, official citation and boundary handling: [ADR 0006](de
 ### Verification and local migration
 
 Fixture evidence: `packages/integrations/test/environment.test.ts` and captured fixtures (2026-11-14).
-The merged live suite passed **28 tests**, with 3 configuration-dependent skips: Trafikverket Situation
-and road ferries (missing key), and MET Norway (missing contact). SGU observed groundwater, all five
+The follow-up merged live suite passed **31 tests**, with no skips, using the existing Trafikverket key
+and the public project issues URL as MET Norway contact. SGU observed groundwater, all five
 air pollutants with a same-hour physical-station index, and the existing parameter-14 RW adapter passed.
 SL was not activated. See [migration verification](db-migration-verification.md) for per-suite counts.
 None of these tests sends SMS, modifies customer records or deploys anything.
 
 Migration **0008_environment_station_history.sql** creates air history and classifies HYPE as MODEL.
-Production application is not verified in this merge. The full merged 0001–0008 chain and the second pass are tracked in [migration verification](db-migration-verification.md), along with current test counts and evidence. Operational rollout still needs the normal migration step.
+Production application is checked separately for each release; see [deployment procedure](landing-parity-deployment.md). The full merged 0001–0008 chain and the second pass are tracked in [migration verification](db-migration-verification.md), along with current test counts and evidence. Operational rollout still needs the normal migration step.
 
 ## Retention (job `retention`, daily)
 
