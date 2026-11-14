@@ -16,6 +16,11 @@ describe('outage precision → severity (docs/plans/stromavbrott.md §5.3)', () 
     expect(outageMatchLevel('outage_polygon', false)).toBe('medium');
     expect(outageMatchLevel('outage_adjacent', true)).toBe('low');
     expect(outageMatchLevel('outage_postal_area', true)).toBe('area');
+    // Area matches need at least 25 affected customers to reach the feed; unknown size stays panel-only.
+    expect(outageMatchLevel('outage_postal_area', true, 25)).toBe('area');
+    expect(outageMatchLevel('outage_postal_area', true, 24)).toBe('low');
+    expect(outageMatchLevel('outage_area', true, null)).toBe('low');
+    expect(outageMatchLevel('outage_polygon', true, 1)).toBe('high');
   });
 
   it('red only for an unplanned ongoing outage with high precision', () => {
@@ -78,7 +83,8 @@ describe('Swedish wording (ADR 0003)', () => {
 
   it('feed titles carry the precision caveat for anything below high precision', () => {
     expect(outageFeedTitle('X', 'high', 'outage_polygon')).toBe('X');
-    expect(outageFeedTitle('X', 'area', 'outage_postal_area', { affected: 23, total: 605 })).toBe('X – i fastighetens postnummerområde (23 av 605 anläggningar)');
+    expect(outageFeedTitle('X', 'area', 'outage_postal_area')).toBe('X – i fastighetens postnummerområde');
+    expect(outageFeedTitle('X', 'area', 'outage_area', 'Östersund')).toBe('X – i nätbolagets driftområde Östersund');
     expect(outageFeedTitle('X', 'medium', 'outage_polygon')).toBe('X – fastighetens position är ungefärlig');
     expect(outagePrecisionLabel('outage_adjacent', true)).toMatch(/inte bekräftat/);
   });

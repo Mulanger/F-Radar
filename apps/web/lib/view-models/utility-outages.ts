@@ -95,7 +95,9 @@ function headState(u: PropertyUtilityStatus): OutagePanelVM['state'] {
     return { label: worst.kind === 'unplanned' ? 'Oplanerat strömavbrott' : worst.kind === 'planned' ? 'Planerat strömavbrott pågår' : 'Avbrott registrerat', detail: worst.precisionLabel, tone: t };
   }
   if (u.coverage === 'stale') return { label: 'Ej bedömd', detail: `${u.operator?.name ?? 'Nätbolagets'} avbrottskarta kunde inte hämtas nyligen. Det betyder inte att avbrott saknas.`, tone: SEV.unknown };
-  if (u.coverage === 'not_monitored') return { label: 'Nätet bevakas inte ännu', detail: `Fastigheten ligger i ${u.operator?.name ?? 'ett nät'} som inte är anslutet.`, tone: SEV.unknown };
+  if (u.coverage === 'not_monitored') return { label: 'Nätet bevakas inte ännu', detail: `Fastigheten ligger i nätet hos ${u.operator?.name ?? 'ett nätbolag'}, vars avbrottskarta inte är ansluten ännu.`, tone: SEV.unknown };
+  if (u.operatorCandidates && u.operatorCandidates.length > 1)
+    return { label: 'Osäkert nätbolag', detail: `Fastigheten ligger nära gränsen mellan ${u.operatorCandidates.join(' och ')}. Avbrott visas om de publiceras för adressen.`, tone: SEV.unknown };
   if (u.coverage === 'unknown')
     return { label: 'Nätbolaget är okänt', detail: 'Avbrott visas om ett bevakat nätbolag publicerar dem för adressen. Avsaknad av avbrott kan inte bekräftas.', tone: SEV.unknown };
   return { label: 'Inga registrerade avbrott', detail: `${u.operator!.name} har inga pågående avbrott som omfattar adressen.`, tone: SEV.normal };
@@ -117,7 +119,7 @@ export function buildUtilityOutageVM(s: PropertySnapshot): OutagePanelVM {
     upcoming: u.upcoming.map(outageRowVM),
     restored: u.recentlyRestored.map(outageRowVM),
     nearby: u.nearby.map(outageRowVM),
-    footer: `Uppgifter från nätbolagets publika avbrottskarta${u.updatedAt ? `, hämtad ${formatClock(u.updatedAt)}` : ''}. Visar registrerade avbrott i området – inte en mätning av fastighetens el.`,
+    footer: `Uppgifter från nätbolagets publika avbrottskarta${u.updatedAt ? `, hämtad ${formatClock(u.updatedAt)}` : ''}. Visar registrerade avbrott i området – inte en mätning av fastighetens el. Nätområde enligt Energimarknadsinspektionen (ungefärliga gränser).`,
   };
 }
 

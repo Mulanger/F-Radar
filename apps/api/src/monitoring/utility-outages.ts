@@ -5,7 +5,6 @@ import {
   outageHeadline,
   outageMatchLevel,
   outagePrecisionLabel,
-  PANEL_ONLY_OUTAGE_MATCHES,
   type PropertySnapshot,
   type PropertyStatus,
   type PropertyUtilityStatus,
@@ -13,12 +12,22 @@ import {
 } from '@fastighetsradar/domain';
 import {
   replaceConcessionAreas,
+  replaceNationalConcessions,
   rematchUtilityOutages,
   storeUtilityOutages,
   type JobRow,
   type OrgUtilityOutageRow,
+  type PropertyConcessionRow,
 } from '@fastighetsradar/db';
-import { enabledOperators, fetchOperatorConcessions, fetchOperatorOutages, UTILITY_OPERATORS, type UtilityOperator } from '@fastighetsradar/integrations';
+import {
+  enabledOperators,
+  fetchEiConcessions,
+  fetchOperatorConcessions,
+  fetchOperatorOutages,
+  operatorIdForEiName,
+  UTILITY_OPERATORS,
+  type UtilityOperator,
+} from '@fastighetsradar/integrations';
 import type { JobContext, JobResult, MonitoringJob } from './jobs';
 
 /**
@@ -61,6 +70,17 @@ async function runConcessions(op: UtilityOperator, ctx: JobContext): Promise<Job
   return { status: 'ok', items: n, sourceUpdatedAt: r.fetchedAt };
 }
 
+/** National concession areas from Energimarknadsinspektionen: tells which operator serves each property. */
+async function runEiConcessions(ctx: JobContext): Promise<JobResult> {
+  const r = await fetchEiConcessions(ctx.adapter);
+  if (!r.ok) return { status: 'error', items: 0, errorCode: r.error, errorDetail: r.detail };
+  const n = await replaceNationalConcessions(
+    ctx.db,
+    r.data.map((a) => ({ operatorId: operatorIdForEiName(a.holder), operatorName: a.holder, externalRef: a.concessionId, rings: a.rings })),
+  );
+  return { status: 'ok', items: n, errorDetail: `${r.data.length} areas parsed, ${n} stored`, sourceUpdatedAt: r.fetchedAt };
+}
+
 /** One job per operator (all listed so disabling an operator also disables its stored job row). */
 export function buildUtilityOutageJobs(env: ServerEnv): MonitoringJob[] {
   const on = env.SOURCE_UTILITY_OUTAGES_ENABLED;
@@ -73,6 +93,7 @@ export function buildUtilityOutageJobs(env: ServerEnv): MonitoringJob[] {
       jobs.push({ jobId: `${CONCESSION_JOB_PREFIX}${op.id}`, sourceId: 'utility_outages', intervalSeconds: 7 * 86_400, enabled: active, timeoutMs: 120_000, run: (ctx) => runConcessions(op, ctx) });
     }
   }
+  jobs.push({ jobId: `${CONCESSION_JOB_PREFIX}ei`, sourceId: 'utility_outages', intervalSeconds: 7 * 86_400, enabled: on, timeoutMs: 300_000, run: runEiConcessions });
   return jobs;
 }
 
@@ -141,7 +162,7 @@ const SEVERITY_STATUS: Record<string, PropertyStatus | undefined> = { critical: 
 
 function toView(r: OrgUtilityOutageRow): UtilityOutageView {
   const confirmed = isPositionConfirmed(r.geocode_precision, r.position_source);
-  const level = outageMatchLevel(r.match_method, confirmed);
+  const level = outageMatchLevel(r.match_method, confirmed, r.affected_customers);
   const operatorName = r.operator_name ?? r.operator_id;
   return {
     id: r.event_id,
@@ -152,7 +173,7 @@ function toView(r: OrgUtilityOutageRow): UtilityOutageView {
     state: r.state,
     matchMethod: r.match_method,
     precisionLevel: level,
-    precisionLabel: outagePrecisionLabel(r.match_method, confirmed, { affected: r.affected_customers, total: r.area_customer_total }),
+    precisionLabel: outagePrecisionLabel(r.match_method, confirmed, r.place_label),
     severity: outageEffectiveSeverity({ kind: r.kind, state: r.state }, level),
     distanceMeters: r.distance_m === null ? null : Number(r.distance_m),
     affectedCustomers: r.affected_customers,
@@ -173,24 +194,36 @@ function toView(r: OrgUtilityOutageRow): UtilityOutageView {
 
 export interface UtilityInputs {
   outages: OrgUtilityOutageRow[];
-  concessions: Array<{ property_id: string; operator_id: string }>;
+  concessions: Array<Pick<PropertyConcessionRow, 'property_id' | 'operator_id'> & { operator_name?: string | null }>;
   operators: OperatorStatus[];
 }
 
 /** Builds the electricity section for one property (Fas 1: electricity only). */
 export function propertyUtilityStatus(propertyId: string, inputs: UtilityInputs): PropertyUtilityStatus {
   const views = inputs.outages.filter((o) => o.property_id === propertyId && o.utility === 'electricity').map(toView);
-  const opIds = inputs.concessions.filter((c) => c.property_id === propertyId).map((c) => c.operator_id);
-  const covering = opIds.map((id) => inputs.operators.find((o) => o.operatorId === id)).filter((o): o is OperatorStatus => !!o);
-  const operator = covering.find((o) => o.enabled) ?? covering[0] ?? null;
-  const coverage: PropertyUtilityStatus['coverage'] = !operator ? 'unknown' : !operator.enabled ? 'not_monitored' : operator.current ? 'monitored' : 'stale';
-  const panelOnly = (v: UtilityOutageView) => PANEL_ONLY_OUTAGE_MATCHES.includes(v.matchMethod);
+  // Concession areas (Ei national dataset + operator feeds; boundaries approximate). One operator id may
+  // appear from several sources; distinct operators mean the property lies near a boundary.
+  const rows = inputs.concessions.filter((c) => c.property_id === propertyId);
+  const ids = [...new Set(rows.map((c) => c.operator_id))];
+  const nameOf = (id: string) => inputs.operators.find((o) => o.operatorId === id)?.name ?? rows.find((r) => r.operator_id === id && r.operator_name)?.operator_name ?? id.replace(/^ei:/, '');
+  let operator: PropertyUtilityStatus['operator'] = null;
+  let coverage: PropertyUtilityStatus['coverage'] = 'unknown';
+  let updatedAt: string | null = null;
+  if (ids.length === 1) {
+    const st = inputs.operators.find((o) => o.operatorId === ids[0]);
+    operator = { id: ids[0]!, name: nameOf(ids[0]!), mapUrl: st?.mapUrl ?? null };
+    coverage = !st || !st.enabled ? 'not_monitored' : st.current ? 'monitored' : 'stale';
+    updatedAt = st?.lastSuccessAt ?? null;
+  }
+  // Low precision (near/point matches and small area-level outages) is shown under "I närheten" only.
+  const panelOnly = (v: UtilityOutageView) => v.precisionLevel === 'low';
   const byStart = (a: UtilityOutageView, b: UtilityOutageView) => Date.parse(a.plannedStart ?? a.actualStart ?? '') - Date.parse(b.plannedStart ?? b.actualStart ?? '');
   return {
     utility: 'electricity',
-    operator: operator ? { id: operator.operatorId, name: operator.name, mapUrl: operator.mapUrl } : null,
+    operator,
     coverage,
-    updatedAt: operator?.lastSuccessAt ?? null,
+    ...(ids.length > 1 ? { operatorCandidates: ids.map(nameOf) } : {}),
+    updatedAt,
     current: views.filter((v) => !panelOnly(v) && (v.state === 'ongoing' || v.state === 'unknown')).sort(byStart),
     upcoming: views.filter((v) => !panelOnly(v) && v.state === 'upcoming').sort(byStart),
     recentlyRestored: views.filter((v) => !panelOnly(v) && (v.state === 'restored' || v.state === 'withdrawn')),

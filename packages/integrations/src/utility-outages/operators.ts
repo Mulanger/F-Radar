@@ -7,9 +7,10 @@ import type { UtilityOperator } from './types';
  *
  * To stop collecting from one operator without a deploy, leave it out of UTILITY_OUTAGE_OPERATORS.
  */
-const digpro = (name: string, host: string, cust: string, concession: boolean): UtilityOperator => ({
+const digpro = (name: string, host: string, cust: string, concession: boolean, eiName: string): UtilityOperator => ({
   id: `digpro:${cust}`,
   name,
+  eiNames: [eiName],
   platform: 'digpro',
   host,
   cust,
@@ -25,6 +26,7 @@ export const UTILITY_OPERATORS: UtilityOperator[] = [
     platform: 'vattenfall',
     utilities: ['electricity'],
     dataUrl: 'https://arkmap.vattenfalleldistribution.se/incidents.json',
+    eiNames: ['Vattenfall Eldistribution AB'],
     mapUrl: 'https://www.vattenfalleldistribution.se/stromavbrott/pagaende-stromavbrott/',
   },
   {
@@ -35,20 +37,50 @@ export const UTILITY_OPERATORS: UtilityOperator[] = [
     apiBase: 'https://www.goteborgenergi.se',
     // Fjärrvärme 50935483 / fjärrkyla 50935477 are added in Fas 4.
     utilityTypeIds: { electricity: '36857905' },
+    eiNames: ['Göteborg Energi Nät AB'],
     mapUrl: 'https://www.goteborgenergi.se/kundservice/avbrott/aktuella',
   },
-  digpro('Växjö Energi Elnät', 'driftinformation.veab.se', 'vax', false),
-  digpro('Falu Elnät', 'webmap.fev.se', 'fev', true),
-  digpro('Hedemora Energi', 'webmap.hedemoraenergi.se', 'hed', true),
-  digpro('Halmstads Energi och Miljö Nät', 'dpwebmap.hem.se', 'hsd', true),
-  digpro('Härnösand Elnät', 'dpwebmap.hemab.se', 'hem', false),
-  digpro('Bergs Tingslags Elektriska', 'dpweb.btea.se', 'bte', false),
-  digpro('Lerum Energi', 'lerumel.lerum.se', 'lme', false),
-  digpro('Linde Energi', 'webmap.lindeenergi.se', 'lie', false),
-  digpro('Södra Hallands Kraft', 'shkwebmap.sodrahallandskraft.se', 'shk', true),
-  digpro('Uddevalla Energi Elnät', 'nisweb.uddevallaenergi.se', 'udd', false),
-  digpro('Västerbergslagens Elnät', 'status.vbenergi.se', 'vbe', false),
-  digpro('Dala Energi Elnät', 'dedpweb.dalaenergi.se', 'lre', true),
+  digpro('Växjö Energi Elnät', 'driftinformation.veab.se', 'vax', false, 'Växjö Energi Elnät AB'),
+  digpro('Falu Elnät', 'webmap.fev.se', 'fev', true, 'Falu Elnät AB'),
+  digpro('Hedemora Energi', 'webmap.hedemoraenergi.se', 'hed', true, 'Hedemora Elnät AB'),
+  digpro('Halmstads Energi och Miljö Nät', 'dpwebmap.hem.se', 'hsd', true, 'Halmstads Energi och Miljö Nät AB'),
+  digpro('Härnösand Elnät', 'dpwebmap.hemab.se', 'hem', false, 'Härnösand Elnät AB'),
+  digpro('Bergs Tingslags Elektriska', 'dpweb.btea.se', 'bte', false, 'Bergs Tingslags Elektriska AB'),
+  digpro('Lerum Energi', 'lerumel.lerum.se', 'lme', false, 'Lerum Nät AB'),
+  digpro('Linde Energi', 'webmap.lindeenergi.se', 'lie', false, 'Linde Energi Elnät AB'),
+  digpro('Södra Hallands Kraft', 'shkwebmap.sodrahallandskraft.se', 'shk', true, 'Södra Hallands Kraft ek. för.'),
+  digpro('Uddevalla Energi Elnät', 'nisweb.uddevallaenergi.se', 'udd', false, 'Uddevalla Energi Elnät AB'),
+  digpro('Västerbergslagens Elnät', 'status.vbenergi.se', 'vbe', false, 'Västerbergslagens Elnät AB'),
+  digpro('Dala Energi Elnät', 'dedpweb.dalaenergi.se', 'lre', true, 'Dala Energi Elnät AB'),
+  // Fas 2 (docs/plans/stromavbrott.md): Ellevio publishes postal areas only (dashboard, never SMS).
+  {
+    id: 'ellevio',
+    name: 'Ellevio',
+    platform: 'ellevio',
+    utilities: ['electricity'],
+    loadUrl: 'https://avbrottskarta.ellevio.se/avbrottskartan/load.php',
+    version: '1.4.5',
+    mapUrl: 'https://avbrottskarta.ellevio.se/',
+    eiNames: ['Ellevio AB'],
+  },
+  {
+    id: 'tekniskaverken',
+    name: 'Tekniska verken Linköping Nät',
+    platform: 'tekniskaverken',
+    utilities: ['electricity'],
+    apiBase: 'https://avbrott.tekniskaverken.se/api/service-information',
+    brand: 'tekniskaverken',
+    mapUrl: 'https://avbrott.tekniskaverken.se/?tab=map',
+    eiNames: ['Tekniska verken Linköping Nät AB'],
+  },
+  ...(
+    [
+      ['malarenergi', 'Mälarenergi Elnät', 'https://driftinfo.malarenergi.se/NisOutageMap', 'https://www.malarenergi.se/avbrott/', 'Mälarenergi Elnät AB'],
+      ['jamtkraft', 'Jämtkraft Elnät', 'https://avbrottskarta.jamtkraft.se', 'https://avbrottskarta.jamtkraft.se/', 'Jämtkraft Elnät AB'],
+      ['sundsvall', 'Sundsvall Elnät', 'https://avbrottskarta.sundsvallelnat.se', 'https://avbrottskarta.sundsvallelnat.se/', 'Sundsvall Elnät AB'],
+      ['gavle', 'Gävle Energi Elnät', 'https://avbrottskartan.gavleenergi.se', 'https://avbrottskartan.gavleenergi.se/', 'Gävle Energi Elnät AB'],
+    ] as const
+  ).map(([id, name, base, mapUrl, eiName]): UtilityOperator => ({ id: `trimble:${id}`, name, platform: 'trimble', base, scope: 'p', utilities: ['electricity'], mapUrl, eiNames: [eiName] })),
 ];
 
 /** Operators enabled by UTILITY_OUTAGE_OPERATORS ("" = all, "none" = none, else comma list of ids). */
@@ -61,3 +93,9 @@ export function enabledOperators(setting: string | undefined, all: UtilityOperat
 }
 
 export const operatorById = (id: string) => UTILITY_OPERATORS.find((o) => o.id === id) ?? null;
+
+/** Ei concession holder name → our operator id (unmapped holders get `ei:<name>`, shown as "not monitored"). */
+export function operatorIdForEiName(eiName: string, all: UtilityOperator[] = UTILITY_OPERATORS): string {
+  const hit = all.find((o) => o.eiNames.includes(eiName.trim()));
+  return hit ? hit.id : `ei:${eiName.trim()}`;
+}

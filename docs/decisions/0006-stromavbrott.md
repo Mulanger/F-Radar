@@ -51,6 +51,17 @@ fastighet faktiskt berörs.
    attribueras.
 8. **Riskindex:** påverkas inte förrän produktägaren godkänt en egen faktor (Fas 5).
 
+## Tillägg Fas 2 (2026-11-14)
+
+9. **Områdesträffar** (Ellevios postnummerområden, Trimbles driftområden) visas i händelseflödet först när
+   avbrottet berör **minst 25 kunder** (`AREA_FEED_MIN_CUSTOMERS`); mindre avbrott (ofta en enda kund i ett
+   postnummer med tusentals adresser) visas bara under "I närheten" i fastighetspanelen. Aldrig SMS.
+10. **Nätområden** kommer från Energimarknadsinspektionens nationella datamängd (CC0, ungefärliga gränser),
+    importerad veckovis. Bolag vi inte bevakar visas med namn ("Nätet bevakas inte ännu – … Kraftringen Nät AB").
+    Täcker två olika nätbolags områden samma adress visas "Osäkert nätbolag" i stället för "Inga registrerade avbrott".
+11. Ellevios `affected_site_total_count` är avbrottets totala antal berörda, inte postnummerområdets – inga
+    "x av y"-andelar visas.
+
 ## Konsekvenser
 
 - Flödena är odokumenterade och kan ändras; adaptrarna validerar allt och hoppar över det som inte går

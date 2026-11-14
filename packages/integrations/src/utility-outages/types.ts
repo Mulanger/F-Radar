@@ -50,7 +50,7 @@ export interface ConcessionArea {
   geometry: GeoJsonGeometry;
 }
 
-export type UtilityOperatorPlatform = 'vattenfall' | 'digpro' | 'goteborg_energi';
+export type UtilityOperatorPlatform = 'vattenfall' | 'digpro' | 'goteborg_energi' | 'ellevio' | 'tekniskaverken' | 'trimble';
 
 interface OperatorBase {
   /** Stable id used in job ids, external ids and UTILITY_OUTAGE_OPERATORS. */
@@ -60,8 +60,14 @@ interface OperatorBase {
   utilities: UtilityKind[];
   /** Public map page linked from the dashboard. */
   mapUrl: string;
+  /** Concession holder name(s) exactly as in Energimarknadsinspektionen's dataset. */
+  eiNames: string[];
 }
 export type UtilityOperator =
   | (OperatorBase & { platform: 'vattenfall'; dataUrl: string })
   | (OperatorBase & { platform: 'digpro'; host: string; cust: string; concessionUrl: string | null })
-  | (OperatorBase & { platform: 'goteborg_energi'; apiBase: string; utilityTypeIds: Partial<Record<UtilityKind, string>> });
+  | (OperatorBase & { platform: 'goteborg_energi'; apiBase: string; utilityTypeIds: Partial<Record<UtilityKind, string>> })
+  | (OperatorBase & { platform: 'ellevio'; loadUrl: string; version: string })
+  | (OperatorBase & { platform: 'tekniskaverken'; apiBase: string; brand: string })
+  /** Trimble (Tekla) NIS outage map: `<base>/geoserver-api/...`; `scope` 'p' = power. */
+  | (OperatorBase & { platform: 'trimble'; base: string; scope: string });

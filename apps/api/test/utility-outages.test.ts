@@ -103,7 +103,7 @@ describe('collector jobs and health', () => {
     expect(off.length).toBeGreaterThan(10);
     expect(off.every((j) => !j.enabled)).toBe(true);
     const on = buildUtilityOutageJobs(loadServerEnv({ SOURCE_UTILITY_OUTAGES_ENABLED: 'true', UTILITY_OUTAGE_OPERATORS: 'vattenfall,digpro:fev' }));
-    expect(on.filter((j) => j.enabled).map((j) => j.jobId).sort()).toEqual(['utility_concessions:digpro:fev', 'utility_outages:digpro:fev', 'utility_outages:vattenfall']);
+    expect(on.filter((j) => j.enabled).map((j) => j.jobId).sort()).toEqual(['utility_concessions:digpro:fev', 'utility_concessions:ei', 'utility_outages:digpro:fev', 'utility_outages:vattenfall']);
     expect(on.every((j) => j.intervalSeconds === 300 || j.jobId.startsWith('utility_concessions:'))).toBe(true);
   });
   it('poll interval cannot go below 120 s', () => {
@@ -186,6 +186,16 @@ describe('property outage section and status', () => {
     expect(propertyUtilityStatus(PID, inputs([op()], [])).coverage).toBe('unknown');
   });
 
+  it('national concession areas name operators we do not monitor; two operators mean a boundary case', () => {
+    const notMon = propertyUtilityStatus(PID, { outages: [], concessions: [{ property_id: PID, operator_id: 'ei:Kraftringen Nät AB', operator_name: 'Kraftringen Nät AB' }], operators: [op()] });
+    expect(notMon).toMatchObject({ coverage: 'not_monitored', operator: { id: 'ei:Kraftringen Nät AB', name: 'Kraftringen Nät AB', mapUrl: null } });
+    // Same operator from two sources (Ei + operator feed) is still one operator.
+    const dup = propertyUtilityStatus(PID, { outages: [], concessions: [{ property_id: PID, operator_id: 'vattenfall', operator_name: 'Vattenfall Eldistribution AB' }, { property_id: PID, operator_id: 'vattenfall' }], operators: [op()] });
+    expect(dup.coverage).toBe('monitored');
+    const border = propertyUtilityStatus(PID, { outages: [], concessions: [{ property_id: PID, operator_id: 'vattenfall' }, { property_id: PID, operator_id: 'ei:Kraftringen Nät AB', operator_name: 'Kraftringen Nät AB' }], operators: [op()] });
+    expect(border).toMatchObject({ coverage: 'unknown', operator: null, operatorCandidates: ['Vattenfall Eldistribution', 'Kraftringen Nät AB'] });
+  });
+
   it('an unplanned outage covering the address makes the property red with a descriptive reason', () => {
     const s = withUtilityOutages(snap(), { outages: [row()], concessions: [], operators: [op()] });
     expect(s.property.status).toBe('critical');
@@ -202,10 +212,14 @@ describe('property outage section and status', () => {
     expect(s.utilityOutages![0]!.upcoming[0]!.severity).toBe('monitor');
   });
 
-  it('postal-area matches are blue; near matches are panel-only and never raise status', () => {
-    const area = withUtilityOutages(snap(), { outages: [row({ match_method: 'outage_postal_area', area_customer_total: 605, affected_customers: 23 })], concessions: [], operators: [op()] });
+  it('postal-area matches are blue from 25 customers, smaller ones panel-only; near matches never raise status', () => {
+    const area = withUtilityOutages(snap(), { outages: [row({ match_method: 'outage_postal_area', affected_customers: 60 })], concessions: [], operators: [op()] });
     expect(area.property.status).toBe('monitor');
-    expect(area.utilityOutages![0]!.current[0]!.precisionLabel).toContain('23 av 605');
+    expect(area.utilityOutages![0]!.current[0]!.precisionLabel).toBe('I fastighetens postnummerområde – inte säkert att fastigheten berörs');
+    const small = withUtilityOutages(snap(), { outages: [row({ match_method: 'outage_postal_area', affected_customers: 8 })], concessions: [], operators: [op()] });
+    expect(small.property.status).toBe('normal');
+    expect(small.utilityOutages![0]!.nearby).toHaveLength(1);
+    expect(small.utilityOutages![0]!.current).toHaveLength(0);
     const near = withUtilityOutages(snap(), { outages: [row({ match_method: 'outage_adjacent', distance_m: '12' })], concessions: [], operators: [op()] });
     expect(near.property.status).toBe('normal');
     expect(near.utilityOutages![0]!.nearby).toHaveLength(1);
