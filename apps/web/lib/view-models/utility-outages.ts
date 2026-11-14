@@ -3,6 +3,7 @@ import {
   formatOutageWindow,
   formatWeekdayClock,
   outageHeadline,
+  utilityNoun,
   type PropertySnapshot,
   type PropertyUtilityStatus,
   type UtilityOutageView,
@@ -110,24 +111,33 @@ export function buildUtilityOutageVM(s: PropertySnapshot): OutagePanelVM {
   if (!u) {
     return { available: false, title: 'Elnät', subtitle: 'Nätbolagens avbrottskartor', state: null, current: [], upcoming: [], restored: [], nearby: [], footer: '' };
   }
+  // District heating/cooling sections exist only when an outage matched (Fas 4); their rows join the
+  // electricity panel, while coverage wording stays about the power grid.
+  const heat = (s.utilityOutages ?? []).filter((x) => x.utility !== 'electricity');
+  const all = [u, ...heat];
+  const pick = (k: 'current' | 'upcoming' | 'recentlyRestored' | 'nearby') => all.flatMap((x) => x[k]);
+  const current = pick('current');
+  const worst = [...current].sort((a, b) => rank(b) - rank(a))[0];
+  const state = worst && worst.utility !== 'electricity' && !u.current.length
+    ? { label: worst.kind === 'unplanned' ? `Oplanerat ${utilityNoun(worst.utility)}` : worst.kind === 'planned' ? `Planerat ${utilityNoun(worst.utility)} pågår` : 'Avbrott registrerat', detail: worst.precisionLabel, tone: tone(worst) }
+    : headState(u);
   return {
     available: true,
-    title: 'Elnät',
+    title: heat.length ? 'El och fjärrvärme' : 'Elnät',
     subtitle: u.operator ? `${u.operator.name} · avbrottskarta` : 'Nätbolagens avbrottskartor',
-    state: headState(u),
-    current: u.current.map(outageRowVM),
-    upcoming: u.upcoming.map(outageRowVM),
-    restored: u.recentlyRestored.map(outageRowVM),
-    nearby: u.nearby.map(outageRowVM),
-    footer: `Uppgifter från nätbolagets publika avbrottskarta${u.updatedAt ? `, hämtad ${formatClock(u.updatedAt)}` : ''}. Visar registrerade avbrott i området – inte en mätning av fastighetens el. Nätområde enligt Energimarknadsinspektionen (ungefärliga gränser).`,
+    state,
+    current: current.map(outageRowVM),
+    upcoming: pick('upcoming').sort((a, b) => Date.parse(a.plannedStart ?? '') - Date.parse(b.plannedStart ?? '')).map(outageRowVM),
+    restored: pick('recentlyRestored').map(outageRowVM),
+    nearby: pick('nearby').map(outageRowVM),
+    footer: `Uppgifter från nätbolagets publika avbrottskarta${u.updatedAt ? `, hämtad ${formatClock(u.updatedAt)}` : ''}. Visar registrerade avbrott i området – inte en mätning av fastighetens el eller värme. Nätområde enligt Energimarknadsinspektionen (ungefärliga gränser).`,
   };
 }
 
 /** Polygons to draw on the property map (matched outages only). */
 export function outageShapes(s: PropertySnapshot): Array<{ id: string; geometry: unknown; color: string; label: string; dashed: boolean }> {
-  const u = s.utilityOutages?.find((x) => x.utility === 'electricity');
-  if (!u) return [];
-  return [...u.current, ...u.upcoming, ...u.nearby]
+  return (s.utilityOutages ?? [])
+    .flatMap((u) => [...u.current, ...u.upcoming, ...u.nearby])
     .filter((v) => v.geometry)
     .map((v) => ({
       id: v.id,

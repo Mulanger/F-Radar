@@ -31,7 +31,8 @@ describe('grid operator outage feeds (live)', () => {
       expect(r.data.skipped).toBe(0);
       for (const o of r.data.outages) {
         expect(o.externalId.startsWith(`${op.id}:`)).toBe(true);
-        expect(points(o.geometry as never).every(inSweden)).toBe(true);
+        if (o.geometry) expect(points(o.geometry as never).every(inSweden)).toBe(true);
+        else expect(o.precision === 'address_list' && (o.addresses?.length ?? 0) > 0).toBe(true);
         expect(['planned', 'unplanned', 'unknown']).toContain(o.kind);
       }
       // Surface unknown upstream codes so the mapping can be extended.
@@ -53,6 +54,6 @@ describe('grid operator outage feeds (live)', () => {
     if (!r.ok) return;
     expect(r.data.length).toBeGreaterThan(250);
     const mapped = new Set(r.data.map((a) => operatorIdForEiName(a.holder)));
-    for (const op of UTILITY_OPERATORS) expect(mapped.has(op.id), op.id).toBe(true);
+    for (const op of UTILITY_OPERATORS.filter((o) => o.utilities.includes('electricity'))) expect(mapped.has(op.id), op.id).toBe(true);
   });
 });

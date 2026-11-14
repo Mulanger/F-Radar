@@ -10,6 +10,7 @@ import { parseTrimble, trimbleDistricts, trimbleStations, trimbleTileRanges, typ
 import { EI_LOCAL_CONCESSIONS_URL, parseEiConcessionZip, type EiConcessionArea } from './ei-concessions';
 import { decodeEonOutstat, parseEon, parseEonDetailText } from './platforms/eon';
 import { parseServiceAlert } from './platforms/servicealert';
+import { GOTEBORG_ADDRESS_AREA, parseGoteborgUpcoming } from './platforms/goteborg';
 import type { ConcessionArea, OutageFetchResult, UtilityOperator } from './types';
 
 export * from './types';
@@ -25,6 +26,7 @@ export { parseTrimble, trimbleDistricts, trimbleStations, trimbleTileRanges, poi
 export * from './ei-concessions';
 export { decodeEonOutstat, parseEon, parseEonDetailText, type EonRecord } from './platforms/eon';
 export { parseServiceAlert, serviceAlertAreas, serviceAlertProfile, htmlToText } from './platforms/servicealert';
+export { parseGoteborgUpcoming, parseGoteborgTime, GOTEBORG_ADDRESS_AREA } from './platforms/goteborg';
 
 /**
  * Grid operators' public outage maps (docs/plans/stromavbrott.md). The feeds are the JSON/KML the
@@ -106,7 +108,8 @@ async function fetchEllevio(op: Extract<UtilityOperator, { platform: 'ellevio' }
 }
 
 async function fetchTekniskaVerken(op: Extract<UtilityOperator, { platform: 'tekniskaverken' }>, ctx: AdapterContext): Promise<AdapterResult<OutageFetchResult>> {
-  const list = await fetchText(`${op.apiBase}/outage/list/?utility=electricity&brand=${encodeURIComponent(op.brand)}`, ctx, `${op.id} list`, { accept: 'application/json' });
+  const kinds = op.utilities.map((u) => ({ electricity: 'electricity', district_heating: 'districtheating', district_cooling: 'districtcooling', gas: 'gas' })[u]).join(',');
+  const list = await fetchText(`${op.apiBase}/outage/list/?utility=${kinds}&brand=${encodeURIComponent(op.brand)}`, ctx, `${op.id} list`, { accept: 'application/json' });
   if (!list.ok) return list;
   const l = TvList.safeParse(json(list.data));
   if (!l.success) return { ok: false, error: 'invalid_payload', detail: `${op.id}: unexpected list shape` };
@@ -247,16 +250,27 @@ export async function fetchOperatorOutages(op: UtilityOperator, ctx: AdapterCont
     return parsed ? { ok: true, data: parsed, fetchedAt: r.fetchedAt } : { ok: false, error: 'invalid_payload', detail: `${op.id}: unexpected shape` };
   }
   if (op.platform === 'digpro') {
-    const url = `https://${op.host}/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=fpp_${op.cust}`;
-    const r = await fetchText(url, ctx, `${op.id} kml`, { accept: 'application/vnd.google-earth.kml+xml, application/xml, */*' });
-    if (!r.ok) return r;
-    const parsed = parseDigproKml(r.data, { operatorId: op.id, utility: 'electricity', mapUrl: op.mapUrl, now });
-    return parsed ? { ok: true, data: parsed, fetchedAt: r.fetchedAt } : { ok: false, error: 'invalid_payload', detail: `${op.id}: not KML` };
+    // One KML per map layer: 'fpp' = power, 'fpdh' = district heating (Fas 4).
+    const layers = [
+      ...(op.utilities.includes('electricity') ? [{ app: 'fpp', utility: 'electricity' as const, prefix: op.id }] : []),
+      ...(op.utilities.includes('district_heating') ? [{ app: 'fpdh', utility: 'district_heating' as const, prefix: `${op.id}:dh` }] : []),
+    ];
+    const parts: OutageFetchResult[] = [];
+    let fetchedAt = now.toISOString();
+    for (const l of layers) {
+      const url = `https://${op.host}/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=${l.app}_${op.cust}`;
+      const r = await fetchText(url, ctx, `${op.id} kml ${l.app}`, { accept: 'application/vnd.google-earth.kml+xml, application/xml, */*' });
+      if (!r.ok) return r;
+      const parsed = parseDigproKml(r.data, { operatorId: op.id, utility: l.utility, mapUrl: op.mapUrl, now, externalPrefix: l.prefix });
+      if (!parsed) return { ok: false, error: 'invalid_payload', detail: `${op.id}: ${l.app} not KML` };
+      parts.push(parsed);
+      fetchedAt = r.fetchedAt;
+    }
+    return { ok: true, data: combine(parts), fetchedAt };
   }
   // Göteborg Energi: Digpro KML behind the company's own API. The JSON lists a KML URL per utility;
-  // ongoing/published outages come with active=1, recently restored ones with active=0.
-  const typeId = op.utilityTypeIds.electricity;
-  if (!typeId) return { ok: false, error: 'not_implemented', detail: `${op.id}: no electricity type` };
+  // ongoing/published outages come with active=1, recently restored ones with active=0. Planned
+  // heating/cooling work is also listed by street address (upcoming-outages, Fas 4).
   const cur = await fetchText(`${op.apiBase}/external-web/api/outages-map-element/current-outages`, ctx, `${op.id} current`, { method: 'POST', body: '{}', accept: 'application/json' });
   if (!cur.ok) return cur;
   let curJson: unknown;
@@ -267,19 +281,42 @@ export async function fetchOperatorOutages(op: UtilityOperator, ctx: AdapterCont
   }
   const c = GbgCurrent.safeParse(curJson);
   if (!c.success) return { ok: false, error: 'invalid_payload', detail: `${op.id}: current-outages unexpected shape` };
-  const listed = c.data.result.types.find((t) => t.id === typeId);
-  if (!listed) return { ok: false, error: 'invalid_payload', detail: `${op.id}: electricity type missing` };
-  const activeUrl = goteborgKmlUrl(op.apiBase, listed.kml, typeId, 1);
-  if (!activeUrl) return { ok: false, error: 'invalid_payload', detail: `${op.id}: unexpected KML URL` };
-  const [active, inactive] = [await fetchText(activeUrl, ctx, `${op.id} kml active`), await fetchText(goteborgKmlUrl(op.apiBase, null, typeId, 0)!, ctx, `${op.id} kml inactive`)];
-  if (!active.ok) return active;
-  if (!inactive.ok) return inactive;
-  const opts = { operatorId: op.id, utility: 'electricity' as const, mapUrl: op.mapUrl, now };
-  const a = parseDigproKml(active.data, opts);
-  const b = parseDigproKml(inactive.data, opts);
-  if (!a || !b) return { ok: false, error: 'invalid_payload', detail: `${op.id}: not KML` };
-  const merged = parseMerge(a, b);
-  return { ok: true, data: merged, fetchedAt: active.fetchedAt };
+  const parts: OutageFetchResult[] = [];
+  for (const utility of op.utilities) {
+    const typeId = op.utilityTypeIds[utility];
+    if (!typeId) continue;
+    const listed = c.data.result.types.find((t) => t.id === typeId);
+    if (!listed) return { ok: false, error: 'invalid_payload', detail: `${op.id}: ${utility} type missing` };
+    const activeUrl = goteborgKmlUrl(op.apiBase, listed.kml, typeId, 1);
+    if (!activeUrl) return { ok: false, error: 'invalid_payload', detail: `${op.id}: unexpected KML URL` };
+    const [active, inactive] = [await fetchText(activeUrl, ctx, `${op.id} kml active`), await fetchText(goteborgKmlUrl(op.apiBase, null, typeId, 0)!, ctx, `${op.id} kml inactive`)];
+    if (!active.ok) return active;
+    if (!inactive.ok) return inactive;
+    const opts = { operatorId: op.id, utility, mapUrl: op.mapUrl, now, externalPrefix: utility === 'electricity' ? op.id : `${op.id}:${utility}` };
+    const a = parseDigproKml(active.data, opts);
+    const b = parseDigproKml(inactive.data, opts);
+    if (!a || !b) return { ok: false, error: 'invalid_payload', detail: `${op.id}: not KML` };
+    parts.push(parseMerge(a, b));
+  }
+  if (op.utilities.some((u) => u !== 'electricity')) {
+    const up = await fetchText(`${op.apiBase}/external-web/api/outages-map-element/upcoming-outages`, ctx, `${op.id} upcoming`, { method: 'POST', body: '{}', accept: 'application/json' });
+    if (!up.ok) return up;
+    const parsed = parseGoteborgUpcoming(json(up.data), op, op.utilities.filter((u) => u !== 'electricity'), now);
+    if (!parsed) return { ok: false, error: 'invalid_payload', detail: `${op.id}: upcoming-outages unexpected shape` };
+    parts.push({ ...parsed, outages: parsed.outages.map((o) => ({ ...o, addressArea: GOTEBORG_ADDRESS_AREA })) });
+  }
+  return { ok: true, data: combine(parts), fetchedAt: cur.fetchedAt };
+}
+
+function combine(parts: OutageFetchResult[]): OutageFetchResult {
+  const codes = parts.flatMap((p) => p.unknownStatusCodes ?? []);
+  return {
+    outages: parts.flatMap((p) => p.outages),
+    skipped: parts.reduce((a, p) => a + p.skipped, 0),
+    ignored: parts.reduce((a, p) => a + p.ignored, 0),
+    sourceUpdatedAt: parts.find((p) => p.sourceUpdatedAt)?.sourceUpdatedAt ?? null,
+    ...(codes.length ? { unknownStatusCodes: [...new Set(codes)] } : {}),
+  };
 }
 
 /** Active feed wins unless the inactive feed says the same outage was restored. */

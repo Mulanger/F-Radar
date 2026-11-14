@@ -1,0 +1,180 @@
+{
+  "status": "Ok",
+  "result": {
+    "types": [
+      {
+        "type": "Gas",
+        "id": "Gas",
+        "name": "Gas",
+        "color": "purple",
+        "items": []
+      },
+      {
+        "type": "Fjarrvarme",
+        "id": "Fjarrvarme",
+        "name": "Fjärrvärme",
+        "color": "brick",
+        "items": [
+          {
+            "id": "193264667",
+            "addresses": "Stora Nygatan 1, 3\r\nSlussgatan 1\r\nStampgatan 8\r\nDrottningtorget 10",
+            "time": "2026-11-15 kl 11:00 till 2026-11-16 kl 02:00",
+            "area": "Stampen/Vallgraven",
+            "information": "Inkoppling ny ledning\r\n(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "193228724",
+            "addresses": "Richtersgatan",
+            "time": "2026-11-16 kl 07:00 till kl 18:00",
+            "area": "Richtersgatan",
+            "information": "FC Reinvestering\r\n(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "192954092",
+            "addresses": "Kjellbergsgatan",
+            "time": "2026-11-17 kl 07:00 till kl 18:00",
+            "area": "Kjellbergsgatan",
+            "information": "FC Reinvestering\r\n(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "192917746",
+            "addresses": "Havsörnsgatan \r\nIskällareliden \r\nLilla Tops Allé \r\nLillatorpsgatan \r\nOlbergsgatan \r\nTöpelsgatan \r\nWingårdsgatan \r\nYsters Väg ",
+            "time": "2026-11-17 kl 08:00 till kl 12:00",
+            "area": "Kålltorp",
+            "information": "(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "192918001",
+            "addresses": "Paviljongvägen\r\nSanatoriegatan \r\nVirginsgatan",
+            "time": "2026-11-17 kl 12:00 till kl 16:00",
+            "area": "Kålltorp",
+            "information": "(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "192960106",
+            "addresses": "Stigbergsliden",
+            "time": "2026-11-18 kl 07:00 till kl 18:00",
+            "area": "Stigbergsliden",
+            "information": "FC Reinvestering\r\n(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "193228786",
+            "addresses": "Molinsgatan",
+            "time": "2026-11-18 kl 07:00 till kl 18:00",
+            "area": "Molinsgatan",
+            "information": "FC Reinvestering\r\n(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "192262097",
+            "addresses": "Hjällbo lillgata",
+            "time": "2026-11-19 kl 07:00 till kl 18:00",
+            "area": "Hjällbo lillgata",
+            "information": "FC Reinvestering\r\n(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "193228840",
+            "addresses": "Sten Sturegatan",
+            "time": "2026-11-19 kl 07:00 till kl 18:00",
+            "area": "Sten Sturegatan",
+            "information": "FC Reinvestering\r\n(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "193228915",
+            "addresses": "Rantorget",
+            "time": "2026-11-19 kl 07:00 till kl 18:00",
+            "area": "Rantorget",
+            "information": "FC Reinvestering\r\n(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "193312104",
+            "addresses": "Eklandagatan ",
+            "time": "2026-11-23 kl 07:00 till kl 18:00",
+            "area": "Eklandagatan",
+            "information": "FC Reinvestering\r\n(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "194172135",
+            "addresses": "Sankt Pauligatan",
+            "time": "2026-11-23 kl 08:00 till kl 18:00",
+            "area": "Sankt Pauligatan",
+            "information": "FC Reinvestering\r\n(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "193312111",
+            "addresses": "Eklandagatan 60 ",
+            "time": "2026-11-24 kl 07:00 till kl 18:00",
+            "area": "Eklandagatan",
+            "information": "FC Reinvestering\r\n(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "193312124",
+            "addresses": "Engelbrektsgatan",
+            "time": "2026-11-25 kl 07:00 till kl 18:00",
+            "area": "Engelbrektsgatan",
+            "information": "FC Reinvestering\r\n(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "194156111",
+            "addresses": "Södra Vägen",
+            "time": "2026-11-25 kl 08:00 till kl 18:00",
+            "area": "Lorensberg",
+            "information": "FC Reinvestering\r\n(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "193312130",
+            "addresses": "Eldaregatan",
+            "time": "2026-11-26 kl 07:00 till kl 18:00",
+            "area": "Eldaregatan",
+            "information": "FC Reinvestering\r\n(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "194324107",
+            "addresses": "Aschebergsgatan",
+            "time": "2026-11-26 kl 08:00 till kl 18:00",
+            "area": "Aschebergsgatan",
+            "information": "(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "193431225",
+            "addresses": "Södra Vägen 20\r\nBerzeliigatan 11 och 13",
+            "time": "2026-11-27 kl 08:00 till kl 14:00",
+            "area": "Lorensberg",
+            "information": "Reparation- och underhållsarbete\r\n(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "193312144",
+            "addresses": "Nobelgatan",
+            "time": "2026-12-01 kl 07:00 till kl 18:00",
+            "area": "Nobelgatan",
+            "information": "FC Reinvestering\r\n(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          },
+          {
+            "id": "193432907",
+            "addresses": "Övre Besvärsgatan ",
+            "time": "2026-12-14 kl 07:00 till kl 18:00",
+            "area": "Landala",
+            "information": "FC Reinvestering\r\n(Tänk på att det kan ta upp till två timmar innan värme och varmvatten är tillbaka efter avbrottets avslut.)"
+          }
+        ]
+      },
+      {
+        "type": "Fjarrkyla",
+        "id": "Fjarrkyla",
+        "name": "Fjärrkyla",
+        "color": "blue",
+        "items": [
+          {
+            "id": "193429610",
+            "addresses": "Nordstaden",
+            "time": "2026-11-25 kl 22:00 till 2026-11-26 kl 14:00",
+            "area": "Nordstaden",
+            "information": "Reparation- och underhållsarbete"
+          }
+        ]
+      }
+    ],
+    "status": "Ok"
+  },
+  "time": 0,
+  "datestamp": "2026-11-14T19:25:26.3991507+01:00"
+}

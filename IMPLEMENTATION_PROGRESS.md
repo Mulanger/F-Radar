@@ -4,6 +4,16 @@
 
 ---
 
+# Strömavbrott – Fas 4 (Claude, 2026-11-14)
+
+District heating and cooling on the same pipeline: Göteborg Energi (KML + street-address lists), Tekniska verken,
+Digpro `fpdh` layers (incl. Kraftringen's heating map) and ServiceAlert heating profiles. Migration 0008 stores
+`properties.street/housenumber` (from the chosen suggestion; conservative back-fill). Panel becomes "El och fjärrvärme",
+SMS rules choose utilities. Feed history older than 30 days is no longer stored, and explicit restore times are kept.
+Tests: 313 unit/DOM, PostGIS 30/30, live 41/41.
+
+---
+
 # Strömavbrott – Fas 3 (Claude, 2026-11-14)
 
 Branch `claude/stromavbrott-fas3`. **38 grid operators.**

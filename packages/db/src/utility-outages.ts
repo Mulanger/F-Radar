@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto';
 import {
   isPositionConfirmed,
+  matchAddressList,
+  type OutageAddress,
   outageEffectiveSeverity,
   outageFeedTitle,
   outageHeadline,
@@ -62,6 +64,8 @@ export interface UtilityOutageInput {
   cause: string | null;
   sourceUrl: string | null;
   attribution: string;
+  /** Address-list outages: properties within this circle are compared by street address. */
+  addressArea?: { lat: number; lon: number; radiusM: number } | null;
 }
 
 const round = (iso: string | null, minutes: number) => {
@@ -100,8 +104,12 @@ export interface UtilityStoreResult {
  * Stores one operator's complete or partial fetch. `complete = false` (partial/skipped records)
  * never touches outages that are missing from the payload.
  */
-export async function storeUtilityOutages(db: Queryable, operatorId: string, outages: UtilityOutageInput[], complete: boolean): Promise<UtilityStoreResult> {
+export async function storeUtilityOutages(db: Queryable, operatorId: string, all: UtilityOutageInput[], complete: boolean, now = new Date()): Promise<UtilityStoreResult> {
   const result: UtilityStoreResult = { inserted: 0, updated: 0, unchanged: 0, restored: 0, endedMissing: 0 };
+  // Some feeds include long history (Göteborg: restored outages from years ago). Only outages restored
+  // within the retention window are stored; older ones are irrelevant and never shown.
+  const cutoff = now.getTime() - OUTAGE_RETENTION_DAYS * 86_400_000;
+  const outages = all.filter((o) => o.state !== 'restored' || !o.restoredAt || Date.parse(o.restoredAt) >= cutoff);
   for (let i = 0; i < outages.length; i += 100) {
     const chunk = outages.slice(i, i + 100).map((o) => {
       const ended = ENDED.includes(o.state);
@@ -120,7 +128,7 @@ export async function storeUtilityOutages(db: Queryable, operatorId: string, out
         ended_reason: ended ? (o.state === 'restored' ? 'restored' : 'withdrawn') : null,
         source_url: o.sourceUrl,
         attribution: o.attribution,
-        extra: { operatorId: o.operatorId, operatorName: o.operatorName, utility: o.utility },
+        extra: { operatorId: o.operatorId, operatorName: o.operatorName, utility: o.utility, ...(o.addressArea ? { addressArea: o.addressArea } : {}) },
         version_hash: outageVersionHash(o),
         // utility_outages
         operator_id: o.operatorId,
@@ -164,7 +172,8 @@ export async function storeUtilityOutages(db: Queryable, operatorId: string, out
                 x.description, x.area_label, '{}',
                 CASE WHEN x.geojson IS NOT NULL THEN ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON(x.geojson), 4326)) END,
                 x.published_at, now(), x.valid_from, NULL, x.status, x.ended_reason,
-                CASE WHEN x.status = 'ended' THEN now() END,
+                -- Ended by the operator: use its restored time so old history never looks "recent".
+                CASE WHEN x.status = 'ended' THEN LEAST(COALESCE(x.restored_at, now()), now()) END,
                 x.version_hash, x.source_url, x.attribution, x.extra, now()
            FROM x
          ON CONFLICT (source_id, external_id) DO UPDATE SET
@@ -173,7 +182,7 @@ export async function storeUtilityOutages(db: Queryable, operatorId: string, out
                 geom = EXCLUDED.geom, published_at = EXCLUDED.published_at,
                 source_updated_at = CASE WHEN e.version_hash <> EXCLUDED.version_hash THEN now() ELSE e.source_updated_at END,
                 valid_from = EXCLUDED.valid_from, status = EXCLUDED.status, ended_reason = EXCLUDED.ended_reason,
-                ended_at = CASE WHEN EXCLUDED.status = 'active' THEN NULL ELSE COALESCE(e.ended_at, now()) END,
+                ended_at = CASE WHEN EXCLUDED.status = 'active' THEN NULL ELSE COALESCE(e.ended_at, EXCLUDED.ended_at, now()) END,
                 version = e.version + CASE WHEN e.version_hash <> EXCLUDED.version_hash THEN 1 ELSE 0 END,
                 version_hash = EXCLUDED.version_hash, source_url = EXCLUDED.source_url, attribution = EXCLUDED.attribution,
                 extra = EXCLUDED.extra, last_seen_at = now()
@@ -212,7 +221,7 @@ export async function storeUtilityOutages(db: Queryable, operatorId: string, out
       if (r.ended && r.was_active) result.restored++;
     }
   }
-  if (complete) result.endedMissing = await countMissingAndEnd(db, operatorId, outages.map((o) => o.externalId));
+  if (complete) result.endedMissing = await countMissingAndEnd(db, operatorId, all.map((o) => o.externalId));
   return result;
 }
 
@@ -267,6 +276,37 @@ interface CandidateRow {
   place_label: string | null;
 }
 
+/**
+ * Address-list outages (no geometry): properties inside the operator's address area whose stored
+ * street (+ house number) is listed. Exact street names only; a listed street without numbers gives a
+ * street-level (medium) match.
+ */
+async function addressCandidates(db: Queryable): Promise<CandidateRow[]> {
+  const { rows } = await db.query<Omit<CandidateRow, 'match_method' | 'distance_m'> & { street: string | null; housenumber: string | null; addresses: OutageAddress[] | null }>(
+    `SELECT p.id AS property_id, p.organization_id, e.id AS event_id, e.version, p.geocode_precision, p.position_source,
+            u.kind, u.state, e.headline, u.affected_customers, u.area_customer_total, u.place_label, u.addresses,
+            p.street, p.housenumber
+       FROM source_events e JOIN utility_outages u ON u.event_id = e.id
+       JOIN properties p ON p.status <> 'paused' AND p.street IS NOT NULL
+        AND ST_DWithin(p.location, ST_SetSRID(ST_MakePoint((e.extra->'addressArea'->>'lon')::float8, (e.extra->'addressArea'->>'lat')::float8), 4326)::geography,
+                       (e.extra->'addressArea'->>'radiusM')::float8)
+      WHERE e.source_id = '${UTILITY_OUTAGE_SOURCE}' AND u.precision = 'address_list' AND u.addresses IS NOT NULL
+        AND e.extra ? 'addressArea'
+        AND (e.status = 'active' OR e.ended_at > now() - make_interval(hours => ${OUTAGE_RECENT_HOURS}))`,
+  );
+  const out: CandidateRow[] = [];
+  for (const r of rows) {
+    const m = Array.isArray(r.addresses) ? matchAddressList(r.street, r.housenumber, r.addresses) : null;
+    if (!m) continue;
+    const { street: _s, housenumber: _h, addresses: _a, ...rest } = r;
+    void _s;
+    void _h;
+    void _a;
+    out.push({ ...rest, match_method: m, distance_m: null });
+  }
+  return out;
+}
+
 interface ExistingMatch {
   property_id: string;
   event_id: string;
@@ -310,6 +350,7 @@ export async function rematchUtilityOutages(db: Queryable): Promise<MatchChange[
          OR (ev.precision = 'point' AND ST_DWithin(ev.geom::geography, pr.location, ${OUTAGE_POINT_RADIUS_M}))
          OR (ev.precision IN ('postal_area','area') AND ST_Intersects(ev.geom, pr.location::geometry)))`,
   );
+  cand.push(...(await addressCandidates(db)));
   const { rows: existing } = await db.query<ExistingMatch>(
     `SELECT m.property_id, m.event_id, m.organization_id, m.match_method, m.matched_version, m.effective_severity,
             e.status AS event_status, e.headline, u.utility, e.extra->>'operatorName' AS operator_name

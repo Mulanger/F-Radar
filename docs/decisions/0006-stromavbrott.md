@@ -62,6 +62,17 @@ fastighet faktiskt berörs.
 11. Ellevios `affected_site_total_count` är avbrottets totala antal berörda, inte postnummerområdets – inga
     "x av y"-andelar visas.
 
+## Tillägg Fas 3–4 (2026-11-14)
+
+12. **E.ON** och **ServiceAlert** ger områdesprecision (nätstationsområden respektive operatörsritade cirklar);
+    aldrig SMS. ServiceAlert saknar starttid – läge "okänt", och ett försvunnet meddelande beskrivs som
+    "visas inte längre", aldrig som "tillbaka".
+13. **Fjärrvärme och fjärrkyla** följer samma färg-, status- och SMS-regler som el. SMS-regeln väljer
+    nyttigheter (el, fjärrvärme, fjärrkyla).
+14. **Adresslistor:** en träff på gata + husnummer i nätbolagets lista (inom operatörens adressområde) är hög
+    precision oberoende av kartnålen; en gata utan husnummer ger medelprecision (ingen SMS). Gatunamn matchas
+    exakt efter normalisering – ingen fuzzy-matchning.
+
 ## Konsekvenser
 
 - Flödena är odokumenterade och kan ändras; adaptrarna validerar allt och hoppar över det som inte går

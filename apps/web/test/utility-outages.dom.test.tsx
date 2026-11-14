@@ -91,6 +91,14 @@ describe('Elnät panel view-model', () => {
     expect(vm.restored[0]).toMatchObject({ badge: 'Återställt', tone: SEV.normal, title: 'Strömmen är tillbaka enligt Vattenfall Eldistribution' });
   });
 
+  it('district heating rows join the panel, which is then titled "El och fjärrvärme"', () => {
+    const heat: PropertyUtilityStatus = { ...status({ coverage: 'unknown', operator: null }), utility: 'district_heating', upcoming: [view({ id: 'h', utility: 'district_heating', kind: 'planned', state: 'upcoming', severity: 'monitor', plannedStart: '2026-11-15T10:00:00.000Z', plannedEnd: '2026-11-16T01:00:00.000Z' })] };
+    const vm = buildUtilityOutageVM({ utilityOutages: [status(), heat] } as unknown as PropertySnapshot);
+    expect(vm.title).toBe('El och fjärrvärme');
+    expect(vm.upcoming[0]!.title).toBe('Planerat fjärrvärmeavbrott 15/11 11:00–16/11 02:00 – Vattenfall Eldistribution');
+    expect(vm.state!.label).toBe('Inga registrerade avbrott'); // power-grid coverage wording is unchanged
+  });
+
   it('missing customer counts render as "—", never 0', () => {
     const vm = buildUtilityOutageVM(snap(status({ current: [view({ affectedCustomers: null })] })));
     expect(vm.current[0]!.facts).toContainEqual(['Berörda kunder', '—']);

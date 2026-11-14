@@ -213,7 +213,9 @@ export function outageSmsPhase(
   test = false,
 ): OutageSmsPhase | null {
   if (!SMS_MATCHES.includes(e.match_method ?? "")) return null;
+  // A polygon match needs a confirmed position; an address-list match is by the property's address.
   const confirmed =
+    e.match_method === "outage_address" ||
     e.position_source === "manual_pin" ||
     e.position_source === "manual_adjusted" ||
     e.geocode_precision === "building";

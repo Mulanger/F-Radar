@@ -226,6 +226,14 @@ describe('property outage section and status', () => {
     expect(near.utilityOutages![0]!.current).toHaveLength(0);
   });
 
+  it('district heating outages get their own section and wording; electricity section is always there', () => {
+    const s = withUtilityOutages(snap(), { outages: [row({ utility: 'district_heating', match_method: 'outage_address', geocode_precision: 'street' })], concessions: [], operators: [op()] });
+    expect(s.utilityOutages!.map((u) => u.utility)).toEqual(['electricity', 'district_heating']);
+    expect(s.utilityOutages![1]!.current[0]).toMatchObject({ precisionLevel: 'high', severity: 'critical' });
+    expect(s.property.statusReason).toBe('Oplanerat fjärrvärmeavbrott registrerat av Vattenfall Eldistribution');
+    expect(withUtilityOutages(snap(), { outages: [], concessions: [], operators: [op()] }).utilityOutages!.map((u) => u.utility)).toEqual(['electricity']);
+  });
+
   it('a red official warning is not lowered by a smaller outage', () => {
     const s = withUtilityOutages(snap('critical'), { outages: [row({ kind: 'planned', state: 'ongoing' })], concessions: [], operators: [op()] });
     expect(s.property.status).toBe('critical');

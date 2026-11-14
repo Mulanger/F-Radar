@@ -32,6 +32,8 @@ export interface DigproParseOptions {
   utility: UtilityKind;
   mapUrl: string;
   now: Date;
+  /** External id prefix (defaults to operatorId); heating layers use `<operatorId>:dh`. */
+  externalPrefix?: string;
 }
 
 export function digproPlacemarkToOutage(pm: KmlPlacemark, o: DigproParseOptions): NormalizedUtilityOutage | 'skip' | 'ignore' {
@@ -71,7 +73,7 @@ export function digproPlacemarkToOutage(pm: KmlPlacemark, o: DigproParseOptions)
   return {
     operatorId: o.operatorId,
     utility: o.utility,
-    externalId: `${o.operatorId}:${upstreamId}`,
+    externalId: `${o.externalPrefix ?? o.operatorId}:${upstreamId}`,
     kind,
     state,
     affectedCustomers: customers,

@@ -92,12 +92,13 @@ describe('Ellevio (postal areas only)', () => {
 
 describe('Tekniska verken (polygons)', () => {
   const t = fx('tekniskaverken-2026-11-14.json');
-  it('keeps electricity only, with its published polygon and completed state', () => {
+  it('reads electricity (and, since Fas 4, district heating) with published polygons', () => {
     const r = parseTekniskaVerken(t.list, t.shapes, tv, NOW)!;
-    expect(r.ignored).toBe(8); // district heating waits for Fas 4
-    expect(r.outages).toHaveLength(1);
-    expect(r.outages[0]).toMatchObject({ kind: 'unplanned', state: 'restored', precision: 'polygon', placeLabel: 'Rosenholm' });
-    expect(ring0(r.outages[0]!).every(inSweden)).toBe(true);
+    expect(r.ignored).toBe(0);
+    const el = r.outages.filter((o) => o.utility === 'electricity');
+    expect(el).toHaveLength(1);
+    expect(el[0]).toMatchObject({ kind: 'unplanned', state: 'restored', precision: 'polygon', placeLabel: 'Rosenholm' });
+    expect(r.outages.every((o) => ring0(o).every(inSweden))).toBe(true);
   });
   it('maps Scheduled/Active/Cancelled and skips outages without a shape', () => {
     const el = t.list.outages.find((o: { utility: string }) => o.utility === 'Electricity');
@@ -177,7 +178,7 @@ describe('Energimarknadsinspektionen concession areas', () => {
     expect(operatorIdForEiName('Göteborg Energi Nät AB')).toBe('goteborg_energi');
     expect(operatorIdForEiName('Vattenfall Eldistribution AB')).toBe('vattenfall');
     expect(operatorIdForEiName('Kraftringen Nät AB')).toBe('ei:Kraftringen Nät AB');
-    expect(UTILITY_OPERATORS.every((o) => o.eiNames.length > 0)).toBe(true);
+    expect(UTILITY_OPERATORS.filter((o) => o.utilities.includes('electricity')).every((o) => o.eiNames.length > 0)).toBe(true);
   });
   it('rejects a non-ZIP', () => {
     expect(() => parseEiConcessionZip(Buffer.from('not a zip at all, definitely not'))).toThrow();

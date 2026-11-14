@@ -32,6 +32,8 @@ export interface NormalizedUtilityOutage {
   sourceUrl: string;
   /** Minimal upstream fields for debugging; never contains addresses. */
   upstream: Record<string, unknown>;
+  /** Address-list outages: properties within this circle are compared by street address. */
+  addressArea?: { lat: number; lon: number; radiusM: number } | null;
 }
 
 export interface OutageFetchResult {

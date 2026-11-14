@@ -110,6 +110,6 @@ describe('platform discovery', () => {
   });
   it('every configured operator has a unique id and a known Ei holder name', () => {
     expect(new Set(UTILITY_OPERATORS.map((o) => o.id)).size).toBe(UTILITY_OPERATORS.length);
-    for (const op of UTILITY_OPERATORS) expect(operatorIdForEiName(op.eiNames[0]!)).toBe(op.id);
+    for (const op of UTILITY_OPERATORS.filter((o) => o.utilities.includes('electricity'))) expect(operatorIdForEiName(op.eiNames[0]!)).toBe(op.id);
   });
 });

@@ -156,6 +156,8 @@ export function PropertyEditorDialog({
       postcode: s.postcode,
       city: s.city,
       municipality: s.municipality,
+      street: s.street,
+      housenumber: s.housenumber,
     });
     setPoint({ lat: s.lat, lon: s.lon });
     setPointTouched(false);

@@ -36,7 +36,7 @@ export const NOTIFICATION_CATEGORIES = [
   {
     id: "power_outage",
     source: "utility_outages",
-    label: "Strömavbrott (nätbolag)",
+    label: "Strömavbrott och fjärrvärmeavbrott",
     explanation:
       "SMS skickas bara när fastighetens adresspunkt ligger inom området nätbolaget publicerat som berört. Postnummer-, område- och närhetsträffar visas bara i dashboarden.",
     enabled: true,
@@ -112,8 +112,7 @@ export const NotificationConditionSchema = z.discriminatedUnion("category", [
   z
     .object({
       category: z.literal("power_outage"),
-      // Fas 1: electricity. District heating/cooling become selectable in Fas 4.
-      utilities: z.array(z.enum(["electricity"])).min(1).max(1),
+      utilities: z.array(z.enum(["electricity", "district_heating", "district_cooling"])).min(1).max(3),
       unplanned: z.boolean(),
       planned: z.boolean(),
       plannedReminder: z.boolean(),

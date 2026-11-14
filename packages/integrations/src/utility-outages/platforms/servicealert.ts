@@ -113,7 +113,8 @@ export function parseServiceAlert(raw: unknown, op: UtilityOperator, utilities: 
       const polys = serviceAlertAreas(m.data.smsGroupGeoObjects);
       const geometry = polys ? polygonsToGeoJson(polys) : null;
       if (!geometry) {
-        skipped++;
+        // Notices without a map area cannot be tied to any property – not a data error.
+        ignored++;
         continue;
       }
       const end = iso(m.data.dateExpireUtc);
