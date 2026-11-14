@@ -52,16 +52,17 @@ export function LandingPage({ signedIn }: { signedIn: boolean }) {
 
 function LandingHeader({ signedIn }: { signedIn: boolean }) {
   return (
-    <header style={{ position: 'sticky', top: 0, zIndex: 50, padding: '12px clamp(12px,2vw,24px) 0' }}>
+    <header className={css.header} style={{ position: 'sticky', top: 0, zIndex: 50, padding: '12px clamp(12px,2vw,24px) 0' }}>
       <nav
         aria-label="Huvudmeny"
+        className={css.navigation}
         style={{
           maxWidth: 1320, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 16, padding: '8px 8px 8px 14px', borderRadius: 999,
           background: 'rgba(247,248,246,0.78)', backdropFilter: 'blur(18px) saturate(1.4)', WebkitBackdropFilter: 'blur(18px) saturate(1.4)',
           border: '1px solid rgba(20,23,26,0.06)', boxShadow: '0 8px 24px -16px rgba(20,23,26,0.18)',
         }}
       >
-        <a href="#top" aria-label="FastighetsRadar – till toppen" style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 'none' }}>
+        <a href="#top" className={css.navBrand} aria-label="FastighetsRadar – till toppen" style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 'none' }}>
           <LogoMark />
           <span style={{ fontWeight: 600, fontSize: 17, letterSpacing: '-0.02em' }}>FastighetsRadar</span>
         </a>
@@ -73,7 +74,8 @@ function LandingHeader({ signedIn }: { signedIn: boolean }) {
             </a>
           ))}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
+        <Link href="/overview" className={`${css.primary} ${css.mobileNavCta}`}>Öppna översikten</Link>
+        <div className={css.desktopOnly} style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
           {signedIn ? (
             <Link href="/overview" className={css.primary} style={{ height: 40, display: 'flex', alignItems: 'center', padding: '0 18px', borderRadius: 999, fontSize: 14.5, fontWeight: 500, background: '#14171A' }}>
               Öppna översikten

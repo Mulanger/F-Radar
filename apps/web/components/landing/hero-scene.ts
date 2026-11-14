@@ -268,7 +268,11 @@ export function createLandingScene(o: LandingSceneOptions): LandingSceneHandle {
     const cx = cr.left - hr.left + cr.width / 2;
     const cy = cr.top - hr.top + cr.height / 2;
     camera.aspect = W / H;
-    const px = Math.max(260, Math.min(cr.width * 0.9, cr.height * 0.98));
+    // The mobile composition gives the island its own upper panel; fit inside that panel.
+    const compact = window.matchMedia('(max-width: 640px)').matches;
+    const px = compact
+      ? Math.min(cr.width * 0.8, cr.height * 0.88)
+      : Math.max(260, Math.min(cr.width * 0.9, cr.height * 0.98));
     const tanH = Math.tan(T.MathUtils.degToRad(camera.fov / 2));
     const d = (6.9 * H) / (px * tanH);
     camera.position.copy(target).addScaledVector(camDir, d);

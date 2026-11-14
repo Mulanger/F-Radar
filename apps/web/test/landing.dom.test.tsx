@@ -42,7 +42,9 @@ describe('LandingPage (signed out)', () => {
     const nav = screen.getByRole('navigation', { name: 'Huvudmeny' });
     expect(within(nav).getByRole('link', { name: 'Logga in' }).getAttribute('href')).toBe('/sign-in');
     expect(within(nav).getByRole('link', { name: 'Kom igång' }).getAttribute('href')).toBe('/sign-up');
-    expect(screen.queryByRole('link', { name: 'Öppna översikten' })).toBeNull();
+    // Variant 3a keeps the overview shortcut on mobile; Clerk handles signed-out access.
+    const mobileOverviewLinks = screen.getAllByRole('link', { name: /Öppna översikten/ });
+    for (const link of mobileOverviewLinks) expect(link.getAttribute('href')).toBe('/overview');
   });
 
   it('has no dead links', () => {

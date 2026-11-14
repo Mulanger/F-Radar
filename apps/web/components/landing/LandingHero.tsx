@@ -55,9 +55,10 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
 
   const s = SEVERITY[sev];
   return (
-    <section id="top" aria-label="Introduktion" style={{ padding: '14px clamp(12px,2vw,24px) 0' }}>
+    <section id="top" className={css.heroSection} aria-label="Introduktion" style={{ padding: '14px clamp(12px,2vw,24px) 0' }}>
       <div
         ref={heroRef}
+        className={css.heroFrame}
         style={{
           position: 'relative', maxWidth: 1320, margin: '0 auto', borderRadius: 32, overflow: 'hidden',
           background: 'linear-gradient(180deg,#E6EEF1 0%,#EDF1F1 55%,#F1F3F2 100%)', border: '1px solid rgba(255,255,255,0.9)',
@@ -66,35 +67,42 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
       >
         <canvas ref={canvasRef} className={css.canvas} aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', zIndex: 0 }} />
 
-        <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexWrap: 'wrap', minHeight: 760, pointerEvents: 'none' }}>
-          <div style={{ flex: '1 1 420px', maxWidth: 620, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 28, padding: 'clamp(32px,5vw,72px) clamp(24px,4vw,56px)', pointerEvents: 'auto' }}>
+        <div className={css.heroLayout} style={{ position: 'relative', zIndex: 3, display: 'flex', flexWrap: 'wrap', minHeight: 760, pointerEvents: 'none' }}>
+          <div className={css.heroCopy} style={{ flex: '1 1 420px', maxWidth: 620, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 28, padding: 'clamp(32px,5vw,72px) clamp(24px,4vw,56px)', pointerEvents: 'auto' }}>
             <div style={{ display: 'flex' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 34, padding: '0 14px', borderRadius: 999, ...glass(0.7, 10), fontSize: 14, color: '#4A5157' }}>
+              <span className={css.heroLiveBadge} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 34, padding: '0 14px', borderRadius: 999, ...glass(0.7, 10), fontSize: 14, color: '#4A5157' }}>
                 <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: '50%', background: '#3FA66B', boxShadow: '0 0 0 3px rgba(63,166,107,0.18)' }} />
                 Live-data från svenska myndigheter
               </span>
             </div>
-            <h1 style={{ margin: 0, fontWeight: 500, fontSize: 'clamp(44px,5.4vw,78px)', lineHeight: 0.98, letterSpacing: '-0.045em', color: '#14171A', textWrap: 'balance' }}>
-              Allt som påverkar dina fastigheter. På ett ställe.
+            <h1 className={css.heroHeadline} style={{ margin: 0, fontWeight: 500, fontSize: 'clamp(44px,5.4vw,78px)', lineHeight: 0.98, letterSpacing: '-0.045em', color: '#14171A', textWrap: 'balance' }}>
+              <span>Allt som påverkar</span>{' '}<span>dina fastigheter.</span>{' '}<span>På ett ställe.</span>
             </h1>
-            <p style={{ margin: 0, fontSize: 'clamp(17px,1.4vw,19px)', lineHeight: 1.55, color: '#4A5157', maxWidth: '31em', textWrap: 'pretty' }}>
+            <p className={css.desktopOnly} style={{ margin: 0, fontSize: 'clamp(17px,1.4vw,19px)', lineHeight: 1.55, color: '#4A5157', maxWidth: '31em', textWrap: 'pretty' }}>
               FastighetsRadar bevakar varje adress med data från SMHI, Krisinformation, Trafikverket, SGU och fler. Du ser läget direkt — och får SMS när
               något faktiskt kräver åtgärd.
             </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            <p className={css.mobileHeroDescription}>
+              Data från SMHI, Krisinformation, Trafikverket, SGU och fler – och SMS när något faktiskt kräver åtgärd.
+            </p>
+            <div className={css.heroActions} style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
               <Link
                 href={signedIn ? '/overview' : '/sign-up'}
-                className={css.primary}
+                className={`${css.primary} ${css.desktopOnly}`}
                 style={{ height: 52, display: 'flex', alignItems: 'center', gap: 10, padding: '0 26px', borderRadius: 999, background: '#14171A', fontSize: 16, fontWeight: 500, boxShadow: '0 10px 24px -12px rgba(20,23,26,0.5)' }}
               >
                 {signedIn ? 'Öppna översikten' : 'Kom igång'}
                 <span aria-hidden="true" style={{ fontSize: 15, opacity: 0.7 }}>→</span>
               </Link>
+              <Link href="/overview" className={`${css.primary} ${css.mobileHeroPrimary}`}>
+                Öppna översikten<span aria-hidden="true">→</span>
+              </Link>
               <a href="#sa-fungerar-det" className={css.secondary} style={{ height: 52, display: 'flex', alignItems: 'center', padding: '0 24px', borderRadius: 999, background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(20,23,26,0.07)', fontSize: 16, fontWeight: 500 }}>
-                Se hur det fungerar
+                <span className={css.desktopOnly}>Se hur det fungerar</span>
+                <span className={css.mobileOnly}>Så fungerar det</span>
               </a>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 6 }}>
+            <div className={css.desktopOnly} style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 6 }}>
               <span style={{ fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6B737B' }}>Källor</span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {HERO_SOURCES.map((src) => (
@@ -105,7 +113,8 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
           </div>
 
           <div ref={colRef} className={css.heroCol} style={{ flex: '1.45 1 480px', position: 'relative', minHeight: 600, pointerEvents: 'none' }}>
-            <div style={{ position: 'absolute', top: 22, left: 22, display: 'flex', alignItems: 'center', gap: 8, padding: '6px 6px 6px 14px', borderRadius: 999, ...glass(0.72, 12), boxShadow: '0 6px 20px -12px rgba(20,23,26,0.2)', maxWidth: 'calc(100% - 44px)', flexWrap: 'wrap' }}>
+            <MobileHeroIllustration />
+            <div className={css.desktopOnly} style={{ position: 'absolute', top: 22, left: 22, display: 'flex', alignItems: 'center', gap: 8, padding: '6px 6px 6px 14px', borderRadius: 999, ...glass(0.72, 12), boxShadow: '0 6px 20px -12px rgba(20,23,26,0.2)', maxWidth: 'calc(100% - 44px)', flexWrap: 'wrap' }}>
               <span style={{ fontSize: 13.5, color: '#14171A', fontWeight: 500, whiteSpace: 'nowrap' }}>Augustendal Brygga</span>
               <span style={{ fontSize: 13.5, color: '#6B737B', whiteSpace: 'nowrap' }}>· Nacka Strand</span>
               <span
@@ -119,6 +128,7 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
 
             <div
               ref={smsRef}
+              className={css.desktopOnly}
               aria-hidden="true"
               style={{ position: 'absolute', top: 18, right: 18, width: 300, maxWidth: 'calc(100% - 36px)', opacity: 0, zIndex: 4, padding: '14px 16px', borderRadius: 20, background: 'rgba(255,255,255,0.86)', border: '1px solid rgba(255,255,255,0.95)', backdropFilter: 'blur(18px) saturate(1.5)', WebkitBackdropFilter: 'blur(18px) saturate(1.5)', boxShadow: '0 18px 40px -18px rgba(20,23,26,0.35)' }}
             >
@@ -130,7 +140,7 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
               <div style={{ fontSize: 13.5, lineHeight: 1.45, color: '#14171A' }}>{HERO_SMS}</div>
             </div>
 
-            <dl style={{ position: 'absolute', left: 22, bottom: 22, margin: 0, display: 'flex', flexWrap: 'wrap', gap: '4px 26px', padding: '14px 22px', borderRadius: 20, ...glass(0.72, 14), boxShadow: '0 10px 30px -18px rgba(20,23,26,0.25)', maxWidth: 'calc(100% - 44px)', boxSizing: 'border-box' }}>
+            <dl className={css.desktopOnly} style={{ position: 'absolute', left: 22, bottom: 22, margin: 0, display: 'flex', flexWrap: 'wrap', gap: '4px 26px', padding: '14px 22px', borderRadius: 20, ...glass(0.72, 14), boxShadow: '0 10px 30px -18px rgba(20,23,26,0.25)', maxWidth: 'calc(100% - 44px)', boxSizing: 'border-box' }}>
               {HERO_STATS.map((st) => (
                 <div key={st.label} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <dt style={{ fontSize: 12.5, color: '#6B737B' }}>{st.label}</dt>
@@ -146,7 +156,7 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
         </div>
 
         {/* Annotation cards, positioned every frame by the scene (decorative → aria-hidden). */}
-        <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none' }}>
+        <div aria-hidden="true" className={css.desktopOnly} style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none' }}>
           {HERO_ANNOTATIONS.map((a, i) => (
             <div key={a.title} ref={(el) => { annRefs.current[i] = el; }} style={{ position: 'absolute', left: 0, top: 0, opacity: 0 }}>
               <div data-r="line" style={{ position: 'absolute', left: 0, top: 0, height: 1, background: 'rgba(20,23,26,0.28)', transformOrigin: '0 50%' }} />
@@ -167,5 +177,34 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
         </div>
       </div>
     </section>
+  );
+}
+
+/** Static examples stay legible on a small screen, including when WebGL is unavailable. */
+function MobileHeroIllustration() {
+  const examples = [HERO_ANNOTATIONS[2]!, HERO_ANNOTATIONS[4]!, HERO_ANNOTATIONS[3]!];
+  return (
+    <div className={css.mobileIllustration} aria-label="Illustration med exempeldata">
+      <span className={css.exampleLabel}>Exempeldata</span>
+      {examples.map((example, index) => (
+        <div key={example.title} className={`${css.mobileEvent} ${css[`mobileEvent${index}`]}`}>
+          <span className={css.mobileEventBadge} style={{ background: example.badge.bg, color: example.badge.fg }}>
+            {example.badge.label}
+          </span>
+          <div className={css.mobileEventCopy}>
+            <span>{example.title}</span>
+            <span className={css.mobileEventSource}>{example.source}</span>
+          </div>
+        </div>
+      ))}
+      <dl className={css.mobileWeather}>
+        {HERO_STATS.map((stat, index) => (
+          <div key={stat.label}>
+            <dt>{['Temp', 'Vind', 'Fukt', 'Regn'][index]}</dt>
+            <dd>{index === 0 ? '3,9°' : stat.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }

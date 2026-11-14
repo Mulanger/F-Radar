@@ -42,12 +42,163 @@
   .revealHidden { opacity: 1; transform: none; }
 }
 
-/* Phones: the hero 3D column gets a fixed, comfortable height; secondary nav links are hidden by
-   the design's own overflow trick, the drag hint is not useful on touch. */
+.mobileOnly, .mobileHeroDescription, .mobileHeroPrimary, .mobileNavCta, .mobileIllustration { display: none; }
+
+@keyframes mobileCardFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* Variant 3a: reserve the first viewport for the island and a short, complete introduction.
+   Minimum height allows scrolling on short screens and when the visitor enlarges the text. */
 @media (max-width: 640px) {
-  .heroCol { min-height: 520px !important; }
+  .desktopOnly { display: none !important; }
+  .mobileOnly { display: inline; }
+  .header { padding: 8px 8px 0 !important; }
+  .navigation {
+    height: 52px;
+    box-sizing: border-box;
+    padding: 0 7px 0 10px !important;
+    gap: 8px !important;
+    justify-content: space-between;
+    border-radius: 18px !important;
+    background: #fff !important;
+    box-shadow: 0 1px 2px rgba(20,23,26,.03), 0 12px 32px -18px rgba(20,23,26,.14) !important;
+  }
+  .navBrand > span:first-child { width: 30px !important; height: 30px !important; border-radius: 8px !important; }
+  .navBrand > span:last-child { font-size: 15px !important; letter-spacing: -.01em !important; }
+  .navLinks { display: none !important; }
+  .mobileNavCta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    height: 38px;
+    padding: 0 15px;
+    border-radius: 999px;
+    background: #14171a;
+    font-size: 13.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .heroSection { padding: 8px 8px 0 !important; }
+  .heroFrame {
+    min-height: 500px;
+    border-radius: 22px !important;
+    border: 1px solid rgba(20,23,26,.05) !important;
+    background: radial-gradient(120% 70% at 50% 30%, #fff 0%, #eef3f4 48%, #e1eaed 100%) !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.7), 0 1px 2px rgba(20,23,26,.03), 0 12px 32px -18px rgba(20,23,26,.14) !important;
+  }
+  .heroLayout {
+    min-height: max(500px, calc(100svh - 78px)) !important;
+    flex-flow: column nowrap !important;
+  }
+  .heroCol { order: -1; flex: 1 1 0 !important; min-height: 190px !important; }
+  .heroCopy {
+    flex: 0 0 auto !important;
+    max-width: none !important;
+    min-width: 0;
+    padding: 6px 20px 20px !important;
+    gap: 0 !important;
+    justify-content: flex-start !important;
+  }
+  .heroLiveBadge { height: 26px !important; padding: 0 11px 0 9px !important; font-size: 12px !important; }
+  .heroLiveBadge > span { width: 6px !important; height: 6px !important; }
+  .heroHeadline {
+    margin-top: 12px !important;
+    font-size: clamp(28px, min(9vw, 5.2svh), 40px) !important;
+    line-height: 1.02 !important;
+    letter-spacing: -.04em !important;
+    text-wrap: initial !important;
+  }
+  .heroHeadline > span { display: block; }
+  .mobileHeroDescription {
+    display: block;
+    margin: 10px 0 0;
+    font-size: 14px;
+    line-height: 1.45;
+    color: #4a5157;
+    text-wrap: pretty;
+  }
+  .heroActions { width: 100%; margin-top: 16px; gap: 8px !important; flex-wrap: nowrap !important; }
+  .heroActions > a {
+    flex: 1 1 auto;
+    height: 44px !important;
+    padding: 0 14px !important;
+    justify-content: center;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    white-space: nowrap;
+  }
+  .heroActions > .mobileHeroPrimary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 999px;
+    background: #14171a;
+    font-weight: 600 !important;
+    box-shadow: 0 8px 18px -6px rgba(20,23,26,.45);
+  }
+  .mobileIllustration { display: block; position: absolute; inset: 0; }
+  .exampleLabel { position: absolute; top: 10px; right: 12px; font-size: 9px; color: #59636b; }
+  .mobileEvent {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 10px 6px 7px;
+    background: #fff;
+    border-radius: 11px;
+    border: 1px solid rgba(20,23,26,.05);
+    box-shadow: 0 10px 22px -12px rgba(20,23,26,.35);
+    animation: mobileCardFloat 5s ease-in-out infinite;
+  }
+  .mobileEvent0 { left: 12px; top: 14px; }
+  .mobileEvent1 { right: 12px; top: 36%; animation-duration: 5.6s; animation-delay: -1.8s; }
+  .mobileEvent2 { left: 14px; bottom: 62px; animation-duration: 6.2s; animation-delay: -3.4s; }
+  .mobileEventBadge { font-size: 10.5px; font-weight: 600; padding: 2px 6px; border-radius: 5px; }
+  .mobileEventCopy { display: flex; flex-direction: column; font-size: 12px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
+  .mobileEventSource { font-family: var(--font-geist-mono), 'Geist Mono', monospace; font-size: 9.5px; font-weight: 400; color: #59636b; }
+  .mobileWeather {
+    position: absolute;
+    left: 50%;
+    bottom: 10px;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.7);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,.9);
+    box-shadow: 0 8px 20px -12px rgba(20,23,26,.3);
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: -.01em;
+    font-variant-numeric: tabular-nums;
+  }
+  .mobileWeather > div { display: flex; gap: 3px; }
+  .mobileWeather dt { color: #59636b; font-weight: 400; }
+  .mobileWeather dd { margin: 0; }
   .dragHint { display: none; }
   .navCtaSecondary { display: none !important; }
+}
+
+@media (max-width: 359px) {
+  .navBrand { gap: 7px !important; }
+  .navBrand > span:last-child { font-size: 13px !important; }
+  .mobileNavCta { padding: 0 10px; font-size: 12px; }
+  .heroCopy { padding-right: 14px !important; padding-left: 14px !important; }
+  .heroActions > a { padding: 0 10px !important; font-size: 12.5px !important; }
+  .mobileWeather { gap: 8px; padding: 6px 9px; font-size: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobileEvent { animation: none; }
 }
 
 /* The section links only make sense when at least one fits whole; below that only logo + CTA remain. */
