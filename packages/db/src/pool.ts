@@ -28,7 +28,7 @@ export async function checkDatabase(pool: pg.Pool): Promise<DbReadiness> {
     } catch {
       return { status: 'error', postgis: null, detail: 'Connected, but PostGIS extension is not installed – run migrations' };
     }
-  } catch (err) {
-    return { status: 'error', postgis: null, detail: err instanceof Error ? err.message : 'Database unreachable' };
+  } catch {
+    return { status: 'error', postgis: null, detail: 'Database unreachable' };
   }
 }

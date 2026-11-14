@@ -222,7 +222,7 @@ function toWarning(e: OrgEventRow): OfficialWarning {
     externalId: e.external_id,
     level,
     type: e.event_type,
-    summary: (e.description ?? e.headline).slice(0, 600),
+    summary: e.description ?? e.headline,
     region: e.area_label ?? '',
     validFrom: iso(e.valid_from),
     validTo: iso(e.valid_to),
@@ -281,7 +281,7 @@ function floodFromContext(propertyId: string, c: OrgContextRow | undefined, now:
   const insideScenario = scenarios.find((s) => s.inside);
   const max = p.maxRadiusMeters ?? 1000;
   const note = insideScenario
-    ? `Inom karterat område för ${insideScenario.label} (MCF). Statiskt scenario – inte en aktuell vattennivå.`
+    ? `Träff i en sökruta omkring adresspunkten (±15 m) för ${insideScenario.label} (MCF). Inte en verifierad byggnadsöverlappning. Statiskt scenario – inte en aktuell vattennivå.`
     : nearest
       ? `Karterat område för ${nearest.label} inom ${nearest.withinMeters} m. Statiskt scenario – inte en aktuell vattennivå.`
       : `Inget karterat översvämningsområde inom ${max} m. Karteringen täcker bara utvalda vattendrag – detta betyder inte att risk saknas.`;
@@ -344,7 +344,7 @@ function statsFromContext(c: OrgContextRow | undefined, now: Date): PropertyMoni
 
 const sourceOk = (statuses: DataSourceStatus[], id: SourceId) => {
   const s = statuses.find((x) => x.sourceId === id);
-  return s ? s.status === 'ok' || s.status === 'degraded' ? !!s.lastSuccessAt : false : false;
+  return !!s && s.status === 'ok' && s.freshness === 'fresh' && !!s.lastSuccessAt;
 };
 
 function observedGroundwater(c: OrgContextRow | undefined, now: Date): NearbyObservation | null {
@@ -392,9 +392,9 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
       reason = otherMunicipality ? `VMA för andra kommuner i länet: ${w.type} (${w.sourceLabel})` : `${LEVEL_SV[w.level]}: ${w.type} (${w.sourceLabel})`;
     }
   }
-  if (status === 'unknown' && sourceOk(statuses, 'smhi_warnings')) {
+  if (status === 'unknown' && sourceOk(statuses, 'smhi_warnings') && sourceOk(statuses, 'krisinformation')) {
     status = 'normal';
-    reason = sourceOk(statuses, 'krisinformation') ? 'Inga aktiva officiella varningar för fastighetens läge' : 'Inga aktiva SMHI-varningar för fastighetens läge (Krisinformation ej aktuell)';
+    reason = 'Inga aktiva officiella varningar för fastighetens läge';
   }
 
   const floodParts = floodFromContext(p.id, ctxOf(contexts, 'mcf_flood', 'flood_scenarios'), now);

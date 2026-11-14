@@ -88,6 +88,7 @@ export function resolveRuntimeStatuses(env: ServerEnv, jobs: JobRow[], now = new
     }
     if (freshness !== 'fresh') return { ...common, status: 'stale', note: `Inaktuell – senast lyckad hämtning för länge sedan${job.last_error_code ? ` (${ERROR_TEXT[job.last_error_code] ?? job.last_error_code})` : ''}` };
     if (job.last_status === 'error') return { ...common, status: 'degraded', note: `Senaste hämtningen misslyckades (${ERROR_TEXT[job.last_error_code ?? ''] ?? 'fel'}); visar senast hämtade data` };
-    return { ...common, status: 'ok', note: job.last_status === 'partial' ? 'Delvis hämtad (vissa poster hoppades över)' : null };
+    if (job.last_status === 'partial') return { ...common, status: 'degraded', note: 'Ofullständig hämtning – vissa poster kunde inte kontrolleras' };
+    return { ...common, status: 'ok', note: null };
   });
 }

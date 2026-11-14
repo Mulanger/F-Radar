@@ -16,7 +16,7 @@ export interface MonitoringRouteDeps {
 /** SSE limits (Build pod: keep connection count small). */
 export const STREAM_MAX_PER_ORG = 20;
 export const STREAM_MAX_TOTAL = 200;
-export const STREAM_MAX_DURATION_MS = 10 * 60_000;
+export const STREAM_MAX_DURATION_MS = 60_000;
 const HEARTBEAT_MS = 25_000;
 
 /**
@@ -114,11 +114,15 @@ export function registerMonitoringRoutes(app: FastifyInstance, deps: MonitoringR
   /* ---------------- live stream (SSE) ---------------- */
 
   const open = new Map<string, number>();
+  const connections = new Set<() => void>();
   let total = 0;
+  app.addHook('preClose', async () => { for (const close of connections) close(); });
 
   app.get('/v1/stream', { preHandler: deps.requireOrg }, async (req, reply) => {
     const ctx = orgContext(req);
     const service = svc();
+    const lifetime = Math.min(STREAM_MAX_DURATION_MS, (req.auth!.expiresAt ?? Date.now() + STREAM_MAX_DURATION_MS) - Date.now());
+    if (lifetime <= 0) throw new HttpProblem(401, 'Session expired');
     const mine = open.get(ctx.organizationId) ?? 0;
     if (mine >= STREAM_MAX_PER_ORG || total >= STREAM_MAX_TOTAL) throw new HttpProblem(429, 'Too many live connections');
     open.set(ctx.organizationId, mine + 1);
@@ -132,33 +136,41 @@ export function registerMonitoringRoutes(app: FastifyInstance, deps: MonitoringR
       connection: 'keep-alive',
       'x-accel-buffering': 'no',
       'x-request-id': req.id,
+      'x-content-type-options': 'nosniff',
     });
-    const send = (event: string, data: unknown) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    const send = (event: string, data: unknown) => {
+      if (!res.destroyed && !res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)) res.destroy();
+    };
     res.write(`retry: 15000\n\n`);
-    send('hello', { at: gen(), maxDurationMs: STREAM_MAX_DURATION_MS });
+    send('hello', { at: gen(), maxDurationMs: lifetime });
 
     let closed = false;
     const unsubscribe = service.bus.subscribe(ctx.organizationId, (u) => {
       const payload: StreamUpdate = { at: u.at, sources: u.sources, propertyIds: u.propertyIds, changes: u.changes };
       send('update', payload);
     });
-    const heartbeat = setInterval(() => res.write(`: hb ${Date.now()}\n\n`), HEARTBEAT_MS);
+    const heartbeat = setInterval(() => { if (!res.write(`: hb ${Date.now()}\n\n`)) res.destroy(); }, HEARTBEAT_MS);
     const cleanup = () => {
       if (closed) return;
       closed = true;
       clearInterval(heartbeat);
       clearTimeout(maxTimer);
       unsubscribe();
-      open.set(ctx.organizationId, Math.max(0, (open.get(ctx.organizationId) ?? 1) - 1));
+      const remaining = Math.max(0, (open.get(ctx.organizationId) ?? 1) - 1);
+      if (remaining) open.set(ctx.organizationId, remaining);
+      else open.delete(ctx.organizationId);
       total = Math.max(0, total - 1);
+      connections.delete(close);
     };
-    // Bounded lifetime: the client reconnects, which re-verifies the session token.
-    const maxTimer = setTimeout(() => {
-      send('bye', { reason: 'max_duration' });
+    const close = () => {
+      send('bye', { reason: 'reauthenticate' });
       cleanup();
       res.end();
-    }, STREAM_MAX_DURATION_MS);
-    req.raw.on('close', cleanup);
+    };
+    // Never retain tenant access beyond this JWT. Reconnection verifies a fresh session.
+    const maxTimer = setTimeout(close, lifetime);
+    connections.add(close);
+    req.raw.on('aborted', cleanup);
     res.on('close', cleanup);
   });
 

@@ -206,7 +206,7 @@ export async function upsertSourceEvents(db: Queryable, sourceId: string, events
       severity: e.severity,
       event_type: e.eventType.slice(0, 200),
       headline: e.headline.slice(0, 500),
-      description: e.description?.slice(0, 8000) ?? null,
+      description: e.dataClass === 'OFFICIAL_WARNING' ? e.description : e.description?.slice(0, 8000) ?? null,
       area_label: e.areaLabel?.slice(0, 500) ?? null,
       county_names: e.countyNames,
       geojson: e.geometry ? JSON.stringify(e.geometry) : null,

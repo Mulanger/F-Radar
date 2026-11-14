@@ -13,9 +13,9 @@ import type { AdapterContext, AdapterResult } from '../types';
  *  The series lags a few days; collected daily.
  *
  * This is a REGIONAL MODEL value, never a measurement in or under a building.
- * Licence: SGU open data, CC BY 4.0 ("Källa: SGU").
+ * Licence: SGU open data, CC0 (official licence page checked in Phase 4.5).
  */
-export const SGU_ATTRIBUTION = 'Källa: SGU (CC BY 4.0) – modellberäknade nivåer (HYPE), 4×4 km';
+export const SGU_ATTRIBUTION = 'Källa: SGU (CC0) – modellberäknade nivåer (HYPE), 4×4 km';
 
 const AreaFC = z.object({ features: z.array(z.object({ properties: z.object({ omrade_id: z.union([z.number(), z.string()]) }).passthrough() }).passthrough()).default([]) }).passthrough();
 const LevelsFC = z

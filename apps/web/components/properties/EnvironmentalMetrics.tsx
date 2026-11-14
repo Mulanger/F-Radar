@@ -62,7 +62,7 @@ export function EnvironmentalMetrics({ d, isDemo }: { d: DetailVM; isDemo: boole
             <circle cx="32" cy="32" r="26" fill="none" stroke="oklch(0.6 0.1 265)" strokeWidth="7" strokeLinecap="round" strokeDasharray={d.humDash} style={{ transition: 'stroke-dasharray 1.2s' }} />
           </svg>
         </div>
-        <div style={foot}>Daggpunkt {d.dew}° · kondensrisk {d.condens}</div>
+        <div style={foot}>{d.live ? 'Utomhusprognos · byggnadens kondensrisk ej bedömd' : <>Daggpunkt {d.dew}° · kondensrisk {d.condens}</>}</div>
       </div>
 
       <div style={instrument} title={src('Närmaste luftmätstation (inte ett värde för byggnaden)')}>

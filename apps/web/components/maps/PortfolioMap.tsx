@@ -61,9 +61,9 @@ export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen }: Pr
       groups.markers.addLayer(mk);
       const exposure = s.flood.mapped.exposureClass;
       // Decorative indications only – not a mapped flood polygon (MCF layers are not imported yet).
-      if (exposure === 'High' || exposure === 'Medium')
+      if (p.origin === 'demo_fixture' && (exposure === 'High' || exposure === 'Medium'))
         groups.flood.addLayer(L.circle([lat + 0.0012, lon + 0.002], { radius: exposure === 'High' ? 650 : 380, stroke: false, fillColor: '#5494B0', fillOpacity: 0.22 }));
-      if (rain !== null && rain > 9)
+      if (p.origin === 'demo_fixture' && rain !== null && rain > 9)
         groups.weather.addLayer(L.circle([lat, lon], { radius: rain * 150, stroke: false, fillColor: '#4A7FD0', fillOpacity: 0.08 + rain / 300 }));
     });
     if (list.length) map.fitBounds(L.latLngBounds(list.map((s) => [s.property.location.lat, s.property.location.lon])), { padding: [70, 70], maxZoom: 13 });
@@ -91,7 +91,7 @@ export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen }: Pr
       <div ref={elRef} style={{ position: 'absolute', inset: 0, zIndex: 0 }} role="region" aria-label="Portföljkarta" />
       <div className="fr-map-title" style={{ position: 'absolute', top: 16, left: 16, zIndex: 500, padding: '12px 16px', borderRadius: 16, ...overlay }}>
         <div style={{ fontSize: 15, fontWeight: 600 }}>Portföljkarta</div>
-        <div style={{ fontSize: 12, color: C.text3 }}>Klicka på en nål för att öppna fastigheten</div>
+        <div style={{ fontSize: 12, color: C.text3 }}>{list.some(s => s.property.origin === 'live') ? 'Adresspunkter · inga riskzoner eller regnområden visas' : 'Klicka på en nål för att öppna fastigheten'}</div>
       </div>
       <div className="fr-map-layers" style={{ position: 'absolute', top: 16, right: 16, zIndex: 500, display: 'flex', gap: 4, padding: 4, borderRadius: 16, ...overlay }}>
         <button onClick={() => onToggleLayer('weather')} aria-pressed={layers.weather} style={layerBtn(layers.weather)}>Nederbördslager</button>

@@ -3,6 +3,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { clerkAuthorizedParties, type ServerEnv } from '@fastighetsradar/config';
 import { ensureOrganization, type Queryable } from '@fastighetsradar/db';
 import { HttpProblem } from './errors';
+import { createRateLimiter } from './rate-limit';
 
 /**
  * Server-side authentication for the customer API.
@@ -22,6 +23,8 @@ export interface VerifiedIdentity {
   clerkOrgId: string | null;
   orgRole: string | null;
   orgSlug: string | null;
+  /** Expiry of the independently verified Clerk JWT (milliseconds since epoch). */
+  expiresAt?: number;
 }
 
 export interface RequestAuth extends VerifiedIdentity {
@@ -63,6 +66,7 @@ export function createClerkVerifier(env: ServerEnv): AuthVerifier | null {
       clerkOrgId: a.orgId ?? null,
       orgRole: a.orgRole ?? null,
       orgSlug: a.orgSlug ?? null,
+      expiresAt: a.sessionClaims.exp * 1000,
     };
   };
 }
@@ -74,6 +78,8 @@ export interface AuthPluginOptions {
 
 export function registerAuth(app: FastifyInstance, opts: AuthPluginOptions) {
   app.decorateRequest('auth', null);
+  const requests = createRateLimiter({ capacity: 120, refillPerSecond: 2 });
+  const writes = createRateLimiter({ capacity: 20, refillPerSecond: 0.5 });
 
   /** preHandler: requires a verified user; with `org: true` also a verified active organization. */
   const guard =
@@ -83,10 +89,15 @@ export function registerAuth(app: FastifyInstance, opts: AuthPluginOptions) {
       let identity: VerifiedIdentity | null = null;
       try {
         identity = await opts.verify(req);
-      } catch (err) {
-        req.log.warn({ err: err instanceof Error ? err.message : 'verify failed' }, 'token verification failed');
+      } catch {
+        req.log.warn('token verification failed');
       }
       if (!identity) throw new HttpProblem(401, 'Unauthorized', 'A valid Clerk session token is required');
+      if (identity.expiresAt !== undefined && identity.expiresAt <= Date.now()) throw new HttpProblem(401, 'Unauthorized');
+      if (!requests.take(identity.userId) || (!['GET', 'HEAD'].includes(req.method) && !writes.take(identity.userId))) {
+        _reply.header('retry-after', '2');
+        throw new HttpProblem(429, 'Too many requests');
+      }
       req.auth = { ...identity, organizationId: null };
       if (!org) return;
       if (!identity.clerkOrgId) {

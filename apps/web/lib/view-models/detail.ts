@@ -211,7 +211,7 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
       fg: WL[w.level].fg,
     })),
     warnN: s.warnings.length,
-    noWarnings: !s.warnings.length,
+    noWarnings: !s.warnings.length && (!live || p.status === 'normal'),
     tabs: (Object.keys(CHART_METAS) as ChartMetric[]).map((k) => ({ key: k, label: CHART_METAS[k].label, active: k === ui.metric })),
     chart: vals.length
       ? {
