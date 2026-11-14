@@ -73,6 +73,17 @@ fastighet faktiskt berörs.
     precision oberoende av kartnålen; en gata utan husnummer ger medelprecision (ingen SMS). Gatunamn matchas
     exakt efter normalisering – ingen fuzzy-matchning.
 
+## Tillägg Fas 5 (2026-11-14) – godkänt av produktägaren ("fortsätt med alla faser")
+
+15. **Riskindex – faktor "El och värme"** (`powerFactor`, tak 60): pågående oplanerat avbrott med hög precision
+    55 (Förhöjd), med medelprecision 30 (Bevaka), pågående planerat arbete vid adressen 15 (Låg), områdesträffar 5.
+    Kommande planerade arbeten påverkar inte poängen. Faktorn är bedömd när fastighetens elnät bevakas och är
+    aktuellt eller när ett avbrott matchar. Ett avbrott kan aldrig ge "Hög" – det är nätbolagets registrering, inte
+    en officiell varning. Ett "Ej bedömt" index (varningskällor ej aktuella) förblir ej bedömt.
+16. **Driftsignal per nätbolag:** `attention: 'format_changed'` efter 3 tolkningsfel i rad (adaptern måste
+    uppdateras), `'unreachable'` efter 6 andra fel i rad; exponeras i `/v1/sources/status` (`utilityOperators`) och
+    loggas som fel (`alert: utility_outage_format_changed`).
+
 ## Konsekvenser
 
 - Flödena är odokumenterade och kan ändras; adaptrarna validerar allt och hoppar över det som inte går

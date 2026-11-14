@@ -120,6 +120,18 @@ describe('collector jobs and health', () => {
     expect(agg.last_status).toBe('error');
     expect(aggregateUtilityJob([job('smhi_warnings')])).toBeNull();
   });
+  it('flags a feed that keeps failing to parse as "format_changed", other repeated failures as "unreachable"', () => {
+    const env = loadServerEnv({ SOURCE_UTILITY_OUTAGES_ENABLED: 'true' });
+    const st = resolveOperatorStatuses(env, [
+      job('utility_outages:vattenfall', { last_status: 'error', last_error_code: 'invalid_payload', consecutive_failures: 3 }),
+      job('utility_outages:digpro:fev', { last_status: 'error', last_error_code: 'timeout', consecutive_failures: 6 }),
+      job('utility_outages:digpro:vax', { last_status: 'error', last_error_code: 'invalid_payload', consecutive_failures: 2 }),
+    ], NOW);
+    expect(st.find((o) => o.operatorId === 'vattenfall')!.attention).toBe('format_changed');
+    expect(st.find((o) => o.operatorId === 'digpro:fev')!.attention).toBe('unreachable');
+    expect(st.find((o) => o.operatorId === 'digpro:vax')!.attention).toBeNull();
+  });
+
   it('operator is current only with a recent success and no failing last run', () => {
     const env = loadServerEnv({ SOURCE_UTILITY_OUTAGES_ENABLED: 'true' });
     const st = resolveOperatorStatuses(env, [job('utility_outages:vattenfall'), job('utility_outages:digpro:fev', { last_success_at: new Date(NOW.getTime() - 25 * 60_000) })], NOW);
@@ -168,6 +180,7 @@ const op = (o: Partial<OperatorStatus> = {}): OperatorStatus => ({
   lastSuccessAt: NOW.toISOString(),
   lastStatus: 'ok',
   errorCode: null,
+  attention: null,
   ...o,
 });
 const snap = (status: PropertySnapshot['property']['status'] = 'normal') =>
@@ -232,6 +245,22 @@ describe('property outage section and status', () => {
     expect(s.utilityOutages![1]!.current[0]).toMatchObject({ precisionLevel: 'high', severity: 'critical' });
     expect(s.property.statusReason).toBe('Oplanerat fjärrvärmeavbrott registrerat av Vattenfall Eldistribution');
     expect(withUtilityOutages(snap(), { outages: [], concessions: [], operators: [op()] }).utilityOutages!.map((u) => u.utility)).toEqual(['electricity']);
+  });
+
+  it('riskindex gets "El och värme": unplanned outage at the address → Förhöjd, never Hög', () => {
+    const risk = { method: 'fr_risk_index_v1' as const, score: 0, level: 'low' as const, summary: '', assessedFactors: 5, factors: [] };
+    const s = withUtilityOutages({ ...snap(), riskIndex: risk } as PropertySnapshot, { outages: [row()], concessions: [{ property_id: PID, operator_id: 'vattenfall' }], operators: [op()] });
+    const f = s.riskIndex!.factors.find((x) => x.key === 'power')!;
+    expect(f).toMatchObject({ assessed: true, points: 55, ceiling: 60 });
+    expect(s.riskIndex!.level).toBe('elevated');
+    const quiet = withUtilityOutages({ ...snap(), riskIndex: risk } as PropertySnapshot, { outages: [], concessions: [{ property_id: PID, operator_id: 'vattenfall' }], operators: [op()] });
+    expect(quiet.riskIndex!.factors.find((x) => x.key === 'power')).toMatchObject({ assessed: true, points: 0 });
+    const unmonitored = withUtilityOutages({ ...snap(), riskIndex: risk } as PropertySnapshot, { outages: [], concessions: [], operators: [op()] });
+    expect(unmonitored.riskIndex!.factors.find((x) => x.key === 'power')!.assessed).toBe(false);
+    const planned = withUtilityOutages({ ...snap(), riskIndex: risk } as PropertySnapshot, { outages: [row({ kind: 'planned' })], concessions: [], operators: [op()] });
+    expect(planned.riskIndex!.level).toBe('low');
+    const notAssessed = withUtilityOutages({ ...snap(), riskIndex: { ...risk, score: null, level: null } } as PropertySnapshot, { outages: [row()], concessions: [], operators: [op()] });
+    expect(notAssessed.riskIndex!.score).toBeNull(); // warnings not current → still "Ej bedömd"
   });
 
   it('a red official warning is not lowered by a smaller outage', () => {

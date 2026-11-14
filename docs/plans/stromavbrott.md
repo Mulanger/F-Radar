@@ -1,6 +1,6 @@
 # Strömavbrott och fjärrvärmeavbrott – implementationsplan
 
-**Status:** Godkänd av produktägaren 2026-11-14. Genomförs **en fas i taget**.
+**Status:** Godkänd av produktägaren 2026-11-14. **Fas 1–5 genomförda 2026-11-14** (se faslogg, avsnitt 13).
 **Underlag:** Källundersökning 2026-11-14 (avsnitt 4). Alla endpoints nedan svarade då utan nyckel,
 inloggning eller cookies. De är **odokumenterade** och kan ändras – verifiera alltid innan du bygger.
 
@@ -770,4 +770,4 @@ och **inget** SMS; Tekniska verken/Mälarenergi klarar 10.
 | 2 | 2026-11-14 | gren `claude/stromavbrott-fas2` | Ellevio, Tekniska verken, Trimble (Mälarenergi, Jämtkraft, Sundsvall, Gävle) + Ei-nätområden; 20/20 operatörer + Ei livetest gröna | 296 enhets-/DOM-tester; PostGIS-sviten 28/28 i podden; lint, typecheck, build gröna | Mälarenergis `/api/outages` saknar geometri – deras Trimble-karta används i stället. Områdesträffar når flödet först från 25 berörda kunder. Manuell webbläsarverifiering ej gjord. |
 | 3 | 2026-11-14 | gren `claude/stromavbrott-fas3` | E.ON, 6 nya Digpro (Borlänge, Luleå, Nacka, Partille, Sala-Heby, Varbergsortens), 11 ServiceAlert; totalt 38 operatörer, livetest 40/40 | 306 enhets-/DOM-tester | E.ON och ServiceAlert ger områdesprecision (aldrig SMS). Upptäcktsskript `scripts/discover-outage-platforms.mjs`. |
 | 4 | 2026-11-14 | gren `claude/stromavbrott-fas3` | Fjärrvärme/fjärrkyla: Göteborg Energi (KML + adresslistor), Tekniska verken, Digpro `fpdh` (Halmstad, Uddevalla, Luleå, Partille, Kraftringen), ServiceAlert-profiler; livetest 41/41 | 313 enhets-/DOM-tester; PostGIS 30/30 | Migrering 0008 (gata/husnummer). Adressträff = hög precision oavsett kartnål; gatuträff = medel. Gamla avslutade avbrott i flödenas historik lagras inte. Trimble värme ej verifierbart. |
-| 5 | | | | | |
+| 5 | 2026-11-14 | gren `claude/stromavbrott-fas3` | Kvarvarande stora bolag utredda (se nedan); 39 konfigurerade källor | 317 enhets-/DOM-tester; PostGIS 30/30; livetest 41/41 | Riskfaktor "El och värme" (oplanerat vid adressen → Förhöjd, planerat → Låg, tak 60). Driftsignal `attention` per operatör. Ej anslutna: Jönköping (endast fritext utan geometri), Umeå (Mapbox-tileset, inget verifierbart dataformat), Öresundskraft (driftsida ger fel), Kraftringen el (kartan trasig), Härryda (värd svarar inte), Skellefteå Kraft (ingen publik karta hittad). |

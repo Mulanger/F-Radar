@@ -4,6 +4,16 @@
 
 ---
 
+# Strömavbrott – Fas 5 (Claude, 2026-11-14)
+
+- Remaining large operators investigated; not connectable without guessing: Jönköping (text only), Umeå (Mapbox tileset),
+  Öresundskraft, Kraftringen power map, Härryda, Skellefteå Kraft – documented in docs/sources.md.
+- Riskindex factor **"El och värme"** (ADR 0006 §15) and per-operator **feed-health signal** (`attention`, ADR 0006 §16).
+- Implementation of docs/plans/stromavbrott.md is complete: 39 configured sources (power from 38 grid operators, district heating/cooling from 18), national concession areas, dashboard, SMS rules. Tests: 317 unit/DOM, PostGIS 30/30, live 41/41.
+  Not done: manual browser verification (needs a local API + database); production enablement is the product owner's call.
+
+---
+
 # Strömavbrott – Fas 4 (Claude, 2026-11-14)
 
 District heating and cooling on the same pipeline: Göteborg Energi (KML + street-address lists), Tekniska verken,
