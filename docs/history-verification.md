@@ -28,13 +28,14 @@ Verifierad lokalt 13–14 november 2026. Gren: `codex/historik`, separat worktre
 | --- | --- |
 | `npm run typecheck` | Grön i alla workspaces. |
 | `npm run lint` | Grön. |
-| `npm test` | 36 testfiler, **302 godkända tester**. |
+| `npm test` | 36 testfiler, **303 godkända tester**. |
 | `npm run build` | API och optimerat Next-produktionsbygge gröna. |
 | `npm run test:live` | **20 godkända**, ett överhoppat befintligt prov. Arkiven för 1, 2, 5, 19, 20, 21, 23, RW 12 och HydroObs 1 har lästs från SMHI. |
 | Real PostgreSQL/PostGIS | **23 godkända tester** på enbart `f-radar`, databas `fastighetsradar_test`. Testpaketet byggdes med den angivna tsup-konfigurationen och kördes från denna worktree. |
 | Migrering och initial fyllning | Själva 0007-migreringen körs också över redan existerande matchningar i ett isolerat schema, med återställning via rollback. |
 | Isolering och livscykel | Andra organisationer får 404; läsning och radering är isolerade. Arkivet överlever källans sjudygnsrensning och raderas med fastigheten. Matchning som upphör/återkommer bevarar intervallen utan ny påhittad myndighetsversion. Retention och omkörning av återställd testdatabas godkända. |
 | Svensk tid och kvalitet | 23-/25-timmarsdygn, täckningsluckor, nollvärden, normalkrav, stationsavstånd, källversioner, nollpassager och CSV-formelprefix testade. Native-dygn kvalificeras separat från egna kalenderdygn. |
+| Händelsearkivets start | Starten är fastighetsspecifik. En ny fastighet gör inga anspråk på täckning före skapandet; ofullständigt startdygn och svensk årsskiftesformatering har regressionsprov. CSV redovisar startdatum för händelser och mätningar. |
 | Desktop och 375 px | Demot visuellt granskat: nyckeltal, läsbara diagramaxlar, perioder, tryckdetaljer, veckostaplar vid 90 dygn, tabeller och ingen horisontell scroll i den granskade mobilvyn. |
 | Webbläsarflöden | Direktlänk till Historik, byte av fastighet med vyn kvar, Nu/Historik med bibehållen karta, alla tidslinjekategorier, utvecklad källtext, gul–orange-versioner, egna datum, tomt läge och luckor verifierade. |
 | CSV-knapp | Knappen har aktiverats i Chrome. Ett DOM-test klickar också den renderade knappen, kontrollerar skapad Blob, filnamn, MIME-typ och faktiskt filinnehåll. |
@@ -67,5 +68,6 @@ Bekräfta 24 månaders händelser och fem års dygn, gränserna regn 25 km/väde
 * `d002e0f` – migrering, stationslagring, SMHI-adaptrar, referenser och arkiv-/DB-test.
 * `0f826a8` – organisationsisolerat API och begränsade insamlingsjobb.
 * `54f52eb` – historikvy, diagram, tidslinje, tillgängliga tabeller och CSV.
+* `2989269` – svensk leveransrapport, volymberäkningar och beslut före drift.
 
-Detta dokument och slutjusterad ADR sparas i en avslutande dokumentationscommit. Ingen push, PR eller driftsättning görs utan ägarens besked.
+Slutgranskningens separata fix omfattar fastighetsspecifik arkivstart och svensk tidsgräns. Den är den sista lokala committen i leveransen. Ingen push, PR eller driftsättning görs utan ägarens besked.

@@ -20,6 +20,8 @@ SMHI-händelser och VMA arkiveras. Trafikverkets händelser arkiveras endast med
 
 Migreringen kopierar befintliga matchningar en gång. Tidigare borttagna händelser och äldre versioner går inte att återskapa. `history_archive_state.started_at` anger när arkivet startade. UI:t visar datumet och räknar inte äldre luckor som ett bevis för att inga varningar förekom. Avslutade händelseversioner sparas **24 kalendermånader efter avslut**. Pågående händelser behålls tills de avslutas.
 
+För en ny fastighet är händelsearkivets start den senare av den globala starten och fastighetens `created_at`. Första delvis täckta kalenderdygnet räknas inte som komplett. UI och CSV visar denna fastighetsspecifika start; datum och år formateras tillsammans i svensk tid. En händelse som fortfarande är aktuell vid första matchningen kan ha ett tidigare officiellt giltighetsdatum, men det innebär inte att äldre perioder har ett komplett arkiv.
+
 ## Stationsserier och dygn
 
 SMHI:s öppna CSV-format och periodresurser kontrollerades live 2026-11-13. Korta oförändrade utdrag finns i `packages/integrations/test/fixtures/history-*.csv`. Arkiven strömmas med samma läsare som hydrologireferenserna; bara högst fem års dygnsresultat behålls i minnet och databasen. Månadsnormalen är undantaget och läser referensåren.

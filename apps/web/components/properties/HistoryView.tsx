@@ -20,6 +20,8 @@ import {
   HISTORY_DEFINITIONS,
   groupHistoryEvents,
   historyCsv,
+  historyArchiveLabel,
+  historyEventCoverage,
   historyMatchLabel,
   historyStationLabel,
   historyValue,
@@ -68,7 +70,7 @@ function HistoryKpis({ history }: { history: PropertyHistory }) {
   const rain = history.daily.series.find((s) => s.key === 'precipitation');
   const water = history.daily.series.find((s) => s.key === kpis.waterMax?.series);
   const days = history.daily.dates.length;
-  const eventCoverage = history.period.from >= history.since.events.slice(0, 10);
+  const eventCoverage = historyEventCoverage(history);
   return (
     <div className={styles.tiles}>
       <Kpi
@@ -255,7 +257,7 @@ function HistoryTimeline({ history }: { history: PropertyHistory }) {
       {official.length === 0 && (
         <p className={styles.empty}>
           Inga officiella varningar har träffat fastigheten under perioden
-          {history.period.from < history.since.events.slice(0, 10) ? ' som täcks av arkivet' : ''}.
+          {!historyEventCoverage(history) ? ' som täcks av arkivet' : ''}.
         </p>
       )}
       {groups.map((group) => (
@@ -270,8 +272,8 @@ function HistoryTimeline({ history }: { history: PropertyHistory }) {
         <p className={styles.empty}>Inga händelser i valt filter under perioden.</p>
       )}
       <p className={styles.note}>
-        Händelser sparas sedan {formatShortDate(history.since.events)} {history.since.events.slice(0, 4)}.
-        Äldre händelser kan saknas; SMHI:s öppna varningsflöde innehåller aktuella varningar.
+        Händelser sparas sedan {historyArchiveLabel(history.since.events)}. Äldre händelser kan saknas; SMHI:s
+        öppna varningsflöde innehåller aktuella varningar.
       </p>
     </section>
   );

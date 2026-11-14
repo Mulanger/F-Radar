@@ -4,6 +4,8 @@ import {
   contiguousHistory,
   groupHistoryEvents,
   historyCsv,
+  historyArchiveLabel,
+  historyEventCoverage,
   historyWarnings,
   historyWarningBands,
   rainBars,
@@ -13,6 +15,14 @@ const id = demoPortfolio.properties.find((p) => p.property.id === 'demo-augusten
 const period = { from: '2025-09-01', to: '2025-11-11' };
 
 describe('history presentation', () => {
+  it('does not treat a partial archive day as complete and formats the Swedish year correctly', () => {
+    const h = buildDemoHistory(id, { from: '2025-01-01', to: '2025-01-07' });
+    h.since.events = '2024-12-31T23:30:00.000Z';
+    expect(historyEventCoverage(h)).toBe(false);
+    expect(historyArchiveLabel(h.since.events)).toMatch(/2025/);
+    h.period.from = '2025-01-02';
+    expect(historyEventCoverage(h)).toBe(true);
+  });
   it('groups versions inside one timeline row and filters regional information', () => {
     const h = buildDemoHistory(id, period);
     const groups = groupHistoryEvents(h.events, 'Weather');

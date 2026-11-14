@@ -1,5 +1,7 @@
 import {
   HISTORY,
+  DISPLAY_LOCALE,
+  DISPLAY_TIME_ZONE,
   addHistoryDays,
   formatDistance,
   formatNumber,
@@ -18,6 +20,22 @@ export const HISTORY_CATEGORIES = [
   { id: 'Traffic', label: 'Trafik' },
   { id: 'CountyInfo', label: 'Länsinfo' },
 ] as const;
+
+const archiveDateFormatter = new Intl.DateTimeFormat(DISPLAY_LOCALE, {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: DISPLAY_TIME_ZONE,
+});
+
+export function historyArchiveLabel(since: string): string {
+  return archiveDateFormatter.format(new Date(since));
+}
+
+/** A newly added property has no event archive before its own creation time. */
+export function historyEventCoverage(history: PropertyHistory): boolean {
+  return +swedishMidnight(new Date(history.period.from + 'T12:00:00Z')) >= Date.parse(history.since.events);
+}
 
 export const HISTORY_DEFINITIONS: Record<string, string> = {
   smhi_06_utc: 'SMHI-dygn kl 06–06 UTC (kl 07 vintertid, kl 08 sommartid). Datum avser dygnets början.',
@@ -230,6 +248,8 @@ export function historyCsv(history: PropertyHistory): string {
     'fullständig',
     'ändrad',
     'fastighet_id',
+    'händelser_sedan',
+    'mätningar_sedan',
   ];
   type Cell = string | number | null | undefined;
   const rows: Cell[][] = [headers];
@@ -240,6 +260,8 @@ export function historyCsv(history: PropertyHistory): string {
     datum: `${history.period.from}/${history.period.to}`,
     ursprung: history.origin,
     licens: history.attribution,
+    händelser_sedan: history.since.events,
+    mätningar_sedan: history.since.measurements,
   });
   for (const series of history.daily.series) {
     const station = history.stations.find((s) => s.id === series.station)!;

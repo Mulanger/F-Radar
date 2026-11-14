@@ -233,6 +233,10 @@ export function registerHistoryTests(pool: pg.Pool) {
         const response = await app.inject({ method: 'GET', url, headers: { authorization: 'Bearer a' } });
         assert.equal(response.statusCode, 200, response.body);
         const h = PropertyHistorySchema.parse(response.json());
+        assert.ok(
+          Date.parse(h.since.events) >= Date.parse(property.createdAt),
+          'a new property never claims earlier event coverage',
+        );
         assert.equal(h.daily.dates.length, 365);
         assert.equal(h.stations[0].name, 'Historikstation');
         assert.ok(h.events.some((e) => e.externalId === event.externalId));

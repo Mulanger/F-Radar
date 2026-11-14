@@ -43,7 +43,8 @@ export async function loadPropertyHistory(
   id: string,
   period: HistoryPeriod,
 ): Promise<PropertyHistory | null> {
-  if (!(await getProperty(db, org, id))) return null;
+  const property = await getProperty(db, org, id);
+  if (!property) return null;
   const [candidates, events, startedAt, hourly] = await Promise.all([
     propertyHistoryStations(db, org.organizationId, id, HISTORY_PARAMETERS),
     propertyHistoryEvents(db, org.organizationId, id, period),
@@ -104,6 +105,7 @@ export async function loadPropertyHistory(
     normals,
   );
   const earliest = series.flatMap((s) => (s.since ? [s.since] : [])).sort()[0] ?? null;
+  const eventsSince = new Date(Math.max(Date.parse(startedAt), Date.parse(property.createdAt))).toISOString();
   return PropertyHistorySchema.parse({
     propertyId: id,
     period,
@@ -116,7 +118,7 @@ export async function loadPropertyHistory(
     gaps: historyGaps(dates, series),
     frostWeeks: frostWeeks(dates, series),
     flowReferences,
-    since: { events: startedAt, measurements: earliest },
+    since: { events: eventsSince, measurements: earliest },
     origin: 'live',
     attribution:
       'Källa: SMHI (CC BY 4.0). Händelser: respektive myndighet. Bearbetning: FastighetsRadar. Mätstationer beskriver omgivningen; uppgifter om skador i byggnaden saknas.',

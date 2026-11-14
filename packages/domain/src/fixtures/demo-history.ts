@@ -293,7 +293,10 @@ export function buildDemoHistory(
         ? Array.from({ length: 12 }, (_, i) => ({ month: i + 1, p75: 2.8, p95: 4.2, years: 5, samples: 150 }))
         : [],
     origin: 'demo_fixture',
-    since: { events: '2024-11-12T00:00:00.000Z', measurements: '2024-11-12' },
+    since: {
+      events: swedishMidnight(new Date('2024-11-12T12:00:00Z')).toISOString(),
+      measurements: '2024-11-12',
+    },
     attribution:
       'Demo: syntetiska mätvärden, normaler och händelser. Illustrerar Stockholmsklimat. Inga verkliga myndighetsuppgifter.',
   });
