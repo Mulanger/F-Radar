@@ -71,8 +71,9 @@ export function parseTekniskaVerken(list: unknown, shapes: unknown, op: UtilityO
       continue;
     }
     const o = r.data;
-    if (o.utility !== 'Electricity') {
-      ignored++; // district heating/cooling come in Fas 4; water/fiber/waste are out of scope.
+    const utility = ({ Electricity: 'electricity', DistrictHeating: 'district_heating', DistrictCooling: 'district_cooling' } as const)[o.utility as 'Electricity'];
+    if (!utility || !op.utilities.includes(utility)) {
+      ignored++; // water, fiber and waste are out of scope.
       continue;
     }
     const polys = polygonsFromGeoJson(geoms.get(o.outageId));
@@ -106,7 +107,7 @@ export function parseTekniskaVerken(list: unknown, shapes: unknown, op: UtilityO
     const estimate = iso(o.estimatedCompletionTime);
     outages.push({
       operatorId: op.id,
-      utility: 'electricity',
+      utility,
       externalId: `${op.id}:${o.outageId}`,
       kind,
       state,

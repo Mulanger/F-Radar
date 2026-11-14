@@ -103,9 +103,11 @@ describe('power_outage notification rule', () => {
     });
   const ok = { category: 'power_outage', utilities: ['electricity'], unplanned: true, planned: true, plannedReminder: true, restored: true, changes: true };
   it('accepts the default condition', () => expect(rule(ok).success).toBe(true));
-  it('requires at least one outage type and only electricity in Fas 1', () => {
+  it('requires at least one outage type; electricity, district heating and cooling are selectable', () => {
     expect(rule({ ...ok, unplanned: false, planned: false, plannedReminder: false }).success).toBe(false);
-    expect(rule({ ...ok, utilities: ['district_heating'] }).success).toBe(false);
+    expect(rule({ ...ok, utilities: ['district_heating', 'district_cooling'] }).success).toBe(true);
+    expect(rule({ ...ok, utilities: ['gas'] }).success).toBe(false);
+    expect(rule({ ...ok, utilities: [] }).success).toBe(false);
     expect(rule({ ...ok, extra: 1 }).success).toBe(false);
   });
 });

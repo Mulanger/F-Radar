@@ -5,6 +5,9 @@ import {
   outageHeadline,
   outageMatchLevel,
   outagePrecisionLabel,
+  utilityNoun,
+  withPowerFactor,
+  type UtilityKind,
   type PropertySnapshot,
   type PropertyStatus,
   type PropertyUtilityStatus,
@@ -44,7 +47,11 @@ const attribution = (op: UtilityOperator) => `Källa: ${op.name} – avbrottskar
 
 async function runOperator(op: UtilityOperator, ctx: JobContext): Promise<JobResult> {
   const r = await fetchOperatorOutages(op, ctx.adapter);
-  if (!r.ok) return { status: 'error', items: 0, errorCode: r.error, errorDetail: r.detail, retryAfterSeconds: r.retryAfterSeconds };
+  if (!r.ok) {
+    // A feed that stops parsing usually means the operator changed its map – needs an adapter fix.
+    if (r.error === 'invalid_payload') ctx.adapter.logger.error({ operator: op.id, alert: 'utility_outage_format_changed', detail: r.detail }, 'utility outages: unexpected feed format');
+    return { status: 'error', items: 0, errorCode: r.error, errorDetail: r.detail, retryAfterSeconds: r.retryAfterSeconds };
+  }
   const d = r.data;
   if (d.unknownStatusCodes?.length) ctx.adapter.logger.warn({ operator: op.id, codes: d.unknownStatusCodes }, 'utility outages: unknown upstream status codes');
   const stored = await storeUtilityOutages(
@@ -111,7 +118,14 @@ export interface OperatorStatus {
   lastSuccessAt: string | null;
   lastStatus: string | null;
   errorCode: string | null;
+  /**
+   * Needs attention (Fas 5 feed-health signal): 'format_changed' after ATTENTION_FAILURES consecutive
+   * invalid payloads (adapter must be updated), 'unreachable' after twice as many other failures.
+   */
+  attention: 'format_changed' | 'unreachable' | null;
 }
+
+export const ATTENTION_FAILURES = 3;
 
 export function resolveOperatorStatuses(env: ServerEnv, jobs: JobRow[], now: Date): OperatorStatus[] {
   const byJob = new Map(jobs.map((j) => [j.job_id, j]));
@@ -128,6 +142,14 @@ export function resolveOperatorStatuses(env: ServerEnv, jobs: JobRow[], now: Dat
       lastSuccessAt: last?.toISOString() ?? null,
       lastStatus: j?.last_status ?? null,
       errorCode: j?.last_status === 'error' ? (j.last_error_code ?? null) : null,
+      attention:
+        j?.last_status !== 'error'
+          ? null
+          : j.last_error_code === 'invalid_payload' && j.consecutive_failures >= ATTENTION_FAILURES
+            ? 'format_changed'
+            : j.consecutive_failures >= ATTENTION_FAILURES * 2
+              ? 'unreachable'
+              : null,
     };
   });
 }
@@ -199,8 +221,13 @@ export interface UtilityInputs {
 }
 
 /** Builds the electricity section for one property (Fas 1: electricity only). */
-export function propertyUtilityStatus(propertyId: string, inputs: UtilityInputs): PropertyUtilityStatus {
-  const views = inputs.outages.filter((o) => o.property_id === propertyId && o.utility === 'electricity').map(toView);
+export function propertyUtilityStatus(propertyId: string, inputs: UtilityInputs, utility: UtilityKind = 'electricity'): PropertyUtilityStatus {
+  const views = inputs.outages.filter((o) => o.property_id === propertyId && o.utility === utility).map(toView);
+  if (utility !== 'electricity') {
+    // No concession data for district heating/cooling: coverage is unknown and the section exists only
+    // when an outage is matched (see withUtilityOutages).
+    return { utility, operator: null, coverage: 'unknown', updatedAt: null, ...split(views) };
+  }
   // Concession areas (Ei national dataset + operator feeds; boundaries approximate). One operator id may
   // appear from several sources; distinct operators mean the property lies near a boundary.
   const rows = inputs.concessions.filter((c) => c.property_id === propertyId);
@@ -215,15 +242,20 @@ export function propertyUtilityStatus(propertyId: string, inputs: UtilityInputs)
     coverage = !st || !st.enabled ? 'not_monitored' : st.current ? 'monitored' : 'stale';
     updatedAt = st?.lastSuccessAt ?? null;
   }
-  // Low precision (near/point matches and small area-level outages) is shown under "I närheten" only.
-  const panelOnly = (v: UtilityOutageView) => v.precisionLevel === 'low';
-  const byStart = (a: UtilityOutageView, b: UtilityOutageView) => Date.parse(a.plannedStart ?? a.actualStart ?? '') - Date.parse(b.plannedStart ?? b.actualStart ?? '');
   return {
     utility: 'electricity',
     operator,
     coverage,
     ...(ids.length > 1 ? { operatorCandidates: ids.map(nameOf) } : {}),
     updatedAt,
+    ...split(views),
+  };
+}
+
+function split(views: UtilityOutageView[]) {
+  const panelOnly = (v: UtilityOutageView) => v.precisionLevel === 'low';
+  const byStart = (a: UtilityOutageView, b: UtilityOutageView) => Date.parse(a.plannedStart ?? a.actualStart ?? '') - Date.parse(b.plannedStart ?? b.actualStart ?? '');
+  return {
     current: views.filter((v) => !panelOnly(v) && (v.state === 'ongoing' || v.state === 'unknown')).sort(byStart),
     upcoming: views.filter((v) => !panelOnly(v) && v.state === 'upcoming').sort(byStart),
     recentlyRestored: views.filter((v) => !panelOnly(v) && (v.state === 'restored' || v.state === 'withdrawn')),
@@ -237,11 +269,14 @@ export function propertyUtilityStatus(propertyId: string, inputs: UtilityInputs)
  * health never makes the status 'unknown'.
  */
 export function withUtilityOutages(s: PropertySnapshot, inputs: UtilityInputs): PropertySnapshot {
-  const u = propertyUtilityStatus(s.property.id, inputs);
+  const sections = [propertyUtilityStatus(s.property.id, inputs, 'electricity')];
+  for (const utility of ['district_heating', 'district_cooling'] as const) {
+    if (inputs.outages.some((o) => o.property_id === s.property.id && o.utility === utility)) sections.push(propertyUtilityStatus(s.property.id, inputs, utility));
+  }
   let status = s.property.status;
   let reason = s.property.statusReason ?? null;
   let raised = false;
-  for (const v of [...u.current, ...u.upcoming]) {
+  for (const v of sections.flatMap((u) => [...u.current, ...u.upcoming])) {
     const st = v.severity ? SEVERITY_STATUS[v.severity] : undefined;
     // Upcoming planned work is announced in the feed but does not change today's status.
     if (!st || v.state === 'upcoming') continue;
@@ -249,16 +284,18 @@ export function withUtilityOutages(s: PropertySnapshot, inputs: UtilityInputs): 
       status = st;
       raised = true;
       reason = v.kind === 'unplanned' && v.precisionLevel === 'high'
-        ? `Oplanerat strömavbrott registrerat av ${v.operatorName}`
+        ? `Oplanerat ${utilityNoun(v.utility)} registrerat av ${v.operatorName}`
         : outageHeadline({ utility: v.utility, kind: v.kind, state: v.state, plannedStart: v.plannedStart, plannedEnd: v.plannedEnd }, v.operatorName);
     }
   }
-  const counted = u.current.filter((v) => v.severity === 'critical' || v.severity === 'warning').length;
-  return {
+  const counted = sections.flatMap((u) => u.current).filter((v) => v.severity === 'critical' || v.severity === 'warning').length;
+  const next: PropertySnapshot = {
     ...s,
     property: raised ? { ...s.property, status, statusReason: reason } : s.property,
     activeAlertCount: s.activeAlertCount + counted,
-    utilityOutages: [u],
+    utilityOutages: sections,
     ...(s.monitoring ? { monitoring: { ...s.monitoring, statusMethod: 'highest_official_warning_or_outage' as const } } : {}),
   };
+  // Riskindex: factor "El och värme" (ADR 0006 Fas 5).
+  return next.riskIndex ? { ...next, riskIndex: withPowerFactor(next.riskIndex, next) } : next;
 }

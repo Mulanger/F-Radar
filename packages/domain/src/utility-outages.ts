@@ -51,7 +51,9 @@ export type OutageMatchPrecisionLevel = 'high' | 'medium' | 'low' | 'area';
 export const AREA_FEED_MIN_CUSTOMERS = 25;
 
 export function outageMatchLevel(method: OutageMatchMethod, positionConfirmed: boolean, affectedCustomers?: number | null): OutageMatchPrecisionLevel {
-  if (method === 'outage_polygon' || method === 'outage_address') return positionConfirmed ? 'high' : 'medium';
+  // An address-list match is by the property's own street address, independent of the map pin.
+  if (method === 'outage_address') return 'high';
+  if (method === 'outage_polygon') return positionConfirmed ? 'high' : 'medium';
   if (method === 'outage_street') return 'medium';
   if (method === 'outage_adjacent' || method === 'outage_point') return 'low';
   // Area match: below the threshold (or unknown size) it is panel-only.
@@ -175,7 +177,7 @@ export function outageHeadline(o: { utility: UtilityKind; kind: OutageKind; stat
   const noun = UTILITY_NOUN[o.utility];
   const Noun = noun[0]!.toUpperCase() + noun.slice(1);
   if (o.state === 'restored') return `${UTILITY_BACK[o.utility]} enligt ${operatorName}`;
-  if (o.state === 'withdrawn') return `Planerat ${noun} visas inte längre hos ${operatorName}`;
+  if (o.state === 'withdrawn') return `${o.kind === 'planned' ? `Planerat ${noun}` : Noun} visas inte längre hos ${operatorName}`;
   if (o.kind === 'planned') {
     if (o.state === 'upcoming') {
       const w = formatOutageWindow(o.plannedStart, o.plannedEnd);
@@ -195,7 +197,7 @@ export function outagePrecisionLabel(method: OutageMatchMethod, positionConfirme
         ? 'Fastighetens adresspunkt ligger inom avbrottsområdet'
         : 'Inom avbrottsområdet – fastighetens position är ungefärlig';
     case 'outage_address':
-      return positionConfirmed ? 'Fastighetens adress finns i nätbolagets lista' : 'Adressen finns i nätbolagets lista – fastighetens position är ungefärlig';
+      return 'Fastighetens adress finns i nätbolagets lista';
     case 'outage_street':
       return 'Gatan nämns i nätbolagets lista – inte säkert att fastigheten berörs';
     case 'outage_adjacent':
@@ -216,4 +218,63 @@ export function outageFeedTitle(headline: string, level: OutageMatchPrecisionLev
   if (method === 'outage_area') return `${headline} – i nätbolagets driftområde${placeLabel ? ` ${placeLabel}` : ''}`;
   if (method === 'outage_street') return `${headline} – gatan nämns i nätbolagets lista`;
   return `${headline} – fastighetens position är ungefärlig`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Address lists (Fas 4: operators that publish streets, not geometry)  */
+/* ------------------------------------------------------------------ */
+
+export interface OutageAddress {
+  street: string;
+  /** Normalised house numbers ("12b"); null = the whole street is named. */
+  numbers: string[] | null;
+}
+
+/** "Stora  Nygatan." → "stora nygatan" (exact street names only – no suffix guessing). */
+export function normalizeStreet(s: string): string {
+  return s.normalize('NFC').toLowerCase().replace(/\s+/g, ' ').replace(/[.]+$/, '').trim();
+}
+
+/** "12 B" → "12b". */
+export function normalizeHousenumber(s: string): string {
+  return s.normalize('NFC').toLowerCase().replace(/\s+/g, '').trim();
+}
+
+const NUMBER_TOKEN = /^\d{1,4}[a-z]?$/i;
+
+/**
+ * Parses an operator's address list ("Stora Nygatan 1, 3\nSlussgatan 1\nRichtersgatan").
+ * A line whose numbers cannot all be read safely (ranges, words) keeps only its street (null
+ * numbers → street-level, medium precision). Returns null for empty input.
+ */
+export function parseAddressList(text: string | null | undefined): OutageAddress[] | null {
+  if (!text || !text.trim()) return null;
+  const out: OutageAddress[] = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim().replace(/\s+/g, ' ');
+    if (!line) continue;
+    const m = /^(.*?[^\d\s,])\s+(\d.*)$/.exec(line);
+    if (!m) {
+      out.push({ street: normalizeStreet(line), numbers: null });
+      continue;
+    }
+    const tokens = m[2]!.split(/\s*,\s*|\s+och\s+|\s+/i).filter(Boolean);
+    const ok = tokens.length > 0 && tokens.every((t) => NUMBER_TOKEN.test(t));
+    out.push({ street: normalizeStreet(m[1]!), numbers: ok ? tokens.map(normalizeHousenumber) : null });
+  }
+  return out.length ? out : null;
+}
+
+/** How a property's street address matches an address list. */
+export function matchAddressList(street: string | null | undefined, housenumber: string | null | undefined, list: OutageAddress[]): 'outage_address' | 'outage_street' | null {
+  if (!street) return null;
+  const s = normalizeStreet(street);
+  const n = housenumber ? normalizeHousenumber(housenumber) : null;
+  let streetOnly = false;
+  for (const a of list) {
+    if (a.street !== s) continue;
+    if (a.numbers === null) streetOnly = true;
+    else if (n && a.numbers.includes(n)) return 'outage_address';
+  }
+  return streetOnly ? 'outage_street' : null;
 }

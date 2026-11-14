@@ -907,14 +907,34 @@ export function SmsManagement({
               {draft.condition.category === "power_outage" && (() => {
                 const pc = draft.condition;
                 const opts: Array<[keyof typeof pc & ("unplanned" | "planned" | "plannedReminder" | "restored" | "changes"), string]> = [
-                  ["unplanned", "Oplanerat strömavbrott (direkt)"],
-                  ["planned", "Planerat strömavbrott när nätbolaget publicerar det"],
+                  ["unplanned", "Oplanerat avbrott (direkt)"],
+                  ["planned", "Planerat avbrott när nätbolaget publicerar det"],
                   ["plannedReminder", "Påminnelse kvällen före ett planerat avbrott (18–21)"],
-                  ["restored", "När strömmen är tillbaka (bara efter ett tidigare SMS)"],
+                  ["restored", "När leveransen är tillbaka (bara efter ett tidigare SMS)"],
                   ["changes", "Ändrad tid eller inställt planerat avbrott (bara efter ett tidigare SMS)"],
                 ];
+                const utilityOpts = [
+                  ["electricity", "El"],
+                  ["district_heating", "Fjärrvärme"],
+                  ["district_cooling", "Fjärrkyla"],
+                ] as const;
                 return (
                   <>
+                    <div style={{ ...row, fontSize: 13, gap: 16 }}>
+                      {utilityOpts.map(([u, label]) => (
+                        <label key={u} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <input
+                            type="checkbox"
+                            checked={pc.utilities.includes(u)}
+                            onChange={(e) => {
+                              const next = e.target.checked ? [...new Set([...pc.utilities, u])] : pc.utilities.filter((x) => x !== u);
+                              if (next.length) updateCondition({ utilities: next } as Partial<typeof pc>);
+                            }}
+                          />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
                     {opts.map(([k, label]) => (
                       <label key={k} style={{ ...row, fontSize: 13 }}>
                         <input
@@ -929,7 +949,8 @@ export function SmsManagement({
                     ))}
                     <p style={{ ...cardSub, margin: 0 }}>
                       SMS skickas bara när fastighetens adresspunkt ligger inom
-                      området nätbolaget publicerat som berört. Träffar på
+                      området nätbolaget publicerat som berört, eller när adressen
+                      står i nätbolagets lista. Träffar på
                       postnummer, område eller i närheten visas bara i
                       dashboarden.
                     </p>

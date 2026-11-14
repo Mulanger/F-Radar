@@ -220,6 +220,48 @@ export function registerUtilityOutageTests(pool: pg.Pool) {
       assert.deepEqual(refs.rows.map((r) => r.external_ref), ['T3']);
     });
 
+    it('address-list heating outages match by street + number within the address area; old history is not "recent"', async () => {
+      const f = await fixture();
+      const ctx = { organizationId: f.org, userId: 'user_outageTest' };
+      const geo = (street: string, housenumber: string) => ({ provider: 'geoapify' as const, precision: 'building' as const, label: `${street} ${housenumber}, 411 01 Göteborg, Sverige`, street, housenumber, geocodedPoint: { lat: LAT, lon: LON } });
+      const listed = await createProperty(pool, ctx, { name: 'Listad', address: 'Stora Nygatan 3', location: { lat: LAT, lon: LON }, geocode: geo('Stora Nygatan', '3') });
+      const other = await createProperty(pool, ctx, { name: 'Annat nummer', address: 'Stora Nygatan 5', location: { lat: LAT, lon: LON }, geocode: geo('Stora Nygatan', '5') });
+      const street = await createProperty(pool, ctx, { name: 'Gatan', address: 'Richtersgatan 12', location: { lat: LAT, lon: LON }, geocode: geo('Richtersgatan', '12') });
+      const start = new Date(Math.ceil((Date.now() + 2 * 86_400_000) / 3_600_000) * 3_600_000);
+      const o = outage({
+        utility: 'district_heating', kind: 'planned', state: 'upcoming', precision: 'address_list', geometry: null,
+        addresses: [{ street: 'stora nygatan', numbers: ['1', '3'] }, { street: 'richtersgatan', numbers: null }],
+        plannedStart: start.toISOString(), plannedEnd: new Date(start.getTime() + 8 * 3600_000).toISOString(), actualStart: null, estimatedRestore: null,
+        addressArea: { lat: LAT, lon: LON, radiusM: 5_000 },
+      });
+      await storeUtilityOutages(pool, OP.id, [o], true);
+      await rematchUtilityOutages(pool);
+      const m = await matchesFor(o.externalId);
+      assert.equal(m.find((x) => x.property_id === listed.id)?.match_method, 'outage_address');
+      assert.equal(m.find((x) => x.property_id === street.id)?.match_method, 'outage_street');
+      assert.equal(m.find((x) => x.property_id === other.id), undefined);
+      const c = await changesFor(o.externalId);
+      assert.ok(c.some((x) => x.property_id === listed.id && /^Planerat fjärrvärmeavbrott/.test(x.headline)));
+      const stored = await pool.query(`SELECT street, housenumber FROM properties WHERE id = $1`, [listed.id]);
+      assert.deepEqual(stored.rows[0], { street: 'Stora Nygatan', housenumber: '3' });
+      // An outage restored years ago (feed history) is not stored at all.
+      const old = outage({ state: 'restored', restoredAt: '2023-03-13T17:00:00.000Z' });
+      await storeUtilityOutages(pool, OP.id, [o, old], true);
+      const gone = await pool.query(`SELECT 1 FROM source_events WHERE external_id = $1`, [old.externalId]);
+      assert.equal(gone.rowCount, 0);
+    });
+
+    it('migration 0008 back-fills street and house number from the geocoder label', async () => {
+      const f = await fixture();
+      const p = await createProperty(pool, { organizationId: f.org, userId: 'user_outageTest' }, { name: 'Gammal', address: 'Sveavägen 42', location: { lat: LAT, lon: LON }, geocode: { provider: 'geoapify', precision: 'building', label: 'Sveavägen 42 b, 111 35 Stockholm, Sverige', geocodedPoint: { lat: LAT, lon: LON } } });
+      await pool.query(`UPDATE properties SET street = NULL, housenumber = NULL WHERE id = $1`, [p.id]);
+      const dir = process.env.FASTIGHETSRADAR_MIGRATIONS_DIR ?? (await import('node:url')).fileURLToPath(new URL('../../packages/db/migrations', import.meta.url));
+      const sql = (await import('node:fs')).readFileSync((await import('node:path')).join(dir, '0008_property_street_address.sql'), 'utf8').replace(/ALTER TABLE properties ADD COLUMN street text, ADD COLUMN housenumber text;/, '');
+      await pool.query(sql);
+      const r = await pool.query(`SELECT street, housenumber FROM properties WHERE id = $1`, [p.id]);
+      assert.deepEqual(r.rows[0], { street: 'Sveavägen', housenumber: '42B' });
+    });
+
     it('anti-spam SMS: only the property inside the polygon triggers; restored goes only to those notified', async () => {
       const f = await fixture();
       const env = loadServerEnv({ NODE_ENV: 'test', SMS_ESTIMATED_PRICE_PER_PART_SEK: '1', SMS_MAX_MESSAGES_PER_MINUTE: '100' });

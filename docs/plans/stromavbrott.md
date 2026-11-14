@@ -1,6 +1,6 @@
 # Strömavbrott och fjärrvärmeavbrott – implementationsplan
 
-**Status:** Godkänd av produktägaren 2026-11-14. Genomförs **en fas i taget**.
+**Status:** Godkänd av produktägaren 2026-11-14. **Fas 1–5 genomförda 2026-11-14** (se faslogg, avsnitt 13).
 **Underlag:** Källundersökning 2026-11-14 (avsnitt 4). Alla endpoints nedan svarade då utan nyckel,
 inloggning eller cookies. De är **odokumenterade** och kan ändras – verifiera alltid innan du bygger.
 
@@ -751,13 +751,14 @@ och **inget** SMS; Tekniska verken/Mälarenergi klarar 10.
 |---|---|---|
 | Vattenfall statuskoder för oplanerat/pågående | Fas 1 | **Löst 2026-11-14** ur kartans egen kod: 1–4 pågående fel, 6 pågående planerat, 7 kommande planerat |
 | Digpro fullständig `status`-mappning | Fas 1 | Löst via fält i stället för `status`/`styleUrl` (`#active_outage` kan ha passerat `restored`); planerat > 24 h efter planerat slut utan `restored` → `unknown` |
-| Göteborg: syns planerade elavbrott i förväg? | Fas 1/4 | Okänt |
+| Göteborg: syns planerade elavbrott i förväg? | Fas 1/4 | Fortfarande ej observerat (adresslistan innehöll bara fjärrvärme/fjärrkyla). Elavbrott i listan tolkas om de dyker upp |
+| Trimble värme/kyla (scope h/c) | Fas 4 | Ej implementerat: inga aktiva värmeavbrott fanns att verifiera formatet mot (stationspunkter för värme okända) |
 | Nationell nätkoncessionsdata (Ei) – finns, licens? | Fas 2 | **Löst 2026-11-14:** Ei publicerar "Nätkoncession för område – lokalnät" som ZIP/shapefile (SWEREF 99 TM, CC0, ungefärliga gränser); importeras veckovis och täcker alla 144 nätbolag |
 | Ellevio fältbetydelser `p`, `u`, `ie`, `c` | Fas 2 | **Löst:** rader per (ärende, postnummerområde); `ie` = avslutat, `u`/`p`/`c` = berörda i området. Detaljer via `t=ticket`; `affected_site_total_count` är avbrottets totala antal, **inte** postnummerområdets |
-| E.ON `outstat.bin`-format | Fas 3 | Ej utrett |
 | Trimble precision | Fas 2 | **Löst:** avbrott → berörda nätstationer → minsta driftområde (`outage_area`). Egen avbrottsyta vid pågående fel ej observerad |
-| ServiceAlert precision | Fas 3 | Ej utrett |
-| Partille, Umeå exakta Digpro-URL:er | Fas 3 | Ej fångade (Dala Energi verifierad och med i Fas 1) |
+| ServiceAlert precision | Fas 3 | **Löst:** operatörsritad cirkel/polygon + fritext, ingen starttid → områdesprecision, panel; typ bara där profilerna är uppdelade (Mölndal) |
+| E.ON `outstat.bin`-format | Fas 3 | **Löst:** 52-byteposter (område, avbrott, flaggor, kunder, 256-bitars nätstationskarta) + detalj-JSON + stationsområden i SWEREF 99 TM |
+| Partille, Umeå exakta Digpro-URL:er | Fas 3 | Partille hittad och med. Umeå: ingen Digpro-länk på störningssidan. Härryda: Digpro-värd svarar inte (TLS/anslutning). Kraftringen: Digpro-värden är fjärrvärmekartan (Fas 4) |
 
 ---
 
@@ -767,6 +768,6 @@ och **inget** SMS; Tekniska verken/Mälarenergi klarar 10.
 |---|---|---|---|---|---|
 | 1 | 2026-11-14 | `12c64b4`, `44c9fd9` (gren `claude/stromavbrott-fas1`) | Vattenfall, Göteborg Energi, 12 Digpro-bolag (14/14 livetest gröna) | 280 enhets-/DOM-tester gröna (53 nya); PostGIS-sviten i podden 26/26 (även tillsammans med parallell säkerhetshärdning); lint, typecheck, build gröna | Manuell webbläsarverifiering ej gjord (kräver API + databas lokalt). Göteborg: planerade elavbrott i förväg ej observerade. |
 | 2 | 2026-11-14 | gren `claude/stromavbrott-fas2` | Ellevio, Tekniska verken, Trimble (Mälarenergi, Jämtkraft, Sundsvall, Gävle) + Ei-nätområden; 20/20 operatörer + Ei livetest gröna | 296 enhets-/DOM-tester; PostGIS-sviten 28/28 i podden; lint, typecheck, build gröna | Mälarenergis `/api/outages` saknar geometri – deras Trimble-karta används i stället. Områdesträffar når flödet först från 25 berörda kunder. Manuell webbläsarverifiering ej gjord. |
-| 3 | | | | | |
-| 4 | | | | | |
-| 5 | | | | | |
+| 3 | 2026-11-14 | gren `claude/stromavbrott-fas3` | E.ON, 6 nya Digpro (Borlänge, Luleå, Nacka, Partille, Sala-Heby, Varbergsortens), 11 ServiceAlert; totalt 38 operatörer, livetest 40/40 | 306 enhets-/DOM-tester | E.ON och ServiceAlert ger områdesprecision (aldrig SMS). Upptäcktsskript `scripts/discover-outage-platforms.mjs`. |
+| 4 | 2026-11-14 | gren `claude/stromavbrott-fas3` | Fjärrvärme/fjärrkyla: Göteborg Energi (KML + adresslistor), Tekniska verken, Digpro `fpdh` (Halmstad, Uddevalla, Luleå, Partille, Kraftringen), ServiceAlert-profiler; livetest 41/41 | 313 enhets-/DOM-tester; PostGIS 30/30 | Migrering 0008 (gata/husnummer). Adressträff = hög precision oavsett kartnål; gatuträff = medel. Gamla avslutade avbrott i flödenas historik lagras inte. Trimble värme ej verifierbart. |
+| 5 | 2026-11-14 | gren `claude/stromavbrott-fas3` | Kvarvarande stora bolag utredda (se nedan); 39 konfigurerade källor | 317 enhets-/DOM-tester; PostGIS 30/30; livetest 41/41 | Riskfaktor "El och värme" (oplanerat vid adressen → Förhöjd, planerat → Låg, tak 60). Driftsignal `attention` per operatör. Ej anslutna: Jönköping (endast fritext utan geometri), Umeå (Mapbox-tileset, inget verifierbart dataformat), Öresundskraft (driftsida ger fel), Kraftringen el (kartan trasig), Härryda (värd svarar inte), Skellefteå Kraft (ingen publik karta hittad). |

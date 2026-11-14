@@ -4,6 +4,37 @@
 
 ---
 
+# Strömavbrott – Fas 5 (Claude, 2026-11-14)
+
+- Remaining large operators investigated; not connectable without guessing: Jönköping (text only), Umeå (Mapbox tileset),
+  Öresundskraft, Kraftringen power map, Härryda, Skellefteå Kraft – documented in docs/sources.md.
+- Riskindex factor **"El och värme"** (ADR 0006 §15) and per-operator **feed-health signal** (`attention`, ADR 0006 §16).
+- Implementation of docs/plans/stromavbrott.md is complete: 39 configured sources (power from 38 grid operators, district heating/cooling from 18), national concession areas, dashboard, SMS rules. Tests: 317 unit/DOM, PostGIS 30/30, live 41/41.
+  Not done: manual browser verification (needs a local API + database); production enablement is the product owner's call.
+
+---
+
+# Strömavbrott – Fas 4 (Claude, 2026-11-14)
+
+District heating and cooling on the same pipeline: Göteborg Energi (KML + street-address lists), Tekniska verken,
+Digpro `fpdh` layers (incl. Kraftringen's heating map) and ServiceAlert heating profiles. Migration 0008 stores
+`properties.street/housenumber` (from the chosen suggestion; conservative back-fill). Panel becomes "El och fjärrvärme",
+SMS rules choose utilities. Feed history older than 30 days is no longer stored, and explicit restore times are kept.
+Tests: 313 unit/DOM, PostGIS 30/30, live 41/41.
+
+---
+
+# Strömavbrott – Fas 3 (Claude, 2026-11-14)
+
+Branch `claude/stromavbrott-fas3`. **38 grid operators.**
+- **E.ON** decoded from its map (binary `outstat.bin` + details + station areas, SWEREF 99 TM → WGS84 in code).
+- **ServiceAlert** notices (11 operators; panel only, kind only where the operator splits planned/acute profiles).
+- **Discovery script** `scripts/discover-outage-platforms.mjs`; added Borlänge, Luleå, Nacka, Partille, Sala-Heby,
+  Varbergsortens (Digpro) and Eskilstuna, Habo, Ljusdal, Mölndal, Tranås, Ulricehamn, Österlen (ServiceAlert).
+- Tests: 306 unit/DOM, live 40/40.
+
+---
+
 # Strömavbrott – Fas 2 (Claude, 2026-11-14)
 
 Branch `claude/stromavbrott-fas2` (from `8238d31`). 20 grid operators now collected.

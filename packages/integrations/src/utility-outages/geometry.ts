@@ -120,3 +120,81 @@ export function parseKmlPlacemarks(text: string): KmlPlacemark[] {
   }
   return out;
 }
+
+/* ------------------------------------------------------------------ */
+/* SWEREF 99 TM (EPSG:3006) → WGS84                                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Inverse Gauss–Krüger projection for SWEREF 99 TM with Lantmäteriet's published series
+ * ("Gauss Krügers projektion", GRS 80, central meridian 15°, scale 0.9996, false easting 500 000).
+ * Accuracy is well below a metre inside Sweden. Returns [lon, lat].
+ */
+export function sweref99tmToWgs84(northing: number, easting: number): LonLat {
+  const a = 6378137;
+  const f = 1 / 298.257222101;
+  const k0 = 0.9996;
+  const lambda0 = (15 * Math.PI) / 180;
+  const e2 = f * (2 - f);
+  const n = f / (2 - f);
+  const aRoof = (a / (1 + n)) * (1 + (n * n) / 4 + (n ** 4) / 64);
+  const d1 = n / 2 - (2 * n * n) / 3 + (37 * n ** 3) / 96 - n ** 4 / 360;
+  const d2 = (n * n) / 48 + n ** 3 / 15 - (437 * n ** 4) / 1440;
+  const d3 = (17 * n ** 3) / 480 - (37 * n ** 4) / 840;
+  const d4 = (4397 * n ** 4) / 161280;
+  const As = e2 + e2 ** 2 + e2 ** 3 + e2 ** 4;
+  const Bs = -(7 * e2 ** 2 + 17 * e2 ** 3 + 30 * e2 ** 4) / 6;
+  const Cs = (224 * e2 ** 3 + 889 * e2 ** 4) / 120;
+  const Ds = -(4279 * e2 ** 4) / 1260;
+  const xi = northing / (k0 * aRoof);
+  const eta = (easting - 500000) / (k0 * aRoof);
+  const xiP =
+    xi -
+    d1 * Math.sin(2 * xi) * Math.cosh(2 * eta) -
+    d2 * Math.sin(4 * xi) * Math.cosh(4 * eta) -
+    d3 * Math.sin(6 * xi) * Math.cosh(6 * eta) -
+    d4 * Math.sin(8 * xi) * Math.cosh(8 * eta);
+  const etaP =
+    eta -
+    d1 * Math.cos(2 * xi) * Math.sinh(2 * eta) -
+    d2 * Math.cos(4 * xi) * Math.sinh(4 * eta) -
+    d3 * Math.cos(6 * xi) * Math.sinh(6 * eta) -
+    d4 * Math.cos(8 * xi) * Math.sinh(8 * eta);
+  const phiStar = Math.asin(Math.sin(xiP) / Math.cosh(etaP));
+  const dLambda = Math.atan(Math.sinh(etaP) / Math.cos(xiP));
+  const s = Math.sin(phiStar) ** 2;
+  const phi = phiStar + Math.sin(phiStar) * Math.cos(phiStar) * (As + Bs * s + Cs * s * s + Ds * s * s * s);
+  return [((lambda0 + dLambda) * 180) / Math.PI, (phi * 180) / Math.PI];
+}
+
+/** GeoJSON (Multi)Polygon coordinates in SWEREF 99 TM [E, N] → polygons in lon/lat; null if invalid. */
+export function swerefPolygonsToLonLat(g: { type?: string; coordinates?: unknown } | null | undefined): LonLat[][][] | null {
+  if (!g || (g.type !== 'Polygon' && g.type !== 'MultiPolygon')) return null;
+  const polys = (g.type === 'Polygon' ? [g.coordinates] : (g.coordinates as unknown[])) as unknown[];
+  const out: LonLat[][][] = [];
+  for (const poly of polys) {
+    if (!Array.isArray(poly)) return null;
+    const rings: LonLat[][] = [];
+    for (const ring of poly) {
+      if (!Array.isArray(ring)) return null;
+      const closed = closeRing(ring.map((p) => (Array.isArray(p) ? sweref99tmToWgs84(Number(p[1]), Number(p[0])) : ([NaN, NaN] as LonLat))));
+      if (!closed) return null;
+      rings.push(closed);
+    }
+    out.push(rings);
+  }
+  return out.length ? out : null;
+}
+
+/** Circle (centre lon/lat, radius m) as a 32-gon ring – for operators that publish point + radius areas. */
+export function circleRing([lon, lat]: LonLat, radiusM: number, sides = 32): LonLat[] | null {
+  if (!inSweden([lon, lat]) || !(radiusM > 0) || radiusM > 50_000) return null;
+  const dLat = radiusM / 111_320;
+  const dLon = radiusM / (111_320 * Math.cos((lat * Math.PI) / 180));
+  const ring: LonLat[] = [];
+  for (let i = 0; i < sides; i++) {
+    const t = (2 * Math.PI * i) / sides;
+    ring.push([lon + dLon * Math.cos(t), lat + dLat * Math.sin(t)]);
+  }
+  return closeRing(ring);
+}

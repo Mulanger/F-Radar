@@ -4,6 +4,8 @@ import type { ServerEnv } from "@fastighetsradar/config";
 import {
   formatOutageWindow,
   NOTIFICATION_CATEGORIES,
+  utilityNoun,
+  type UtilityKind,
   type NotificationActivity,
   type NotificationDashboard,
 } from "@fastighetsradar/domain";
@@ -426,23 +428,25 @@ export class NotificationService {
         : null;
     const describe = (phase: OutageSmsPhase | "reminder", x: Row) => {
       const window = formatOutageWindow(x.planned_start?.toISOString() ?? null, x.planned_end?.toISOString() ?? null);
+      const noun = utilityNoun(x.utility as UtilityKind);
+      const back = { electricity: "Strömmen", district_heating: "Fjärrvärmen", district_cooling: "Fjärrkylan", gas: "Gasleveransen" }[x.utility as UtilityKind] ?? "Leveransen";
       switch (phase) {
         case "start": {
           const since = clock(x.actual_start);
           const until = clock(x.estimated_restore);
-          return `Oplanerat strömavbrott registrerat som omfattar adressen${since ? `. Sedan ${since}` : ""}${until ? `, beräknat klart ${until}` : ""}`;
+          return `Oplanerat ${noun} registrerat som omfattar adressen${since ? `. Sedan ${since}` : ""}${until ? `, beräknat klart ${until}` : ""}`;
         }
         case "planned":
-          return `Planerat strömavbrott ${window}`;
+          return `Planerat ${noun} ${window}`;
         case "reminder":
           // "i morgon 09:00–14:00" – the date part is implied by "i morgon".
-          return `Påminnelse: planerat strömavbrott i morgon ${window.replace(/^\d{1,2}\/\d{1,2} /, "")}`;
+          return `Påminnelse: planerat ${noun} i morgon ${window.replace(/^\d{1,2}\/\d{1,2} /, "")}`;
         case "change":
           return x.state === "withdrawn"
-            ? `Planerat strömavbrott ${window} visas inte längre hos nätbolaget`
-            : `Ändrad tid: planerat strömavbrott ${window}`;
+            ? `Planerat ${noun} ${window} visas inte längre hos nätbolaget`
+            : `Ändrad tid: planerat ${noun} ${window}`;
         case "restored":
-          return "Strömmen är tillbaka enligt nätbolaget";
+          return `${back} är tillbaka enligt nätbolaget`;
       }
     };
     const grouped = new Map<string, Trigger>();
@@ -491,7 +495,7 @@ export class NotificationService {
         [r.organization_id, props.map((p) => p.id)],
       );
       for (const x of due.rows) {
-        const confirmed = x.position_source === "manual_pin" || x.position_source === "manual_adjusted" || x.geocode_precision === "building";
+        const confirmed = x.match_method === "outage_address" || x.position_source === "manual_pin" || x.position_source === "manual_adjusted" || x.geocode_precision === "building";
         if (!confirmed || !["outage_polygon", "outage_address"].includes(x.match_method ?? "")) continue;
         if (!(c.utilities as string[]).includes(x.utility) || !x.planned_start || !inReminderWindow(x.planned_start, now)) continue;
         add(x, "reminder");

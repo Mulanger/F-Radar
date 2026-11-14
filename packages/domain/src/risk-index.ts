@@ -16,7 +16,8 @@ export const RISK_METHOD = 'fr_risk_index_v1' as const;
 export const RiskLevelSchema = z.enum(['low', 'watch', 'elevated', 'high']);
 export type RiskLevel = z.infer<typeof RiskLevelSchema>;
 
-export const RiskFactorKeySchema = z.enum(['weather', 'water', 'vma', 'access', 'air']);
+/** 'power' (el och värme) is added for live properties by withPowerFactor – ADR 0006 Fas 5. */
+export const RiskFactorKeySchema = z.enum(['weather', 'water', 'vma', 'access', 'air', 'power']);
 export type RiskFactorKey = z.infer<typeof RiskFactorKeySchema>;
 
 export const RiskFactorSchema = z.object({
@@ -289,6 +290,11 @@ export function assessPropertyRisk(s: PropertySnapshot, isCurrent: (id: SourceId
     };
   }
 
+  return scored(factors);
+}
+
+function scored(factors: RiskFactor[]): RiskIndex {
+  const assessed = factors.filter((f) => f.assessed);
   const score = combineFactorPoints(assessed.map((f) => f.points!));
   const level = riskLevelOf(score);
   const top = [...assessed].sort((a, b) => b.points! - a.points!)[0];
@@ -299,6 +305,45 @@ export function assessPropertyRisk(s: PropertySnapshot, isCurrent: (id: SourceId
         : 'Inga aktuella varningar som bedöms påverka byggnaden.'
       : top!.reason;
   return { method: RISK_METHOD, score, level, summary, assessedFactors: assessed.length, factors };
+}
+
+/* ------------------------------------------------------------------ */
+/* El och värme (grid operators' outages, ADR 0006 Fas 5)              */
+/* ------------------------------------------------------------------ */
+
+const UTILITY_SV: Record<string, string> = { electricity: 'strömavbrott', district_heating: 'fjärrvärmeavbrott', district_cooling: 'fjärrkyleavbrott', gas: 'gasavbrott' };
+
+/**
+ * Factor "El och värme" from the snapshot's matched outages (current only – planned work ahead is
+ * not a present impact). Never above "Förhöjd": an outage is the operator's registration, not an
+ * official warning.
+ *   unplanned, address inside the area (high)   55  Förhöjd
+ *   unplanned, medium precision                 30  Bevaka
+ *   planned work in progress (high)             15  Låg
+ *   area-level / anything else                   5 / 0
+ * Assessed when the power grid is monitored and current, or when an outage is matched.
+ */
+export function powerFactor(s: PropertySnapshot): RiskFactor {
+  const sections = s.utilityOutages ?? [];
+  const el = sections.find((u) => u.utility === 'electricity');
+  const current = sections.flatMap((u) => u.current).filter((v) => v.state === 'ongoing');
+  const cs: Contribution[] = current.map((v) => {
+    const noun = UTILITY_SV[v.utility] ?? 'avbrott';
+    const what = `${v.kind === 'unplanned' ? 'Oplanerat' : v.kind === 'planned' ? 'Planerat' : 'Registrerat'} ${noun} – ${v.operatorName}`;
+    const pts =
+      v.kind === 'unplanned' ? (v.precisionLevel === 'high' ? 55 : v.precisionLevel === 'medium' ? 30 : 5) : v.kind === 'planned' ? (v.precisionLevel === 'high' ? 15 : 5) : 5;
+    return { points: pts, short: v.kind === 'unplanned' ? 'Oplanerat avbrott' : v.kind === 'planned' ? 'Planerat arbete' : 'Avbrott', reason: `${what}. ${v.precisionLabel}.` };
+  });
+  const assessed = cs.length > 0 || el?.coverage === 'monitored';
+  const c = best(cs) ?? { points: 0, short: 'Inga avbrott', reason: 'Inga registrerade avbrott som omfattar fastigheten.' };
+  return factor('power', 'El och värme', 60, c, assessed, 'Fastighetens elnät bevakas inte eller kunde inte kontrolleras.');
+}
+
+/** Adds the "El och värme" factor and re-scores (an "Ej bedömd" index stays unassessed). */
+export function withPowerFactor(risk: RiskIndex, s: PropertySnapshot): RiskIndex {
+  const factors = [...risk.factors.filter((f) => f.key !== 'power'), powerFactor(s)];
+  if (risk.score === null) return { ...risk, factors, assessedFactors: factors.filter((f) => f.assessed).length };
+  return scored(factors);
 }
 
 /** Portfolio score: mean of assessed properties, plus the highest one. */

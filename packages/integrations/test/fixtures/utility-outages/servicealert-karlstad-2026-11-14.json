@@ -1,0 +1,112 @@
+{
+ "countryId": 2,
+ "customerSettings": {
+  "mapLayerId": 192,
+  "mapZoomLevel": 100,
+  "defaultMapCenterCoords": {
+   "lat": 59.567718505859375,
+   "lng": 13.767930030822754
+  },
+  "hasSearchInput": false,
+  "showInfoOnHover": false,
+  "showInfoAndZoomOnClick": true,
+  "showLegend": true,
+  "showPolygons": true,
+  "useAreaCirclesInsteadOfSingleAddressMarkers": true,
+  "showArchiveDays": null,
+  "showClusterMarkers": false,
+  "id": 160
+ },
+ "profileSettingsAndMessages": [
+  {
+   "id": 5135,
+   "profileName": "Energitjänster",
+   "profileTitle": "Fjärrvärme",
+   "cssColor": "Red",
+   "mapIconUrl": "/StaticFiles/images/MapIcons/KarlstadEnergi/ikon_värme_cirkel_korall.png",
+   "sortOrder": 2,
+   "webMessages": [
+    {
+     "id": 233949,
+     "smsGroupId": 3387414,
+     "smsGroupSendMethod": "ByExcel",
+     "smsGroupGeoObjects": "[{  \"type\": \"Feature\",  \"properties\": {    \"radius\": 500  },  \"geometry\": {    \"type\": \"Point\",    \"coordinates\": [      13.519727063876635,      59.39427248386309    ]  }}]",
+     "title": "Reparation av en fjärrvärmeledning - Björneborgsvägen tisdag 17 november",
+     "text": "<p>Vi ska laga ett läckage på en fjärrvärmeledning på Björneborgsvägen. På tisdag 17 november mellan 08:00 och 12:00 behöver vi tillfälligt stoppa värmeleveransen till fastigheter på Norrstrand. Under stoppet kommer berörda kunder sakna tillgång till värme och varmvatten. Funderar du på något är du välkommen att kontakta kundservice på 054-540 71 00.</p>",
+     "profileId": 5135,
+     "criticalStatus": false,
+     "dateExpireUtc": "2026-11-17T12:00:00Z",
+     "dateDelayUtc": "2026-11-13T12:40:00Z",
+     "affectedAddressesCoordinates": null
+    },
+    {
+     "id": 233897,
+     "smsGroupId": 3386893,
+     "smsGroupSendMethod": "ByExcel",
+     "smsGroupGeoObjects": "[{  \"type\": \"Feature\",  \"properties\": {    \"radius\": 500  },  \"geometry\": {    \"type\": \"Point\",    \"coordinates\": [      13.548295155743522,      59.41769723266991    ]  }}]",
+     "title": "Ny fjärrvärmeledning - Granmyrsgatan 18 november",
+     "text": "<p>Vi ska laga ett läckage och koppla in en ny fjärrvärmeledning på Granmyrsgatan. På onsdag 18 november mellan 08:00 och 16:00 behöver vi tillfälligt stoppa värmeleveransen till&nbsp;&nbsp;fastigheter på eller i anslutning till Granmyrsgatan. Under stoppet kommer du sakna tillgång till värme och varmvatten. Funderar du på något är du välkommen att kontakta kundservice på 054-540 71 00.</p>",
+     "profileId": 5135,
+     "criticalStatus": false,
+     "dateExpireUtc": "2026-11-18T16:00:00Z",
+     "dateDelayUtc": "2026-11-13T10:50:00Z",
+     "affectedAddressesCoordinates": null
+    },
+    {
+     "id": 233893,
+     "smsGroupId": 3386874,
+     "smsGroupSendMethod": "ByExcel",
+     "smsGroupGeoObjects": "[{  \"type\": \"Feature\",  \"properties\": {    \"radius\": 500  },  \"geometry\": {    \"type\": \"Point\",    \"coordinates\": [      13.516469529123231,      59.375484149818945    ]  }}]",
+     "title": "Ny fjärrvärmeledning - Geijersgatan 17 november",
+     "text": "<p>Vi ska koppla in en ny fjärrvärmeledning på Geijersgatan. På tisdag 17 november mellan 08:00 och 12:00 behöver vi tillfälligt stoppa värmeleveransen till fastigheter på eller i anslutning till Geijersgatan. Under stoppet kommer berörda kunder sakna tillgång till värme och varmvatten. Funderar du på något är du välkommen att kontakta kundservice på 054-540 71 00.</p>",
+     "profileId": 5135,
+     "criticalStatus": false,
+     "dateExpireUtc": "2026-11-17T12:00:00Z",
+     "dateDelayUtc": "2026-11-13T10:50:00Z",
+     "affectedAddressesCoordinates": null
+    }
+   ]
+  },
+  {
+   "id": 5137,
+   "profileName": "Återvinningstjänster",
+   "profileTitle": "Återvinning",
+   "cssColor": "Green",
+   "mapIconUrl": "/StaticFiles/images/MapIcons/KarlstadEnergi/ikon_återvinning_cirkel_grön-gul.png",
+   "sortOrder": 2,
+   "webMessages": []
+  },
+  {
+   "id": 7082,
+   "profileName": null,
+   "profileTitle": "Elnät",
+   "cssColor": "Yellow",
+   "mapIconUrl": "/StaticFiles/images/MapIcons/KarlstadEnergi/ikon_el_cirkel_gul.png",
+   "sortOrder": 1,
+   "webMessages": []
+  },
+  {
+   "id": 7083,
+   "profileName": null,
+   "profileTitle": "Stadsnät",
+   "cssColor": "Black",
+   "mapIconUrl": "/StaticFiles/images/MapIcons/KarlstadEnergi/Fiber.png",
+   "sortOrder": 3,
+   "webMessages": [
+    {
+     "id": 233582,
+     "smsGroupId": 3381020,
+     "smsGroupSendMethod": "ByExcel",
+     "smsGroupGeoObjects": "[{  \"type\": \"Feature\",  \"properties\": {    \"radius\": 2569.6632870275635  },  \"geometry\": {    \"type\": \"Point\",    \"coordinates\": [      13.353648153829855,      59.36335336258453    ]  }}]",
+     "title": "Planerat underhållsarbete i stadsnätet – Bomstad",
+     "text": "<p>Natten till tisdag den 17 november mellan kl. 00.00 och 06.00 kommer vi att genomföra ett planerat underhållsarbete i stadsnätet på Bomstad. Arbetet kan medföra tillfälliga avbrott i internetuppkopplingen för kunder på berörda adresser.</p><br /><p>Har du frågor är du välkommen att kontakta vår kundservice på 054-540 71 00.</p>",
+     "profileId": 7083,
+     "criticalStatus": false,
+     "dateExpireUtc": "2026-11-17T12:00:00Z",
+     "dateDelayUtc": "2026-11-12T07:50:00Z",
+     "affectedAddressesCoordinates": null
+    }
+   ]
+  }
+ ]
+}

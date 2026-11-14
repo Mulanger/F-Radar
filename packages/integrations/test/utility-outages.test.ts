@@ -179,15 +179,21 @@ describe('fetchOperatorOutages', () => {
     const c = ctx(async (url, init) => {
       calls.push({ url, method: init?.method ?? 'GET' });
       if (url.includes('current-outages')) return new Response(fx('goteborg-current-outages-2026-11-14.json'));
-      if (url.includes('active=1')) return new Response(fx('goteborg-el-active-empty-2026-11-14.kml'));
+      if (url.includes('upcoming-outages')) return new Response(fx('goteborg-upcoming-2026-11-14.json'));
+      if (url.includes('active=1') || !url.includes('type=36857905')) return new Response(fx('goteborg-el-active-empty-2026-11-14.kml'));
       if (url.includes('active=0')) return new Response(fx('goteborg-el-inactive-2026-11-14.kml'));
       return new Response('', { status: 404 });
     });
     const r = await fetchOperatorOutages(gbg, c);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.data.outages).toHaveLength(3);
-    expect(r.data.outages.every((o) => o.externalId.startsWith('goteborg_energi:') && o.state === 'restored')).toBe(true);
+    const el = r.data.outages.filter((o) => o.utility === 'electricity');
+    expect(el).toHaveLength(3);
+    expect(el.every((o) => o.externalId.startsWith('goteborg_energi:') && o.state === 'restored')).toBe(true);
+    // Fas 4: planned heating/cooling work by address, tied to the Göteborg address area.
+    const addr = r.data.outages.filter((o) => o.precision === 'address_list');
+    expect(addr).toHaveLength(21);
+    expect(addr.every((o) => o.addressArea?.radiusM === 25_000)).toBe(true);
     expect(calls[0]).toMatchObject({ method: 'POST' });
     expect(calls.every((x) => x.url.startsWith('https://www.goteborgenergi.se/'))).toBe(true);
   });

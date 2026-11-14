@@ -8,6 +8,9 @@ import { EllevioPostalShapes, EllevioTickets, ellevioPostalAreas, parseEllevio }
 import { parseTekniskaVerken, TvList } from './platforms/tekniskaverken';
 import { parseTrimble, trimbleDistricts, trimbleStations, trimbleTileRanges, type TrimbleDistrict } from './platforms/trimble';
 import { EI_LOCAL_CONCESSIONS_URL, parseEiConcessionZip, type EiConcessionArea } from './ei-concessions';
+import { decodeEonOutstat, parseEon, parseEonDetailText } from './platforms/eon';
+import { parseServiceAlert } from './platforms/servicealert';
+import { GOTEBORG_ADDRESS_AREA, parseGoteborgUpcoming } from './platforms/goteborg';
 import type { ConcessionArea, OutageFetchResult, UtilityOperator } from './types';
 
 export * from './types';
@@ -21,6 +24,9 @@ export { parseEllevio, ellevioShapeToRings, ellevioPostalAreas } from './platfor
 export { parseTekniskaVerken, polygonsFromGeoJson } from './platforms/tekniskaverken';
 export { parseTrimble, trimbleDistricts, trimbleStations, trimbleTileRanges, pointInRing, type TrimbleDistrict } from './platforms/trimble';
 export * from './ei-concessions';
+export { decodeEonOutstat, parseEon, parseEonDetailText, type EonRecord } from './platforms/eon';
+export { parseServiceAlert, serviceAlertAreas, serviceAlertProfile, htmlToText } from './platforms/servicealert';
+export { parseGoteborgUpcoming, parseGoteborgTime, GOTEBORG_ADDRESS_AREA } from './platforms/goteborg';
 
 /**
  * Grid operators' public outage maps (docs/plans/stromavbrott.md). The feeds are the JSON/KML the
@@ -102,7 +108,8 @@ async function fetchEllevio(op: Extract<UtilityOperator, { platform: 'ellevio' }
 }
 
 async function fetchTekniskaVerken(op: Extract<UtilityOperator, { platform: 'tekniskaverken' }>, ctx: AdapterContext): Promise<AdapterResult<OutageFetchResult>> {
-  const list = await fetchText(`${op.apiBase}/outage/list/?utility=electricity&brand=${encodeURIComponent(op.brand)}`, ctx, `${op.id} list`, { accept: 'application/json' });
+  const kinds = op.utilities.map((u) => ({ electricity: 'electricity', district_heating: 'districtheating', district_cooling: 'districtcooling', gas: 'gas' })[u]).join(',');
+  const list = await fetchText(`${op.apiBase}/outage/list/?utility=${kinds}&brand=${encodeURIComponent(op.brand)}`, ctx, `${op.id} list`, { accept: 'application/json' });
   if (!list.ok) return list;
   const l = TvList.safeParse(json(list.data));
   if (!l.success) return { ok: false, error: 'invalid_payload', detail: `${op.id}: unexpected list shape` };
@@ -148,6 +155,65 @@ async function fetchTrimble(op: Extract<UtilityOperator, { platform: 'trimble' }
   return parsed ? { ok: true, data: parsed, fetchedAt: app.fetchedAt } : { ok: false, error: 'invalid_payload', detail: `${op.id}: scope ${op.scope} missing` };
 }
 
+/** E.ON area geometry files rarely change: cached per process for 24 h. */
+const eonAreaCache = new Map<string, { at: number; geom: unknown }>();
+const EON_MAX_DETAILS = 600;
+
+async function fetchEon(op: Extract<UtilityOperator, { platform: 'eon' }>, ctx: AdapterContext): Promise<AdapterResult<OutageFetchResult>> {
+  const conf = async (name: string) => {
+    const r = await fetchText(`${op.base}/conf/${name}.json`, ctx, `${op.id} ${name}`, { accept: 'application/json' });
+    if (!r.ok) return r;
+    const j = json(r.data) as Record<string, unknown> | undefined;
+    return j ? ({ ok: true as const, data: j }) : ({ ok: false as const, error: 'invalid_payload' as const, detail: `${op.id}: ${name} not JSON` });
+  };
+  const h01 = await conf('h01_config');
+  if (!h01.ok) return h01;
+  const h02 = await conf('h02_config');
+  if (!h02.ok) return h02;
+  const res = await conf('res');
+  if (!res.ok) return res;
+  const [p1, p2, g] = [h01.data.path, h02.data.path, res.data.g];
+  const safe = (s: unknown) => typeof s === 'string' && /^[A-Za-z0-9_]+$/.test(s);
+  if (!safe(p1) || !safe(p2) || !safe(g)) return { ok: false, error: 'invalid_payload', detail: `${op.id}: unexpected config paths` };
+  const bin = await httpRequest(`${op.base}/${p1}/outstat.bin`, ctx, { label: `${op.id} outstat`, timeoutMs: TIMEOUT_MS, attempts: 2, headers: { 'User-Agent': UTILITY_OUTAGE_USER_AGENT, Accept: 'application/octet-stream' } });
+  if (!bin.ok) return bin;
+  const records = decodeEonOutstat(Buffer.from(await bin.data.arrayBuffer()));
+  if (!records) return { ok: false, error: 'invalid_payload', detail: `${op.id}: outstat.bin has an unexpected size` };
+  const ids = [...new Set(records.map((r) => r.outageId))];
+  if (ids.length > EON_MAX_DETAILS) return { ok: false, error: 'invalid_payload', detail: `${op.id}: ${ids.length} outages exceed the per-run limit` };
+  const details = new Map<number, unknown>();
+  for (const id of ids) {
+    const r = await fetchText(`${op.base}/${p2}/${id}.json`, ctx, `${op.id} detail`, { accept: 'application/json' });
+    if (r.ok) details.set(id, parseEonDetailText(r.data));
+  }
+  const areas = new Map<string, unknown>();
+  for (const path of [...new Set(records.map((r) => r.areaPath))]) {
+    if (!/^01\/[0-9a-f]{2}\/[0-9a-f]{2}\/[0-9a-f]{2}$/.test(path)) continue;
+    const cached = eonAreaCache.get(`${g}/${path}`);
+    if (cached && ctx.now().getTime() - cached.at < 24 * 3_600_000) {
+      areas.set(path, cached.geom);
+      continue;
+    }
+    const r = await fetchText(`${op.base}/static_geom/${g}/${path}.json`, ctx, `${op.id} area geometry`, { accept: 'application/json' });
+    if (!r.ok) return r;
+    const geom = json(r.data);
+    eonAreaCache.set(`${g}/${path}`, { at: ctx.now().getTime(), geom });
+    areas.set(path, geom);
+  }
+  return { ok: true, data: parseEon(records, details, areas, op, ctx.now()), fetchedAt: bin.fetchedAt };
+}
+
+async function fetchServiceAlert(op: Extract<UtilityOperator, { platform: 'servicealert' }>, ctx: AdapterContext): Promise<AdapterResult<OutageFetchResult>> {
+  const r = await fetchText(`${op.apiBase}/WebMessage/GetDriftstatusWebMessagesMapModel`, ctx, `${op.id} messages`, {
+    method: 'POST',
+    body: JSON.stringify({ customerIds: op.customerIds }),
+    accept: 'application/json',
+  });
+  if (!r.ok) return r;
+  const parsed = parseServiceAlert(json(r.data), op, op.utilities, ctx.now());
+  return parsed ? { ok: true, data: parsed, fetchedAt: r.fetchedAt } : { ok: false, error: 'invalid_payload', detail: `${op.id}: unexpected shape` };
+}
+
 /** National concession areas (Energimarknadsinspektionen ZIP, ~2 MB, weekly). */
 export async function fetchEiConcessions(ctx: AdapterContext, url = EI_LOCAL_CONCESSIONS_URL): Promise<AdapterResult<EiConcessionArea[]>> {
   const r = await httpRequest(url, ctx, { label: 'ei concessions', timeoutMs: 120_000, attempts: 2, headers: { 'User-Agent': UTILITY_OUTAGE_USER_AGENT, Accept: 'application/zip' } });
@@ -169,6 +235,8 @@ export async function fetchOperatorOutages(op: UtilityOperator, ctx: AdapterCont
   if (op.platform === 'ellevio') return fetchEllevio(op, ctx);
   if (op.platform === 'tekniskaverken') return fetchTekniskaVerken(op, ctx);
   if (op.platform === 'trimble') return fetchTrimble(op, ctx);
+  if (op.platform === 'eon') return fetchEon(op, ctx);
+  if (op.platform === 'servicealert') return fetchServiceAlert(op, ctx);
   if (op.platform === 'vattenfall') {
     const r = await fetchText(op.dataUrl, ctx, `${op.id} incidents`, { accept: 'application/json' });
     if (!r.ok) return r;
@@ -182,16 +250,27 @@ export async function fetchOperatorOutages(op: UtilityOperator, ctx: AdapterCont
     return parsed ? { ok: true, data: parsed, fetchedAt: r.fetchedAt } : { ok: false, error: 'invalid_payload', detail: `${op.id}: unexpected shape` };
   }
   if (op.platform === 'digpro') {
-    const url = `https://${op.host}/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=fpp_${op.cust}`;
-    const r = await fetchText(url, ctx, `${op.id} kml`, { accept: 'application/vnd.google-earth.kml+xml, application/xml, */*' });
-    if (!r.ok) return r;
-    const parsed = parseDigproKml(r.data, { operatorId: op.id, utility: 'electricity', mapUrl: op.mapUrl, now });
-    return parsed ? { ok: true, data: parsed, fetchedAt: r.fetchedAt } : { ok: false, error: 'invalid_payload', detail: `${op.id}: not KML` };
+    // One KML per map layer: 'fpp' = power, 'fpdh' = district heating (Fas 4).
+    const layers = [
+      ...(op.utilities.includes('electricity') ? [{ app: 'fpp', utility: 'electricity' as const, prefix: op.id }] : []),
+      ...(op.utilities.includes('district_heating') ? [{ app: 'fpdh', utility: 'district_heating' as const, prefix: `${op.id}:dh` }] : []),
+    ];
+    const parts: OutageFetchResult[] = [];
+    let fetchedAt = now.toISOString();
+    for (const l of layers) {
+      const url = `https://${op.host}/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=${l.app}_${op.cust}`;
+      const r = await fetchText(url, ctx, `${op.id} kml ${l.app}`, { accept: 'application/vnd.google-earth.kml+xml, application/xml, */*' });
+      if (!r.ok) return r;
+      const parsed = parseDigproKml(r.data, { operatorId: op.id, utility: l.utility, mapUrl: op.mapUrl, now, externalPrefix: l.prefix });
+      if (!parsed) return { ok: false, error: 'invalid_payload', detail: `${op.id}: ${l.app} not KML` };
+      parts.push(parsed);
+      fetchedAt = r.fetchedAt;
+    }
+    return { ok: true, data: combine(parts), fetchedAt };
   }
   // Göteborg Energi: Digpro KML behind the company's own API. The JSON lists a KML URL per utility;
-  // ongoing/published outages come with active=1, recently restored ones with active=0.
-  const typeId = op.utilityTypeIds.electricity;
-  if (!typeId) return { ok: false, error: 'not_implemented', detail: `${op.id}: no electricity type` };
+  // ongoing/published outages come with active=1, recently restored ones with active=0. Planned
+  // heating/cooling work is also listed by street address (upcoming-outages, Fas 4).
   const cur = await fetchText(`${op.apiBase}/external-web/api/outages-map-element/current-outages`, ctx, `${op.id} current`, { method: 'POST', body: '{}', accept: 'application/json' });
   if (!cur.ok) return cur;
   let curJson: unknown;
@@ -202,19 +281,42 @@ export async function fetchOperatorOutages(op: UtilityOperator, ctx: AdapterCont
   }
   const c = GbgCurrent.safeParse(curJson);
   if (!c.success) return { ok: false, error: 'invalid_payload', detail: `${op.id}: current-outages unexpected shape` };
-  const listed = c.data.result.types.find((t) => t.id === typeId);
-  if (!listed) return { ok: false, error: 'invalid_payload', detail: `${op.id}: electricity type missing` };
-  const activeUrl = goteborgKmlUrl(op.apiBase, listed.kml, typeId, 1);
-  if (!activeUrl) return { ok: false, error: 'invalid_payload', detail: `${op.id}: unexpected KML URL` };
-  const [active, inactive] = [await fetchText(activeUrl, ctx, `${op.id} kml active`), await fetchText(goteborgKmlUrl(op.apiBase, null, typeId, 0)!, ctx, `${op.id} kml inactive`)];
-  if (!active.ok) return active;
-  if (!inactive.ok) return inactive;
-  const opts = { operatorId: op.id, utility: 'electricity' as const, mapUrl: op.mapUrl, now };
-  const a = parseDigproKml(active.data, opts);
-  const b = parseDigproKml(inactive.data, opts);
-  if (!a || !b) return { ok: false, error: 'invalid_payload', detail: `${op.id}: not KML` };
-  const merged = parseMerge(a, b);
-  return { ok: true, data: merged, fetchedAt: active.fetchedAt };
+  const parts: OutageFetchResult[] = [];
+  for (const utility of op.utilities) {
+    const typeId = op.utilityTypeIds[utility];
+    if (!typeId) continue;
+    const listed = c.data.result.types.find((t) => t.id === typeId);
+    if (!listed) return { ok: false, error: 'invalid_payload', detail: `${op.id}: ${utility} type missing` };
+    const activeUrl = goteborgKmlUrl(op.apiBase, listed.kml, typeId, 1);
+    if (!activeUrl) return { ok: false, error: 'invalid_payload', detail: `${op.id}: unexpected KML URL` };
+    const [active, inactive] = [await fetchText(activeUrl, ctx, `${op.id} kml active`), await fetchText(goteborgKmlUrl(op.apiBase, null, typeId, 0)!, ctx, `${op.id} kml inactive`)];
+    if (!active.ok) return active;
+    if (!inactive.ok) return inactive;
+    const opts = { operatorId: op.id, utility, mapUrl: op.mapUrl, now, externalPrefix: utility === 'electricity' ? op.id : `${op.id}:${utility}` };
+    const a = parseDigproKml(active.data, opts);
+    const b = parseDigproKml(inactive.data, opts);
+    if (!a || !b) return { ok: false, error: 'invalid_payload', detail: `${op.id}: not KML` };
+    parts.push(parseMerge(a, b));
+  }
+  if (op.utilities.some((u) => u !== 'electricity')) {
+    const up = await fetchText(`${op.apiBase}/external-web/api/outages-map-element/upcoming-outages`, ctx, `${op.id} upcoming`, { method: 'POST', body: '{}', accept: 'application/json' });
+    if (!up.ok) return up;
+    const parsed = parseGoteborgUpcoming(json(up.data), op, op.utilities.filter((u) => u !== 'electricity'), now);
+    if (!parsed) return { ok: false, error: 'invalid_payload', detail: `${op.id}: upcoming-outages unexpected shape` };
+    parts.push({ ...parsed, outages: parsed.outages.map((o) => ({ ...o, addressArea: GOTEBORG_ADDRESS_AREA })) });
+  }
+  return { ok: true, data: combine(parts), fetchedAt: cur.fetchedAt };
+}
+
+function combine(parts: OutageFetchResult[]): OutageFetchResult {
+  const codes = parts.flatMap((p) => p.unknownStatusCodes ?? []);
+  return {
+    outages: parts.flatMap((p) => p.outages),
+    skipped: parts.reduce((a, p) => a + p.skipped, 0),
+    ignored: parts.reduce((a, p) => a + p.ignored, 0),
+    sourceUpdatedAt: parts.find((p) => p.sourceUpdatedAt)?.sourceUpdatedAt ?? null,
+    ...(codes.length ? { unknownStatusCodes: [...new Set(codes)] } : {}),
+  };
 }
 
 /** Active feed wins unless the inactive feed says the same outage was restored. */

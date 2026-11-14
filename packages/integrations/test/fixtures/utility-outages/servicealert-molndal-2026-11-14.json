@@ -1,0 +1,103 @@
+{
+ "countryId": 2,
+ "customerSettings": {
+  "mapLayerId": 192,
+  "mapZoomLevel": 123,
+  "defaultMapCenterCoords": {
+   "lat": 57.62736129760742,
+   "lng": 12.075369834899902
+  },
+  "hasSearchInput": false,
+  "showInfoOnHover": true,
+  "showInfoAndZoomOnClick": false,
+  "showLegend": true,
+  "showPolygons": false,
+  "useAreaCirclesInsteadOfSingleAddressMarkers": true,
+  "showArchiveDays": null,
+  "showClusterMarkers": false,
+  "id": 336
+ },
+ "profileSettingsAndMessages": [
+  {
+   "id": 6088,
+   "profileName": null,
+   "profileTitle": "Elnät - Planerade avbrott",
+   "cssColor": "Blue",
+   "mapIconUrl": "/StaticFiles/images/MapIcons/power-plug.png",
+   "sortOrder": null,
+   "webMessages": [
+    {
+     "id": 232791,
+     "smsGroupId": 3367267,
+     "smsGroupSendMethod": "ByLevel",
+     "smsGroupGeoObjects": "[{  \"type\": \"Feature\",  \"properties\": {    \"radius\": 500  },  \"geometry\": {    \"type\": \"Point\",    \"coordinates\": [      11.99158688219913,      57.666379003681556    ]  }}]",
+     "title": "Planerat strömavbrott på Wättnegatan Safjällsgatan ",
+     "text": "<p>Ett avbrott är planerat på Safjällsgatan, Wättnegatan&nbsp;&nbsp;.</p><p>2026-11-16&nbsp;kl.&nbsp;12:00 - 15:00</p><p>Vi förstärker elnätet.</p>",
+     "profileId": 6088,
+     "criticalStatus": false,
+     "dateExpireUtc": "2026-11-17T07:00:00Z",
+     "dateDelayUtc": "2026-11-10T08:00:00Z",
+     "affectedAddressesCoordinates": null
+    }
+   ]
+  },
+  {
+   "id": 6090,
+   "profileName": null,
+   "profileTitle": "Fjärrvärme",
+   "cssColor": "Red",
+   "mapIconUrl": "/StaticFiles/images/MapIcons/warming_radiator.png",
+   "sortOrder": null,
+   "webMessages": [
+    {
+     "id": 233910,
+     "smsGroupId": 3387040,
+     "smsGroupSendMethod": "ByMap",
+     "smsGroupGeoObjects": "[{  \"type\": \"Feature\",  \"properties\": {    \"radius\": 500  },  \"geometry\": {    \"type\": \"Point\",    \"coordinates\": [      11.969688038882264,      57.65217122307853    ]  }}]",
+     "title": "Planerat fjärrvärmeavbrott",
+     "text": "<p>Ett fjärrvärmeavbrott är planerat på Mölndal: Eklanda Slätt.</p><br /><p>Starttid: 2026-11-16 08:00</p><p>Planerad sluttid: 2026-11-16 12:00</p><br /><p>Orsak: Underhållsåtgärd på nätet</p><br /><p>Det är endast värme och varmvatten som berörs. Kallvatten påverkas inte.</p>",
+     "profileId": 6090,
+     "criticalStatus": false,
+     "dateExpireUtc": "2026-11-17T07:00:00Z",
+     "dateDelayUtc": "2026-11-13T11:30:00Z",
+     "affectedAddressesCoordinates": null
+    },
+    {
+     "id": 233874,
+     "smsGroupId": 3386704,
+     "smsGroupSendMethod": "ByMap",
+     "smsGroupGeoObjects": "[{  \"type\": \"Feature\",  \"properties\": {    \"radius\": 500  },  \"geometry\": {    \"type\": \"Point\",    \"coordinates\": [      12.094444820727446,      57.5803519850077    ]  }}]",
+     "title": "Planerat fjärrvärmeavbrott",
+     "text": "<p>Ett fjärrvärmeavbrott är planerat på Lindome: Persgärde.</p><br /><p>Starttid: 2026-11-19 08:00</p><p>Planerad sluttid: 2026-11-19 12:00</p><br /><p>Orsak: Nyanslutning</p><br /><p>Det är endast värme och varmvatten som berörs. Kallvatten påverkas inte.</p>",
+     "profileId": 6090,
+     "criticalStatus": false,
+     "dateExpireUtc": "2026-11-20T07:00:00Z",
+     "dateDelayUtc": "2026-11-13T10:10:00Z",
+     "affectedAddressesCoordinates": null
+    },
+    {
+     "id": 233707,
+     "smsGroupId": 3383554,
+     "smsGroupSendMethod": "ByMap",
+     "smsGroupGeoObjects": "[{  \"type\": \"Feature\",  \"properties\": {    \"radius\": 500  },  \"geometry\": {    \"type\": \"Point\",    \"coordinates\": [      12.071195096178938,      57.57942678311845    ]  }}]",
+     "title": "Planerat fjärrvärmeavbrott",
+     "text": "<p>Ett fjärrvärmeavbrott är planerat på Lindome: Kornvägen.</p><br /><p>Starttid: 2026-11-18 07:30</p><p>Planerad sluttid: 2026-11-18 11:00</p><br /><p>Orsak: Underhållsåtgärd på nätet</p><br /><p>Det är endast värme och varmvatten som berörs. Kallvatten påverkas inte.</p>",
+     "profileId": 6090,
+     "criticalStatus": false,
+     "dateExpireUtc": "2026-11-19T07:00:00Z",
+     "dateDelayUtc": "2026-11-12T12:20:00Z",
+     "affectedAddressesCoordinates": null
+    }
+   ]
+  },
+  {
+   "id": 6118,
+   "profileName": null,
+   "profileTitle": "Elnät - Akuta avbrott",
+   "cssColor": "Yellow",
+   "mapIconUrl": "/StaticFiles/images/MapIcons/arwos/alle.png",
+   "sortOrder": null,
+   "webMessages": []
+  }
+ ]
+}

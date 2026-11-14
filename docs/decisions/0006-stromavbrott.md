@@ -62,6 +62,28 @@ fastighet faktiskt berörs.
 11. Ellevios `affected_site_total_count` är avbrottets totala antal berörda, inte postnummerområdets – inga
     "x av y"-andelar visas.
 
+## Tillägg Fas 3–4 (2026-11-14)
+
+12. **E.ON** och **ServiceAlert** ger områdesprecision (nätstationsområden respektive operatörsritade cirklar);
+    aldrig SMS. ServiceAlert saknar starttid – läge "okänt", och ett försvunnet meddelande beskrivs som
+    "visas inte längre", aldrig som "tillbaka".
+13. **Fjärrvärme och fjärrkyla** följer samma färg-, status- och SMS-regler som el. SMS-regeln väljer
+    nyttigheter (el, fjärrvärme, fjärrkyla).
+14. **Adresslistor:** en träff på gata + husnummer i nätbolagets lista (inom operatörens adressområde) är hög
+    precision oberoende av kartnålen; en gata utan husnummer ger medelprecision (ingen SMS). Gatunamn matchas
+    exakt efter normalisering – ingen fuzzy-matchning.
+
+## Tillägg Fas 5 (2026-11-14) – godkänt av produktägaren ("fortsätt med alla faser")
+
+15. **Riskindex – faktor "El och värme"** (`powerFactor`, tak 60): pågående oplanerat avbrott med hög precision
+    55 (Förhöjd), med medelprecision 30 (Bevaka), pågående planerat arbete vid adressen 15 (Låg), områdesträffar 5.
+    Kommande planerade arbeten påverkar inte poängen. Faktorn är bedömd när fastighetens elnät bevakas och är
+    aktuellt eller när ett avbrott matchar. Ett avbrott kan aldrig ge "Hög" – det är nätbolagets registrering, inte
+    en officiell varning. Ett "Ej bedömt" index (varningskällor ej aktuella) förblir ej bedömt.
+16. **Driftsignal per nätbolag:** `attention: 'format_changed'` efter 3 tolkningsfel i rad (adaptern måste
+    uppdateras), `'unreachable'` efter 6 andra fel i rad; exponeras i `/v1/sources/status` (`utilityOperators`) och
+    loggas som fel (`alert: utility_outage_format_changed`).
+
 ## Konsekvenser
 
 - Flödena är odokumenterade och kan ändras; adaptrarna validerar allt och hoppar över det som inte går

@@ -32,6 +32,8 @@ export interface NormalizedUtilityOutage {
   sourceUrl: string;
   /** Minimal upstream fields for debugging; never contains addresses. */
   upstream: Record<string, unknown>;
+  /** Address-list outages: properties within this circle are compared by street address. */
+  addressArea?: { lat: number; lon: number; radiusM: number } | null;
 }
 
 export interface OutageFetchResult {
@@ -50,7 +52,7 @@ export interface ConcessionArea {
   geometry: GeoJsonGeometry;
 }
 
-export type UtilityOperatorPlatform = 'vattenfall' | 'digpro' | 'goteborg_energi' | 'ellevio' | 'tekniskaverken' | 'trimble';
+export type UtilityOperatorPlatform = 'vattenfall' | 'digpro' | 'goteborg_energi' | 'ellevio' | 'tekniskaverken' | 'trimble' | 'eon' | 'servicealert';
 
 interface OperatorBase {
   /** Stable id used in job ids, external ids and UTILITY_OUTAGE_OPERATORS. */
@@ -70,4 +72,7 @@ export type UtilityOperator =
   | (OperatorBase & { platform: 'ellevio'; loadUrl: string; version: string })
   | (OperatorBase & { platform: 'tekniskaverken'; apiBase: string; brand: string })
   /** Trimble (Tekla) NIS outage map: `<base>/geoserver-api/...`; `scope` 'p' = power. */
-  | (OperatorBase & { platform: 'trimble'; base: string; scope: string });
+  | (OperatorBase & { platform: 'trimble'; base: string; scope: string })
+  | (OperatorBase & { platform: 'eon'; base: string })
+  /** ServiceAlert (sms-service.dk / servicealert.se) driftstatus map. */
+  | (OperatorBase & { platform: 'servicealert'; apiBase: string; customerIds: string });
