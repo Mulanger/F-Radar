@@ -1,0 +1,87 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "nivaer.16470166",
+      "geometry": null,
+      "properties": {
+        "rowid": 16470166,
+        "platsbeteckning": "55_1",
+        "obsdatum": "2026-11-13T00:00:00Z",
+        "grundvattenniva_m_urok": 2.054,
+        "grundvattenniva_m_o_h": 18.513,
+        "grundvattenniva_m_u_markyta": 0.654,
+        "metod_for_matning": "logger",
+        "nivaanmarkning": null,
+        "lastupdate": "2026-11-13T06:10:30.720Z"
+      }
+    }
+  ],
+  "numberMatched": 1,
+  "numberReturned": 1,
+  "timeStamp": "2026-11-14T11:06:29.466Z",
+  "links": [
+    {
+      "title": "This document as text/html",
+      "type": "text/html",
+      "rel": "alternate",
+      "href": "https://api.sgu.se/oppnadata/grundvattennivaer-observerade/ogc/features/v1/collections/nivaer/items?f=text%2Fhtml"
+    },
+    {
+      "title": "This document as application/vnd.google-earth.kml+xml",
+      "type": "application/vnd.google-earth.kml+xml",
+      "rel": "alternate",
+      "href": "https://api.sgu.se/oppnadata/grundvattennivaer-observerade/ogc/features/v1/collections/nivaer/items?f=application%2Fvnd.google-earth.kml%2Bxml"
+    },
+    {
+      "title": "This document as application/vnd.ogc.fg+json",
+      "type": "application/vnd.ogc.fg+json",
+      "rel": "alternate",
+      "href": "https://api.sgu.se/oppnadata/grundvattennivaer-observerade/ogc/features/v1/collections/nivaer/items?f=application%2Fvnd.ogc.fg%2Bjson"
+    },
+    {
+      "title": "This document",
+      "type": "application/geo+json",
+      "rel": "self",
+      "href": "https://api.sgu.se/oppnadata/grundvattennivaer-observerade/ogc/features/v1/collections/nivaer/items?f=application%2Fgeo%2Bjson"
+    },
+    {
+      "title": "This document as application/gml+xml;version=3.2",
+      "type": "application/gml+xml;version=3.2",
+      "rel": "alternate",
+      "href": "https://api.sgu.se/oppnadata/grundvattennivaer-observerade/ogc/features/v1/collections/nivaer/items?f=application%2Fgml%2Bxml%3Bversion%3D3.2"
+    },
+    {
+      "title": "This document as text/csv",
+      "type": "text/csv",
+      "rel": "alternate",
+      "href": "https://api.sgu.se/oppnadata/grundvattennivaer-observerade/ogc/features/v1/collections/nivaer/items?f=text%2Fcsv"
+    },
+    {
+      "title": "This document as application/json",
+      "type": "application/json",
+      "rel": "alternate",
+      "href": "https://api.sgu.se/oppnadata/grundvattennivaer-observerade/ogc/features/v1/collections/nivaer/items?f=application%2Fjson"
+    },
+    {
+      "title": "The collection description as application/json",
+      "type": "application/json",
+      "rel": "collection",
+      "href": "https://api.sgu.se/oppnadata/grundvattennivaer-observerade/ogc/features/v1/collections/nivaer?f=application%2Fjson"
+    },
+    {
+      "title": "The collection description as application/yaml",
+      "type": "application/yaml",
+      "rel": "collection",
+      "href": "https://api.sgu.se/oppnadata/grundvattennivaer-observerade/ogc/features/v1/collections/nivaer?f=application%2Fyaml"
+    },
+    {
+      "title": "The collection description as text/html",
+      "type": "text/html",
+      "rel": "collection",
+      "href": "https://api.sgu.se/oppnadata/grundvattennivaer-observerade/ogc/features/v1/collections/nivaer?f=text%2Fhtml"
+    }
+  ],
+  "crs": null
+}

@@ -49,7 +49,9 @@ describe('resolveSourceStatuses', () => {
     expect(byId.lantmateriet_address!.status).toBe('disabled');
     // Implemented + configured, but never 'ok' before a real collector run succeeds.
     expect(byId.smhi_forecast!.status).toBe('degraded');
-    expect(byId.smhi_oceanography!.status).toBe('not_implemented');
+    expect(byId.smhi_oceanography!.status).toBe('degraded');
+    expect(byId.sgu_observed_groundwater!.status).toBe('degraded');
+    expect(byId.sl_deviations!.note).toContain('SL_DEVIATIONS_API_KEY');
 
     const tv = resolveSourceStatuses(loadServerEnv({ TRAFIKVERKET_ENABLED: 'true' })).find((s) => s.sourceId === 'trafikverket');
     expect(tv!.status).toBe('pending_access');

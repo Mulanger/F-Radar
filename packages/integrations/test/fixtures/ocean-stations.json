@@ -1,0 +1,92 @@
+{
+  "key": "6",
+  "title": "Havsvattenstånd",
+  "summary": "",
+  "unit": "cm",
+  "link": [
+    {
+      "href": "https://opendata-download-ocobs.smhi.se/api/version/1.0/parameter/6.json",
+      "rel": "parameter",
+      "type": "application/json"
+    },
+    {
+      "href": "https://opendata-download-ocobs.smhi.se/api/version/1.0/parameter/6.xml",
+      "rel": "parameter",
+      "type": "application/xml"
+    },
+    {
+      "href": "https://opendata-download-ocobs.smhi.se/api/version/1.0/parameter/6.atom",
+      "rel": "parameter",
+      "type": "application/atom+xml"
+    },
+    {
+      "href": "https://opendata-download-ocobs.smhi.se/api/version/1.0/parameter/6/metadata.json",
+      "rel": "metadata",
+      "type": "application/json"
+    },
+    {
+      "href": "https://opendata-download-ocobs.smhi.se/api/version/1.0/parameter/6/metadata.xml",
+      "rel": "metadata",
+      "type": "application/xml"
+    }
+  ],
+  "stationSet": [
+    {
+      "key": "all",
+      "updated": 1794654000000,
+      "title": "Havsvattenstånd - Alla Stationer",
+      "summary": "Data från alla aktiva mätstationer för senaste timmen i en fil.",
+      "link": [
+        {
+          "href": "https://opendata-download-ocobs.smhi.se/api/version/1.0/parameter/6/station-set/all.json",
+          "rel": "stationSet",
+          "type": "application/json"
+        },
+        {
+          "href": "https://opendata-download-ocobs.smhi.se/api/version/1.0/parameter/6/station-set/all.xml",
+          "rel": "stationSet",
+          "type": "application/xml"
+        },
+        {
+          "href": "https://opendata-download-ocobs.smhi.se/api/version/1.0/parameter/6/station-set/all.atom",
+          "rel": "stationSet",
+          "type": "application/atom+xml"
+        }
+      ]
+    }
+  ],
+  "station": [
+    {
+      "key": "2069",
+      "updated": 1794650400000,
+      "title": "Havsvattenstånd - Stockholm-Skeppsholmen",
+      "summary": "Latitud: 59.3242 Longitud: 18.0817",
+      "link": [
+        {
+          "href": "https://opendata-download-ocobs.smhi.se/api/version/1.0/parameter/6/station/2069.json",
+          "rel": "station",
+          "type": "application/json"
+        },
+        {
+          "href": "https://opendata-download-ocobs.smhi.se/api/version/1.0/parameter/6/station/2069.xml",
+          "rel": "station",
+          "type": "application/xml"
+        },
+        {
+          "href": "https://opendata-download-ocobs.smhi.se/api/version/1.0/parameter/6/station/2069.atom",
+          "rel": "station",
+          "type": "application/atom+xml"
+        }
+      ],
+      "id": 2069,
+      "name": "Stockholm-Skeppsholmen",
+      "owner": "SMHI",
+      "latitude": 59.3242,
+      "longitude": 18.0817,
+      "active": true,
+      "from": -2556057600000,
+      "to": 1794650400000,
+      "mobile": false
+    }
+  ]
+}

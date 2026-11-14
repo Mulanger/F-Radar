@@ -96,6 +96,26 @@ describe('collector backoff', () => {
 describe('property snapshot from stored data', () => {
   const statuses = resolveRuntimeStatuses(env, [job('smhi_warnings'), job('krisinformation')], NOW);
 
+  it('delivers derived wind chill and station-level air/water/groundwater with provenance', () => {
+    const air = ['pm25', 'no2'].map((parameter) => ({ ...data().observations[1]!, parameter,
+      value: parameter === 'no2' ? 61 : 6, extra: { resolution: 'hour', classification: 'Gaturum' } }));
+    const water = { ...data().observations[0]!, source_id: 'smhi_oceanography', parameter: 'sea_level_rh2000', station_id: '2069',
+      name: 'Stockholm-Skeppsholmen', unit: 'cm RH 2000', value: 14.5, distance_m: 5700, extra: { referenceSystem: 'RH 2000', trendCmPerHour: 0.3 } };
+    const groundwater = { property_id: PID, source_id: 'sgu_observed_groundwater', context_key: 'groundwater_observation', data_class: 'OBSERVATION', status: 'ok',
+      source_timestamp: NOW, fetched_at: NOW, payload: { stationId: '55_1', stationName: 'Vaxholm_1', distanceMeters: 7000, value: 0.65, unit: 'm under markytan', observedAt: NOW.toISOString(), note: 'Vid station', sourceUrl: 'https://api.sgu.se/' } };
+    const s = buildPropertySnapshot(record, 'org_x', data({ observations: [...air, water], airHistory: air, contexts: [groundwater] }), statuses, NOW);
+    PropertySnapshotSchema.parse(s);
+    expect(s.metrics.find((m) => m.metricKey === 'weather.apparent_temperature')).toMatchObject({ kind: 'forecast', qualityFlags: ['derived', 'smhi_wind_chill_v1'] });
+    expect(s.monitoring?.airIndex).toMatchObject({ band: 4, label: 'Dålig', stationName: 'Stockholm Hornsgatan 108 Gata', observedAt: NOW.toISOString() });
+    expect(s.flood.waterBody).toMatchObject({ name: 'Stockholm-Skeppsholmen', referenceSystem: 'RH 2000', level: { value: 14.5, geo: { distanceMeters: 5700 } } });
+    expect(s.flood.waterBody?.trendLabel).toContain('+0,3 cm/h');
+    expect(s.monitoring?.observedGroundwater).toMatchObject({ stationName: 'Vaxholm_1', value: 0.65, provenance: { dataClass: 'OBSERVATION', sourceId: 'sgu_observed_groundwater' } });
+    const missing = buildPropertySnapshot(record, 'org_x', data({ observations: [{ ...water, distance_m: 30_001 }], contexts: [{ ...groundwater, source_timestamp: new Date('2026-01-01'), payload: { ...groundwater.payload, observedAt: '2026-01-01T00:00:00Z' } }] }), statuses, NOW);
+    expect(missing.flood.waterBody).toBeNull();
+    expect(missing.monitoring?.observedGroundwater).toBeNull();
+    expect(missing.monitoring?.airIndex).toBeNull();
+  });
+
   it('is schema-valid, keeps data classes apart and never computes a risk score', () => {
     const s = buildPropertySnapshot(record, 'org_testAAAAAAAA', data(), statuses, NOW);
     PropertySnapshotSchema.parse(s);

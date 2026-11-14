@@ -332,7 +332,7 @@ export async function rematchEvents(db: Queryable): Promise<MatchChange[]> {
      ), cand AS (
        SELECT pr.id AS property_id, pr.organization_id, e.id AS event_id, e.version,
               CASE WHEN e.source_id = 'smhi_warnings' THEN 'polygon_intersection'
-                   WHEN e.source_id = 'trafikverket' THEN 'within_radius'
+                   WHEN e.source_id IN ('trafikverket', 'sl_deviations') THEN 'within_radius'
                    -- Krisinformation: 'municipality' = the message covers the property's municipality (it names it,
                    -- or names no municipality and so covers the whole county/country); 'county' = same county but
                    -- only OTHER municipalities are named. A VMA there is not shown as a crisis (ADR 0003).
@@ -341,12 +341,12 @@ export async function rematchEvents(db: Queryable): Promise<MatchChange[]> {
                         SELECT 1 FROM jsonb_array_elements_text(e.extra->'municipalities') m
                          WHERE lower(regexp_replace(m, '\\s+(kommun|stad)$', '')) = pr.muni) THEN 'municipality'
                    ELSE 'county' END AS match_method,
-              CASE WHEN e.source_id = 'trafikverket' THEN round(ST_Distance(e.geom::geography, pr.location)::numeric, 0)
+              CASE WHEN e.source_id IN ('trafikverket', 'sl_deviations') THEN round(ST_Distance(e.geom::geography, pr.location)::numeric, 0)
                    WHEN e.source_id = 'smhi_warnings' THEN 0 END AS distance_m
          FROM props pr
          JOIN source_events e ON e.status = 'active' AND (
               (e.source_id = 'smhi_warnings' AND e.geom IS NOT NULL AND ST_Intersects(e.geom, pr.location::geometry))
-           OR (e.source_id = 'trafikverket' AND e.geom IS NOT NULL AND ST_DWithin(e.geom::geography, pr.location, ${TRAFFIC_MATCH_RADIUS_M}))
+           OR (e.source_id IN ('trafikverket', 'sl_deviations') AND e.geom IS NOT NULL AND ST_DWithin(e.geom::geography, pr.location, ${TRAFFIC_MATCH_RADIUS_M}))
            OR (e.source_id = 'krisinformation' AND (
                  pr.county = ANY(e.county_names) OR '*' = ANY(e.county_names)
                  OR (pr.muni <> '' AND EXISTS (
@@ -420,7 +420,8 @@ export async function upsertStationObservations(db: Queryable, sourceId: string,
               value double precision, unit text, observed_at timestamptz, quality text, extra jsonb)
        ON CONFLICT (source_id, station_id, parameter) DO UPDATE SET
          name = EXCLUDED.name, location = EXCLUDED.location, value = EXCLUDED.value, unit = EXCLUDED.unit,
-         observed_at = EXCLUDED.observed_at, quality = EXCLUDED.quality, extra = EXCLUDED.extra, fetched_at = now()`,
+         observed_at = EXCLUDED.observed_at, quality = EXCLUDED.quality, extra = EXCLUDED.extra, fetched_at = now()
+       WHERE observation_stations.observed_at IS NULL OR EXCLUDED.observed_at >= observation_stations.observed_at`,
       [
         sourceId,
         JSON.stringify(
@@ -429,6 +430,19 @@ export async function upsertStationObservations(db: Queryable, sourceId: string,
       ],
     );
     n += rowCount ?? 0;
+    if (sourceId === 'air_quality') {
+      await db.query(
+        `INSERT INTO station_observation_history (source_id, station_id, parameter, observed_at, value, unit, quality, extra)
+         SELECT $1, x.station_id, x.parameter, x.observed_at, x.value, x.unit, x.quality, x.extra
+           FROM jsonb_to_recordset($2::jsonb) AS x(station_id text, parameter text, observed_at timestamptz,
+                value double precision, unit text, quality text, extra jsonb)
+          WHERE x.value IS NOT NULL AND x.observed_at IS NOT NULL AND x.extra->>'resolution' = 'hour'
+         ON CONFLICT (source_id, station_id, parameter, observed_at) DO UPDATE SET
+           value = EXCLUDED.value, unit = EXCLUDED.unit, quality = EXCLUDED.quality, extra = EXCLUDED.extra, fetched_at = now()`,
+        [sourceId, JSON.stringify(chunk.map((o) => ({ station_id: o.stationId, parameter: o.parameter, observed_at: o.observedAt,
+          value: typeof o.extra.rawValue === 'number' ? o.extra.rawValue : o.value, unit: o.unit, quality: o.quality, extra: o.extra })))],
+      );
+    }
   }
   return n;
 }
@@ -460,7 +474,7 @@ export interface ContextInput {
   organizationId: string;
   sourceId: string;
   contextKey: string;
-  dataClass: 'FORECAST' | 'OBSERVATION' | 'STATIC_GEODATA' | 'REGIONAL_STATISTIC';
+  dataClass: 'FORECAST' | 'MODEL' | 'OBSERVATION' | 'STATIC_GEODATA' | 'REGIONAL_STATISTIC';
   status: 'ok' | 'no_coverage' | 'source_unavailable' | 'not_applicable' | 'unknown';
   payload: Record<string, unknown>;
   sourceTimestamp: string | null;
@@ -529,6 +543,7 @@ export async function applyRetention(db: Queryable): Promise<Record<string, numb
     changes: await del(`DELETE FROM monitoring_changes WHERE created_at < now() - make_interval(days => $1)`, [RETENTION.changesDays]),
     runs: await del(`DELETE FROM integration_runs WHERE started_at < now() - make_interval(days => $1)`, [RETENTION.runsDays]),
     stations: await del(`DELETE FROM observation_stations WHERE fetched_at < now() - make_interval(days => $1)`, [RETENTION.stationSilentDays]),
+    stationHistory: await del(`DELETE FROM station_observation_history WHERE observed_at < now() - interval '7 days'`, []),
   };
 }
 
@@ -608,6 +623,7 @@ export interface OrgMonitoringData {
   events: OrgEventRow[];
   contexts: OrgContextRow[];
   observations: OrgObservationRow[];
+  airHistory?: OrgObservationRow[];
   counties: Array<{ property_id: string; code: string; name: string }>;
 }
 
@@ -623,6 +639,8 @@ export const NEAREST_PARAMETERS: Array<[string, string, number]> = [
   ['air_quality', 'pm10', 6],
   ['air_quality', 'no2', 6],
   ['air_quality', 'o3', 6],
+  ['air_quality', 'so2', 6],
+  ['smhi_oceanography', 'sea_level_rh2000', 3],
 ];
 
 /**
@@ -631,7 +649,7 @@ export const NEAREST_PARAMETERS: Array<[string, string, number]> = [
  */
 export async function loadOrgMonitoring(db: Queryable, organizationId: string, propertyId?: string): Promise<OrgMonitoringData> {
   const pid = propertyId ?? null;
-  const [forecasts, events, contexts, observations, counties] = await Promise.all([
+  const [forecasts, events, contexts, observations, counties, airHistory] = await Promise.all([
     db.query<OrgForecastRow>(
       `SELECT f.property_id, f.source_id, f.reference_time, f.created_time, ST_Y(f.grid_point::geometry) AS grid_lat, ST_X(f.grid_point::geometry) AS grid_lon,
               f.distance_m, f.series, f.fetched_at
@@ -642,8 +660,8 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
       `SELECT m.property_id, m.match_method, m.distance_m, m.first_matched_at,
               e.id, e.source_id, e.external_id, e.data_class, e.category, e.level, e.severity, e.event_type, e.headline, e.description,
               e.area_label, e.published_at, e.source_updated_at, e.valid_from, e.valid_to, e.version, e.source_url, e.attribution, e.extra, e.last_seen_at,
-              CASE WHEN e.source_id = 'trafikverket' AND e.geom IS NOT NULL THEN ST_Y(ST_ClosestPoint(e.geom, p.location::geometry)) END AS point_lat,
-              CASE WHEN e.source_id = 'trafikverket' AND e.geom IS NOT NULL THEN ST_X(ST_ClosestPoint(e.geom, p.location::geometry)) END AS point_lon
+              CASE WHEN e.source_id IN ('trafikverket', 'sl_deviations') AND e.geom IS NOT NULL THEN ST_Y(ST_ClosestPoint(e.geom, p.location::geometry)) END AS point_lat,
+              CASE WHEN e.source_id IN ('trafikverket', 'sl_deviations') AND e.geom IS NOT NULL THEN ST_X(ST_ClosestPoint(e.geom, p.location::geometry)) END AS point_lon
          FROM property_event_matches m
          JOIN source_events e ON e.id = m.event_id AND e.status = 'active'
          JOIN properties p ON p.id = m.property_id AND p.organization_id = $1
@@ -677,8 +695,18 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
         WHERE p.organization_id = $1 AND ($2::uuid IS NULL OR p.id = $2)`,
       [organizationId, pid],
     ),
+    db.query<OrgObservationRow>(
+      `SELECT p.id AS property_id, h.source_id, h.station_id, h.parameter, s.name, h.value, h.unit,
+              h.observed_at, h.quality, h.extra, h.fetched_at, ST_Distance(s.location, p.location) AS distance_m
+         FROM properties p JOIN observation_stations s ON s.source_id = 'air_quality'
+          AND ST_DWithin(s.location, p.location, 25000)
+         JOIN station_observation_history h ON h.source_id = s.source_id AND h.station_id = s.station_id AND h.parameter = s.parameter
+        WHERE p.organization_id = $1 AND ($2::uuid IS NULL OR p.id = $2)
+          AND h.observed_at >= now() - interval '3 hours' AND h.observed_at <= now()`,
+      [organizationId, pid],
+    ),
   ]);
-  return { forecasts: forecasts.rows, events: events.rows, contexts: contexts.rows, observations: observations.rows, counties: counties.rows };
+  return { forecasts: forecasts.rows, events: events.rows, contexts: contexts.rows, observations: observations.rows, counties: counties.rows, airHistory: airHistory.rows };
 }
 
 export async function listRecentChangesForOrg(db: Queryable, organizationId: string, limit = 50) {

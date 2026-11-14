@@ -91,7 +91,7 @@ export interface GeoJsonGeometry {
  * Text fields are the official wording, unmodified.
  */
 export interface NormalizedSourceEvent {
-  sourceId: Extract<SourceId, 'smhi_warnings' | 'krisinformation' | 'trafikverket'>;
+  sourceId: Extract<SourceId, 'smhi_warnings' | 'krisinformation' | 'trafikverket' | 'sl_deviations'>;
   externalId: string;
   dataClass: Extract<DataClass, 'OFFICIAL_WARNING' | 'PUBLIC_EVENT'>;
   category: EventCategory;
@@ -118,7 +118,7 @@ export interface NormalizedSourceEvent {
 
 /** Latest value of one parameter at one station (MetObs, air quality). */
 export interface StationObservation {
-  sourceId: Extract<SourceId, 'smhi_observations' | 'air_quality'>;
+  sourceId: Extract<SourceId, 'smhi_observations' | 'air_quality' | 'smhi_oceanography'>;
   stationId: string;
   parameter: string;
   name: string;

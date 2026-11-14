@@ -10,7 +10,7 @@ import type { AdapterContext, AdapterResult, StationObservation } from '../types
  * The endpoint is SLOW (17–60 s per phenomenon), so it is collected centrally and sequentially
  * with a long timeout, at most hourly. Values are preliminary (not quality assured).
  *
- * No air-quality index is computed: no documented, approved method exists (IMPLEMENTATION.md §20).
+ * The hourly station index uses the EEA method in ADR 0005; input hours are persisted separately.
  */
 export const AIR_QUALITY_ATTRIBUTION = 'Källa: SMHI / Naturvårdsverket (datavärdskap luft) – preliminära data';
 
@@ -19,6 +19,7 @@ export const AIR_PHENOMENA = [
   { id: '5', key: 'pm10', label: 'PM10', unit: 'µg/m³' },
   { id: '8', key: 'no2', label: 'Kvävedioxid (NO₂)', unit: 'µg/m³' },
   { id: '7', key: 'o3', label: 'Ozon (O₃)', unit: 'µg/m³' },
+  { id: '1', key: 'so2', label: 'Svaveldioxid (SO₂)', unit: 'µg/m³' },
 ] as const;
 
 /** Series whose last value is older than this are ignored (station not currently reporting). */
@@ -50,11 +51,14 @@ export function parseAirSeries(raw: unknown, phen: (typeof AIR_PHENOMENA)[number
     const p = Series.safeParse(r);
     if (!p.success || !p.data.lastValue) continue;
     const s = p.data;
+    if (!['µg/m3', 'µg/m³', 'μg/m3', 'μg/m³', 'ug/m3'].includes(s.uom ?? '')) continue;
     const value = num(s.lastValue!.value);
     const ts = s.lastValue!.timestamp;
     if (value === null || value < 0 || now.getTime() - ts > AIR_MAX_AGE_HOURS * 3_600_000 || ts > now.getTime() + 3_600_000) continue;
     const [lon, lat] = s.station.geometry.coordinates as [number, number];
-    const stationId = String(s.station.id);
+    // Upstream ids identify pollutant-specific features, not a physical station (verified live).
+    // Exact published name + coordinates + classification only; never proximity-join stations.
+    const stationId = JSON.stringify([s.station.properties.label, lon, lat, s.station.properties.classification ?? null]);
     const hourly = s.primaryData === 'hour';
     const prev = best.get(stationId);
     if (prev && (prev.hourly && !hourly ? true : prev.ts >= ts && prev.hourly === hourly)) continue;
@@ -72,7 +76,7 @@ export function parseAirSeries(raw: unknown, phen: (typeof AIR_PHENOMENA)[number
         unit: phen.unit,
         observedAt: iso(ts),
         quality: 'preliminary',
-        extra: { classification: s.station.properties.classification ?? null, seriesId: s.id, resolution: s.primaryData ?? null },
+        extra: { classification: s.station.properties.classification ?? null, seriesId: s.id, upstreamStationId: String(s.station.id), resolution: s.primaryData ?? null, rawValue: value },
       },
     });
   }

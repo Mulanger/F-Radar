@@ -1,0 +1,249 @@
+{
+  "RESPONSE": {
+    "RESULT": [
+      {
+        "Situation": [
+          {
+            "CountryCode": "SE",
+            "Deleted": false,
+            "Deviation": [
+              {
+                "AffectedDirection": "Båda riktningarna",
+                "AffectedDirectionValue": "BothDirections",
+                "CountyNo": [
+                  14
+                ],
+                "Creator": "Trafikverket",
+                "CreationTime": "1999-06-22T13:40:49.280+02:00",
+                "EndTime": "2026-12-07T15:00:00.000+01:00",
+                "Geometry": {
+                  "SWEREF99TM": "POINT (314603 6412767)",
+                  "WGS84": "POINT (11.8786002358525 57.8183888695695)",
+                  "Point": {
+                    "SWEREF99TM": "POINT (314603 6412767)",
+                    "WGS84": "POINT (11.8786002358525 57.8183888695695)"
+                  },
+                  "Line": {
+                    "SWEREF99TM": "LINESTRING (314676.58016171993 6412722.273517698, 314531.31016184425 6412812.863517563)",
+                    "WGS84": "LINESTRING (11.879871633863932 57.81801813970444, 11.877359701933601 57.81877050404434)"
+                  }
+                },
+                "Header": "Kornhallsleden",
+                "IconId": "ferryServiceNotOperating",
+                "Id": "SE_STA_TRISSID_1_203352",
+                "ManagedCause": true,
+                "Message": "Den 7 december mellan klockan 09:00 och klockan 15:00 är Kornhallsleden avstängd för planerat underhåll.",
+                "MessageCode": "Färja",
+                "MessageCodeValue": "ferry",
+                "MessageType": "Färjor",
+                "MessageTypeValue": "TransitInformation",
+                "RoadNumber": "Väg 570",
+                "RoadNumberNumeric": 570,
+                "SeverityCode": 5,
+                "SeverityText": "Mycket stor påverkan",
+                "StartTime": "2026-12-07T09:00:00.000+01:00",
+                "LocationDescriptor": "Väg 570 i Kungälvs kommun i Västra Götalands län",
+                "WebLink": "http://www.trafikverket.se/kornhallsleden",
+                "VersionTime": "2026-11-12T14:04:16.603+01:00"
+              },
+              {
+                "AffectedDirection": "Båda riktningarna",
+                "AffectedDirectionValue": "BothDirections",
+                "CountyNo": [
+                  14
+                ],
+                "Creator": "Trafikverket",
+                "CreationTime": "1999-06-22T13:40:49.280+02:00",
+                "EndTime": "2026-12-07T15:00:00.000+01:00",
+                "Geometry": {
+                  "SWEREF99TM": "POINT (314603 6412767)",
+                  "WGS84": "POINT (11.8786002358525 57.8183888695695)",
+                  "Point": {
+                    "SWEREF99TM": "POINT (314603 6412767)",
+                    "WGS84": "POINT (11.8786002358525 57.8183888695695)"
+                  },
+                  "Line": {
+                    "SWEREF99TM": "LINESTRING (314676.58016171993 6412722.273517698, 314531.31016184425 6412812.863517563)",
+                    "WGS84": "LINESTRING (11.879871633863932 57.81801813970444, 11.877359701933601 57.81877050404434)"
+                  }
+                },
+                "Header": "Kornhallsleden",
+                "IconId": "roadClosed",
+                "Id": "SE_STA_TRISSID_2_203352",
+                "Message": "Den 7 december mellan klockan 09:00 och klockan 15:00 är Kornhallsleden avstängd för planerat underhåll.",
+                "MessageCode": "Vägen avstängd",
+                "MessageCodeValue": "roadClosed",
+                "MessageType": "Trafikmeddelande",
+                "MessageTypeValue": "RoadOrCarriagewayOrLaneManagement",
+                "RoadNumber": "Väg 570",
+                "RoadNumberNumeric": 570,
+                "SeverityCode": 5,
+                "SeverityText": "Mycket stor påverkan",
+                "StartTime": "2026-12-07T09:00:00.000+01:00",
+                "LocationDescriptor": "Väg 570 i Kungälvs kommun i Västra Götalands län",
+                "WebLink": "http://www.trafikverket.se/kornhallsleden",
+                "VersionTime": "2026-11-12T14:04:16.603+01:00"
+              }
+            ],
+            "Id": "GUIDe4a381f6-a911-4753-81fb-8181ac3b7e26",
+            "PublicationTime": "2026-11-12T14:04:46.721+01:00",
+            "VersionTime": "2026-11-12T14:04:16.603+01:00",
+            "ModifiedTime": "2026-11-12T13:04:46.825Z"
+          },
+          {
+            "CountryCode": "SE",
+            "Deleted": false,
+            "Deviation": [
+              {
+                "AffectedDirection": "Båda riktningarna",
+                "AffectedDirectionValue": "BothDirections",
+                "CountyNo": [
+                  2,
+                  1
+                ],
+                "Creator": "Trafikverket",
+                "CreationTime": "1999-03-02T16:26:00.967+01:00",
+                "Geometry": {
+                  "SWEREF99TM": "POINT (690664 6589455)",
+                  "WGS84": "POINT (18.3586437928371 59.4004415239597)",
+                  "Point": {
+                    "SWEREF99TM": "POINT (690664 6589455)",
+                    "WGS84": "POINT (18.3586437928371 59.4004415239597)"
+                  },
+                  "Line": {
+                    "SWEREF99TM": "LINESTRING (690178.0398374563 6589394.103236679, 690290.4198373603 6589382.283236705, 690377.4798372865 6589378.2632367145, 690476.409837202 6589389.213236703, 690584.0798371105 6589418.483236663, 690689.9798370221 6589467.663236587, 690787.6398369395 6589525.363236502, 690865.4898368751 6589585.073236406, 690917.409836832 6589642.983236317, 690961.349836796 6589711.59323621, 690983.9598367797 6589809.373236045)",
+                    "WGS84": "LINESTRING (18.35004641712432 59.40011535623678, 18.35201162009928 59.39995861801868, 18.353538590751317 59.39988322430687, 18.355287510734993 59.39993664450024, 18.357206348264892 59.400150317926695, 18.359111775578988 59.400543250781894, 18.36087995353494 59.40101626808568, 18.362301690309398 59.40151626098731, 18.36326598947918 59.402011861052415, 18.36409953605448 59.4026069946651, 18.36458404759677 59.40347329694361)"
+                  }
+                },
+                "Header": "Vaxholmsleden",
+                "IconId": "ferryDepartureOnSchedule",
+                "Id": "SE_STA_TRISSID_1_136572",
+                "ManagedCause": true,
+                "MessageCode": "Färja",
+                "MessageCodeValue": "ferry",
+                "MessageType": "Färjor",
+                "MessageTypeValue": "TransitInformation",
+                "NumberOfLanesRestricted": 6,
+                "PositionalDescription": "Vägren",
+                "RoadNumber": "Väg 274",
+                "RoadNumberNumeric": 274,
+                "StartTime": "2026-11-03T16:12:54.000+01:00",
+                "LocationDescriptor": "Väg 274 mellan Färjeläget i Vaxholm och Färjeläget på Rindö (Vaxholm), i båda riktningar.",
+                "TrafficRestrictionType": "Körfält blockerade",
+                "ValidUntilFurtherNotice": true,
+                "WebLink": "http://www.trafikverket.se/vaxholmsleden",
+                "VersionTime": "2026-11-03T16:45:00.267+01:00"
+              }
+            ],
+            "Id": "GUID8253370b-630c-4a06-84ae-b67299acdd8b",
+            "PublicationTime": "2026-11-03T16:45:22.510+01:00",
+            "VersionTime": "2026-11-03T16:45:00.267+01:00",
+            "ModifiedTime": "2026-11-03T15:45:22.883Z"
+          },
+          {
+            "CountryCode": "SE",
+            "Deleted": false,
+            "Deviation": [
+              {
+                "AffectedDirection": "Båda riktningarna",
+                "AffectedDirectionValue": "BothDirections",
+                "CountyNo": [
+                  4
+                ],
+                "Creator": "Trafikverket",
+                "CreationTime": "1999-03-02T16:21:55.450+01:00",
+                "EndTime": "2026-12-31T17:00:00.000+01:00",
+                "Geometry": {
+                  "SWEREF99TM": "POINT (621837 6597602)",
+                  "WGS84": "POINT (17.1521323906223 59.4991075686425)",
+                  "Point": {
+                    "SWEREF99TM": "POINT (621837 6597602)",
+                    "WGS84": "POINT (17.1521323906223 59.4991075686425)"
+                  },
+                  "Line": {
+                    "SWEREF99TM": "LINESTRING (621487.9098961897 6597673.593220059, 621497.6998961815 6597672.643220061, 621527.2798961559 6597665.513220074, 622186.8598955906 6597531.533220316)",
+                    "WGS84": "LINESTRING (17.14601188255876 59.49985127855173, 17.14618413474266 59.49983991696029, 17.1467021572326 59.499767362759506, 17.158266854969238 59.4983733997261)"
+                  }
+                },
+                "Header": "Arnöleden",
+                "IconId": "ferryServiceNotOperating",
+                "Id": "SE_STA_TRISSID_1_136522",
+                "ManagedCause": true,
+                "Message": "Reducerad lastkapacitet på max 30 ton, på grund av teknisk begränsning.  ",
+                "MessageCode": "Färja",
+                "MessageCodeValue": "ferry",
+                "MessageType": "Färjor",
+                "MessageTypeValue": "TransitInformation",
+                "NumberOfLanesRestricted": 6,
+                "PositionalDescription": "Vägren",
+                "RoadNumber": "Väg 975",
+                "RoadNumberNumeric": 975,
+                "SeverityCode": 4,
+                "SeverityText": "Stor påverkan",
+                "StartTime": "2026-09-18T10:23:42.000+02:00",
+                "LocationDescriptor": "Väg 975 vid Arnöleden, Arnö, i båda riktningar.",
+                "TrafficRestrictionType": "Körfält blockerade",
+                "WebLink": "http://www.trafikverket.se/arnoleden",
+                "VersionTime": "2026-09-18T10:31:10.017+02:00"
+              }
+            ],
+            "Id": "GUID50a269e9-d192-4818-ac3e-cb6e71938bfb",
+            "PublicationTime": "2026-09-18T10:31:51.146+02:00",
+            "VersionTime": "2026-09-18T10:31:10.017+02:00",
+            "ModifiedTime": "2026-09-18T08:31:51.426Z"
+          },
+          {
+            "CountryCode": "SE",
+            "Deleted": false,
+            "Deviation": [
+              {
+                "AffectedDirection": "Båda riktningarna",
+                "AffectedDirectionValue": "BothDirections",
+                "CountyNo": [
+                  14
+                ],
+                "Creator": "Trafikverket",
+                "CreationTime": "2008-12-07T22:05:48.393+01:00",
+                "EndTime": "2026-11-26T20:00:00.000+01:00",
+                "Geometry": {
+                  "SWEREF99TM": "POINT (299001 6408338)",
+                  "WGS84": "POINT (11.6201422498848 57.7719460290316)",
+                  "Point": {
+                    "SWEREF99TM": "POINT (299001 6408338)",
+                    "WGS84": "POINT (11.6201422498848 57.7719460290316)"
+                  },
+                  "Line": {
+                    "SWEREF99TM": "LINESTRING (298971.98017537815 6408397.183525182, 298978.20017537323 6408391.613525192, 298986.63017536665 6408360.383525239, 298994.0101753601 6408348.463525258, 299042.33017531974 6408285.783525354)",
+                    "WGS84": "LINESTRING (11.619605616233311 57.7724636797528, 11.619714671310279 57.7724165217983, 11.619882329925861 57.772140267192974, 11.620016174786375 57.772036689816574, 11.62087961562436 57.77149629791967)"
+                  }
+                },
+                "Header": "Nordöleden (Burö-Knippla-Hyppeln-Rörö)",
+                "IconId": "ferryServiceNotOperating",
+                "Id": "SE_STA_TRISSID_1_1776897",
+                "ManagedCause": true,
+                "Message": "Nedsatt kapacitet på grund av varvsbesök från den 15 september 05.20 till den 26 november 20:00. Mindre färja trafikerar leden under arbets gång.\nTurlistan för nedsatt kapacitet gäller.",
+                "MessageCode": "Färja",
+                "MessageCodeValue": "ferry",
+                "MessageType": "Färjor",
+                "MessageTypeValue": "TransitInformation",
+                "RoadName": "Sörikringsvägen",
+                "RoadNumber": "Väg 575",
+                "RoadNumberNumeric": 575,
+                "SeverityCode": 4,
+                "SeverityText": "Stor påverkan",
+                "StartTime": "2026-09-15T05:20:00.000+02:00",
+                "LocationDescriptor": "Väg 575 vid Burösunds Brygga, i båda riktningar.",
+                "WebLink": "http://www.trafikverket.se/nordoleden",
+                "VersionTime": "2026-11-03T13:15:46.567+01:00"
+              }
+            ],
+            "Id": "GUID9384c086-76c9-4e86-ab4a-6b456dff5d14",
+            "PublicationTime": "2026-11-03T13:16:14.460+01:00",
+            "VersionTime": "2026-11-03T13:15:46.567+01:00",
+            "ModifiedTime": "2026-11-03T12:16:14.727Z"
+          }
+        ]
+      }
+    ]
+  }
+}

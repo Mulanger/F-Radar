@@ -8,7 +8,7 @@ import { FreshnessSchema, IsoDateTimeSchema, SeveritySchema, SourceIdSchema } fr
  * full provenance. The classes are never mixed in the UI: a forecast is not an observation,
  * an official warning is not a public event, and static/statistical context never raises alerts.
  */
-export const DATA_CLASSES = ['FORECAST', 'OBSERVATION', 'OFFICIAL_WARNING', 'PUBLIC_EVENT', 'STATIC_GEODATA', 'REGIONAL_STATISTIC'] as const;
+export const DATA_CLASSES = ['FORECAST', 'MODEL', 'OBSERVATION', 'OFFICIAL_WARNING', 'PUBLIC_EVENT', 'STATIC_GEODATA', 'REGIONAL_STATISTIC'] as const;
 export const DataClassSchema = z.enum(DATA_CLASSES);
 export type DataClass = z.infer<typeof DataClassSchema>;
 
@@ -114,6 +114,12 @@ export const PropertyMonitoringContextSchema = z.object({
   observations: z.array(NearbyObservationSchema),
   airQuality: z.array(NearbyObservationSchema),
   groundwater: GroundwaterContextSchema.nullable(),
+  observedGroundwater: NearbyObservationSchema.nullable().optional(),
+  airIndex: z.object({
+    stationId: z.string(), stationName: z.string(), distanceMeters: z.number(), observedAt: IsoDateTimeSchema,
+    classification: z.string(), band: z.number().int().min(1).max(6), label: z.string(),
+    pollutants: z.array(z.string()), missingPollutants: z.array(z.string()), method: z.literal('eea_hourly_2024_v1'),
+  }).nullable().optional(),
   flood: FloodContextSchema.nullable(),
   statistics: RegionalStatisticSchema.nullable(),
   /** How the property status was derived (documented, transparent; never a risk score). */

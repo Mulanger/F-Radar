@@ -21,7 +21,7 @@ export function resolveSourceStatus(manifest: SourceManifest, env: ServerEnv): D
     note = 'Avstängd i väntan på juridiskt godkännande';
   } else if (!flagEnabled) {
     status = 'disabled';
-    note = `Avstängd via ${manifest.enableFlag}`;
+    note = `Avstängd via ${manifest.enableFlag}${missingSecrets.length ? `; saknar ${missingSecrets.join(', ')}` : ''}`;
   } else if (missingSecrets.length > 0) {
     status = manifest.access === 'requires_approval' ? 'access_required' : 'pending_access';
     note = `Saknar ${missingSecrets.join(', ')}`;

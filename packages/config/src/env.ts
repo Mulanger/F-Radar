@@ -72,6 +72,11 @@ export const ServerEnvSchema = z.object({
     .url()
     .default('https://opendata-download-warnings.smhi.se/ibww/api/version/1/warning.json'),
   SMHI_OBSERVATIONS_BASE_URL: z.string().url().default('https://opendata-download-metobs.smhi.se/api'),
+  SMHI_OCEANOGRAPHY_BASE_URL: optionalUrl.transform((v) => v ?? 'https://opendata-download-ocobs.smhi.se/api'),
+  SOURCE_SMHI_OCEANOGRAPHY_ENABLED: bool(true),
+  SOURCE_SGU_OBSERVED_ENABLED: bool(true),
+  SOURCE_SL_DEVIATIONS_ENABLED: bool(false),
+  SL_DEVIATIONS_API_KEY: optionalString,
   KRISINFORMATION_BASE_URL: z.string().url().default('https://api.krisinformation.se/v3'),
   AIR_QUALITY_BASE_URL: z.string().url().default('https://datavardluft.smhi.se/52North/api/'),
   SGU_OBSERVED_GROUNDWATER_BASE_URL: z
@@ -168,6 +173,7 @@ export const SECRET_ENV_KEYS = [
   'CLERK_JWT_KEY',
   'GEOAPIFY_API_KEY',
   'TRAFIKVERKET_API_KEY',
+  'SL_DEVIATIONS_API_KEY',
   'LANTMATERIET_CLIENT_SECRET',
   'BOVERKET_API_KEY',
   'ELKS_API_USERNAME',
