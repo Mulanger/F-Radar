@@ -263,6 +263,7 @@ interface CandidateRow {
   headline: string;
   affected_customers: number | null;
   area_customer_total: number | null;
+  place_label: string | null;
 }
 
 interface ExistingMatch {
@@ -289,13 +290,13 @@ export async function rematchUtilityOutages(db: Queryable): Promise<MatchChange[
     `WITH props AS (
        SELECT p.id, p.organization_id, p.location, p.geocode_precision, p.position_source FROM properties p WHERE p.status <> 'paused'
      ), ev AS (
-       SELECT e.id, e.version, e.geom, e.headline, u.kind, u.state, u.precision, u.affected_customers, u.area_customer_total
+       SELECT e.id, e.version, e.geom, e.headline, u.kind, u.state, u.precision, u.affected_customers, u.area_customer_total, u.place_label
          FROM source_events e JOIN utility_outages u ON u.event_id = e.id
         WHERE e.source_id = '${UTILITY_OUTAGE_SOURCE}' AND e.geom IS NOT NULL
           AND (e.status = 'active' OR e.ended_at > now() - make_interval(hours => ${OUTAGE_RECENT_HOURS}))
      )
      SELECT pr.id AS property_id, pr.organization_id, ev.id AS event_id, ev.version, pr.geocode_precision, pr.position_source,
-            ev.kind, ev.state, ev.headline, ev.affected_customers, ev.area_customer_total,
+            ev.kind, ev.state, ev.headline, ev.affected_customers, ev.area_customer_total, ev.place_label,
             CASE WHEN ev.precision = 'polygon' AND ST_Intersects(ev.geom, pr.location::geometry) THEN 'outage_polygon'
                  WHEN ev.precision = 'polygon' THEN 'outage_adjacent'
                  WHEN ev.precision = 'point' THEN 'outage_point'
@@ -323,7 +324,7 @@ export async function rematchUtilityOutages(db: Queryable): Promise<MatchChange[
     const k = key(c.property_id, c.event_id);
     seen.add(k);
     const confirmed = isPositionConfirmed(c.geocode_precision, c.position_source);
-    const level = outageMatchLevel(c.match_method, confirmed);
+    const level = outageMatchLevel(c.match_method, confirmed, c.affected_customers);
     const severity = outageEffectiveSeverity({ kind: c.kind, state: c.state }, level);
     const o = old.get(k);
     upserts.push({ property_id: c.property_id, event_id: c.event_id, organization_id: c.organization_id, match_method: c.match_method, distance_m: c.distance_m === null ? null : Number(c.distance_m), version: c.version, effective_severity: severity });
@@ -341,7 +342,7 @@ export async function rematchUtilityOutages(db: Queryable): Promise<MatchChange[
       change_type: ended ? 'ended' : !o || becameVisible ? 'new' : 'updated',
       severity,
       // "Strömmen är tillbaka …" needs no position caveat; area-level rows keep theirs (where it applied).
-      headline: (ended && level !== 'area' ? c.headline : outageFeedTitle(c.headline, level, c.match_method, { affected: c.affected_customers, total: c.area_customer_total })).slice(0, 500),
+      headline: (ended && level !== 'area' ? c.headline : outageFeedTitle(c.headline, level, c.match_method, c.place_label)).slice(0, 500),
       dedup_key: `${c.property_id}:${c.event_id}:v${c.version}:${level}`,
     });
   }
@@ -415,6 +416,44 @@ export async function replaceConcessionAreas(
   return rowCount ?? 0;
 }
 
+/**
+ * Replaces the national concession dataset (Energimarknadsinspektionen, SWEREF 99 TM / EPSG:3006).
+ * Each area arrives as its rings (MultiLineString); PostGIS assembles polygons with holes
+ * (ST_BuildArea), simplifies to 5 m and transforms to WGS84. Runs in one transaction-free batch:
+ * old rows are deleted only after the new set was inserted.
+ */
+export async function replaceNationalConcessions(
+  db: Queryable,
+  areas: Array<{ operatorId: string; operatorName: string; externalRef: string | null; rings: number[][][] }>,
+  utility: UtilityKind = 'electricity',
+): Promise<number> {
+  if (!areas.length) return 0;
+  const stamp = new Date().toISOString();
+  let inserted = 0;
+  for (let i = 0; i < areas.length; i += 10) {
+    const chunk = areas.slice(i, i + 10).map((a) => ({
+      operator_id: a.operatorId,
+      operator_name: a.operatorName,
+      external_ref: a.externalRef,
+      geojson: JSON.stringify({ type: 'MultiLineString', coordinates: a.rings }),
+    }));
+    const { rowCount } = await db.query(
+      `INSERT INTO grid_concession_areas (operator_id, operator_name, utility, source, external_ref, geom, fetched_at)
+       SELECT x.operator_id, x.operator_name, $2, 'national_dataset', x.external_ref, g.geom, $3::timestamptz
+         FROM jsonb_to_recordset($1::jsonb) AS x(operator_id text, operator_name text, external_ref text, geojson text)
+         CROSS JOIN LATERAL (
+           SELECT ST_Multi(ST_CollectionExtract(ST_MakeValid(ST_Transform(
+                    ST_SimplifyPreserveTopology(ST_BuildArea(ST_SetSRID(ST_GeomFromGeoJSON(x.geojson), 3006)), 5), 4326)), 3)) AS geom
+         ) g
+        WHERE g.geom IS NOT NULL AND NOT ST_IsEmpty(g.geom)`,
+      [JSON.stringify(chunk), utility, stamp],
+    );
+    inserted += rowCount ?? 0;
+  }
+  await db.query(`DELETE FROM grid_concession_areas WHERE source = 'national_dataset' AND utility = $1 AND fetched_at <> $2::timestamptz`, [utility, stamp]);
+  return inserted;
+}
+
 /* ------------------------------------------------------------------ */
 /* Reads for the snapshot                                              */
 /* ------------------------------------------------------------------ */
@@ -469,12 +508,20 @@ export async function listOrgUtilityOutages(db: Queryable, organizationId: strin
   return rows;
 }
 
+export interface PropertyConcessionRow {
+  property_id: string;
+  operator_id: string;
+  operator_name: string | null;
+  utility: UtilityKind;
+}
+
 /** Operators whose concession area covers each property of the organization. */
-export async function listOrgPropertyConcessions(db: Queryable, organizationId: string): Promise<Array<{ property_id: string; operator_id: string; utility: UtilityKind }>> {
-  const { rows } = await db.query<{ property_id: string; operator_id: string; utility: UtilityKind }>(
-    `SELECT DISTINCT p.id AS property_id, g.operator_id, g.utility
+export async function listOrgPropertyConcessions(db: Queryable, organizationId: string): Promise<PropertyConcessionRow[]> {
+  const { rows } = await db.query<PropertyConcessionRow>(
+    `SELECT p.id AS property_id, g.operator_id, max(g.operator_name) AS operator_name, g.utility
        FROM properties p JOIN grid_concession_areas g ON ST_Covers(g.geom, p.location::geometry)
-      WHERE p.organization_id = $1`,
+      WHERE p.organization_id = $1
+      GROUP BY p.id, g.operator_id, g.utility`,
     [organizationId],
   );
   return rows;

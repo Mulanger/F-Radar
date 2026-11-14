@@ -10,6 +10,7 @@ import {
   listOrgUtilityOutages,
   rematchUtilityOutages,
   replaceConcessionAreas,
+  replaceNationalConcessions,
   storeUtilityOutages,
   type UtilityOutageInput,
 } from '../../packages/db/src';
@@ -182,6 +183,41 @@ export function registerUtilityOutageTests(pool: pg.Pool) {
       await replaceConcessionAreas(pool, OP.id, 'electricity', 'operator_feed', [{ externalRef: 'k1', geometry: { type: 'Polygon', coordinates: [[[LON - 0.01, LAT - 0.005], [LON + 0.01, LAT - 0.005], [LON + 0.01, LAT + 0.005], [LON - 0.01, LAT + 0.005], [LON - 0.01, LAT - 0.005]]] } }]);
       const n = await pool.query(`SELECT count(*)::int AS n FROM grid_concession_areas WHERE operator_id = $1`, [OP.id]);
       assert.equal(n.rows[0].n, 1);
+    });
+
+    it('postal-area outages: blue feed row from 25 customers, panel-only below, never SMS precision', async () => {
+      const f = await fixture();
+      const big = outage({ precision: 'postal_area', affectedCustomers: 60 });
+      const small = outage({ precision: 'postal_area', affectedCustomers: 8 });
+      await storeUtilityOutages(pool, OP.id, [big, small], true);
+      await rematchUtilityOutages(pool);
+      const mBig = await matchesFor(big.externalId);
+      assert.ok(mBig.every((x) => x.match_method === 'outage_postal_area'));
+      assert.equal(mBig.find((x) => x.property_id === f.inside.id)?.effective_severity, 'monitor');
+      const cBig = await changesFor(big.externalId);
+      assert.ok(cBig.length > 0 && cBig.every((x) => x.severity === 'monitor' && x.headline.endsWith('– i fastighetens postnummerområde')));
+      assert.equal((await changesFor(small.externalId)).length, 0, 'small area outage: no feed rows');
+      assert.ok((await matchesFor(small.externalId)).every((x) => x.effective_severity === null), 'but listed for the panel');
+    });
+
+    it('national concession areas (SWEREF 99 TM) are transformed to WGS84 and replaced atomically', async () => {
+      const f = await fixture();
+      // ±5 km square around Gustaf Adolfs torg, Göteborg (≈ E 319 300, N 6 400 000 in SWEREF 99 TM).
+      const sq = (e: number, n: number, d: number) => [[[e - d, n - d], [e + d, n - d], [e + d, n + d], [e - d, n + d], [e - d, n - d]]];
+      const gbg = await createProperty(pool, { organizationId: f.org, userId: 'user_outageTest' }, { name: 'Göteborg', address: 'Gustaf Adolfs torg 1', location: { lat: 57.7072, lon: 11.9668 }, geocode: { provider: 'manual_pin', precision: 'unknown' } });
+      const n = await replaceNationalConcessions(pool, [
+        { operatorId: 'goteborg_energi', operatorName: 'Göteborg Energi Nät AB', externalRef: 'T1', rings: sq(319_300, 6_400_000, 5_000) },
+        { operatorId: 'ei:Testnät Syd AB', operatorName: 'Testnät Syd AB', externalRef: 'T2', rings: sq(380_000, 6_160_000, 5_000) },
+      ]);
+      assert.equal(n, 2);
+      const cov = await listOrgPropertyConcessions(pool, f.org);
+      assert.deepEqual(cov.filter((x) => x.property_id === gbg.id).map((x) => [x.operator_id, x.operator_name]), [['goteborg_energi', 'Göteborg Energi Nät AB']]);
+      const bbox = await pool.query(`SELECT ST_XMin(geom) AS x0, ST_YMin(geom) AS y0 FROM grid_concession_areas WHERE external_ref = 'T1'`);
+      assert.ok(bbox.rows[0].x0 > 11.8 && bbox.rows[0].x0 < 11.9 && bbox.rows[0].y0 > 57.6 && bbox.rows[0].y0 < 57.7, JSON.stringify(bbox.rows[0]));
+      // A new import replaces the previous national set.
+      await replaceNationalConcessions(pool, [{ operatorId: 'goteborg_energi', operatorName: 'Göteborg Energi Nät AB', externalRef: 'T3', rings: sq(319_300, 6_400_000, 5_000) }]);
+      const refs = await pool.query(`SELECT external_ref FROM grid_concession_areas WHERE source = 'national_dataset' ORDER BY 1`);
+      assert.deepEqual(refs.rows.map((r) => r.external_ref), ['T3']);
     });
 
     it('anti-spam SMS: only the property inside the polygon triggers; restored goes only to those notified', async () => {

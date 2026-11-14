@@ -43,11 +43,19 @@ export const PANEL_ONLY_OUTAGE_MATCHES: readonly OutageMatchMethod[] = ['outage_
 
 export type OutageMatchPrecisionLevel = 'high' | 'medium' | 'low' | 'area';
 
-export function outageMatchLevel(method: OutageMatchMethod, positionConfirmed: boolean): OutageMatchPrecisionLevel {
+/**
+ * Area-level matches (postal area, operating district) reach the feed only for outages with at least
+ * this many affected customers. Smaller ones (often a single customer in a postcode of thousands) are
+ * shown in the property panel only – otherwise every property in the area would get noise.
+ */
+export const AREA_FEED_MIN_CUSTOMERS = 25;
+
+export function outageMatchLevel(method: OutageMatchMethod, positionConfirmed: boolean, affectedCustomers?: number | null): OutageMatchPrecisionLevel {
   if (method === 'outage_polygon' || method === 'outage_address') return positionConfirmed ? 'high' : 'medium';
   if (method === 'outage_street') return 'medium';
   if (method === 'outage_adjacent' || method === 'outage_point') return 'low';
-  return 'area';
+  // Area match: below the threshold (or unknown size) it is panel-only.
+  return affectedCustomers !== undefined && (affectedCustomers ?? 0) < AREA_FEED_MIN_CUSTOMERS ? 'low' : 'area';
 }
 
 /** A property's position counts as confirmed when geocoded to a building or set/adjusted by hand. */
@@ -114,6 +122,8 @@ export const PropertyUtilityStatusSchema = z.object({
   utility: UtilityKindSchema,
   operator: z.object({ id: z.string(), name: z.string(), mapUrl: z.string().nullable() }).nullable(),
   coverage: OutageCoverageSchema,
+  /** Grid operators whose (approximate) concession area covers the property when more than one does. */
+  operatorCandidates: z.array(z.string()).optional(),
   /** Operator's last successful collection. */
   updatedAt: IsoDateTimeSchema.nullable(),
   current: z.array(UtilityOutageViewSchema),
@@ -177,8 +187,8 @@ export function outageHeadline(o: { utility: UtilityKind; kind: OutageKind; stat
   return `${Noun} registrerat – ${operatorName}`;
 }
 
-/** Caveat shown next to a match, per precision. */
-export function outagePrecisionLabel(method: OutageMatchMethod, positionConfirmed: boolean, area?: { affected: number | null; total: number | null }): string {
+/** Caveat shown next to a match, per precision. `placeLabel` names an operating district when known. */
+export function outagePrecisionLabel(method: OutageMatchMethod, positionConfirmed: boolean, placeLabel?: string | null): string {
   switch (method) {
     case 'outage_polygon':
       return positionConfirmed
@@ -192,23 +202,18 @@ export function outagePrecisionLabel(method: OutageMatchMethod, positionConfirme
       return 'Nära avbrottsområdet – inte bekräftat att fastigheten berörs';
     case 'outage_point':
       return 'Enstaka anläggning i närheten – inte bekräftat att fastigheten berörs';
-    case 'outage_postal_area': {
-      const share = area?.affected != null && area.total ? ` (${area.affected} av ${area.total} anläggningar)` : '';
-      return `I fastighetens postnummerområde${share} – inte säkert att fastigheten berörs`;
-    }
+    case 'outage_postal_area':
+      return 'I fastighetens postnummerområde – inte säkert att fastigheten berörs';
     case 'outage_area':
-      return 'I nätbolagets driftområde – inte säkert att fastigheten berörs';
+      return `I nätbolagets driftområde${placeLabel ? ` ${placeLabel}` : ''} – inte säkert att fastigheten berörs`;
   }
 }
 
 /** Per-property feed title: the event headline plus a caveat when the match is not high precision. */
-export function outageFeedTitle(headline: string, level: OutageMatchPrecisionLevel, method: OutageMatchMethod, area?: { affected: number | null; total: number | null }): string {
+export function outageFeedTitle(headline: string, level: OutageMatchPrecisionLevel, method: OutageMatchMethod, placeLabel?: string | null): string {
   if (level === 'high') return headline;
-  if (method === 'outage_postal_area') {
-    const share = area?.affected != null && area.total ? ` (${area.affected} av ${area.total} anläggningar)` : '';
-    return `${headline} – i fastighetens postnummerområde${share}`;
-  }
-  if (method === 'outage_area') return `${headline} – i nätbolagets driftområde`;
+  if (method === 'outage_postal_area') return `${headline} – i fastighetens postnummerområde`;
+  if (method === 'outage_area') return `${headline} – i nätbolagets driftområde${placeLabel ? ` ${placeLabel}` : ''}`;
   if (method === 'outage_street') return `${headline} – gatan nämns i nätbolagets lista`;
   return `${headline} – fastighetens position är ungefärlig`;
 }

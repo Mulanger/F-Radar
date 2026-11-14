@@ -1,0 +1,2444 @@
+{
+ "list": {
+  "outages": [
+   {
+    "outageId": "39a6455a-618e-4b97-cc42-08df3eee4bfe",
+    "incident": "DistrictHeatingOutage",
+    "utility": "DistrictHeating",
+    "status": "Scheduled",
+    "planned": true,
+    "plannedStartTime": "2026-11-17T07:00:00.000Z",
+    "registeredTime": "2026-11-10T05:48:48.632Z",
+    "estimatedCompletionTime": "2026-11-17T15:00:00.000Z",
+    "cause": "DistrictHeatingMaintenance",
+    "affectedSites": 75,
+    "affectedCustomers": 73,
+    "affectedConnectionPoints": 75,
+    "internalStatusUpdates": [
+     {
+      "key": "outageRegistered",
+      "done": true,
+      "descriptionKey": "OUTAGEREGISTERED",
+      "timeStamp": "2026-11-10T05:48:48.632Z"
+     },
+     {
+      "key": "completionTimeEstimated",
+      "done": false,
+      "descriptionKey": "COMPLETIONTIMEESTIMATED"
+     },
+     {
+      "key": "outageCompleted",
+      "done": false,
+      "descriptionKey": "OUTAGECOMPLETED"
+     }
+    ],
+    "externalStatusUpdates": [],
+    "districts": [
+     {
+      "county": "Ostergotland",
+      "city": "Linköping",
+      "name": "Vidingsjö",
+      "affectedSize": 75
+     }
+    ],
+    "mainAreaAffected": "Vidingsjö",
+    "plannedTimeline": {
+     "outageRegistered": {
+      "registeredTime": "2026-11-10T06:48:48.6329373+01:00",
+      "estimatedCompletionTime": "2026-11-17T16:00:00+01:00",
+      "plannedStartTime": "2026-11-17T08:00:00+01:00",
+      "cause": "DistrictHeatingMaintenance",
+      "eventCreatedTime": "2026-11-10T06:48:48.6329373+01:00"
+     }
+    },
+    "instructions": {
+     "textInstructions": [
+      "Det går bara att använda kallvatten.",
+      "Detta innebär att fastigheten saknar både värme och varmvatten."
+     ]
+    },
+    "subOutages": []
+   },
+   {
+    "outageId": "7338d4db-d820-41d2-cc4b-08df3eee4bfe",
+    "incident": "DistrictHeatingOutage",
+    "utility": "DistrictHeating",
+    "status": "Scheduled",
+    "planned": true,
+    "plannedStartTime": "2026-11-16T07:00:00.000Z",
+    "registeredTime": "2026-11-11T11:10:09.424Z",
+    "estimatedCompletionTime": "2026-11-16T13:00:00.000Z",
+    "cause": "DistrictHeatingMaintenance",
+    "affectedSites": 11,
+    "affectedCustomers": 11,
+    "affectedConnectionPoints": 11,
+    "internalStatusUpdates": [
+     {
+      "key": "outageRegistered",
+      "done": true,
+      "descriptionKey": "OUTAGEREGISTERED",
+      "timeStamp": "2026-11-11T11:10:09.424Z"
+     },
+     {
+      "key": "completionTimeEstimated",
+      "done": false,
+      "descriptionKey": "COMPLETIONTIMEESTIMATED"
+     },
+     {
+      "key": "outageCompleted",
+      "done": false,
+      "descriptionKey": "OUTAGECOMPLETED"
+     }
+    ],
+    "externalStatusUpdates": [],
+    "districts": [
+     {
+      "county": "Ostergotland",
+      "city": "Linköping",
+      "name": "Ljungsbro",
+      "affectedSize": 11
+     }
+    ],
+    "mainAreaAffected": "Ljungsbro",
+    "plannedTimeline": {
+     "outageRegistered": {
+      "registeredTime": "2026-11-11T12:10:09.4249845+01:00",
+      "estimatedCompletionTime": "2026-11-16T14:00:00+01:00",
+      "plannedStartTime": "2026-11-16T08:00:00+01:00",
+      "cause": "DistrictHeatingMaintenance",
+      "eventCreatedTime": "2026-11-11T12:10:09.4249845+01:00"
+     }
+    },
+    "instructions": {
+     "textInstructions": [
+      "Det går bara att använda kallvatten.",
+      "Detta innebär att fastigheten saknar både värme och varmvatten."
+     ]
+    },
+    "subOutages": []
+   },
+   {
+    "outageId": "5a013b75-391d-420c-cc4c-08df3eee4bfe",
+    "incident": "DistrictHeatingOutage",
+    "utility": "DistrictHeating",
+    "status": "Scheduled",
+    "planned": true,
+    "plannedStartTime": "2026-11-18T07:00:00.000Z",
+    "registeredTime": "2026-11-11T12:41:24.414Z",
+    "estimatedCompletionTime": "2026-11-18T15:00:00.000Z",
+    "cause": "DistrictHeatingMaintenance",
+    "affectedSites": 8,
+    "affectedCustomers": 8,
+    "affectedConnectionPoints": 8,
+    "internalStatusUpdates": [
+     {
+      "key": "outageRegistered",
+      "done": true,
+      "descriptionKey": "OUTAGEREGISTERED",
+      "timeStamp": "2026-11-11T12:41:24.414Z"
+     },
+     {
+      "key": "completionTimeEstimated",
+      "done": false,
+      "descriptionKey": "COMPLETIONTIMEESTIMATED"
+     },
+     {
+      "key": "outageCompleted",
+      "done": false,
+      "descriptionKey": "OUTAGECOMPLETED"
+     }
+    ],
+    "externalStatusUpdates": [],
+    "districts": [
+     {
+      "county": "Ostergotland",
+      "city": "Linköping",
+      "name": "Malmslätt",
+      "affectedSize": 8
+     }
+    ],
+    "mainAreaAffected": "Malmslätt",
+    "plannedTimeline": {
+     "outageRegistered": {
+      "registeredTime": "2026-11-11T13:41:24.4140259+01:00",
+      "estimatedCompletionTime": "2026-11-18T16:00:00+01:00",
+      "plannedStartTime": "2026-11-18T08:00:00+01:00",
+      "cause": "DistrictHeatingMaintenance",
+      "eventCreatedTime": "2026-11-11T13:41:24.4140259+01:00"
+     }
+    },
+    "instructions": {
+     "textInstructions": [
+      "Det går bara att använda kallvatten.",
+      "Detta innebär att fastigheten saknar både värme och varmvatten."
+     ]
+    },
+    "subOutages": []
+   },
+   {
+    "outageId": "da482896-a2b9-4fa0-cc4f-08df3eee4bfe",
+    "incident": "DistrictHeatingOutage",
+    "utility": "DistrictHeating",
+    "status": "Scheduled",
+    "planned": true,
+    "plannedStartTime": "2026-11-19T07:00:00.000Z",
+    "registeredTime": "2026-11-12T05:56:49.846Z",
+    "estimatedCompletionTime": "2026-11-19T15:00:00.000Z",
+    "cause": "DistrictHeatingMaintenance",
+    "affectedSites": 42,
+    "affectedCustomers": 42,
+    "affectedConnectionPoints": 42,
+    "internalStatusUpdates": [
+     {
+      "key": "outageRegistered",
+      "done": true,
+      "descriptionKey": "OUTAGEREGISTERED",
+      "timeStamp": "2026-11-12T05:56:49.846Z"
+     },
+     {
+      "key": "completionTimeEstimated",
+      "done": false,
+      "descriptionKey": "COMPLETIONTIMEESTIMATED"
+     },
+     {
+      "key": "outageCompleted",
+      "done": false,
+      "descriptionKey": "OUTAGECOMPLETED"
+     }
+    ],
+    "externalStatusUpdates": [],
+    "districts": [
+     {
+      "county": "Ostergotland",
+      "city": "Linköping",
+      "name": "Ekholmen",
+      "affectedSize": 42
+     }
+    ],
+    "mainAreaAffected": "Ekholmen",
+    "plannedTimeline": {
+     "outageRegistered": {
+      "registeredTime": "2026-11-12T06:56:49.8461797+01:00",
+      "estimatedCompletionTime": "2026-11-19T16:00:00+01:00",
+      "plannedStartTime": "2026-11-19T08:00:00+01:00",
+      "cause": "DistrictHeatingMaintenance",
+      "eventCreatedTime": "2026-11-12T06:56:49.8461797+01:00"
+     }
+    },
+    "instructions": {
+     "textInstructions": [
+      "Det går bara att använda kallvatten.",
+      "Detta innebär att fastigheten saknar både värme och varmvatten."
+     ]
+    },
+    "subOutages": []
+   },
+   {
+    "outageId": "7a6ab0d4-c9e7-47e5-cc50-08df3eee4bfe",
+    "incident": "DistrictHeatingOutage",
+    "utility": "DistrictHeating",
+    "status": "Scheduled",
+    "planned": true,
+    "plannedStartTime": "2026-11-20T07:00:00.000Z",
+    "registeredTime": "2026-11-12T06:34:20.190Z",
+    "estimatedCompletionTime": "2026-11-20T15:00:00.000Z",
+    "cause": "DistrictHeatingMaintenance",
+    "affectedSites": 37,
+    "affectedCustomers": 37,
+    "affectedConnectionPoints": 37,
+    "internalStatusUpdates": [
+     {
+      "key": "outageRegistered",
+      "done": true,
+      "descriptionKey": "OUTAGEREGISTERED",
+      "timeStamp": "2026-11-12T06:34:20.190Z"
+     },
+     {
+      "key": "completionTimeEstimated",
+      "done": false,
+      "descriptionKey": "COMPLETIONTIMEESTIMATED"
+     },
+     {
+      "key": "outageCompleted",
+      "done": false,
+      "descriptionKey": "OUTAGECOMPLETED"
+     }
+    ],
+    "externalStatusUpdates": [],
+    "districts": [
+     {
+      "county": "Ostergotland",
+      "city": "Linköping",
+      "name": "Hackefors",
+      "affectedSize": 37
+     }
+    ],
+    "mainAreaAffected": "Hackefors",
+    "plannedTimeline": {
+     "outageRegistered": {
+      "registeredTime": "2026-11-12T07:34:20.1905969+01:00",
+      "estimatedCompletionTime": "2026-11-20T16:00:00+01:00",
+      "plannedStartTime": "2026-11-20T08:00:00+01:00",
+      "cause": "DistrictHeatingMaintenance",
+      "eventCreatedTime": "2026-11-12T07:34:20.1905969+01:00"
+     }
+    },
+    "instructions": {
+     "textInstructions": [
+      "Det går bara att använda kallvatten.",
+      "Detta innebär att fastigheten saknar både värme och varmvatten."
+     ]
+    },
+    "subOutages": []
+   },
+   {
+    "outageId": "c9e81231-71a2-4d1e-cc57-08df3eee4bfe",
+    "incident": "DistrictHeatingOutage",
+    "utility": "DistrictHeating",
+    "status": "Scheduled",
+    "planned": true,
+    "plannedStartTime": "2026-11-19T07:00:00.000Z",
+    "registeredTime": "2026-11-12T10:08:18.416Z",
+    "estimatedCompletionTime": "2026-11-19T15:00:00.000Z",
+    "cause": "DistrictHeatingMaintenance",
+    "affectedSites": 92,
+    "affectedCustomers": 91,
+    "affectedConnectionPoints": 95,
+    "internalStatusUpdates": [
+     {
+      "key": "outageRegistered",
+      "done": true,
+      "descriptionKey": "OUTAGEREGISTERED",
+      "timeStamp": "2026-11-12T10:08:18.416Z"
+     },
+     {
+      "key": "completionTimeEstimated",
+      "done": false,
+      "descriptionKey": "COMPLETIONTIMEESTIMATED"
+     },
+     {
+      "key": "outageCompleted",
+      "done": false,
+      "descriptionKey": "OUTAGECOMPLETED"
+     }
+    ],
+    "externalStatusUpdates": [],
+    "districts": [
+     {
+      "county": "Ostergotland",
+      "city": "Linköping",
+      "name": "Ljungsbro",
+      "affectedSize": 92
+     }
+    ],
+    "mainAreaAffected": "Ljungsbro",
+    "plannedTimeline": {
+     "outageRegistered": {
+      "registeredTime": "2026-11-12T11:08:18.4167944+01:00",
+      "estimatedCompletionTime": "2026-11-19T16:00:00+01:00",
+      "plannedStartTime": "2026-11-19T08:00:00+01:00",
+      "cause": "DistrictHeatingMaintenance",
+      "eventCreatedTime": "2026-11-12T11:08:18.4167944+01:00"
+     }
+    },
+    "instructions": {
+     "textInstructions": [
+      "Det går bara att använda kallvatten.",
+      "Detta innebär att fastigheten saknar både värme och varmvatten."
+     ]
+    },
+    "subOutages": []
+   },
+   {
+    "outageId": "1074a125-b50a-49fd-cc5e-08df3eee4bfe",
+    "incident": "DistrictHeatingOutage",
+    "utility": "DistrictHeating",
+    "status": "Scheduled",
+    "planned": true,
+    "plannedStartTime": "2026-11-19T07:00:00.000Z",
+    "registeredTime": "2026-11-13T07:31:08.549Z",
+    "estimatedCompletionTime": "2026-11-19T15:00:00.000Z",
+    "cause": "DistrictHeatingMaintenance",
+    "affectedSites": 1,
+    "affectedCustomers": 1,
+    "affectedConnectionPoints": 1,
+    "internalStatusUpdates": [
+     {
+      "key": "outageRegistered",
+      "done": true,
+      "descriptionKey": "OUTAGEREGISTERED",
+      "timeStamp": "2026-11-13T07:31:08.549Z"
+     },
+     {
+      "key": "completionTimeEstimated",
+      "done": false,
+      "descriptionKey": "COMPLETIONTIMEESTIMATED"
+     },
+     {
+      "key": "outageCompleted",
+      "done": false,
+      "descriptionKey": "OUTAGECOMPLETED"
+     }
+    ],
+    "externalStatusUpdates": [],
+    "districts": [
+     {
+      "county": "Ostergotland",
+      "city": "Linköping",
+      "name": "Ljungsbro",
+      "affectedSize": 1
+     }
+    ],
+    "mainAreaAffected": "Ljungsbro",
+    "plannedTimeline": {
+     "outageRegistered": {
+      "registeredTime": "2026-11-13T08:31:08.5498331+01:00",
+      "estimatedCompletionTime": "2026-11-19T16:00:00+01:00",
+      "plannedStartTime": "2026-11-19T08:00:00+01:00",
+      "cause": "DistrictHeatingMaintenance",
+      "eventCreatedTime": "2026-11-13T08:31:08.5498331+01:00"
+     }
+    },
+    "instructions": {
+     "textInstructions": [
+      "Det går bara att använda kallvatten.",
+      "Detta innebär att fastigheten saknar både värme och varmvatten."
+     ]
+    },
+    "subOutages": []
+   },
+   {
+    "outageId": "68cc6393-ef6f-46e2-cc61-08df3eee4bfe",
+    "incident": "DistrictHeatingOutage",
+    "utility": "DistrictHeating",
+    "status": "Scheduled",
+    "planned": true,
+    "plannedStartTime": "2026-11-17T07:00:00.000Z",
+    "registeredTime": "2026-11-13T09:54:08.234Z",
+    "estimatedCompletionTime": "2026-11-17T15:00:00.000Z",
+    "cause": "DistrictHeatingMaintenance",
+    "affectedSites": 4,
+    "affectedCustomers": 3,
+    "affectedConnectionPoints": 4,
+    "internalStatusUpdates": [
+     {
+      "key": "outageRegistered",
+      "done": true,
+      "descriptionKey": "OUTAGEREGISTERED",
+      "timeStamp": "2026-11-13T09:54:08.234Z"
+     },
+     {
+      "key": "completionTimeEstimated",
+      "done": false,
+      "descriptionKey": "COMPLETIONTIMEESTIMATED"
+     },
+     {
+      "key": "outageCompleted",
+      "done": false,
+      "descriptionKey": "OUTAGECOMPLETED"
+     }
+    ],
+    "externalStatusUpdates": [],
+    "districts": [
+     {
+      "county": "Ostergotland",
+      "city": "Linköping",
+      "name": "Mjärdevi",
+      "affectedSize": 4
+     }
+    ],
+    "mainAreaAffected": "Mjärdevi",
+    "plannedTimeline": {
+     "outageRegistered": {
+      "registeredTime": "2026-11-13T10:54:08.2347443+01:00",
+      "estimatedCompletionTime": "2026-11-17T16:00:00+01:00",
+      "plannedStartTime": "2026-11-17T08:00:00+01:00",
+      "cause": "DistrictHeatingMaintenance",
+      "eventCreatedTime": "2026-11-13T10:54:08.2347443+01:00"
+     }
+    },
+    "instructions": {
+     "textInstructions": [
+      "Detta innebär att fastigheten saknar både värme och varmvatten.",
+      "Det går bara att använda kallvatten."
+     ]
+    },
+    "subOutages": []
+   },
+   {
+    "outageId": "e661358f-5a6a-49b5-cc62-08df3eee4bfe",
+    "incident": "ElOutage",
+    "utility": "Electricity",
+    "status": "Completed",
+    "planned": false,
+    "completedTime": "2026-11-14T16:34:05.000Z",
+    "registeredTime": "2026-11-14T12:26:43.000Z",
+    "startedTime": "2026-11-14T12:26:43.000Z",
+    "cause": "Unknown",
+    "affectedSites": 1,
+    "affectedCustomers": 1,
+    "affectedConnectionPoints": 1,
+    "internalStatusUpdates": [
+     {
+      "key": "outageRegistered",
+      "done": true,
+      "descriptionKey": "OUTAGEREGISTERED",
+      "timeStamp": "2026-11-14T12:26:43.000Z"
+     },
+     {
+      "key": "investigationStarted",
+      "done": false,
+      "descriptionKey": "INVESTIGATIONSTARTED"
+     },
+     {
+      "key": "outageCompleted",
+      "done": true,
+      "descriptionKey": "OUTAGECOMPLETED",
+      "timeStamp": "2026-11-14T16:34:05.000Z"
+     }
+    ],
+    "externalStatusUpdates": [
+     {
+      "key": "outageRegistered",
+      "done": true,
+      "descriptionKey": "OUTAGEREGISTERED",
+      "timeStamp": "2026-11-14T12:26:43.000Z"
+     },
+     {
+      "key": "investigationStarted",
+      "done": false,
+      "descriptionKey": "INVESTIGATIONSTARTED"
+     },
+     {
+      "key": "outageCompleted",
+      "done": true,
+      "descriptionKey": "OUTAGECOMPLETED",
+      "timeStamp": "2026-11-14T16:34:05.000Z"
+     }
+    ],
+    "districts": [
+     {
+      "county": "Sodermanland",
+      "city": "Katrineholm",
+      "name": "Rosenholm",
+      "affectedSize": 1
+     }
+    ],
+    "mainAreaAffected": "Rosenholm",
+    "unplannedTimeline": {
+     "outageRegistered": {
+      "registeredTime": "2026-11-14T13:26:43+01:00",
+      "eventCreatedTime": "2026-11-14T13:50:11.0980497+01:00"
+     },
+     "outageCompleted": {
+      "completionTime": "2026-11-14T17:34:05+01:00",
+      "eventCreatedTime": "2026-11-14T17:41:58.7370126+01:00"
+     }
+    },
+    "subOutages": []
+   }
+  ]
+ },
+ "shapes": {
+  "outages": [
+   {
+    "outageId": "39a6455a-618e-4b97-cc42-08df3eee4bfe",
+    "incident": "DistrictHeatingOutage",
+    "utility": "DistrictHeating",
+    "geoJson": {
+     "type": "Feature",
+     "geometry": {
+      "type": "GeometryCollection",
+      "geometries": [
+       {
+        "type": "Polygon",
+        "coordinates": [
+         [
+          [
+           15.650363,
+           58.3789
+          ],
+          [
+           15.650427,
+           58.378715
+          ],
+          [
+           15.650477,
+           58.377998
+          ],
+          [
+           15.650586,
+           58.377905
+          ],
+          [
+           15.650981,
+           58.377939
+          ],
+          [
+           15.650984,
+           58.37794
+          ],
+          [
+           15.651373,
+           58.377986
+          ],
+          [
+           15.652173,
+           58.378064
+          ],
+          [
+           15.652184,
+           58.378066
+          ],
+          [
+           15.653068,
+           58.378254
+          ],
+          [
+           15.653376,
+           58.37831
+          ],
+          [
+           15.653667,
+           58.378363
+          ],
+          [
+           15.654381,
+           58.377855
+          ],
+          [
+           15.654446,
+           58.377836
+          ],
+          [
+           15.655528,
+           58.377917
+          ],
+          [
+           15.655535,
+           58.377879
+          ],
+          [
+           15.655576,
+           58.37778
+          ],
+          [
+           15.655593,
+           58.377712
+          ],
+          [
+           15.65517,
+           58.376766
+          ],
+          [
+           15.655212,
+           58.376638
+          ],
+          [
+           15.655343,
+           58.376668
+          ],
+          [
+           15.655972,
+           58.377565
+          ],
+          [
+           15.656622,
+           58.377846
+          ],
+          [
+           15.657757,
+           58.377748
+          ],
+          [
+           15.657803,
+           58.377682
+          ],
+          [
+           15.657873,
+           58.377574
+          ],
+          [
+           15.657936,
+           58.377531
+          ],
+          [
+           15.658224,
+           58.377468
+          ],
+          [
+           15.658345,
+           58.377564
+          ],
+          [
+           15.658349,
+           58.37779
+          ],
+          [
+           15.658343,
+           58.377825
+          ],
+          [
+           15.658305,
+           58.377932
+          ],
+          [
+           15.658292,
+           58.377958
+          ],
+          [
+           15.658214,
+           58.378064
+          ],
+          [
+           15.658151,
+           58.378103
+          ],
+          [
+           15.65784,
+           58.378159
+          ],
+          [
+           15.657829,
+           58.378161
+          ],
+          [
+           15.65598,
+           58.378283
+          ],
+          [
+           15.655956,
+           58.378282
+          ],
+          [
+           15.655665,
+           58.378233
+          ],
+          [
+           15.654491,
+           58.378624
+          ],
+          [
+           15.654326,
+           58.378937
+          ],
+          [
+           15.654249,
+           58.379197
+          ],
+          [
+           15.654247,
+           58.379204
+          ],
+          [
+           15.654126,
+           58.379528
+          ],
+          [
+           15.654108,
+           58.379558
+          ],
+          [
+           15.653799,
+           58.379916
+          ],
+          [
+           15.653767,
+           58.379941
+          ],
+          [
+           15.653242,
+           58.380195
+          ],
+          [
+           15.653203,
+           58.380205
+          ],
+          [
+           15.6528,
+           58.380227
+          ],
+          [
+           15.652782,
+           58.380226
+          ],
+          [
+           15.652399,
+           58.380177
+          ],
+          [
+           15.652327,
+           58.380026
+          ],
+          [
+           15.652409,
+           58.379891
+          ],
+          [
+           15.651866,
+           58.379386
+          ],
+          [
+           15.651572,
+           58.379351
+          ],
+          [
+           15.650736,
+           58.379277
+          ],
+          [
+           15.650377,
+           58.379243
+          ],
+          [
+           15.650291,
+           58.379111
+          ],
+          [
+           15.650362,
+           58.378901
+          ],
+          [
+           15.650363,
+           58.3789
+          ]
+         ]
+        ]
+       },
+       {
+        "type": "Point",
+        "coordinates": [
+         15.652961666766245,
+         58.37897573383531
+        ]
+       }
+      ]
+     },
+     "properties": {
+      "outageId": "39a6455a-618e-4b97-cc42-08df3eee4bfe"
+     }
+    },
+    "geoJsonParts": {
+     "type": "FeatureCollection",
+     "features": [
+      {
+       "type": "Feature",
+       "geometry": {
+        "type": "GeometryCollection",
+        "geometries": [
+         {
+          "type": "Polygon",
+          "coordinates": [
+           [
+            [
+             15.654170516213313,
+             58.38027997179405
+            ],
+            [
+             15.652352261347495,
+             58.38028521146076
+            ],
+            [
+             15.65213072272861,
+             58.379923634854855
+            ],
+            [
+             15.649933837380226,
+             58.37936254646132
+            ],
+            [
+             15.65028720870104,
+             58.37772055063207
+            ],
+            [
+             15.654888477375371,
+             58.37720548184757
+            ],
+            [
+             15.655116842656938,
+             58.37628145407399
+            ],
+            [
+             15.656160716034474,
+             58.376312374202676
+            ],
+            [
+             15.656444327200187,
+             58.37712495555526
+            ],
+            [
+             15.659040202054824,
+             58.37768791327533
+            ],
+            [
+             15.658223431554449,
+             58.3783207970698
+            ],
+            [
+             15.65513737274899,
+             58.37904589543125
+            ],
+            [
+             15.654170516213313,
+             58.38027997179405
+            ]
+           ]
+          ]
+         },
+         {
+          "type": "Point",
+          "coordinates": [
+           15.652802702806765,
+           58.37871131836782
+          ]
+         }
+        ]
+       },
+       "properties": {
+        "outageId": "39a6455a-618e-4b97-cc42-08df3eee4bfe",
+        "areaId": "9803"
+       }
+      }
+     ]
+    },
+    "mapResponseType": "shapes"
+   },
+   {
+    "outageId": "7338d4db-d820-41d2-cc4b-08df3eee4bfe",
+    "incident": "DistrictHeatingOutage",
+    "utility": "DistrictHeating",
+    "geoJson": {
+     "type": "Feature",
+     "geometry": {
+      "type": "GeometryCollection",
+      "geometries": [
+       {
+        "type": "Polygon",
+        "coordinates": [
+         [
+          [
+           15.504988,
+           58.503261
+          ],
+          [
+           15.505177,
+           58.503175
+          ],
+          [
+           15.505366,
+           58.503087
+          ],
+          [
+           15.505372,
+           58.503085
+          ],
+          [
+           15.505584,
+           58.503003
+          ],
+          [
+           15.505675,
+           58.503012
+          ],
+          [
+           15.505974,
+           58.503209
+          ],
+          [
+           15.506005,
+           58.503242
+          ],
+          [
+           15.50609,
+           58.503386
+          ],
+          [
+           15.506093,
+           58.503392
+          ],
+          [
+           15.50616,
+           58.503526
+          ],
+          [
+           15.506165,
+           58.503536
+          ],
+          [
+           15.506215,
+           58.503671
+          ],
+          [
+           15.506216,
+           58.503675
+          ],
+          [
+           15.506266,
+           58.503828
+          ],
+          [
+           15.506141,
+           58.503954
+          ],
+          [
+           15.504857,
+           58.503551
+          ],
+          [
+           15.504699,
+           58.50362
+          ],
+          [
+           15.504568,
+           58.503571
+          ],
+          [
+           15.504616,
+           58.503439
+          ],
+          [
+           15.504986,
+           58.503262
+          ],
+          [
+           15.504988,
+           58.503261
+          ]
+         ]
+        ]
+       },
+       {
+        "type": "Point",
+        "coordinates": [
+         15.505505522953106,
+         58.50341207206397
+        ]
+       }
+      ]
+     },
+     "properties": {
+      "outageId": "7338d4db-d820-41d2-cc4b-08df3eee4bfe"
+     }
+    },
+    "geoJsonParts": {
+     "type": "FeatureCollection",
+     "features": [
+      {
+       "type": "Feature",
+       "geometry": {
+        "type": "GeometryCollection",
+        "geometries": [
+         {
+          "type": "Polygon",
+          "coordinates": [
+           [
+            [
+             15.5055480782285,
+             58.50334542850404
+            ],
+            [
+             15.504716909601864,
+             58.503691051814705
+            ],
+            [
+             15.504324381976293,
+             58.5034886626703
+            ],
+            [
+             15.505636312906873,
+             58.50295804897111
+            ],
+            [
+             15.506412288304173,
+             58.50332266373012
+            ],
+            [
+             15.50645507153522,
+             58.50392534749062
+            ],
+            [
+             15.505969384224308,
+             58.50396896078772
+            ],
+            [
+             15.5055480782285,
+             58.50334542850404
+            ]
+           ]
+          ]
+         },
+         {
+          "type": "Point",
+          "coordinates": [
+           15.506030946732473,
+           58.50343888209732
+          ]
+         }
+        ]
+       },
+       "properties": {
+        "outageId": "7338d4db-d820-41d2-cc4b-08df3eee4bfe",
+        "areaId": "9803"
+       }
+      }
+     ]
+    },
+    "mapResponseType": "shapes"
+   },
+   {
+    "outageId": "5a013b75-391d-420c-cc4c-08df3eee4bfe",
+    "incident": "DistrictHeatingOutage",
+    "utility": "DistrictHeating",
+    "geoJson": {
+     "type": "Feature",
+     "geometry": {
+      "type": "GeometryCollection",
+      "geometries": [
+       {
+        "type": "Polygon",
+        "coordinates": [
+         [
+          [
+           15.520808,
+           58.416522
+          ],
+          [
+           15.520924,
+           58.417054
+          ],
+          [
+           15.520926,
+           58.417069
+          ],
+          [
+           15.520945,
+           58.417387
+          ],
+          [
+           15.520862,
+           58.417492
+          ],
+          [
+           15.520362,
+           58.417579
+          ],
+          [
+           15.520254,
+           58.417522
+          ],
+          [
+           15.520066,
+           58.417119
+          ],
+          [
+           15.519816,
+           58.416721
+          ],
+          [
+           15.519808,
+           58.416705
+          ],
+          [
+           15.519723,
+           58.416491
+          ],
+          [
+           15.519826,
+           58.416354
+          ],
+          [
+           15.52072,
+           58.416443
+          ],
+          [
+           15.520808,
+           58.416522
+          ]
+         ]
+        ]
+       },
+       {
+        "type": "Point",
+        "coordinates": [
+         15.520349629011822,
+         58.4167185535663
+        ]
+       }
+      ]
+     },
+     "properties": {
+      "outageId": "5a013b75-391d-420c-cc4c-08df3eee4bfe"
+     }
+    },
+    "geoJsonParts": {
+     "type": "FeatureCollection",
+     "features": [
+      {
+       "type": "Feature",
+       "geometry": {
+        "type": "GeometryCollection",
+        "geometries": [
+         {
+          "type": "Polygon",
+          "coordinates": [
+           [
+            [
+             15.519473577086336,
+             58.416871608274796
+            ],
+            [
+             15.5194626736916,
+             58.41635338115841
+            ],
+            [
+             15.520933917402422,
+             58.41631802120743
+            ],
+            [
+             15.521231432244958,
+             58.41751408235485
+            ],
+            [
+             15.520080413165179,
+             58.41760685466009
+            ],
+            [
+             15.519473577086336,
+             58.416871608274796
+            ]
+           ]
+          ]
+         },
+         {
+          "type": "Point",
+          "coordinates": [
+           15.520262879666104,
+           58.416794653296094
+          ]
+         }
+        ]
+       },
+       "properties": {
+        "outageId": "5a013b75-391d-420c-cc4c-08df3eee4bfe",
+        "areaId": "9803"
+       }
+      }
+     ]
+    },
+    "mapResponseType": "shapes"
+   },
+   {
+    "outageId": "da482896-a2b9-4fa0-cc4f-08df3eee4bfe",
+    "incident": "DistrictHeatingOutage",
+    "utility": "DistrictHeating",
+    "geoJson": {
+     "type": "Feature",
+     "geometry": {
+      "type": "GeometryCollection",
+      "geometries": [
+       {
+        "type": "Polygon",
+        "coordinates": [
+         [
+          [
+           15.665453,
+           58.381109
+          ],
+          [
+           15.665828,
+           58.380967
+          ],
+          [
+           15.665882,
+           58.380963
+          ],
+          [
+           15.666233,
+           58.381032
+          ],
+          [
+           15.666238,
+           58.381033
+          ],
+          [
+           15.666527,
+           58.381106
+          ],
+          [
+           15.66706,
+           58.38123
+          ],
+          [
+           15.667602,
+           58.38136
+          ],
+          [
+           15.667655,
+           58.381522
+          ],
+          [
+           15.667478,
+           58.381728
+          ],
+          [
+           15.66722,
+           58.38214
+          ],
+          [
+           15.667256,
+           58.382539
+          ],
+          [
+           15.667345,
+           58.382731
+          ],
+          [
+           15.667247,
+           58.382873
+          ],
+          [
+           15.666865,
+           58.382847
+          ],
+          [
+           15.666873,
+           58.383246
+          ],
+          [
+           15.666896,
+           58.383458
+          ],
+          [
+           15.666784,
+           58.383568
+          ],
+          [
+           15.666565,
+           58.383539
+          ],
+          [
+           15.6661,
+           58.383478
+          ],
+          [
+           15.666014,
+           58.383392
+          ],
+          [
+           15.665984,
+           58.383173
+          ],
+          [
+           15.66574,
+           58.382663
+          ],
+          [
+           15.665623,
+           58.382473
+          ],
+          [
+           15.665507,
+           58.382292
+          ],
+          [
+           15.665493,
+           58.38226
+          ],
+          [
+           15.665465,
+           58.382136
+          ],
+          [
+           15.665248,
+           58.381601
+          ],
+          [
+           15.665241,
+           58.381571
+          ],
+          [
+           15.665225,
+           58.381365
+          ],
+          [
+           15.665256,
+           58.381284
+          ],
+          [
+           15.665419,
+           58.38113
+          ],
+          [
+           15.665453,
+           58.381109
+          ]
+         ]
+        ]
+       },
+       {
+        "type": "Point",
+        "coordinates": [
+         15.666387712535117,
+         58.38168738209727
+        ]
+       }
+      ]
+     },
+     "properties": {
+      "outageId": "da482896-a2b9-4fa0-cc4f-08df3eee4bfe"
+     }
+    },
+    "geoJsonParts": {
+     "type": "FeatureCollection",
+     "features": [
+      {
+       "type": "Feature",
+       "geometry": {
+        "type": "GeometryCollection",
+        "geometries": [
+         {
+          "type": "Polygon",
+          "coordinates": [
+           [
+            [
+             15.667203600816048,
+             58.383332496779076
+            ],
+            [
+             15.667158687545397,
+             58.383471857617195
+            ],
+            [
+             15.666787025312146,
+             58.383568168951896
+            ],
+            [
+             15.665794688932438,
+             58.383445636637454
+            ],
+            [
+             15.665924290623598,
+             58.38303049315693
+            ],
+            [
+             15.665210027679072,
+             58.38251795818912
+            ],
+            [
+             15.664835219677098,
+             58.38119397216947
+            ],
+            [
+             15.665475521266405,
+             58.381049942173576
+            ],
+            [
+             15.666690568558211,
+             58.38107487239205
+            ],
+            [
+             15.6679957972816,
+             58.381462096095404
+            ],
+            [
+             15.667534149985464,
+             58.383184458216014
+            ],
+            [
+             15.667203600816048,
+             58.383332496779076
+            ]
+           ]
+          ]
+         },
+         {
+          "type": "Point",
+          "coordinates": [
+           15.666450199100368,
+           58.381860620934816
+          ]
+         }
+        ]
+       },
+       "properties": {
+        "outageId": "da482896-a2b9-4fa0-cc4f-08df3eee4bfe",
+        "areaId": "9803"
+       }
+      }
+     ]
+    },
+    "mapResponseType": "shapes"
+   },
+   {
+    "outageId": "7a6ab0d4-c9e7-47e5-cc50-08df3eee4bfe",
+    "incident": "DistrictHeatingOutage",
+    "utility": "DistrictHeating",
+    "geoJson": {
+     "type": "Feature",
+     "geometry": {
+      "type": "GeometryCollection",
+      "geometries": [
+       {
+        "type": "Polygon",
+        "coordinates": [
+         [
+          [
+           15.700386,
+           58.38756
+          ],
+          [
+           15.70067,
+           58.387763
+          ],
+          [
+           15.70102,
+           58.387734
+          ],
+          [
+           15.700991,
+           58.387401
+          ],
+          [
+           15.700817,
+           58.387287
+          ],
+          [
+           15.700774,
+           58.387184
+          ],
+          [
+           15.700853,
+           58.387105
+          ],
+          [
+           15.701448,
+           58.386989
+          ],
+          [
+           15.701477,
+           58.386987
+          ],
+          [
+           15.701965,
+           58.387036
+          ],
+          [
+           15.702009,
+           58.386714
+          ],
+          [
+           15.702108,
+           58.386628
+          ],
+          [
+           15.702668,
+           58.38663
+          ],
+          [
+           15.702723,
+           58.386647
+          ],
+          [
+           15.702887,
+           58.386756
+          ],
+          [
+           15.702891,
+           58.386758
+          ],
+          [
+           15.70301,
+           58.386845
+          ],
+          [
+           15.703623,
+           58.38672
+          ],
+          [
+           15.703845,
+           58.38655
+          ],
+          [
+           15.703873,
+           58.386534
+          ],
+          [
+           15.704636,
+           58.38627
+          ],
+          [
+           15.704753,
+           58.38631
+          ],
+          [
+           15.704893,
+           58.386523
+          ],
+          [
+           15.704894,
+           58.38663
+          ],
+          [
+           15.704774,
+           58.386826
+          ],
+          [
+           15.704723,
+           58.386868
+          ],
+          [
+           15.70434,
+           58.387008
+          ],
+          [
+           15.704322,
+           58.387013
+          ],
+          [
+           15.703958,
+           58.38707
+          ],
+          [
+           15.703404,
+           58.387292
+          ],
+          [
+           15.703392,
+           58.387296
+          ],
+          [
+           15.703009,
+           58.387393
+          ],
+          [
+           15.70256,
+           58.387573
+          ],
+          [
+           15.702555,
+           58.387575
+          ],
+          [
+           15.702105,
+           58.387727
+          ],
+          [
+           15.701753,
+           58.387886
+          ],
+          [
+           15.701744,
+           58.38789
+          ],
+          [
+           15.701319,
+           58.388032
+          ],
+          [
+           15.700987,
+           58.388205
+          ],
+          [
+           15.70097,
+           58.388212
+          ],
+          [
+           15.700643,
+           58.388312
+          ],
+          [
+           15.700556,
+           58.388297
+          ],
+          [
+           15.700393,
+           58.38818
+          ],
+          [
+           15.699947,
+           58.387859
+          ],
+          [
+           15.699688,
+           58.387777
+          ],
+          [
+           15.699619,
+           58.38767
+          ],
+          [
+           15.699711,
+           58.387582
+          ],
+          [
+           15.700321,
+           58.387541
+          ],
+          [
+           15.700386,
+           58.38756
+          ]
+         ]
+        ]
+       },
+       {
+        "type": "Point",
+        "coordinates": [
+         15.701732344965125,
+         58.387398571264235
+        ]
+       }
+      ]
+     },
+     "properties": {
+      "outageId": "7a6ab0d4-c9e7-47e5-cc50-08df3eee4bfe"
+     }
+    },
+    "geoJsonParts": {
+     "type": "FeatureCollection",
+     "features": [
+      {
+       "type": "Feature",
+       "geometry": {
+        "type": "GeometryCollection",
+        "geometries": [
+         {
+          "type": "Polygon",
+          "coordinates": [
+           [
+            [
+             15.69993083834599,
+             58.38821375177095
+            ],
+            [
+             15.699483132186016,
+             58.38766849090373
+            ],
+            [
+             15.701135924394864,
+             58.38691191426398
+            ],
+            [
+             15.702529104117518,
+             58.38633188534171
+            ],
+            [
+             15.704105116878187,
+             58.38596796192828
+            ],
+            [
+             15.705619059605446,
+             58.38673431917541
+            ],
+            [
+             15.70183818832208,
+             58.38820826187296
+            ],
+            [
+             15.700497340538265,
+             58.38858567124574
+            ],
+            [
+             15.69993083834599,
+             58.38821375177095
+            ]
+           ]
+          ]
+         },
+         {
+          "type": "Point",
+          "coordinates": [
+           15.703043661821987,
+           58.38693786782366
+          ]
+         }
+        ]
+       },
+       "properties": {
+        "outageId": "7a6ab0d4-c9e7-47e5-cc50-08df3eee4bfe",
+        "areaId": "9803"
+       }
+      }
+     ]
+    },
+    "mapResponseType": "shapes"
+   },
+   {
+    "outageId": "c9e81231-71a2-4d1e-cc57-08df3eee4bfe",
+    "incident": "DistrictHeatingOutage",
+    "utility": "DistrictHeating",
+    "geoJson": {
+     "type": "Feature",
+     "geometry": {
+      "type": "GeometryCollection",
+      "geometries": [
+       {
+        "type": "Polygon",
+        "coordinates": [
+         [
+          [
+           15.507622,
+           58.497666
+          ],
+          [
+           15.508233,
+           58.497597
+          ],
+          [
+           15.509698,
+           58.497295
+          ],
+          [
+           15.5097,
+           58.497295
+          ],
+          [
+           15.509978,
+           58.497242
+          ],
+          [
+           15.509908,
+           58.496717
+          ],
+          [
+           15.509918,
+           58.496659
+          ],
+          [
+           15.510448,
+           58.495598
+          ],
+          [
+           15.510416,
+           58.49557
+          ],
+          [
+           15.509958,
+           58.495207
+          ],
+          [
+           15.509955,
+           58.495207
+          ],
+          [
+           15.509627,
+           58.49559
+          ],
+          [
+           15.50965,
+           58.495704
+          ],
+          [
+           15.509553,
+           58.495824
+          ],
+          [
+           15.509077,
+           58.495829
+          ],
+          [
+           15.508981,
+           58.49576
+          ],
+          [
+           15.508793,
+           58.495179
+          ],
+          [
+           15.508799,
+           58.495103
+          ],
+          [
+           15.50893,
+           58.494841
+          ],
+          [
+           15.509019,
+           58.494786
+          ],
+          [
+           15.509676,
+           58.494789
+          ],
+          [
+           15.509947,
+           58.494772
+          ],
+          [
+           15.509949,
+           58.494772
+          ],
+          [
+           15.510223,
+           58.494761
+          ],
+          [
+           15.510867,
+           58.494676
+          ],
+          [
+           15.510971,
+           58.494817
+          ],
+          [
+           15.510695,
+           58.495419
+          ],
+          [
+           15.510717,
+           58.495561
+          ],
+          [
+           15.511145,
+           58.497026
+          ],
+          [
+           15.511424,
+           58.497088
+          ],
+          [
+           15.511461,
+           58.497105
+          ],
+          [
+           15.511604,
+           58.49721
+          ],
+          [
+           15.511631,
+           58.49724
+          ],
+          [
+           15.511716,
+           58.497383
+          ],
+          [
+           15.511722,
+           58.497396
+          ],
+          [
+           15.511789,
+           58.497558
+          ],
+          [
+           15.511796,
+           58.497584
+          ],
+          [
+           15.511812,
+           58.497719
+          ],
+          [
+           15.511732,
+           58.497829
+          ],
+          [
+           15.511474,
+           58.497879
+          ],
+          [
+           15.511464,
+           58.497881
+          ],
+          [
+           15.510963,
+           58.497926
+          ],
+          [
+           15.510892,
+           58.497933
+          ],
+          [
+           15.510889,
+           58.497934
+          ],
+          [
+           15.51057,
+           58.49796
+          ],
+          [
+           15.509936,
+           58.498067
+          ],
+          [
+           15.509896,
+           58.498065
+          ],
+          [
+           15.509384,
+           58.497943
+          ],
+          [
+           15.508469,
+           58.498206
+          ],
+          [
+           15.508473,
+           58.498401
+          ],
+          [
+           15.508395,
+           58.498501
+          ],
+          [
+           15.508282,
+           58.498444
+          ],
+          [
+           15.50809,
+           58.498021
+          ],
+          [
+           15.507534,
+           58.498333
+          ],
+          [
+           15.507396,
+           58.498292
+          ],
+          [
+           15.507164,
+           58.497839
+          ],
+          [
+           15.507246,
+           58.497693
+          ],
+          [
+           15.507622,
+           58.497666
+          ]
+         ]
+        ]
+       },
+       {
+        "type": "Point",
+        "coordinates": [
+         15.510772980974522,
+         58.49746228553497
+        ]
+       }
+      ]
+     },
+     "properties": {
+      "outageId": "c9e81231-71a2-4d1e-cc57-08df3eee4bfe"
+     }
+    },
+    "geoJsonParts": {
+     "type": "FeatureCollection",
+     "features": [
+      {
+       "type": "Feature",
+       "geometry": {
+        "type": "GeometryCollection",
+        "geometries": [
+         {
+          "type": "Polygon",
+          "coordinates": [
+           [
+            [
+             15.507809366345802,
+             58.498436246362175
+            ],
+            [
+             15.5068787558696,
+             58.498501086490734
+            ],
+            [
+             15.50680239693814,
+             58.497702248203
+            ],
+            [
+             15.50656777618932,
+             58.496626595722134
+            ],
+            [
+             15.507534789800303,
+             58.49644633869728
+            ],
+            [
+             15.507948874674616,
+             58.49458269399251
+            ],
+            [
+             15.511634897010863,
+             58.49452099036536
+            ],
+            [
+             15.512736782710284,
+             58.49608590658034
+            ],
+            [
+             15.512015359430887,
+             58.498008588504405
+            ],
+            [
+             15.508575114524083,
+             58.49823321066535
+            ],
+            [
+             15.508488376292352,
+             58.49852642376638
+            ],
+            [
+             15.507809366345802,
+             58.498436246362175
+            ]
+           ]
+          ]
+         },
+         {
+          "type": "Point",
+          "coordinates": [
+           15.51013252040976,
+           58.49619432877257
+          ]
+         }
+        ]
+       },
+       "properties": {
+        "outageId": "c9e81231-71a2-4d1e-cc57-08df3eee4bfe",
+        "areaId": "9803"
+       }
+      }
+     ]
+    },
+    "mapResponseType": "shapes"
+   },
+   {
+    "outageId": "1074a125-b50a-49fd-cc5e-08df3eee4bfe",
+    "incident": "DistrictHeatingOutage",
+    "utility": "DistrictHeating",
+    "geoJson": {
+     "type": "Feature",
+     "geometry": {
+      "type": "GeometryCollection",
+      "geometries": [
+       {
+        "type": "Polygon",
+        "coordinates": [
+         [
+          [
+           15.507483,
+           58.496091
+          ],
+          [
+           15.507383,
+           58.496191
+          ],
+          [
+           15.507283,
+           58.496091
+          ],
+          [
+           15.507383,
+           58.495991
+          ],
+          [
+           15.507483,
+           58.496091
+          ]
+         ]
+        ]
+       },
+       {
+        "type": "Point",
+        "coordinates": [
+         15.50738299999712,
+         58.49609100001073
+        ]
+       }
+      ]
+     },
+     "properties": {
+      "outageId": "1074a125-b50a-49fd-cc5e-08df3eee4bfe"
+     }
+    },
+    "geoJsonParts": {
+     "type": "FeatureCollection",
+     "features": [
+      {
+       "type": "Feature",
+       "geometry": {
+        "type": "GeometryCollection",
+        "geometries": [
+         {
+          "type": "Polygon",
+          "coordinates": [
+           [
+            [
+             15.507784644077983,
+             58.4966679047457
+            ],
+            [
+             15.506881143717793,
+             58.49668620510498
+            ],
+            [
+             15.506579848817381,
+             58.496278688797716
+            ],
+            [
+             15.507737075678444,
+             58.49629621065654
+            ],
+            [
+             15.507784644077983,
+             58.4966679047457
+            ]
+           ]
+          ]
+         },
+         {
+          "type": "Point",
+          "coordinates": [
+           15.507180572025492,
+           58.49648705552232
+          ]
+         }
+        ]
+       },
+       "properties": {
+        "outageId": "1074a125-b50a-49fd-cc5e-08df3eee4bfe",
+        "areaId": "9803"
+       }
+      }
+     ]
+    },
+    "mapResponseType": "shapes"
+   },
+   {
+    "outageId": "68cc6393-ef6f-46e2-cc61-08df3eee4bfe",
+    "incident": "DistrictHeatingOutage",
+    "utility": "DistrictHeating",
+    "geoJson": {
+     "type": "Feature",
+     "geometry": {
+      "type": "GeometryCollection",
+      "geometries": [
+       {
+        "type": "Polygon",
+        "coordinates": [
+         [
+          [
+           15.557195,
+           58.393477
+          ],
+          [
+           15.557237,
+           58.39477
+          ],
+          [
+           15.557112,
+           58.39487
+          ],
+          [
+           15.556688,
+           58.394761
+          ],
+          [
+           15.55666,
+           58.394749
+          ],
+          [
+           15.555439,
+           58.393992
+          ],
+          [
+           15.555466,
+           58.39381
+          ],
+          [
+           15.557069,
+           58.393383
+          ],
+          [
+           15.557195,
+           58.393477
+          ]
+         ]
+        ]
+       },
+       {
+        "type": "Point",
+        "coordinates": [
+         15.556457678166028,
+         58.39400827288024
+        ]
+       }
+      ]
+     },
+     "properties": {
+      "outageId": "68cc6393-ef6f-46e2-cc61-08df3eee4bfe"
+     }
+    },
+    "geoJsonParts": {
+     "type": "FeatureCollection",
+     "features": [
+      {
+       "type": "Feature",
+       "geometry": {
+        "type": "GeometryCollection",
+        "geometries": [
+         {
+          "type": "Polygon",
+          "coordinates": [
+           [
+            [
+             15.554033326320672,
+             58.394141693586676
+            ],
+            [
+             15.554059034867397,
+             58.394111386566486
+            ],
+            [
+             15.555981915172595,
+             58.3930185312166
+            ],
+            [
+             15.557942377424611,
+             58.39332301493062
+            ],
+            [
+             15.558048533085834,
+             58.394744774166995
+            ],
+            [
+             15.556669108850278,
+             58.39515163251077
+            ],
+            [
+             15.55431563720303,
+             58.394467190947104
+            ],
+            [
+             15.554033326320672,
+             58.394141693586676
+            ]
+           ]
+          ]
+         },
+         {
+          "type": "Point",
+          "coordinates": [
+           15.556363731890027,
+           58.39407666618823
+          ]
+         }
+        ]
+       },
+       "properties": {
+        "outageId": "68cc6393-ef6f-46e2-cc61-08df3eee4bfe",
+        "areaId": "9803"
+       }
+      }
+     ]
+    },
+    "mapResponseType": "shapes"
+   },
+   {
+    "outageId": "e661358f-5a6a-49b5-cc62-08df3eee4bfe",
+    "incident": "ElOutage",
+    "utility": "Electricity",
+    "geoJson": {
+     "type": "Feature",
+     "geometry": {
+      "type": "GeometryCollection",
+      "geometries": [
+       {
+        "type": "Polygon",
+        "coordinates": [
+         [
+          [
+           16.22957,
+           58.976856
+          ],
+          [
+           16.22947,
+           58.976956
+          ],
+          [
+           16.22937,
+           58.976856
+          ],
+          [
+           16.22947,
+           58.976756
+          ],
+          [
+           16.22957,
+           58.976856
+          ]
+         ]
+        ]
+       },
+       {
+        "type": "Point",
+        "coordinates": [
+         16.229469999994194,
+         58.976856000016774
+        ]
+       }
+      ]
+     },
+     "properties": {
+      "outageId": "e661358f-5a6a-49b5-cc62-08df3eee4bfe"
+     }
+    },
+    "geoJsonParts": {
+     "type": "FeatureCollection",
+     "features": [
+      {
+       "type": "Feature",
+       "geometry": {
+        "type": "GeometryCollection",
+        "geometries": [
+         {
+          "type": "Polygon",
+          "coordinates": [
+           [
+            [
+             16.22957,
+             58.976856
+            ],
+            [
+             16.22947,
+             58.976956
+            ],
+            [
+             16.22937,
+             58.976856
+            ],
+            [
+             16.22947,
+             58.976756
+            ],
+            [
+             16.22957,
+             58.976856
+            ]
+           ]
+          ]
+         },
+         {
+          "type": "Point",
+          "coordinates": [
+           16.229469999994194,
+           58.976856000016774
+          ]
+         }
+        ]
+       },
+       "properties": {
+        "outageId": "e661358f-5a6a-49b5-cc62-08df3eee4bfe",
+        "areaId": "e661358f-5a6a-49b5-cc62-08df3eee4bfe"
+       }
+      }
+     ]
+    },
+    "mapResponseType": "shapes"
+   }
+  ]
+ }
+}

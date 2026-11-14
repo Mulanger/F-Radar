@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { loadServerEnv } from '@fastighetsradar/config';
-import { fetchOperatorConcessions, fetchOperatorOutages, inSweden, UTILITY_OPERATORS, type AdapterContext } from '@fastighetsradar/integrations';
+import { fetchEiConcessions, fetchOperatorConcessions, fetchOperatorOutages, inSweden, operatorIdForEiName, UTILITY_OPERATORS, type AdapterContext } from '@fastighetsradar/integrations';
 
 const ctx: AdapterContext = {
   env: loadServerEnv({}),
@@ -45,5 +45,14 @@ describe('grid operator outage feeds (live)', () => {
       expect(r.ok, `${op.id}: ${r.ok ? '' : r.error}`).toBe(true);
       if (r.ok) expect(r.data.length).toBeGreaterThan(0);
     }
+  });
+
+  it('Energimarknadsinspektionen concession areas download, parse and cover every implemented operator', async () => {
+    const r = await fetchEiConcessions(ctx);
+    expect(r.ok, r.ok ? '' : `${r.error}: ${r.detail}`).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.length).toBeGreaterThan(250);
+    const mapped = new Set(r.data.map((a) => operatorIdForEiName(a.holder)));
+    for (const op of UTILITY_OPERATORS) expect(mapped.has(op.id), op.id).toBe(true);
   });
 });

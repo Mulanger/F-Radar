@@ -4,6 +4,22 @@
 
 ---
 
+# Strömavbrott – Fas 2 (Claude, 2026-11-14)
+
+Branch `claude/stromavbrott-fas2` (from `8238d31`). 20 grid operators now collected.
+
+- **Ellevio** (postal-area precision, dashboard only), **Tekniska verken** (polygons), **Trimble NIS** adapter
+  for Mälarenergi, Jämtkraft, Sundsvall and Gävle (operating-district precision; moved forward from Fas 3).
+- **National concession areas** from Energimarknadsinspektionen (CC0), weekly job `utility_concessions:ei`;
+  migration 0007 adds `grid_concession_areas.operator_name`. Properties now show their grid operator, unmonitored
+  grids by name, and "Osäkert nätbolag" near boundaries.
+- Area-level outages reach the feed only from 25 affected customers; Ellevio "x av y" share removed (the total is
+  per outage, not per postal area).
+- **Tests**: 296 unit/DOM (16 new), PostGIS 28/28 in the pod, live 22/22 (20 operators + Digpro concessions + Ei).
+  Manual browser verification not done.
+
+---
+
 # Strömavbrott – Fas 1 (Claude, 2026-11-14)
 
 Branch `claude/stromavbrott-fas1` (worktree `.worktrees/stromavbrott`, based on `771532e`). Plan:

@@ -62,6 +62,14 @@ describe('Elnät panel view-model', () => {
     expect(unknown.detail).toMatch(/kan inte bekräftas/);
   });
 
+  it('names the operator of an unmonitored grid and explains boundary cases', () => {
+    expect(buildUtilityOutageVM(snap(status({ coverage: 'not_monitored', operator: { id: 'ei:Kraftringen Nät AB', name: 'Kraftringen Nät AB', mapUrl: null } }))).state!.detail).toContain('Kraftringen Nät AB');
+    const border = buildUtilityOutageVM(snap(status({ coverage: 'unknown', operator: null, operatorCandidates: ['Vattenfall Eldistribution', 'Kraftringen Nät AB'] }))).state!;
+    expect(border.label).toBe('Osäkert nätbolag');
+    expect(border.detail).toContain('Vattenfall Eldistribution och Kraftringen Nät AB');
+    expect(buildUtilityOutageVM(snap(status())).footer).toContain('Energimarknadsinspektionen');
+  });
+
   it('an unplanned outage is red and wins over coverage messages', () => {
     const vm = buildUtilityOutageVM(snap(status({ coverage: 'stale', current: [view()] })));
     expect(vm.state).toMatchObject({ label: 'Oplanerat strömavbrott', tone: SEV.critical });
