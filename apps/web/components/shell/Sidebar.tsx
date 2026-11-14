@@ -7,6 +7,7 @@ import { useDashboard } from '@/lib/state/dashboard-state';
 import { C, monoChip } from '@/lib/design/tokens';
 import { formatClock } from '@fastighetsradar/domain';
 import { IconAlert, IconAnalytics, IconBuilding, IconClose, IconDashboard, IconMap, IconMenu, IconMessage, IconSliders } from '../ui/icons';
+import { LogoMark } from '../ui/LogoMark';
 
 const navItem: React.CSSProperties = {
   display: 'flex',
@@ -172,14 +173,10 @@ const menuBtn: React.CSSProperties = {
 
 function Logo() {
   return (
-    <>
-      <div style={{ width: 32, height: 32, borderRadius: 10, background: C.ink, display: 'grid', placeItems: 'center', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
-        <div style={{ width: 16, height: 16, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.9)', boxSizing: 'border-box', display: 'grid', placeItems: 'center' }}>
-          <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'oklch(0.78 0.11 215)' }} />
-        </div>
-      </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <LogoMark />
       <div style={{ fontSize: 17, fontWeight: 600, letterSpacing: '-0.02em' }}>FastighetsRadar</div>
-    </>
+    </div>
   );
 }
 

@@ -2,18 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { SEVERITY, type SeverityKey } from '@/lib/landing/content';
 import { MONO } from './styles';
 
-/** FastighetsRadar mark: dark rounded square with a ring and a light-blue dot. */
-export function LogoMark({ size = 32, radius = 10 }: { size?: number; radius?: number }) {
-  const ring = Math.round(size * 0.47);
-  const dot = Math.max(4, Math.round(size * 0.15));
-  return (
-    <span aria-hidden="true" style={{ width: size, height: size, borderRadius: radius, background: '#14171A', display: 'grid', placeItems: 'center', flex: 'none' }}>
-      <span style={{ width: ring, height: ring, borderRadius: '50%', border: `${size >= 40 ? 2 : 1.6}px solid #E9EEF0`, display: 'grid', placeItems: 'center', boxSizing: 'border-box' }}>
-        <span style={{ width: dot, height: dot, borderRadius: '50%', background: '#7CC7DD' }} />
-      </span>
-    </span>
-  );
-}
+export { LogoMark } from '../ui/LogoMark';
 
 export function StatusPill({ severity, label, size = 'md' }: { severity: SeverityKey; label?: string; size?: 'sm' | 'md' }) {
   const s = SEVERITY[severity];

@@ -67,8 +67,7 @@
     background: rgba(255,255,255,.88) !important;
     box-shadow: 0 1px 2px rgba(20,23,26,.03), 0 12px 32px -18px rgba(20,23,26,.14) !important;
   }
-  .navBrand > span:first-child { width: 30px !important; height: 30px !important; border-radius: 8px !important; }
-  .navBrand { gap: 8px !important; }
+  .navBrand { gap: 6px !important; min-height: 30px; min-width: 24px; }
   .navBrand > span:last-child { font-size: 14px !important; letter-spacing: -.01em !important; }
   .navLinks { display: none !important; }
   .navAuthActions { gap: 4px !important; }
@@ -329,8 +328,7 @@
   .smsRule > div:last-child > div > span:first-child { font-size: 10.5px !important; }
   .smsRule > div:last-child > div > span:last-child { font-size: 14px !important; }
   .smsPreview { position: relative !important; width: auto !important; margin: -14px 10px 0 34px; padding: 12px !important; border-radius: 18px !important; gap: 9px !important; }
-  .smsPreview > div:first-child { gap: 7px !important; }
-  .smsPreview > div:first-child > span:first-child { width: 20px !important; height: 20px !important; border-radius: 6px !important; }
+  .smsPreview > div:first-child { gap: 6px !important; }
   .smsPreview > div:first-child > span:nth-child(2) { font-size: 12px !important; }
   .smsPreview > div:first-child > span:last-child, .smsPreview > span { font-size: 10px !important; }
   .smsPreview > div:nth-child(2) { padding: 9px 11px !important; border-radius: 12px !important; font-size: 12.5px !important; line-height: 1.4 !important; }
@@ -353,8 +351,7 @@
   .sourcesSection li > span { width: 4px !important; height: 4px !important; }
   .getStartedSection { padding: 64px 8px 0 !important; }
   .getStartedPanel { border-radius: 22px !important; padding: 40px 22px !important; gap: 18px !important; }
-  .getStartedPanel > span:first-child { border-radius: 11px !important; box-shadow: none !important; }
-  .getStartedPanel > span:first-child > span { width: 40px !important; height: 40px !important; border-radius: 11px !important; }
+  .getStartedPanel > span:first-child { height: 40px !important; }
   .getStartedPanel h2 { font-size: 32px !important; line-height: 1.05 !important; }
   .getStartedPanel p { font-size: 14px !important; }
   .getStartedPanel > a { height: 48px !important; padding: 0 24px !important; font-size: 15px !important; }
@@ -366,7 +363,6 @@
   .footer > div > div:first-child { flex-direction: column; gap: 24px !important; }
   .footer > div > div:first-child > div { gap: 10px !important; max-width: none !important; }
   .footer > div > div:first-child > div > span { font-size: 12.5px !important; line-height: 1.5 !important; }
-  .footer > div > div:first-child > div > a > span:first-child { width: 24px !important; height: 24px !important; border-radius: 7px !important; }
   .footer > div > div:first-child > div > a > span:last-child { font-size: 14px !important; }
   .footer nav { display: grid !important; grid-template-columns: 1fr 1fr; gap: 16px !important; }
   .footer nav > div { gap: 2px !important; font-size: 14px !important; }

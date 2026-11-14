@@ -213,8 +213,8 @@ export function SmsRuleDemo() {
         aria-live="polite"
         style={{ position: 'absolute', right: 0, bottom: 0, width: 'min(330px,72%)', padding: '16px 18px', borderRadius: 22, background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.95)', backdropFilter: 'blur(18px) saturate(1.5)', WebkitBackdropFilter: 'blur(18px) saturate(1.5)', boxShadow: '0 28px 56px -24px rgba(20,23,26,0.4)', display: 'flex', flexDirection: 'column', gap: 10, boxSizing: 'border-box' }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <LogoMark size={28} radius={9} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <LogoMark size={28} />
           <span style={{ fontSize: 13.5, fontWeight: 600 }}>Förhandsvisning</span>
           <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 11.5, color: '#6B737B' }}>SMS</span>
         </div>

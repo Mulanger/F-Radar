@@ -1,4 +1,5 @@
 import { C } from '@/lib/design/tokens';
+import { LogoMark } from '../ui/LogoMark';
 
 /**
  * Shared frame for sign-in, sign-up and onboarding: same page colour, brand mark and
@@ -18,12 +19,8 @@ export function AuthFrame({ title, subtitle, children }: { title: string; subtit
         background: `radial-gradient(90% 70% at 50% 0%, #FFFFFF 0%, ${C.page} 60%, #E8EEF0 100%)`,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 11, background: C.ink, display: 'grid', placeItems: 'center' }}>
-          <div style={{ width: 18, height: 18, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.9)', boxSizing: 'border-box', display: 'grid', placeItems: 'center' }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'oklch(0.78 0.11 215)' }} />
-          </div>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <LogoMark size={36} />
         <div style={{ fontSize: 19, fontWeight: 600, letterSpacing: '-0.02em' }}>FastighetsRadar</div>
       </div>
       <div style={{ textAlign: 'center', maxWidth: 460 }}>

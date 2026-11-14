@@ -129,8 +129,8 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
               aria-hidden="true"
               style={{ position: 'absolute', top: 18, right: 18, width: 300, maxWidth: 'calc(100% - 36px)', opacity: 0, zIndex: 4, padding: '14px 16px', borderRadius: 20, background: 'rgba(255,255,255,0.86)', border: '1px solid rgba(255,255,255,0.95)', backdropFilter: 'blur(18px) saturate(1.5)', WebkitBackdropFilter: 'blur(18px) saturate(1.5)', boxShadow: '0 18px 40px -18px rgba(20,23,26,0.35)' }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                <LogoMark size={26} radius={8} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <LogoMark size={26} />
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#14171A' }}>SMS · FastighetsRadar</span>
                 <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 11.5, color: '#6B737B' }}>nu</span>
               </div>
