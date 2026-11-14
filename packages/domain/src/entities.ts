@@ -219,6 +219,7 @@ export const FloodExposureSchema = z.object({
       referenceSystem: z.enum(['RW','RH2000']).optional(),
       level: MeasurementSchema,
       trendLabel: z.string().nullable(),
+      stationId: z.string().optional(),
     })
     .nullable(),
 });

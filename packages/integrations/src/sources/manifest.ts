@@ -18,7 +18,7 @@ export interface SourceManifest {
   licenseUrl?: string;
   commercialReuseReviewed: boolean;
   attributionText: string;
-  dataKind: 'forecast' | 'observation' | 'warning' | 'event' | 'static' | 'statistics' | 'geocoding' | 'messaging';
+  dataKind: 'forecast' | 'model' | 'observation' | 'warning' | 'event' | 'static' | 'statistics' | 'geocoding' | 'messaging';
   geographicPrecision: 'point_grid' | 'station' | 'polygon' | 'municipality' | 'county' | 'national' | 'mixed' | 'address_point' | 'n/a';
   coverageNote: string;
   /** Confirmed cadence or "unknown". */
@@ -41,9 +41,9 @@ export const SOURCE_MANIFEST: Record<Exclude<SourceId, 'demo_other'>, SourceMani
     id: 'smhi_forecast', authority: 'SMHI', label: 'SMHI prognos (SNOW1gv1)',
     docsUrl: 'https://opendata.smhi.se/metfcst/snow1gv1/', access: 'public', commercialReuseReviewed: false,
     attributionText: 'Källa: SMHI', dataKind: 'forecast', geographicPrecision: 'point_grid',
-    coverageNote: 'Model point forecast; not an indoor or building-specific value.',
+    coverageNote: 'Model point forecast; derived wind chill only within SMHI bounds (ADR 0006). Not an indoor or building-specific value.',
     updatePolicy: 'Model run hourly (Cache-Control max-age=3600); collected every 60 min per property point', retentionPolicy: 'Latest run only (superseded on refresh)',
-    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_SMHI_FORECAST_ENABLED', reviewedAt: VERIFIED,
+    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_SMHI_FORECAST_ENABLED', reviewedAt: '2026-11-14',
   },
   smhi_warnings: {
     id: 'smhi_warnings', authority: 'SMHI', label: 'SMHI vädervarningar (IBWW)',
@@ -79,7 +79,7 @@ export const SOURCE_MANIFEST: Record<Exclude<SourceId, 'demo_other'>, SourceMani
   },
   smhi_oceanography: {
     id: 'smhi_oceanography', authority: 'SMHI', label: 'SMHI oceanografi (havsvattenstånd)',
-    docsUrl: 'https://opendata.smhi.se/', access: 'public', commercialReuseReviewed: false,
+    docsUrl: 'https://opendata.smhi.se/ocobs/api', access: 'public', commercialReuseReviewed: false,
     attributionText: 'Källa: SMHI', dataKind: 'observation', geographicPrecision: 'station',
     coverageNote: 'Parameter 14 in cm RW, relative to the station annual calculated mean; nearest station within 15 km. Not a building water level.',
     licenseUrl:'https://creativecommons.org/licenses/by/4.0/', updatePolicy: 'Minute readings, latest-hour collected every 10 min', retentionPolicy: 'Latest station value; 10-minute history within 15 km of monitored properties retained 35 days',
@@ -97,17 +97,17 @@ export const SOURCE_MANIFEST: Record<Exclude<SourceId, 'demo_other'>, SourceMani
     id: 'air_quality', authority: 'Naturvårdsverket / SMHI datavärd luft', label: 'Luftkvalitet',
     docsUrl: 'https://www.naturvardsverket.se/amnesomraden/luft/statistik--utslapp-och-halter/luftkvaliteten-i-realtid-och-preliminar-statistik/webbtjanster-luftkvalitetsdata/',
     access: 'public', commercialReuseReviewed: false, attributionText: 'Källa: Naturvårdsverket / SMHI', dataKind: 'observation',
-    geographicPrecision: 'station', coverageNote: 'Sparse stations; real-time values may be preliminary. No building AQI without a documented method.',
-    updatePolicy: 'Hourly where reported; collected every 60 min (4 pollutants, sequential, slow endpoint)', retentionPolicy: 'Latest value per station/pollutant',
-    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_AIR_QUALITY_ENABLED', reviewedAt: VERIFIED,
+    geographicPrecision: 'station', coverageNote: 'Preliminary station observations ≤25 km. EEA hourly station index (ADR 0007), minimum same-hour pollutants required; never a building index.',
+    updatePolicy: 'Hourly where reported; 5 pollutants collected sequentially every 60 min', retentionPolicy: 'Latest samples + 7 days of hourly inputs for station index (no gap filling)',
+    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_AIR_QUALITY_ENABLED', reviewedAt: '2026-11-14',
   },
   sgu_groundwater: {
     id: 'sgu_groundwater', authority: 'SGU', label: 'SGU grundvatten',
     docsUrl: 'https://www.sgu.se/produkter-och-tjanster/geologiska-data/grundvatten--geologiska-data/grundvattennivaer/',
-    access: 'public', commercialReuseReviewed: false, attributionText: 'Källa: SGU', dataKind: 'observation', geographicPrecision: 'mixed',
+    access: 'public', commercialReuseReviewed: false, attributionText: 'Källa: SGU', dataKind: 'model', geographicPrecision: 'mixed',
     coverageNote: 'Regional 4×4 km HYPE model must not be presented as a basement measurement.',
     updatePolicy: 'HYPE model daily values, published with a few days lag; collected every 12 h', retentionPolicy: 'Latest value per property area',
-    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_SGU_ENABLED', reviewedAt: VERIFIED,
+    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_SGU_ENABLED', reviewedAt: '2026-11-14',
   },
   mcf_flood: {
     id: 'mcf_flood', authority: 'MCF Översvämningsportalen', label: 'MCF översvämningskartering',
@@ -116,6 +116,22 @@ export const SOURCE_MANIFEST: Record<Exclude<SourceId, 'demo_other'>, SourceMani
     coverageNote: 'Static scenarios (e.g. 100-year flow), never a current water level. Layers must be inventoried per region.',
     updatePolicy: 'Static dataset (version 20260909); each property re-checked weekly and when its pin moves', retentionPolicy: 'Latest result per property',
     displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'MCF_FLOOD_ENABLED', reviewedAt: VERIFIED,
+  },
+  sgu_observed_groundwater: {
+    id: 'sgu_observed_groundwater', authority: 'SGU', label: 'SGU uppmätt grundvatten',
+    docsUrl: 'https://api.sgu.se/oppnadata/grundvattennivaer-observerade/ogc/features/v1',
+    access: 'public', commercialReuseReviewed: false, attributionText: 'Källa: SGU (CC0)', dataKind: 'observation', geographicPrecision: 'station',
+    coverageNote: 'Nearest station within 10 km with an unremarked measurement in the last 31 days; m below station ground, not building basement. ADR 0006.',
+    updatePolicy: 'Daily collection per property; measurement dates vary by station', retentionPolicy: 'Latest matched station per property',
+    displayPermitted: false, alertsPermitted: false, requiredSecrets: [], enableFlag: 'SOURCE_SGU_OBSERVED_ENABLED', reviewedAt: '2026-11-14',
+  },
+  sl_deviations: {
+    id: 'sl_deviations', authority: 'SL / Trafiklab', label: 'SL båttrafik (avstängd)',
+    docsUrl: 'https://www.trafiklab.se/api/other-apis/sl/deviations/',
+    access: 'public', commercialReuseReviewed: false, attributionText: 'Källa: SL via Trafiklab', dataKind: 'event', geographicPrecision: 'mixed',
+    coverageNote: 'SHIP/FERRY messages with named stop areas matched to SL site coordinates ≤2 km. Line-only messages cannot be assigned a distance and are skipped. API itself needs no key; separate local opt-in key gate retained as requested.',
+    updatePolicy: 'Every 5 min when enabled; sites once per run (no page-view fetches)', retentionPolicy: 'Active + 7 days',
+    displayPermitted: false, alertsPermitted: false, requiredSecrets: ['SL_DEVIATIONS_API_KEY'], enableFlag: 'SOURCE_SL_DEVIATIONS_ENABLED', reviewedAt: '2026-11-14',
   },
   scb: {
     id: 'scb', authority: 'SCB', label: 'SCB PxWebApi v2',
@@ -130,9 +146,9 @@ export const SOURCE_MANIFEST: Record<Exclude<SourceId, 'demo_other'>, SourceMani
     docsUrl: 'https://data.trafikverket.se/get-started', access: 'requires_key', commercialReuseReviewed: false,
     licenseUrl: 'https://www.trafikverket.se/e-tjanster/trafikverkets-oppna-api-for-trafikinformation/',
     attributionText: 'Källa: Trafikverket (CC0)', dataKind: 'event', geographicPrecision: 'mixed',
-    coverageNote: 'Nearby traffic event ≠ blocked access to the building.',
+    coverageNote: 'Road events and road-ferry disruptions within 2 km; ordinary ferry departures excluded. SL commuter boats use a separate gated source. Nearby event ≠ blocked access to the building.',
     updatePolicy: 'Situations queried within 2 km of each property every 5 min (≤ 20 points per request)', retentionPolicy: 'Active + 7 days after end',
-    displayPermitted: false, alertsPermitted: false, requiredSecrets: ['TRAFIKVERKET_API_KEY'], enableFlag: 'TRAFIKVERKET_ENABLED', reviewedAt: VERIFIED,
+    displayPermitted: false, alertsPermitted: false, requiredSecrets: ['TRAFIKVERKET_API_KEY'], enableFlag: 'TRAFIKVERKET_ENABLED', reviewedAt: '2026-11-14',
   },
   geoapify_geocoding: {
     id: 'geoapify_geocoding', authority: 'Geoapify', label: 'Geoapify adressökning',

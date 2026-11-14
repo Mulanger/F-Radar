@@ -1,0 +1,36 @@
+[
+  {
+    "version": 2,
+    "created": "2026-11-13T13:58:17.15+01:00",
+    "modified": "2026-11-13T13:58:17.15+01:00",
+    "deviation_case_id": 13315374,
+    "publish": {
+      "from": "2026-11-13T13:58:17.147+01:00",
+      "upto": "2026-11-15T22:00:00+01:00"
+    },
+    "priority": {
+      "importance_level": 5,
+      "influence_level": 5,
+      "urgency_level": 1
+    },
+    "message_variants": [
+      {
+        "header": "Inställda avgångar",
+        "details": "Gäller söndagen den 15 november: \nAvgången från Möjaström mot Sollenkroka klockan 19:27 och avgången från Sollenkroka mot Möja klockan 20:05 söndagen den 15 november är inställda på grund av tekniskt fel. \nResenärer hänvisas till andra avgångar.",
+        "scope_alias": "Waxholmsbolaget 14",
+        "language": "sv"
+      }
+    ],
+    "scope": {
+      "lines": [
+        {
+          "id": 14,
+          "transport_authority": 8,
+          "designation": "14",
+          "transport_mode": "SHIP",
+          "group_of_lines": "Waxholmsbolaget"
+        }
+      ]
+    }
+  }
+]

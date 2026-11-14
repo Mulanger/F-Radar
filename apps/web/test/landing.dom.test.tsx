@@ -24,6 +24,22 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('LandingPage (signed out)', () => {
+  it('does not promise flood thresholds, basement risk, unsupported boats or a numeric 0–100 AQI', () => {
+    const { container } = render(<LandingPage signedIn={false} />);
+    const text = container.textContent!;
+    expect(text).not.toContain('Översvämningsgräns +60 cm');
+    expect(text).not.toContain('Källarrisk');
+    expect(text).not.toContain('Färjetrafik inställd');
+    expect(text).not.toContain('Luftkvalitet 26');
+    expect(text).not.toContain('26 Bra');
+    expect(text).not.toContain('radie 1 km');
+    expect(text).not.toContain('SL-färjor');
+    expect(text).not.toContain('Filtrera per område');
+    expect(text).toContain('Grundvatten: regional modell och närmaste mätstation');
+    expect(text).toContain('larmradien 2 km');
+    expect(text).toContain('Nacka kommun');
+    expect(text).toContain('relativt medelvattenstånd');
+  });
   it('renders the Swedish headline and every section the navigation points to', () => {
     const { container } = render(<LandingPage signedIn={false} />);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Allt som påverkar dina fastigheter/);

@@ -26,6 +26,9 @@ import {
   SMHI_ATTRIBUTION,
   currentStep,
   precipitationTotal,
+  windChill,
+  stationAirIndex,
+  GROUNDWATER_OBS_MAX_AGE_DAYS,
   type ForecastStep,
 } from '@fastighetsradar/integrations';
 import { propertyToSnapshot } from '../portfolio';
@@ -57,6 +60,7 @@ const SOURCE_LABEL: Partial<Record<SourceId, string>> = {
   smhi_forecast: 'SMHI',
   smhi_observations: 'SMHI',
   air_quality: 'SMHI / Naturvårdsverket',
+  sl_deviations: 'SL via Trafiklab',
 };
 const AUTHORITY: Partial<Record<SourceId, string>> = {
   smhi_forecast: 'SMHI',
@@ -115,6 +119,8 @@ function forecastMetrics(propertyId: string, row: OrgForecastRow | undefined, no
   });
   return [
     m('weather.air_temperature', cur.airTemperature, '°C'),
+    { ...m('weather.apparent_temperature', windChill(cur.airTemperature, cur.windSpeed), '°C'),
+      qualityFlags: ['derived', 'smhi_wind_chill_v1'], geo: { ...geo, note: `${geo.note}. Härledd kyleffekt enligt SMHI, ADR 0006.` } },
     m('weather.wind_speed', cur.windSpeed, 'm/s'),
     m('weather.wind_gust', cur.windGust, 'm/s'),
     m('weather.wind_direction', cur.windDirection, '°'),
@@ -184,7 +190,7 @@ function toNearby(o: OrgObservationRow, now: Date): NearbyObservation {
     distanceMeters: Math.round(o.distance_m),
     observedAt: iso(o.observed_at),
     quality: o.quality,
-    qualityFlags: air ? ['preliminary'] : o.quality === 'Y' ? ['suspect_or_aggregated'] : [],
+    qualityFlags: air ? ['preliminary', `resolution:${o.extra.resolution ?? 'unknown'}`] : o.quality === 'Y' ? ['suspect_or_aggregated'] : [],
     provenance: provenance(sourceId, 'OBSERVATION', iso(o.observed_at), o.fetched_at, air ? AIR_QUALITY_ATTRIBUTION : SMHI_ATTRIBUTION, null, now),
   };
 }
@@ -243,7 +249,7 @@ function toWarning(e: OrgEventRow): OfficialWarning {
 }
 
 function toEvent(e: OrgEventRow): GeographicEvent {
-  const traffic = e.source_id === 'trafikverket';
+  const traffic = e.source_id === 'trafikverket' || e.source_id === 'sl_deviations';
   return {
     id: e.id,
     sourceId: e.source_id as SourceId,
@@ -325,7 +331,7 @@ function groundwaterFromContext(c: OrgContextRow | undefined, now: Date): Proper
     situationSmall: p.situationSmall,
     situationLarge: p.situationLarge,
     note: 'Modellberäknad nivå för ett 4×4 km-område (SGU HYPE), uttryckt som percentil. Inte en mätning vid byggnaden.',
-    provenance: provenance('sgu_groundwater', 'OBSERVATION', iso(c.source_timestamp), c.fetched_at, p.attribution ?? 'Källa: SGU', 'https://www.sgu.se/grundvatten/grundvattennivaer/', now),
+    provenance: provenance('sgu_groundwater', 'MODEL', iso(c.source_timestamp), c.fetched_at, p.attribution ?? 'Källa: SGU', 'https://www.sgu.se/grundvatten/grundvattennivaer/', now),
   };
 }
 
@@ -351,6 +357,15 @@ const sourceOk = (statuses: DataSourceStatus[], id: SourceId) => {
   const s = statuses.find((x) => x.sourceId === id);
   return s ? s.status === 'ok' || s.status === 'degraded' ? !!s.lastSuccessAt : false : false;
 };
+
+function observedGroundwater(c: OrgContextRow | undefined, now: Date): NearbyObservation | null {
+  if (!c || c.status !== 'ok') return null;
+  const p = c.payload as { stationId: string; stationName: string; distanceMeters: number; value: number; unit: string; observedAt: string; note: string; sourceUrl: string };
+  const t = Date.parse(p.observedAt);
+  if (!Number.isFinite(t) || t > now.getTime() || now.getTime() - t > GROUNDWATER_OBS_MAX_AGE_DAYS * 86_400_000 || p.distanceMeters > 10_000 || !Number.isFinite(p.value)) return null;
+  return { ...p, parameter: 'groundwater_depth', label: 'Grundvatten vid stationen', quality: null, qualityFlags: [],
+    provenance: provenance('sgu_observed_groundwater', 'OBSERVATION', p.observedAt, c.fetched_at, 'Källa: SGU (CC0)', p.sourceUrl, now) };
+}
 
 export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, data: OrgMonitoringData, statuses: DataSourceStatus[], now: Date): PropertySnapshot {
   const base = propertyToSnapshot(p, clerkOrgId);
@@ -389,10 +404,16 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
   const reference=flow?data.hydrologyReferences?.find(r=>r.station_id===flow.station_id&&r.month===now.getUTCMonth()+1&&now.getTime()-r.fetched_at.getTime()<=WEATHER_WATER.referenceUsableDays*86_400_000):null;
   if(flow)floodParts.flood.watercourse={stationId:flow.station_id,stationName:flow.name,distanceMeters:Math.round(flow.distance_m),measurement:{value:flow.value,unit:'m³/s',sourceId:'smhi_hydrology',kind:'observation',sourceTimestamp:iso(flow.observed_at),fetchedAt:flow.fetched_at.toISOString(),freshness:freshnessOf(flow.observed_at,WEATHER_WATER.stationMeasurementFreshSeconds,now),availability:'ok',geo:{match:'nearest_station',distanceMeters:Math.round(flow.distance_m),note:flow.name},origin:'live',qualityFlags:flow.quality?[flow.quality]:[]},classification:classifyFlow(flow.value,reference??null),trendLabel:measurementTrend(history('smhi_hydrology',flow.station_id,'water_flow'),now,24,'m³/s'),note:'Närmaste mätstation – kan ligga i ett annat vattendrag än det närmast fastigheten',reference:reference?{p75:reference.p75,p95:reference.p95,samples:reference.samples,years:reference.years,month:reference.month,fetchedAt:reference.fetched_at.toISOString()}:null};
   const nearby = obs.map((o) => toNearby(o, now));
+  const airIndex = stationAirIndex((data.airHistory ?? []).filter((x) => x.property_id === p.id).map((o) => ({
+    stationId: o.station_id, stationName: o.name, distanceMeters: Math.round(o.distance_m), parameter: o.parameter,
+    value: o.value, observedAt: iso(o.observed_at), resolution: o.extra.resolution, classification: o.extra.classification,
+  })), now);
+  const groundwaterObservation = observedGroundwater(ctxOf(contexts, 'sgu_observed_groundwater', 'groundwater_observation'), now);
   const coverage: PropertyMonitoringContext['coverage'] = [
     { sourceId: 'smhi_forecast', status: forecastRow ? 'ok' : 'loading', note: forecastRow ? null : 'Prognos hämtas' },
     { sourceId: 'smhi_observations', status: nearby.some((x) => x.provenance.sourceId === 'smhi_observations' && x.distanceMeters <= OBS_MAX_DISTANCE_M) ? 'ok' : 'no_coverage', note: `Station inom ${OBS_MAX_DISTANCE_M / 1000} km med värde senaste 3 h` },
     { sourceId: 'air_quality', status: nearby.some((x) => x.provenance.sourceId === 'air_quality' && x.distanceMeters <= AIR_MAX_DISTANCE_M) ? 'ok' : 'no_coverage', note: `Mätstation inom ${AIR_MAX_DISTANCE_M / 1000} km med värde senaste 6 h` },
+    { sourceId: 'sgu_observed_groundwater', status: groundwaterObservation ? 'ok' : 'no_coverage', note: 'Grundvattenstation inom 10 km, mätt senaste 31 dagar.' },
     ...(['sgu_groundwater', 'mcf_flood', 'scb'] as const).map((sid) => {
       const c = contexts.find((x) => x.source_id === sid);
       return { sourceId: sid, status: (c ? c.status : 'loading') as PropertyMonitoringContext['coverage'][number]['status'], note: (c?.payload as { note?: string } | undefined)?.note ?? null };
@@ -405,7 +426,14 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
   const snapshot: PropertySnapshot = {
     ...base,
     property: { ...base.property, countyCode: county?.code ?? null, status, statusReason: reason },
-    metrics: [...forecastMetrics(p.id, forecastRow, now), ...airMetrics(p.id, obs, now)],
+    metrics: [...forecastMetrics(p.id, forecastRow, now), ...airMetrics(p.id, obs, now), ...(airIndex ? [{
+      propertyId: p.id, metricKey: 'air_quality.index' as const, value: airIndex.band, unit: 'EEA nivå 1–6', sourceId: 'air_quality' as const,
+      kind: 'observation' as const, sourceTimestamp: airIndex.observedAt,
+      fetchedAt: (data.airHistory ?? []).filter((o) => o.property_id === p.id && o.station_id === airIndex.stationId && iso(o.observed_at) === airIndex.observedAt).sort((a, b) => b.fetched_at.getTime() - a.fetched_at.getTime())[0]?.fetched_at.toISOString() ?? null,
+      freshness: 'fresh' as const, availability: 'ok' as const,
+      origin: 'live' as const, qualityFlags: ['derived', 'preliminary', airIndex.method],
+      geo: { match: 'nearest_station' as const, distanceMeters: airIndex.distanceMeters, note: `Mätstation: ${airIndex.stationName}; härlett EEA-baserat stationsindex, inte byggnadens luft.` },
+    }] : [])],
     forecast: buildForecast(p.id, forecastRow, now),
     measuredRain:rainStation?{sourceId:'smhi_observations',stationName:rainStation.name,distanceMeters:Math.round(rainStation.distance_m),observedAt:iso(rainStation.observed_at),fetchedAt:rainStation.fetched_at.toISOString(),qualityNote:'Stationsmätningar; senaste värden kan vara preliminära eller grovt kontrollerade',totals:[1,24,72].map(h=>measuredPrecipitation(history('smhi_observations',rainStation.station_id,'precipitation_15min'),now,h))}:null,
     nowcast: radar ? { sourceId:'met_nowcast', coverage:radar.radar_coverage, updatedAt:iso(radar.source_updated_at), fetchedAt:radar.fetched_at.toISOString(), freshness:radarAge<=WEATHER_WATER.nowcastFreshMinutes?'fresh':radarAge<=WEATHER_WATER.nowcastUsableMinutes?'stale':'expired', points:radar.series.points, summary:summarizeNowcast(radar.series.points,now,radar.series.temperature,{coverage:radar.radar_coverage,fetchedAt:radar.fetched_at.toISOString()}), attribution:'Data från MET Norway · bearbetad av FastighetsRadar (CC BY 4.0)', origin:'live' } : null,
@@ -419,6 +447,8 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
       observations: nearby.filter((x) => x.provenance.sourceId === 'smhi_observations' && x.distanceMeters <= OBS_MAX_DISTANCE_M),
       airQuality: nearby.filter((x) => x.provenance.sourceId === 'air_quality' && x.distanceMeters <= AIR_MAX_DISTANCE_M),
       groundwater: groundwaterFromContext(ctxOf(contexts, 'sgu_groundwater', 'groundwater'), now),
+      observedGroundwater: groundwaterObservation,
+      airIndex,
       flood: floodParts.context,
       statistics: statsFromContext(ctxOf(contexts, 'scb', 'municipality_stats'), now),
       statusMethod: 'highest_official_warning',

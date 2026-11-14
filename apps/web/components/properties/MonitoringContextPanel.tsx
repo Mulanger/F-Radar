@@ -34,8 +34,9 @@ function ObsTile({ o, fmtDist }: { o: NearbyObservation; fmtDist: (m: number | n
         {fmtNum(o.value, digits)} <span style={{ fontSize: 12, color: C.text4 }}>{o.unit}</span>
       </div>
       <div style={{ ...label, fontSize: 10.5, marginTop: 2 }}>
-        {o.stationName} · {fmtDist(o.distanceMeters)} · {o.observedAt ? formatClock(o.observedAt) : '—'}
+        {o.stationName} · {fmtDist(o.distanceMeters)} · {o.observedAt ? `${new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm' }).format(new Date(o.observedAt))} ${formatClock(o.observedAt)}` : '—'} · {o.provenance.authority}
         {o.qualityFlags.includes('preliminary') ? ' · preliminär' : ''}
+        {o.provenance.sourceId === 'air_quality' ? ` · ${o.qualityFlags.includes('resolution:hour') ? 'timmedel' : o.qualityFlags.includes('resolution:minute') ? 'minutvärde' : o.qualityFlags.includes('resolution:day') ? 'dygnsmedel' : 'tidsupplösning: se källan'}` : ''}
         {o.qualityFlags.includes('suspect_or_aggregated') ? ' · ej granskad' : ''}
       </div>
     </div>
@@ -88,10 +89,16 @@ export function MonitoringContextPanel({ d }: { d: DetailVM }) {
           {air.map((o) => <ObsTile key={o.parameter} o={o} fmtDist={fmtDist} />)}
         </div>
       ) : (
-        <div style={label}>Ingen luftmätstation inom 25 km med värden de senaste 6 timmarna. Inget luftkvalitetsindex beräknas.</div>
+        <div style={label}>Ingen luftmätstation inom 25 km med värden de senaste 6 timmarna. Index ej bedömt.</div>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 14, marginTop: 4 }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={sect}>Uppmätt grundvatten (SGU)</div><span style={CLASS_PILL.OBSERVATION}>Observation</span>
+          </div>
+          {m?.observedGroundwater ? <><ObsTile o={m.observedGroundwater} fmtDist={fmtDist} /><div style={label}>Djup under stationens markyta. Inte en mätning under byggnaden.</div></> : <div style={label}>— · Ingen aktuell observation inom 10 km (högst 31 dagar gammal).</div>}
+        </div>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={sect}>Grundvatten (SGU)</div>
@@ -135,7 +142,7 @@ export function MonitoringContextPanel({ d }: { d: DetailVM }) {
                 {fl.scenarios.map((s) => (
                   <div key={s.scenario} style={{ ...tile, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: 12.5 }}>{s.label}</span>
-                    <span style={{ fontSize: 12.5, fontWeight: 500 }}>{s.inside ? 'Inom karterat område' : s.withinMeters !== null ? `Inom ${s.withinMeters} m` : `Inget inom ${fl.maxRadiusMeters} m`}</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 500 }}>{s.inside ? 'Träff i sökruta ±15 m' : s.withinMeters !== null ? `Inom ${s.withinMeters} m` : `Inget inom ${fl.maxRadiusMeters} m`}</span>
                   </div>
                 ))}
               </div>

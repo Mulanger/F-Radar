@@ -81,7 +81,7 @@ export function ForecastPanel() {
     <div className={css.forecastPanel} style={{ ...card, boxShadow: '0 1px 2px rgba(20,23,26,0.04)', padding: 'clamp(20px,3vw,28px)', display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={cardHead}>
         <span style={cardTitle}>Väderförhållanden</span>
-        <span style={cardSub}>SMHI punktprognos · kommande 24 h</span>
+        <span style={cardSub}>Modell · SMHI punktprognos · kommande 24 h · illustration</span>
       </div>
       <div role="tablist" aria-label="Prognosvärde" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 999, background: '#F1F3F2', alignSelf: 'flex-start', flexWrap: 'wrap' }}>
         {(Object.keys(FORECAST) as ForecastTab[]).map((k) => {
@@ -223,7 +223,7 @@ export function SmsRuleDemo() {
         ) : (
           <div style={{ padding: '12px 14px', borderRadius: 16, border: '1px dashed rgba(20,23,26,0.16)', fontSize: 14, lineHeight: 1.45, color: '#6B737B' }}>{p.empty}</div>
         )}
-        <span style={{ fontFamily: MONO, fontSize: 11.5, color: '#6B737B' }}>Till 2 mottagare · inom 1 min</span>
+        <span style={{ fontFamily: MONO, fontSize: 11.5, color: '#6B737B' }}>Till 2 mottagare · simulerad förhandsvisning</span>
       </div>
     </div>
   );

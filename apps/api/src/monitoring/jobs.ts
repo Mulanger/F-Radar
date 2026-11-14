@@ -40,6 +40,8 @@ import {
   fetchMetNowcast,
   sleep,
   fetchAirQuality,
+  fetchSlDeviations,
+  fetchObservedGroundwater,
   fetchKrisinformation,
   fetchMetObsLatest,
   fetchMunicipalityStats,
@@ -303,6 +305,27 @@ async function runPerProperty(
 
 const abortOn = (e: AdapterErrorCode) => e === 'rate_limited' || e === 'unauthorized' || e === 'timeout';
 
+async function runSl(ctx: JobContext): Promise<JobResult> {
+  const r = await fetchSlDeviations(ctx.adapter);
+  if (!r.ok) return fail(r);
+  const { changes } = await storeCentralEvents(ctx, 'sl_deviations', r.data.events, r.data.invalid === 0);
+  return { status: r.data.invalid ? 'partial' : 'ok', items: r.data.events.length, changed: { changes },
+    errorDetail: `Unlocated line messages: ${r.data.unlocated}; invalid: ${r.data.invalid}` };
+}
+
+async function runObservedGroundwater(ctx: JobContext): Promise<JobResult> {
+  return runPerProperty(ctx, 'sgu_observed_groundwater', 'groundwater_observation', 24 * 3_600, PER_RUN.sgu, async (t) => {
+    const r = await fetchObservedGroundwater(t.lat, t.lon, ctx.adapter);
+    if (!r.ok) return { ok: false, result: fail(r), abort: abortOn(r.error) };
+    await upsertPropertyContext(ctx.db, {
+      propertyId: t.propertyId, organizationId: t.organizationId, sourceId: 'sgu_observed_groundwater', contextKey: 'groundwater_observation',
+      dataClass: 'OBSERVATION', status: r.data ? 'ok' : 'no_coverage', sourceTimestamp: r.data?.observedAt ?? null,
+      payload: r.data ? { ...r.data } : { note: 'Ingen station inom 10 km med anmärkningsfritt mätvärde de senaste 31 dagarna.' },
+    });
+    return { ok: true };
+  });
+}
+
 async function runSgu(ctx: JobContext): Promise<JobResult> {
   return runPerProperty(ctx, 'sgu_groundwater', 'groundwater', 12 * 3_600, PER_RUN.sgu, async (t) => {
     const area = await fetchSguAreaId(t.lat, t.lon, ctx.adapter);
@@ -310,7 +333,7 @@ async function runSgu(ctx: JobContext): Promise<JobResult> {
     if (!area.data) {
       await upsertPropertyContext(ctx.db, {
         propertyId: t.propertyId, organizationId: t.organizationId, sourceId: 'sgu_groundwater', contextKey: 'groundwater',
-        dataClass: 'OBSERVATION', status: 'no_coverage', sourceTimestamp: null,
+        dataClass: 'MODEL', status: 'no_coverage', sourceTimestamp: null,
         payload: { note: 'Fastigheten ligger utanför SGU:s modellområden (HYPE).', attribution: SGU_ATTRIBUTION },
       });
       return { ok: true };
@@ -319,7 +342,7 @@ async function runSgu(ctx: JobContext): Promise<JobResult> {
     if (!lv.ok) return { ok: false, result: fail(lv), abort: abortOn(lv.error) };
     await upsertPropertyContext(ctx.db, {
       propertyId: t.propertyId, organizationId: t.organizationId, sourceId: 'sgu_groundwater', contextKey: 'groundwater',
-      dataClass: 'OBSERVATION', status: lv.data ? 'ok' : 'no_coverage', sourceTimestamp: lv.data ? `${lv.data.date}T00:00:00Z` : null,
+      dataClass: 'MODEL', status: lv.data ? 'ok' : 'no_coverage', sourceTimestamp: lv.data ? `${lv.data.date}T00:00:00Z` : null,
       payload: lv.data ? { ...lv.data, attribution: SGU_ATTRIBUTION } : { areaId: area.data, note: 'Inga modellvärden de senaste 30 dagarna.', attribution: SGU_ATTRIBUTION },
     });
     return { ok: true };
@@ -393,6 +416,8 @@ export function buildJobs(env: ServerEnv): MonitoringJob[] {
     { jobId: 'smhi_observations', sourceId: 'smhi_observations', intervalSeconds: 900, enabled: env.SOURCE_SMHI_OBSERVATIONS_ENABLED, timeoutMs: 180_000, run: runMetObs },
     // After the latest-hour collection so newly listed stations exist; also triggered when a property is added.
     { jobId: 'observation_backfill', sourceId: 'smhi_observations', intervalSeconds: 3_600, enabled: env.SOURCE_SMHI_OBSERVATIONS_ENABLED, timeoutMs: 180_000, run: runObservationBackfill },
+    { jobId: 'sl_deviations', sourceId: 'sl_deviations', intervalSeconds: 300, enabled: env.SOURCE_SL_DEVIATIONS_ENABLED && !!env.SL_DEVIATIONS_API_KEY, timeoutMs: 120_000, run: runSl },
+    { jobId: 'sgu_observed_groundwater', sourceId: 'sgu_observed_groundwater', intervalSeconds: 900, enabled: env.SOURCE_SGU_OBSERVED_ENABLED, timeoutMs: 600_000, run: runObservedGroundwater },
     { jobId: 'sgu_groundwater', sourceId: 'sgu_groundwater', intervalSeconds: 3_600, enabled: env.SOURCE_SGU_ENABLED, timeoutMs: 180_000, run: runSgu },
     { jobId: 'mcf_flood', sourceId: 'mcf_flood', intervalSeconds: 3_600, enabled: env.MCF_FLOOD_ENABLED, timeoutMs: 300_000, run: runMcf },
     { jobId: 'scb', sourceId: 'scb', intervalSeconds: 3_600, enabled: env.SOURCE_SCB_ENABLED, timeoutMs: 120_000, run: runScb },
@@ -419,7 +444,7 @@ export function buildJobs(env: ServerEnv): MonitoringJob[] {
 }
 
 /** Jobs that compute per-property data and must run soon after a property is created/moved. */
-export const PER_PROPERTY_JOBS = ['met_nowcast', 'smhi_forecast', 'observation_backfill', 'history_backfill', 'sgu_groundwater', 'mcf_flood', 'scb'];
+export const PER_PROPERTY_JOBS = ['met_nowcast', 'smhi_forecast', 'observation_backfill', 'history_backfill', 'sgu_groundwater', 'sgu_observed_groundwater', 'mcf_flood', 'scb'];
 
 /** Backoff after failures: interval × 2^(n−1), min 60 s, max 6 h; Retry-After wins when longer. */
 export function nextRunSeconds(intervalSeconds: number, consecutiveFailures: number, result: JobResult): number {

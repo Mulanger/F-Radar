@@ -1,0 +1,514 @@
+{
+  "pm25": [
+    {
+      "id": "6161",
+      "label": "PM2.5 SPP-SE0001A_06001_100_103, Malmö Rådhuset, SPP-SE0001A_06001_100_103",
+      "extras": [
+        "license"
+      ],
+      "firstValue": {
+        "timestamp": 1640991600000,
+        "value": 18.115
+      },
+      "lastValue": {
+        "timestamp": 1794654000000,
+        "value": 2.92
+      },
+      "uom": "µg/m3",
+      "primaryData": "hour",
+      "aggregationTypes": [
+        "P1D",
+        "hourly",
+        "daily"
+      ],
+      "station": {
+        "id": "117",
+        "properties": {
+          "label": "Malmö Rådhuset",
+          "classification": "Urban bakgrund"
+        },
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            13.0019636154175,
+            55.606388092041
+          ]
+        }
+      },
+      "parameters": {
+        "phenomenon": {
+          "id": "6001",
+          "label": "PM2.5"
+        },
+        "procedure": {
+          "id": "6528",
+          "label": "SPP-SE0001A_06001_100_103"
+        },
+        "category": {
+          "id": "6001",
+          "label": "PM2.5"
+        },
+        "offering": {
+          "id": "6528",
+          "label": "SPP-SE0001A_06001_100_103"
+        },
+        "feature": {
+          "id": "117",
+          "label": "Malmö Rådhuset"
+        },
+        "service": {
+          "id": "1",
+          "label": "My RESTful Dataset Service"
+        }
+      }
+    },
+    {
+      "id": "62",
+      "label": "PM2.5 SPP-SE0003A_06001_100_100, Stockholm Hornsgatan 108 Gata, SPP-SE0003A_06001_100_100",
+      "extras": [
+        "license"
+      ],
+      "firstValue": {
+        "timestamp": 946684800000,
+        "value": 208.32
+      },
+      "lastValue": {
+        "timestamp": 1794654000000,
+        "value": 1.473
+      },
+      "uom": "µg/m3",
+      "primaryData": "hour",
+      "aggregationTypes": [
+        "P1D",
+        "hourly",
+        "daily"
+      ],
+      "station": {
+        "id": "111",
+        "properties": {
+          "label": "Stockholm Hornsgatan 108 Gata",
+          "classification": "Gaturum"
+        },
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            18.048471544097627,
+            59.31719181387384
+          ]
+        }
+      },
+      "parameters": {
+        "phenomenon": {
+          "id": "6001",
+          "label": "PM2.5"
+        },
+        "procedure": {
+          "id": "385",
+          "label": "SPP-SE0003A_06001_100_100"
+        },
+        "category": {
+          "id": "6001",
+          "label": "PM2.5"
+        },
+        "offering": {
+          "id": "385",
+          "label": "SPP-SE0003A_06001_100_100"
+        },
+        "feature": {
+          "id": "111",
+          "label": "Stockholm Hornsgatan 108 Gata"
+        },
+        "service": {
+          "id": "1",
+          "label": "My RESTful Dataset Service"
+        }
+      }
+    }
+  ],
+  "pm10": [
+    {
+      "id": "6160",
+      "label": "PM10 SPP-SE0001A_00005_100_103, Malmö Rådhuset, SPP-SE0001A_00005_100_103",
+      "extras": [
+        "license"
+      ],
+      "firstValue": {
+        "timestamp": 1640991600000,
+        "value": 20.217
+      },
+      "lastValue": {
+        "timestamp": 1794654000000,
+        "value": 5.61
+      },
+      "uom": "µg/m3",
+      "primaryData": "hour",
+      "aggregationTypes": [
+        "P1D",
+        "hourly",
+        "daily"
+      ],
+      "station": {
+        "id": "118",
+        "properties": {
+          "label": "Malmö Rådhuset",
+          "classification": "Urban bakgrund"
+        },
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            13.0019636154175,
+            55.606388092041
+          ]
+        }
+      },
+      "parameters": {
+        "phenomenon": {
+          "id": "5",
+          "label": "PM10"
+        },
+        "procedure": {
+          "id": "6527",
+          "label": "SPP-SE0001A_00005_100_103"
+        },
+        "category": {
+          "id": "5",
+          "label": "PM10"
+        },
+        "offering": {
+          "id": "6527",
+          "label": "SPP-SE0001A_00005_100_103"
+        },
+        "feature": {
+          "id": "118",
+          "label": "Malmö Rådhuset"
+        },
+        "service": {
+          "id": "1",
+          "label": "My RESTful Dataset Service"
+        }
+      }
+    },
+    {
+      "id": "5414",
+      "label": "PM10 SPP-SE0003A_00005_100_101, Stockholm Hornsgatan 108 Gata, SPP-SE0003A_00005_100_101",
+      "extras": [
+        "license"
+      ],
+      "firstValue": {
+        "timestamp": 1540771200000,
+        "value": null
+      },
+      "lastValue": {
+        "timestamp": 1794654000000,
+        "value": 9.443
+      },
+      "uom": "µg/m3",
+      "primaryData": "hour",
+      "aggregationTypes": [
+        "P1D",
+        "hourly",
+        "daily"
+      ],
+      "station": {
+        "id": "116",
+        "properties": {
+          "label": "Stockholm Hornsgatan 108 Gata",
+          "classification": "Gaturum"
+        },
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            18.048471544097627,
+            59.31719181387384
+          ]
+        }
+      },
+      "parameters": {
+        "phenomenon": {
+          "id": "5",
+          "label": "PM10"
+        },
+        "procedure": {
+          "id": "3907",
+          "label": "SPP-SE0003A_00005_100_101"
+        },
+        "category": {
+          "id": "5",
+          "label": "PM10"
+        },
+        "offering": {
+          "id": "3907",
+          "label": "SPP-SE0003A_00005_100_101"
+        },
+        "feature": {
+          "id": "116",
+          "label": "Stockholm Hornsgatan 108 Gata"
+        },
+        "service": {
+          "id": "1",
+          "label": "My RESTful Dataset Service"
+        }
+      }
+    }
+  ],
+  "no2": [
+    {
+      "id": "68",
+      "label": "NO2 SPP-SE0001A_00008_100_100, Malmö Rådhuset, SPP-SE0001A_00008_100_100",
+      "extras": [
+        "license"
+      ],
+      "firstValue": {
+        "timestamp": 883609200000,
+        "value": 22.57
+      },
+      "lastValue": {
+        "timestamp": 1794654000000,
+        "value": 4.8
+      },
+      "uom": "µg/m3",
+      "primaryData": "hour",
+      "aggregationTypes": [
+        "P1D",
+        "hourly",
+        "daily"
+      ],
+      "station": {
+        "id": "121",
+        "properties": {
+          "label": "Malmö Rådhuset",
+          "classification": "Urban bakgrund"
+        },
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            13.0019636154175,
+            55.606388092041
+          ]
+        }
+      },
+      "parameters": {
+        "phenomenon": {
+          "id": "8",
+          "label": "NO2"
+        },
+        "procedure": {
+          "id": "648",
+          "label": "SPP-SE0001A_00008_100_100"
+        },
+        "category": {
+          "id": "8",
+          "label": "NO2"
+        },
+        "offering": {
+          "id": "648",
+          "label": "SPP-SE0001A_00008_100_100"
+        },
+        "feature": {
+          "id": "121",
+          "label": "Malmö Rådhuset"
+        },
+        "service": {
+          "id": "1",
+          "label": "My RESTful Dataset Service"
+        }
+      }
+    },
+    {
+      "id": "5858",
+      "label": "NO2 SPP-SE0003A_00008_100_102, Stockholm Hornsgatan 108 Gata, SPP-SE0003A_00008_100_102",
+      "extras": [
+        "license"
+      ],
+      "firstValue": {
+        "timestamp": 1609455600000,
+        "value": 28.97
+      },
+      "lastValue": {
+        "timestamp": 1794654000000,
+        "value": 10.759
+      },
+      "uom": "µg/m3",
+      "primaryData": "hour",
+      "aggregationTypes": [
+        "P1D",
+        "hourly",
+        "daily"
+      ],
+      "station": {
+        "id": "115",
+        "properties": {
+          "label": "Stockholm Hornsgatan 108 Gata",
+          "classification": "Gaturum"
+        },
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            18.048471544097627,
+            59.31719181387384
+          ]
+        }
+      },
+      "parameters": {
+        "phenomenon": {
+          "id": "8",
+          "label": "NO2"
+        },
+        "procedure": {
+          "id": "4351",
+          "label": "SPP-SE0003A_00008_100_102"
+        },
+        "category": {
+          "id": "8",
+          "label": "NO2"
+        },
+        "offering": {
+          "id": "4351",
+          "label": "SPP-SE0003A_00008_100_102"
+        },
+        "feature": {
+          "id": "115",
+          "label": "Stockholm Hornsgatan 108 Gata"
+        },
+        "service": {
+          "id": "1",
+          "label": "My RESTful Dataset Service"
+        }
+      }
+    }
+  ],
+  "o3": [
+    {
+      "id": "67",
+      "label": "O3 SPP-SE0001A_00007_100_100, Malmö Rådhuset, SPP-SE0001A_00007_100_100",
+      "extras": [
+        "license"
+      ],
+      "firstValue": {
+        "timestamp": 883609200000,
+        "value": 19.7
+      },
+      "lastValue": {
+        "timestamp": 1794654000000,
+        "value": 41.9
+      },
+      "uom": "µg/m3",
+      "primaryData": "hour",
+      "aggregationTypes": [
+        "P8H-run",
+        "P8H-dmax",
+        "hourly"
+      ],
+      "station": {
+        "id": "120",
+        "properties": {
+          "label": "Malmö Rådhuset",
+          "classification": "Urban bakgrund"
+        },
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            13.0019636154175,
+            55.606388092041
+          ]
+        }
+      },
+      "parameters": {
+        "phenomenon": {
+          "id": "7",
+          "label": "O3"
+        },
+        "procedure": {
+          "id": "647",
+          "label": "SPP-SE0001A_00007_100_100"
+        },
+        "category": {
+          "id": "7",
+          "label": "O3"
+        },
+        "offering": {
+          "id": "647",
+          "label": "SPP-SE0001A_00007_100_100"
+        },
+        "feature": {
+          "id": "120",
+          "label": "Malmö Rådhuset"
+        },
+        "service": {
+          "id": "1",
+          "label": "My RESTful Dataset Service"
+        }
+      }
+    }
+  ],
+  "so2": [
+    {
+      "id": "4469",
+      "label": "SO2 SPP-SE0001A_00001_100_101, Malmö Rådhuset, SPP-SE0001A_00001_100_101",
+      "extras": [
+        "license"
+      ],
+      "firstValue": {
+        "timestamp": 1262300400000,
+        "value": 3.06
+      },
+      "lastValue": {
+        "timestamp": 1794654000000,
+        "value": 0.78
+      },
+      "uom": "µg/m3",
+      "primaryData": "hour",
+      "aggregationTypes": [
+        "hourly"
+      ],
+      "station": {
+        "id": "125",
+        "properties": {
+          "label": "Malmö Rådhuset",
+          "classification": "Urban bakgrund"
+        },
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            13.0019636154175,
+            55.606388092041
+          ]
+        }
+      },
+      "parameters": {
+        "phenomenon": {
+          "id": "1",
+          "label": "SO2"
+        },
+        "procedure": {
+          "id": "645",
+          "label": "SPP-SE0001A_00001_100_101"
+        },
+        "category": {
+          "id": "1",
+          "label": "SO2"
+        },
+        "offering": {
+          "id": "645",
+          "label": "SPP-SE0001A_00001_100_101"
+        },
+        "feature": {
+          "id": "125",
+          "label": "Malmö Rådhuset"
+        },
+        "service": {
+          "id": "1",
+          "label": "My RESTful Dataset Service"
+        }
+      }
+    }
+  ]
+}

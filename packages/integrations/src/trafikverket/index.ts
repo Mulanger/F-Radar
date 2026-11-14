@@ -37,7 +37,9 @@ const Deviation = z
   .object({
     Id: z.string(),
     Message: z.string().nullish(),
+    Header: z.string().nullish(),
     MessageType: z.string().nullish(),
+    MessageTypeValue: z.string().nullish(),
     MessageCode: z.string().nullish(),
     MessageCodeValue: z.string().nullish(),
     SeverityCode: z.number().nullish(),
@@ -107,12 +109,15 @@ export function parseTrafikverket(raw: unknown): { events: NormalizedSourceEvent
         deletedIds.push(x.Id);
         continue;
       }
+      const ferry = x.MessageTypeValue === 'TransitInformation' || x.MessageCodeValue === 'ferry';
+      // The feed also contains ordinary ferry services. A timetable is not a disruption.
+      if (ferry && (!x.Message?.trim() || x.IconId === 'ferryDepartureOnSchedule')) continue;
       const wkt = x.Geometry?.Line?.WGS84 ?? x.Geometry?.Point?.WGS84 ?? x.Geometry?.WGS84 ?? null;
       if (!wkt || !WKT_OK.test(wkt)) {
         skipped++;
         continue;
       }
-      const type = x.MessageCode ?? x.MessageType ?? 'Trafikhändelse';
+      const type = ferry ? x.Header ?? x.MessageCode ?? 'Färjeinformation' : x.MessageCode ?? x.MessageType ?? 'Trafikhändelse';
       const where = x.LocationDescriptor ?? x.RoadName ?? x.RoadNumber ?? null;
       events.push({
         sourceId: 'trafikverket',
@@ -142,6 +147,7 @@ export function parseTrafikverket(raw: unknown): { events: NormalizedSourceEvent
           severityText: x.SeverityText ?? null,
           suspended: x.Suspended ?? false,
           iconId: x.IconId ?? null,
+          transportMode: ferry ? 'road_ferry' : 'road',
         },
       });
     }

@@ -137,6 +137,7 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
               <div style={{ fontSize: 13.5, lineHeight: 1.45, color: '#14171A' }}>{HERO_SMS}</div>
             </div>
 
+            <div className={css.desktopOnly} style={{ position: 'absolute', left: 22, bottom: 110, fontSize: 11, color: '#4A5157' }}>Illustration · exempelvärden. Väder: modell, SMHI.</div>
             <dl className={css.desktopOnly} style={{ position: 'absolute', left: 22, bottom: 22, margin: 0, display: 'flex', flexWrap: 'wrap', gap: '4px 26px', padding: '14px 22px', borderRadius: 20, ...glass(0.72, 14), boxShadow: '0 10px 30px -18px rgba(20,23,26,0.25)', maxWidth: 'calc(100% - 44px)', boxSizing: 'border-box' }}>
               {HERO_STATS.map((st) => (
                 <div key={st.label} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

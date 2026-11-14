@@ -3,9 +3,9 @@ import type { DataSourceStatus, Portfolio, PropertyRecord, PropertySnapshot } fr
 /**
  * Builds the dashboard `Portfolio` contract from REAL customer records.
  *
- * Phase 2 has no live public-data adapters, so every monitoring field is explicitly
- * empty/unknown – never demo values, never "normal". The UI renders these as
- * "not connected / unavailable" (IMPLEMENTATION.md §1, §20).
+ * This base deliberately has no monitoring values. MonitoringService attaches stored forecasts,
+ * station observations (including waterBody) and context through buildPropertySnapshot for both
+ * portfolio and property requests. Missing stored data remains empty/unknown, never demo values.
  */
 export function propertyToSnapshot(p: PropertyRecord, clerkOrgId: string): PropertySnapshot {
   const precision = (['building', 'street', 'approximate'] as const).includes(p.geocode.precision as 'building')

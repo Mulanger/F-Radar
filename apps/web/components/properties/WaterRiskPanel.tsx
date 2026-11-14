@@ -84,8 +84,7 @@ export function WaterRiskPanel({ d }: { d: DetailVM }) {
         {[
           ['Karterad översvämningszon', w.dist],
           ['Trend', w.trend],
-          ['Ytvatten', w.surface],
-          ['Källarrisk', w.basement],
+          ...(!d.live ? [['Ytvatten', w.surface], ['Källarrisk', w.basement]] : []),
         ].map(([label, value]) => (
           <div key={label} style={tile}>
             <div style={{ fontSize: 11.5, color: C.text4 }}>{label}</div>

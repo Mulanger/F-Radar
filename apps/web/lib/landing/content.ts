@@ -58,18 +58,18 @@ export interface HeroAnnotation {
 }
 export const HERO_ANNOTATIONS: HeroAnnotation[] = [
   { source: 'SMHI', time: '14:32', badge: { label: 'Orange', ...BADGE.orange }, title: 'Kraftig vind', detail: 'Byar upp till 25 m/s längs kusten', dot: '#E08A2E', severity: 'warning' },
-  { source: 'SMHI', time: '14:05', badge: { label: 'Varning', ...BADGE.orangeSoft }, title: 'Vattenstånd +41 cm', detail: 'Saltsjön · stigande +4 cm/h', dot: '#E08A2E', severity: 'warning' },
+  { source: 'SMHI', time: '10:00', badge: { label: 'Observation', ...BADGE.grey }, title: 'Havsvattenstånd +41 cm', detail: 'SMHI Skeppsholmen · 4,4 km · relativt medel', dot: '#9AA1A8', severity: 'normal' },
   { source: 'Krisinformation', time: '13:20', badge: { label: 'VMA', ...BADGE.red }, title: 'Industribrand', detail: 'Håll fönster och ventilation stängda', dot: '#D8473A', severity: 'critical' },
-  { source: 'Trafikverket', time: '13:10', badge: { label: 'Bevaka', ...BADGE.blue }, title: 'Färjetrafik inställd', detail: 'Nacka Strand brygga · till 18:00', dot: '#4A7FD0', severity: 'monitor' },
+  { source: 'Trafikverket', time: '13:10', badge: { label: 'Bevaka', ...BADGE.blue }, title: 'Vägarbete på Värmdövägen', detail: 'Trafikhändelse · 0,9 km från adressen', dot: '#4A7FD0', severity: 'normal' },
   { source: 'SMHI', time: '12:50', badge: { label: 'Gul', ...BADGE.yellow }, title: 'Kraftigt regn', detail: '20–30 mm inom 12 timmar', dot: '#D9B21F', severity: 'monitor' },
-  { source: 'Luftkvalitet', time: '14:00', badge: { label: 'Bra', ...BADGE.green }, title: 'Luftkvalitet 26', detail: 'PM2,5 6 µg/m³ · NO₂ 16 µg/m³', dot: '#3FA66B', severity: 'normal' },
+  { source: 'SMHI / Naturvårdsverket', time: '12:00', badge: { label: 'Observation', ...BADGE.grey }, title: 'PM2,5 1,5 µg/m³ · NO₂ 10,8 µg/m³', detail: 'Hornsgatan · 6,3 km · 14 nov · timhalter', dot: '#3FA66B', severity: 'normal' },
 ];
 
 export const HERO_SMS = 'Orange varning: kraftig vind vid Augustendal Brygga. Byar upp till 25 m/s, ons 16:00–tors 10:00. Källa: SMHI';
 
 export const PORTFOLIO_ROWS = [
   { name: 'Augustendal Brygga', area: 'Nacka Strand', severity: 'critical' as const, temp: '3,9°', warning: { label: 'Orange · Kraftig vind', ...BADGE.orange } },
-  { name: 'Sjöstaden Kaj', area: 'Hammarby Sjöstad', severity: 'warning' as const, temp: '4,2°', warning: { label: 'Gul · Kraftigt regn', ...BADGE.yellow } },
+  { name: 'Sjöstaden Kaj', area: 'Hammarby Sjöstad', severity: 'monitor' as const, temp: '4,2°', warning: { label: 'Gul · Kraftigt regn', ...BADGE.yellow } },
   { name: 'Strandhuset', area: 'Kungsholmen', severity: 'monitor' as const, temp: '4,6°', warning: { label: 'Gul · Kraftigt regn', ...BADGE.yellow } },
   { name: 'Odenplan Atrium', area: 'Vasastan', severity: 'normal' as const, temp: '4,0°', warning: { label: 'Ingen', bg: '#F1F3F2', fg: '#6B737B' } },
 ];
@@ -80,9 +80,9 @@ export const OFFICIAL_WARNINGS = [
 ];
 
 export const NEARBY_EVENTS = [
-  { title: 'VMA: industribrand, håll fönster och ventilation stängda', source: 'Krisinformation', where: '0,8 km', time: '13:20', ...pair('#FCE4E1', '#D8473A') },
-  { title: 'Vattenståndet i Saltsjön +38 cm över medel och stigande', source: 'SMHI', where: 'Saltsjön', time: '14:05', ...pair('#FDEBD8', '#E08A2E') },
-  { title: 'Färjetrafiken inställd vid Nacka Strand brygga', source: 'Trafikverket', where: '0,3 km', time: '13:10', ...pair('#E3ECF9', '#4A7FD0') },
+  { title: 'VMA: industribrand, håll fönster och ventilation stängda', source: 'Krisinformation', where: 'Nacka kommun', time: '13:20', ...pair('#FCE4E1', '#D8473A') },
+  { title: 'Begränsad framkomlighet vid trafikarbete', source: 'Trafikverket', where: '1,6 km', time: '14:05', ...pair('#FDEBD8', '#E08A2E') },
+  { title: 'Trafikhinder på Augustendalsvägen', source: 'Trafikverket', where: '0,3 km', time: '13:10', ...pair('#E3ECF9', '#4A7FD0') },
   { title: 'Vägarbete på Värmdövägen, ett körfält avstängt', source: 'Trafikverket', where: '0,9 km', time: '12:42', ...pair('#E3ECF9', '#4A7FD0') },
 ];
 function pair(bg: string, dot: string) {
@@ -90,16 +90,17 @@ function pair(bg: string, dot: string) {
 }
 
 export const DATA_CLASSES = [
-  { label: 'Observation', ...BADGE.green, title: 'Uppmätt vid närmaste station', example: 'Temperatur 3,9 °C · SMHI MetObs, 2,1 km bort' },
+  { label: 'Observation', ...BADGE.green, title: 'Uppmätt vid närmaste station', example: 'Temperatur 3,9 °C · SMHI MetObs, Stockholm-Observatoriekullen · 2,1 km · 14:00' },
   { label: 'Modell', ...BADGE.blue, title: 'Prognos eller beräkning', example: 'Nederbörd 22,1 mm kommande 24 h · SMHI' },
   { label: 'Statiskt scenario', ...BADGE.orangeSoft, title: 'Kartering av ett tänkt förlopp', example: 'Översvämning vid 100-årsflöde · MCF' },
-  { label: 'Regional statistik', ...BADGE.grey, title: 'Gäller kommunen, inte adressen', example: 'Befolkning och bebyggelse, Nacka kommun · SCB' },
+  { label: 'Regional statistik', ...BADGE.grey, title: 'Gäller kommunen, inte adressen', example: 'Folkmängd, täthet och landareal, Nacka kommun · SCB' },
 ];
 
 export const DATA_SOURCES = [
   'SMHI prognos',
   'SMHI vädervarningar',
   'SMHI MetObs',
+  'SMHI havsnivå',
   'Krisinformation',
   'Trafikverket',
   'Luftkvalitet',

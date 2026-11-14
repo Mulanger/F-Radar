@@ -21,6 +21,8 @@ export const SOURCE_IDS = [
   'krisinformation',
   'air_quality',
   'sgu_groundwater',
+  'sgu_observed_groundwater',
+  'sl_deviations',
   'mcf_flood',
   'scb',
   'trafikverket',

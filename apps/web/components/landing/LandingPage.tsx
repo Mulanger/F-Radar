@@ -150,12 +150,12 @@ function HowItWorks() {
                 <span style={{ ...sourceChip, fontSize: 12, padding: '4px 8px', borderRadius: 8, background: '#FFFFFF', position: 'absolute', right: 16, top: 40 }}>Krisinformation</span>
                 <span style={{ ...sourceChip, fontSize: 12, padding: '4px 8px', borderRadius: 8, background: '#FFFFFF', position: 'absolute', left: 22, bottom: 30 }}>Trafikverket</span>
                 <span style={{ ...sourceChip, fontSize: 12, padding: '4px 8px', borderRadius: 8, background: '#FFFFFF', position: 'absolute', right: 26, bottom: 18 }}>SGU</span>
-                <span style={{ position: 'absolute', left: '50%', top: '50%', margin: '16px 0 0 -38px', fontFamily: MONO, fontSize: 11, color: '#4A5157' }}>radie 1 km</span>
+                <span style={{ position: 'absolute', left: '50%', top: '50%', margin: '16px 0 0 -38px', fontFamily: MONO, fontSize: 11, color: '#4A5157' }}>radie 2 km</span>
               </div>
               <div style={stepText}>
                 <span style={stepNo}>02</span>
                 <h3 style={stepH3}>Vi bevakar positionen</h3>
-                <p style={stepP}>Varningar, händelser och mätningar matchas mot fastighetens exakta läge — inte bara mot kommunen den ligger i.</p>
+                <p style={stepP}>Vädervarningar matchas geografiskt, trafik inom 2 km och VMA per kommun eller län. Mätningar märks med station och avstånd.</p>
               </div>
             </Reveal>
           </li>
@@ -191,7 +191,7 @@ function PortfolioFeature() {
         <span style={eyebrow}>Portföljöversikt</span>
         <h2 className={css.splitMobileHeading} style={h2}><span>Hela portföljen.</span>{' '}<span>En blick.</span></h2>
         <p style={lead}>Status för varje fastighet, sorterad efter vad som behöver uppmärksamhet först. Karta, händelseflöde och officiella varningar i samma vy.</p>
-        <Bullets items={['Officiella varningar och information i tydliga nivåer', 'Händelser från alla källor i ett gemensamt flöde', 'Filtrera per område, till exempel innerstad eller kust']} />
+        <Bullets items={['Officiella varningar och information i tydliga nivåer', 'Händelser från alla källor i ett gemensamt flöde', 'Översikt över sparade adresser och deras läge']} />
         <div className={css.statusLegend} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingTop: 10 }}>
           {SEVERITY_ORDER.map((k) => (
             <StatusPill key={k} severity={k} />
@@ -278,9 +278,9 @@ function WaterFeature() {
         <span className={css.desktopOnly} style={eyebrow}>Vatten och översvämning</span>
         <span className={css.mobileOnly} style={eyebrow}>Vatten och nivåer</span>
         <h2 className={css.splitMobileHeading} style={h2}><span>Från kajkanten</span>{' '}<span>till källaren.</span></h2>
-        <p className={css.desktopOnly} style={lead}>Vattennivå, karterade översvämningszoner från MCF och grundvatten från SGU — samlat per fastighet, med trend och avstånd till gränsvärdet.</p>
-        <p className={css.mobileOnly} style={lead}>Vattennivå, karterade områden från MCF och grundvatten från SGU – samlat med källa, trend och avstånd.</p>
-        <Bullets items={['Aktuell nivå mot översvämningsgräns', 'Avstånd till karterad översvämningszon', 'Grundvattennivå jämfört med det normala']} />
+        <p className={css.desktopOnly} style={lead}>Havsvattenstånd från närmaste SMHI-station, karterade översvämningszoner från MCF och grundvatten från SGU — samlat per fastighet, med källa, trend och avstånd.</p>
+        <p className={css.mobileOnly} style={lead}>Havsvattenstånd, karterade områden från MCF och grundvatten från SGU – samlat med källa, trend och avstånd.</p>
+        <Bullets items={['Havsvattenstånd relativt medelvattenstånd, med trend', 'Karterad översvämningszon i avståndssteg', 'Grundvatten: regional modell och närmaste mätstation']} />
       </Reveal>
       <Reveal className={css.featureVisual} style={visualBlock}>
         <div className={css.waterPanel} style={{ ...card, padding: 'clamp(20px,3vw,30px)', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -289,23 +289,20 @@ function WaterFeature() {
               <span style={cardTitle}><span className={css.desktopOnly}>Vattenrisk</span><span className={css.mobileOnly}>Vattennivå</span></span>
               <span style={cardSub}><span className={css.desktopOnly}>Översvämningsexponering och vattennivå</span><span className={css.mobileOnly}>Vattennivå och karterat område</span></span>
             </div>
-            <span style={{ fontSize: 13.5, fontWeight: 500, padding: '5px 11px', borderRadius: 999, background: '#FCE4E1', color: '#B8362B', whiteSpace: 'nowrap' }}><span className={css.desktopOnly}>Exponering: Hög</span><span className={css.mobileOnly}>Exempeldata</span></span>
+            <span style={{ fontSize: 13.5, fontWeight: 500, padding: '5px 11px', borderRadius: 999, background: '#F1F3F2', color: '#4A5157', whiteSpace: 'nowrap' }}><span className={css.desktopOnly}>Statiskt scenario · MCF</span><span className={css.mobileOnly}>Exempeldata</span></span>
           </div>
           <div style={{ position: 'relative', height: 240, borderRadius: 20, overflow: 'hidden', background: 'linear-gradient(180deg,#F6F8F8,#EDF2F3)' }}>
             <WaterCanvas />
-            <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: '27%', borderTop: '1.5px dashed #D8473A', opacity: 0.8 }} />
-            <span className={css.desktopOnly} style={{ position: 'absolute', right: 14, top: 'calc(27% - 28px)', fontSize: 12.5, color: '#B8362B', background: 'rgba(255,255,255,0.9)', padding: '3px 8px', borderRadius: 7 }}>Översvämningsgräns +60 cm</span>
-            <span className={css.mobileOnly} style={{ position: 'absolute', background: '#fff', color: '#3463AE', borderRadius: 4 }}>Referens i illustrationen +60 cm</span>
             <div style={{ position: 'absolute', left: 16, top: 16, padding: '10px 14px', borderRadius: 14, background: 'rgba(255,255,255,0.9)', display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <span style={{ fontSize: 12.5, color: '#6B737B' }}>Saltsjön</span>
-              <span style={{ fontSize: 26, letterSpacing: '-0.02em' }}>+41 cm</span>
+              <span style={{ fontSize: 12.5, color: '#6B737B' }}>Stockholm-Skeppsholmen · SMHI</span>
+              <span style={{ fontSize: 26, letterSpacing: '-0.02em' }}>+41 cm<small style={{ display: 'block', fontSize: 11, color: '#6B737B' }}>Observation · relativt medelvattenstånd · 4,4 km bort · illustration</small></span>
             </div>
           </div>
           <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,200px),1fr))', gap: 10 }}>
-            {([['Karterad översvämningszon', '15 m · inom buffert'], ['Trend', 'Stigande +4 cm/h'], ['Grundvatten · SGU', 'Över det normala'], ['Källarrisk', 'Förhöjd']] as const).map(([l, v]) => (
+            {([['Karterad zon · MCF', 'Inom 100 m · statiskt scenario'], ['Trend · härledd ur mätserien', 'Stigande'], ['Grundvatten · SGU HYPE', 'Regional modell · percentil för årstiden'], ['Grundvatten · observation', 'Station, avstånd och mätdatum vid täckning']] as const).map(([l, v]) => (
               <div key={l} style={tile}>
-                <dt style={{ fontSize: 13, color: '#6B737B' }}><span className={css.desktopOnly}>{l}</span><span className={css.mobileOnly}>{l === 'Källarrisk' ? 'Datatyp' : l === 'Karterad översvämningszon' ? 'Karterat område' : l}</span></dt>
-                <dd style={{ margin: 0, fontSize: 16, fontWeight: 500 }}><span className={css.desktopOnly}>{v}</span><span className={css.mobileOnly}>{l === 'Källarrisk' ? 'Exempeldata' : v}</span></dd>
+                <dt style={{ fontSize: 13, color: '#6B737B' }}><span className={css.desktopOnly}>{l}</span><span className={css.mobileOnly}>{l === 'Karterad zon · MCF' ? 'Karterat område' : l === 'Grundvatten · observation' ? 'Mätstation · SGU' : l === 'Trend · härledd ur mätserien' ? 'Härledd trend' : l}</span></dt>
+                <dd style={{ margin: 0, fontSize: 16, fontWeight: 500 }}><span className={css.desktopOnly}>{v}</span><span className={css.mobileOnly}>{v}</span></dd>
               </div>
             ))}
           </dl>
@@ -326,19 +323,19 @@ function InstrumentsFeature() {
       <Reveal className={css.sectionIntro} style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 760 }}>
         <span style={eyebrow}>Väder, luft och omgivning</span>
         <h2 style={h2}>En instrumentpanel för varje adress.</h2>
-        <p style={{ ...lead, maxWidth: '34em' }}>Punktprognos från SMHI, luftkvalitet från närmaste mätstation och störningar inom larmradien — uppdaterat löpande.</p>
+        <p style={{ ...lead, maxWidth: '34em' }}>Punktprognos från SMHI, luftkvalitet från närmaste mätstation och störningar inom larmradien — uppdaterat löpande. Illustrationerna visar exempelvärden, inte aktuella förhållanden.</p>
       </Reveal>
       <div className={css.instrumentTiles} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,250px),1fr))', gap: 16 }}>
         <Reveal style={smallCard}>
-          <span style={label}>Temperatur nu</span>
+          <span style={label}>Temperatur · modell, SMHI</span>
           <span style={big}>3,9°</span>
           <svg aria-hidden="true" viewBox="0 0 200 40" preserveAspectRatio="none" style={{ width: '100%', height: 36, display: 'block' }}>
             <path d="M0,10 C20,10 30,14 50,20 C70,26 80,22 100,30 C115,36 130,30 150,24 C170,18 180,6 200,8" fill="none" stroke="#E08A2E" strokeWidth="2" vectorEffect="non-scaling-stroke" />
           </svg>
-          <span style={foot}>Känns som −1,4° · 0,7° till 6° kommande 24 h</span>
+          <span style={foot}>Känns som −2,9° · härledd kyleffekt enligt SMHI</span>
         </Reveal>
         <Reveal style={smallCard}>
-          <span style={label}>Nederbörd prognos 24 h</span>
+          <span style={label}>Nederbörd · modell, SMHI · 24 h</span>
           <span style={big}>22,1<span style={unit}>mm</span></span>
           <div aria-hidden="true" style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 36 }}>
             {RAIN_BARS.map(([h, c], i) => (
@@ -348,7 +345,7 @@ function InstrumentsFeature() {
           <span style={foot}>Max 3,1 mm/h kl. 02:00</span>
         </Reveal>
         <Reveal style={smallCard}>
-          <span style={label}>Vindhastighet</span>
+          <span style={label}>Vind · modell, SMHI</span>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
             <span style={big}>14,2<span style={unit}>m/s</span></span>
             <div aria-label="Vind från söder" role="img" style={{ position: 'relative', width: 56, height: 56, borderRadius: '50%', border: '1px solid rgba(20,23,26,0.12)', flex: 'none' }}>
@@ -363,12 +360,9 @@ function InstrumentsFeature() {
           <span style={foot}>Byar 25 m/s · från S</span>
         </Reveal>
         <Reveal style={smallCard}>
-          <span style={label}>Luftkvalitet</span>
-          <span style={big}>26<span style={{ ...unit, color: '#2B7D4D', marginLeft: 6 }}>Bra</span></span>
-          <div aria-hidden="true" style={{ position: 'relative', height: 6, borderRadius: 999, background: 'linear-gradient(90deg,#3FA66B,#D9C43A,#E08A2E,#D8473A)', marginTop: 16 }}>
-            <span style={{ position: 'absolute', left: '18%', top: -5, width: 4, height: 16, borderRadius: 2, background: '#14171A' }} />
-          </div>
-          <span style={foot}>PM2,5 6 µg/m³ · NO₂ 16 µg/m³</span>
+          <span style={label}>Luft · stationsobservation</span>
+          <span style={{ ...big, fontSize: 30 }}>PM2,5 <span style={unit}>1,5 µg/m³</span></span>
+          <span style={foot}>NO₂ 10,8 µg/m³ · preliminära timhalter<br />SMHI / Naturvårdsverket · Hornsgatan 108 Gata · 6,3 km · 14 nov 2026 kl. 12:00<br />EEA-stationsindex 1–6 visas när ämnesunderlaget räcker.</span>
         </Reveal>
       </div>
       <div className={css.instrumentPanels} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,440px),1fr))', gap: 16 }}>
@@ -379,7 +373,7 @@ function InstrumentsFeature() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, paddingBottom: 10 }}>
             <div style={cardHead}>
               <span style={cardTitle}>Händelser i närheten</span>
-              <span style={cardSub}>Inom larmradien 1 km</span>
+              <span style={cardSub}>Trafikhändelser inom larmradien 2 km · VMA per kommun/län</span>
             </div>
             <span style={{ fontFamily: MONO, fontSize: 13, color: '#4A5157', paddingTop: 4 }}>4 st</span>
           </div>
@@ -426,9 +420,9 @@ function SmsFeature() {
 /* ------------------------------------------------------------------ */
 
 const MOBILE_FEATURE_ITEMS = {
-  portfolio: ['Officiella varningar och information i tydliga nivåer', 'Händelser från alla källor i ett gemensamt flöde', 'Filtrera per område, till exempel innerstad eller kust'],
+  portfolio: ['Officiella varningar och information i tydliga nivåer', 'Händelser från alla källor i ett gemensamt flöde', 'Översikt över sparade adresser och deras läge'],
   warnings: ['Gul, orange och röd varning samt VMA', 'Geografiskt matchade mot varje fastighet', 'Uppdateringar och avslut syns direkt'],
-  water: ['Vattennivå och trend från källan', 'Avstånd till karterat område', 'Grundvattennivå jämfört med det normala'],
+  water: ['Havsvattenstånd relativt medelvattenstånd, med trend', 'Karterad översvämningszon i avståndssteg', 'Grundvatten: regional modell och närmaste mätstation'],
   sms: ['Egna regler per fastighet och varningsnivå', 'Tysta timmar och max antal per dag', 'Logg över varje utskick'],
 };
 

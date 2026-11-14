@@ -130,7 +130,6 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
   const avail = availability(portfolio);
   const live = p.origin === 'live';
   const mon = s.monitoring ?? null;
-  const pmM = s.metrics.find((m) => m.metricKey === 'air_quality.pm25' || m.metricKey === 'air_quality.no2');
   const fmtDist = (m: number | null | undefined) => (m === null || m === undefined ? '—' : m >= 1000 ? `${formatNumber(m / 1000, 1)} km` : `${Math.round(m)} m`);
   // Building facts are customer-provided; absent in Phase 2. The 3D scene then uses a neutral default.
   const b = p.building;
@@ -185,9 +184,9 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
     dew: temp !== null && hum !== null ? formatNumber(temp - (100 - hum) / 5, 1) : '—',
     condens: hum === null ? '—' : hum > 85 ? 'hög' : 'låg',
     aqi: show(aqi),
-    aq: aqi === null ? '' : aqi > 75 ? 'Dålig' : aqi > 50 ? 'Måttlig' : 'Bra',
-    aqC: aqi === null ? SEV.unknown.c : aqi > 75 ? SEV.critical.c : aqi > 50 ? SEV.warning.c : SEV.normal.c,
-    aqLeft: aqi === null ? '0%' : Math.min(97, (aqi / 150) * 100) + '%',
+    aq: live ? mon?.airIndex?.label ?? '' : aqi === null ? '' : aqi > 75 ? 'Dålig' : aqi > 50 ? 'Måttlig' : 'Bra',
+    aqC: aqi === null ? SEV.unknown.c : live ? (aqi >= 4 ? SEV.warning.c : SEV.unknown.c) : aqi > 75 ? SEV.critical.c : aqi > 50 ? SEV.warning.c : SEV.normal.c,
+    aqLeft: aqi === null ? '0%' : Math.min(97, live ? ((aqi - 1) / 5) * 100 : (aqi / 150) * 100) + '%',
     pm: show(pm),
     no2: show(no2),
     gauge: {
@@ -316,7 +315,7 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
           forecastLine: s.forecast
             ? `SMHI-prognos, modellkörning ${formatClock(s.forecast.issuedAt ?? s.forecast.fetchedAt ?? portfolio.generatedAt)}, modellpunkt ${fmtDist(s.forecast.geo.distanceMeters)} bort`
             : 'Prognos har inte hämtats ännu',
-          airLine: pmM ? `${pmM.geo.note ?? 'Mätstation'} · ${fmtDist(pmM.geo.distanceMeters)} · preliminära värden` : 'Ingen luftmätstation inom 25 km med aktuella värden',
+          airLine: mon?.airIndex ? `Härlett EEA-baserat stationsindex 1–6 · ${mon.airIndex.stationName} · ${fmtDist(mon.airIndex.distanceMeters)} · ${formatWeekdayClock(mon.airIndex.observedAt)} · preliminärt. Ämnen: ${mon.airIndex.pollutants.join(', ')}. Saknas: ${mon.airIndex.missingPollutants.join(', ') || 'inga'}. Källa: SMHI / Naturvårdsverket; metod: EEA.` : 'Index ej bedömt. Stationsvärden, avstånd och mättider visas under Mätningar och sammanhang.',
           statusReason: p.statusReason ?? null,
           monitoring: mon,
           fmtDist,
