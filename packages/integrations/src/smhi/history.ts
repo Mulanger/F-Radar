@@ -270,6 +270,9 @@ export function historyCsvAccumulator(
   return { line, finish };
 }
 
+/** Accepts SMHI's CSV in the media type it actually uses (text/plain) as well as text/csv. */
+export const HISTORY_CSV_ACCEPT = 'text/csv, text/plain;q=0.9, */*;q=0.5';
+
 export async function fetchHistorySeries(
   parameter: HistoryParameter,
   stationId: string,
@@ -285,7 +288,9 @@ export async function fetchHistorySeries(
     label: 'history_archive',
     attempts: 1,
     timeoutMs: 180_000,
-    headers: { Accept: 'text/csv' },
+    // SMHI serves these CSV files as text/plain; a strict `text/csv` makes latest-months and the
+    // water APIs' latest-day answer 406 (verified 2026-11-14), which silently left recent months empty.
+    headers: { Accept: HISTORY_CSV_ACCEPT },
   });
   // Some daily stations do not publish parameter 23. Record that absence once a year as well.
   if (normal && !r.ok && r.error === 'upstream_error' && r.detail?.endsWith('HTTP 404')) {

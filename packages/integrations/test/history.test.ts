@@ -59,3 +59,23 @@ describe('real SMHI history CSV formats, captured 2026-11-13', () => {
     expect(missing.finish()!.days[0]).toMatchObject({ value: null, coverage: 0 });
   });
 });
+
+describe('history archive requests', () => {
+  it('accepts SMHI CSV served as text/plain, so latest-months and latest-day are not refused with 406', async () => {
+    const { loadServerEnv } = await import('@fastighetsradar/config');
+    const { HISTORY_CSV_ACCEPT, fetchHistorySeries } = await import('../src/smhi/history');
+    const csv = readFileSync(new URL('./fixtures/history-metobs-20.csv', import.meta.url), 'utf8');
+    const seen: Array<{ url: string; accept: string | null }> = [];
+    const fetchMock = (async (url: string, init?: RequestInit) => {
+      seen.push({ url: String(url), accept: new Headers(init?.headers).get('accept') });
+      return new Response(csv, { status: 200, headers: { 'content-type': 'text/plain;charset=UTF-8' } });
+    }) as unknown as typeof fetch;
+    const ctx = { env: loadServerEnv({}), fetch: fetchMock, now: () => new Date('2026-11-14T08:00:00Z'), logger: { debug() {}, info() {}, warn() {}, error() {} } };
+    const parameter = HISTORY_PARAMETERS.find((p) => p.key === 'temperature_max')!;
+    const r = await fetchHistorySeries(parameter, '133050', 'latest-months', ctx);
+    expect(r.ok).toBe(true);
+    expect(seen[0]!.url).toContain('/period/latest-months/data.csv');
+    expect(seen[0]!.accept).toBe(HISTORY_CSV_ACCEPT);
+    expect(HISTORY_CSV_ACCEPT).toContain('text/plain');
+  });
+});
