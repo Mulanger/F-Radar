@@ -2,6 +2,7 @@ import type { ServerEnv } from '@fastighetsradar/config';
 import type { DataSourceStatus, Freshness, SourceId } from '@fastighetsradar/domain';
 import type { JobRow } from '@fastighetsradar/db';
 import { SOURCE_MANIFEST, resolveSourceStatuses } from '@fastighetsradar/integrations';
+import { aggregateUtilityJob } from './utility-outages';
 
 /**
  * Runtime source status = configuration status (env + manifest) merged with collector job health.
@@ -24,6 +25,7 @@ export const FRESHNESS_WINDOW_S: Partial<Record<SourceId, number>> = {
   sgu_groundwater: 36 * 3_600,
   mcf_flood: 8 * 86_400,
   scb: 8 * 86_400,
+  utility_outages: 20 * 60,
 };
 
 const DATA_CLASS: Partial<Record<SourceId, string>> = {
@@ -39,6 +41,7 @@ const DATA_CLASS: Partial<Record<SourceId, string>> = {
   sl_deviations: 'PUBLIC_EVENT',
   mcf_flood: 'STATIC_GEODATA',
   scb: 'REGIONAL_STATISTIC',
+  utility_outages: 'UTILITY_OUTAGE',
 };
 
 const ERROR_TEXT: Record<string, string> = {
@@ -59,6 +62,9 @@ export function freshnessOf(lastSuccess: Date | null, windowS: number | undefine
 
 export function resolveRuntimeStatuses(env: ServerEnv, jobs: JobRow[], now = new Date()): DataSourceStatus[] {
   const byJob = new Map(jobs.map((j) => [j.job_id, j]));
+  // One job per grid operator: the source row summarises them (oldest success, any failure).
+  const utility = aggregateUtilityJob(jobs);
+  if (utility) byJob.set('utility_outages', utility);
   return resolveSourceStatuses(env).map((cfg) => {
     const job = byJob.get(cfg.sourceId);
     const windowS = FRESHNESS_WINDOW_S[cfg.sourceId];

@@ -1,5 +1,6 @@
 import type { ServerEnv } from '@fastighetsradar/config';
 import { NotificationService } from '../notifications/service';
+import { buildUtilityOutageJobs } from './utility-outages';
 import {
   applyRetention,
   countCountyAreas,
@@ -425,6 +426,7 @@ export function buildJobs(env: ServerEnv): MonitoringJob[] {
     { jobId: 'mcf_flood', sourceId: 'mcf_flood', intervalSeconds: 3_600, enabled: env.MCF_FLOOD_ENABLED, timeoutMs: 300_000, run: runMcf },
     { jobId: 'scb', sourceId: 'scb', intervalSeconds: 3_600, enabled: env.SOURCE_SCB_ENABLED, timeoutMs: 120_000, run: runScb },
     { jobId: 'air_quality', sourceId: 'air_quality', intervalSeconds: 3_600, enabled: env.SOURCE_AIR_QUALITY_ENABLED, timeoutMs: 600_000, run: runAirQuality },
+    ...buildUtilityOutageJobs(env),
     { jobId: 'retention', sourceId: null, intervalSeconds: 86_400, enabled: true, timeoutMs: 120_000, run: runRetention },
   ];
   return jobs;

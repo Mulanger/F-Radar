@@ -75,7 +75,17 @@ const conditionDefault = (
         }
       : category === "vma"
         ? { category, updates: true, cancellations: false }
-        : { category, radiusMeters: 1000, updates: true };
+        : category === "power_outage"
+          ? {
+              category,
+              utilities: ["electricity"],
+              unplanned: true,
+              planned: true,
+              plannedReminder: true,
+              restored: true,
+              changes: true,
+            }
+          : { category: "traffic", radiusMeters: 1000, updates: true };
 function newRule(
   propertyId: string | undefined,
   recipientIds: string[],
@@ -894,7 +904,39 @@ export function SmsManagement({
                   />
                 </label>
               )}
-              {draft.condition.category !== "forecast" && (
+              {draft.condition.category === "power_outage" && (() => {
+                const pc = draft.condition;
+                const opts: Array<[keyof typeof pc & ("unplanned" | "planned" | "plannedReminder" | "restored" | "changes"), string]> = [
+                  ["unplanned", "Oplanerat strömavbrott (direkt)"],
+                  ["planned", "Planerat strömavbrott när nätbolaget publicerar det"],
+                  ["plannedReminder", "Påminnelse kvällen före ett planerat avbrott (18–21)"],
+                  ["restored", "När strömmen är tillbaka (bara efter ett tidigare SMS)"],
+                  ["changes", "Ändrad tid eller inställt planerat avbrott (bara efter ett tidigare SMS)"],
+                ];
+                return (
+                  <>
+                    {opts.map(([k, label]) => (
+                      <label key={k} style={{ ...row, fontSize: 13 }}>
+                        <input
+                          type="checkbox"
+                          checked={pc[k]}
+                          onChange={(e) =>
+                            updateCondition({ [k]: e.target.checked } as Partial<typeof pc>)
+                          }
+                        />
+                        {label}
+                      </label>
+                    ))}
+                    <p style={{ ...cardSub, margin: 0 }}>
+                      SMS skickas bara när fastighetens adresspunkt ligger inom
+                      området nätbolaget publicerat som berört. Träffar på
+                      postnummer, område eller i närheten visas bara i
+                      dashboarden.
+                    </p>
+                  </>
+                );
+              })()}
+              {draft.condition.category !== "forecast" && draft.condition.category !== "power_outage" && (
                 <label style={{ ...row, fontSize: 13 }}>
                   <input
                     type="checkbox"

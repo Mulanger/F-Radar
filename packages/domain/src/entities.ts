@@ -13,6 +13,7 @@ import {
 } from './common';
 import { PropertyMonitoringContextSchema } from './monitoring';
 import { RiskIndexSchema } from './risk-index';
+import { PropertyUtilityStatusSchema } from './utility-outages';
 
 /* ------------------------------------------------------------------ */
 /* Property & portfolio                                                */
@@ -153,7 +154,7 @@ export type OfficialWarning = z.infer<typeof OfficialWarningSchema>;
 /* Geographic events (crisis, traffic, local notices)                  */
 /* ------------------------------------------------------------------ */
 
-export const EventCategorySchema = z.enum(['Crisis', 'Traffic', 'Water', 'Air', 'Weather', 'Info']);
+export const EventCategorySchema = z.enum(['Crisis', 'Traffic', 'Water', 'Air', 'Weather', 'Info', 'Power', 'Heating']);
 export type EventCategory = z.infer<typeof EventCategorySchema>;
 
 export const GeographicEventSchema = z.object({
@@ -321,6 +322,8 @@ export const PropertySnapshotSchema = z.object({
   riskIndex: RiskIndexSchema.nullable().optional(),
   /** Live monitoring context (Phase 3). Absent in demo fixtures. */
   monitoring: PropertyMonitoringContextSchema.nullable().optional(),
+  /** Grid operator outages for this property (docs/plans/stromavbrott.md). Absent in demo/old payloads. */
+  utilityOutages: z.array(PropertyUtilityStatusSchema).optional(),
 });
 export type PropertySnapshot = z.infer<typeof PropertySnapshotSchema>;
 

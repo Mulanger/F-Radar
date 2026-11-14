@@ -6,6 +6,7 @@ import type { ChartMetric } from '../state/dashboard-state';
 import { chartOf } from './chart';
 import { eventCounts, rulesFor, type RuleView } from './rules';
 import { availability, forecastValues, mappedExposure, metricValue, show, sourceLine } from './snapshot';
+import { buildUtilityOutageVM, outageShapes } from './utility-outages';
 
 /**
  * Property Detail view-model – port of the prototype's `renderVals()` detail section.
@@ -121,7 +122,7 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
   const fdist = s.flood.mapped.distanceToZoneMeters;
   const ev = eventCounts(s);
   // Regional Krisinformation news is neutral information; traffic is coloured by Trafikverket's own impact grade.
-  const evKind = { Crisis: SEV.unknown, Traffic: SEV.unknown, Water: SEV.monitor, Air: SEV.normal, Weather: SEV.monitor, Info: SEV.normal };
+  const evKind = { Crisis: SEV.unknown, Traffic: SEV.unknown, Water: SEV.monitor, Air: SEV.normal, Weather: SEV.monitor, Info: SEV.normal, Power: SEV.monitor, Heating: SEV.monitor };
   const evStyle = (e: GeographicEvent) => (e.category === 'Traffic' ? (e.severity === 'warning' ? SEV.warning : e.severity === 'monitor' ? SEV.monitor : SEV.unknown) : evKind[e.category]);
   const FACTOR_LABELS = ['Väder', 'Vatten', 'VMA', 'Framkomlighet', 'Luft (utomhus)'];
 
@@ -135,6 +136,9 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
 
   return {
     id: p.id,
+    /** Grid operator outages (docs/plans/stromavbrott.md). */
+    outages: buildUtilityOutageVM(s),
+    outageShapes: outageShapes(s),
     avail,
     origin: p.origin,
     buildingLine,

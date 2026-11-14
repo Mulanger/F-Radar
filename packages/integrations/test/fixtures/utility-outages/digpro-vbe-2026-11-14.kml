@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:ns2="http://www.w3.org/2005/Atom" xmlns:ns3="urn:oasis:names:tc:ciq:xsdschema:xAL:2.0">
+    <NetworkLinkControl>
+        <expires>2026-11-13T00:00:00</expires>
+    </NetworkLinkControl>
+    <Document>
+        <Style id="active_outage">
+            <IconStyle>
+                <Icon>
+                    <href>../outagemap/fpp_red.png</href>
+                </Icon>
+            </IconStyle>
+            <LineStyle>
+                <color>FF1400FF</color>
+                <width>1.5</width>
+            </LineStyle>
+            <PolyStyle>
+                <color>321400FF</color>
+                <fill>true</fill>
+                <outline>true</outline>
+            </PolyStyle>
+            <BalloonStyle>
+                <text>  &lt;div style="font-family: Arial, sans-serif; margin-bottom: 0em"&gt;      &lt;div style="font-weight: bold; font-size: 1.15em; color:#E58224"&gt;        El - Verifierat      &lt;/div&gt;      &lt;div style="font-size: 0.95em"&gt;        Drabbade kunder: $[current_affected_customers]&lt;br/&gt;   Rapporterad: $[reported]&lt;br/&gt;   Uppstod: $[occurred]&lt;br/&gt;   Sluttid: $[restored]      &lt;/div&gt;   &lt;/div&gt;</text>
+            </BalloonStyle>
+        </Style>
+        <Style id="planned_outage">
+            <IconStyle>
+                <Icon>
+                    <href>../outagemap/fpp_red.png</href>
+                </Icon>
+            </IconStyle>
+            <LineStyle>
+                <color>FF14C3FF</color>
+                <width>1.5</width>
+            </LineStyle>
+            <PolyStyle>
+                <color>3714C3FF</color>
+                <fill>true</fill>
+                <outline>true</outline>
+            </PolyStyle>
+            <BalloonStyle>
+                <text>  &lt;div style="font-family: Arial, sans-serif; margin-bottom: 0em"&gt;      &lt;div style="font-weight: bold; font-size: 1.15em; color:#E58224"&gt;        El - Planerad      &lt;/div&gt;      &lt;div style="font-size: 0.95em"&gt;        Drabbade kunder: $[current_affected_customers]&lt;br/&gt;   Rapporterad: $[reported]&lt;br/&gt;   Uppstod: $[occurred]&lt;br/&gt;   Sluttid: $[restored]      &lt;/div&gt;   &lt;/div&gt;</text>
+            </BalloonStyle>
+        </Style>
+        <Style id="inactive_outage">
+            <IconStyle>
+                <Icon>
+                    <href>../outagemap/fpp_green.png</href>
+                </Icon>
+            </IconStyle>
+            <LineStyle>
+                <color>FF14B45A</color>
+                <width>1.5</width>
+            </LineStyle>
+            <PolyStyle>
+                <color>3714B45A</color>
+                <fill>true</fill>
+                <outline>true</outline>
+            </PolyStyle>
+            <BalloonStyle>
+                <text>  &lt;div style="font-family: Arial, sans-serif; margin-bottom: 0em"&gt;      &lt;div style="font-weight: bold; font-size: 1.15em; color:#E58224"&gt;        El - Åtgärdad      &lt;/div&gt;      &lt;div style="font-size: 0.95em"&gt;        Drabbade kunder: $[current_affected_customers]&lt;br/&gt;   Rapporterad: $[reported]&lt;br/&gt;   Uppstod: $[occurred]&lt;br/&gt;   Sluttid: $[restored]      &lt;/div&gt;   &lt;/div&gt;</text>
+            </BalloonStyle>
+        </Style>
+        <Placemark>
+            <styleUrl>#inactive_outage</styleUrl>
+            <ExtendedData>
+                <Data name="status">
+                    <value>4</value>
+                </Data>
+                <Data name="type">
+                    <value>1</value>
+                </Data>
+                <Data name="current_affected_customers">
+                    <value>0</value>
+                </Data>
+                <Data name="previously_affected_customers">
+                    <value>10</value>
+                </Data>
+                <Data name="future_affected_customers">
+                    <value>0</value>
+                </Data>
+                <Data name="occurred">
+                    <value>2026-11-12 09:30</value>
+                </Data>
+                <Data name="reported">
+                    <value>2026-11-09 14:56</value>
+                </Data>
+                <Data name="planned_restored_time">
+                    <value>2026-11-12 11:30</value>
+                </Data>
+                <Data name="planned_occurred_time">
+                    <value>2026-11-12 09:30</value>
+                </Data>
+                <Data name="restored">
+                    <value>2026-11-12 10:19</value>
+                </Data>
+                <Data name="planned_not_started">
+                    <value>false</value>
+                </Data>
+                <Data name="planned_no_affected_customers">
+                    <value>false</value>
+                </Data>
+                <Data name="outage_oid">
+                    <value>62611341</value>
+                </Data>
+                <Data name="outage_subtype">
+                    <value>1</value>
+                </Data>
+                <Data name="outage_id">
+                    <value>64558</value>
+                </Data>
+                <Data name="note_external">
+                    <value>Arbete i 10 kV-nätet.</value>
+                </Data>
+            </ExtendedData>
+            <MultiGeometry>
+                <Polygon>
+                    <extrude>true</extrude>
+                    <altitudeMode>absolute</altitudeMode>
+                    <outerBoundaryIs>
+                        <LinearRing>
+                            <coordinates>15.251323996800839,59.999159417896266,0.0 15.251276171911442,59.99912150039634,0.0 15.251214246697284,59.999089103919246,0.0 15.25114069502491,59.99906352266096,0.0 15.251058455200686,59.99904577855597,0.0 15.25097081259174,59.99903658045441,0.0 15.250881268385884,59.999036295806086,0.0 15.250793399732274,59.99904493598229,0.0 15.250710716848392,59.99906215582155,0.0 15.25063652280008,59.999087267417515,0.0 15.250573781554595,59.999119267598154,0.0 15.243843789564334,60.003319289888594,0.0 15.243780443634959,60.00337246404832,0.0 15.221571688866112,60.0296924370342,0.0 15.2215444045758,60.02973736638375,0.0 15.221536404481396,60.029784153351365,0.0 15.221548039015508,60.02983074897696,0.0 15.221578798740932,60.029875112671505,0.0 15.221627336646923,60.02991530158232,0.0 15.221691527128316,60.02994955567963,0.0 15.22176855906658,60.02997637483742,0.0 15.259589464363517,60.04038174964657,0.0 15.259671740680568,60.04039927867935,0.0 15.259759333232136,60.04040829512188,0.0 15.259848760636086,60.04040844061373,0.0 15.259936468579363,60.0403997093724,0.0 15.260018971093368,60.040382448422896,0.0 15.26009298911213,60.040357343804686,0.0 15.26015558080479,60.040325393303135,0.0 15.26020425850114,60.0402878667907,0.0 15.276436145959005,60.02451928303005,0.0 15.276467461454246,60.024480222861655,0.0 15.276483651942518,60.02443892314356,0.0 15.276484147905277,60.02439683678499,0.0 15.276468931953993,60.02435544436335,0.0 15.276438539433604,60.02431620203835,0.0 15.251323996800839,59.999159417896266,0.0</coordinates>
+                        </LinearRing>
+                    </outerBoundaryIs>
+                </Polygon>
+                <Point>
+                    <altitudeMode>absolute</altitudeMode>
+                    <coordinates>15.248957172260782,60.01973470045941,0.0</coordinates>
+                </Point>
+            </MultiGeometry>
+        </Placemark>
+        <Placemark>
+            <styleUrl>#inactive_outage</styleUrl>
+            <ExtendedData>
+                <Data name="status">
+                    <value>4</value>
+                </Data>
+                <Data name="type">
+                    <value>2</value>
+                </Data>
+                <Data name="current_affected_customers">
+                    <value>0</value>
+                </Data>
+                <Data name="previously_affected_customers">
+                    <value>10</value>
+                </Data>
+                <Data name="future_affected_customers">
+                    <value>0</value>
+                </Data>
+                <Data name="occurred">
+                    <value>2026-11-11 11:59</value>
+                </Data>
+                <Data name="reported">
+                    <value>2026-11-11 12:04</value>
+                </Data>
+                <Data name="planned_restored_time">
+                    <value></value>
+                </Data>
+                <Data name="planned_occurred_time">
+                    <value>2026-11-12 13:40</value>
+                </Data>
+                <Data name="restored">
+                    <value>2026-11-12 13:55</value>
+                </Data>
+                <Data name="planned_not_started">
+                    <value>false</value>
+                </Data>
+                <Data name="planned_no_affected_customers">
+                    <value>false</value>
+                </Data>
+                <Data name="outage_oid">
+                    <value>62684938</value>
+                </Data>
+                <Data name="outage_subtype">
+                    <value>0</value>
+                </Data>
+                <Data name="outage_id">
+                    <value>64599</value>
+                </Data>
+                <Data name="note_external">
+                    <value>Urkoppling av elverk, för att återgå till normal drift.</value>
+                </Data>
+            </ExtendedData>
+            <MultiGeometry>
+                <Polygon>
+                    <extrude>true</extrude>
+                    <altitudeMode>absolute</altitudeMode>
+                    <outerBoundaryIs>
+                        <LinearRing>
+                            <coordinates>15.829056564136195,59.98829172483037,0.0 15.828971168217931,59.988286338525086,0.0 15.828885292767884,59.98828923606958,0.0 15.828802109410999,59.98830031044942,0.0 15.82872469035148,59.98831915265607,0.0 15.828655894913334,59.98834506679192,0.0 15.828598263941007,59.98837709577038,0.0 15.82769858406998,59.98898578436476,0.0 15.827655886520164,59.98902103803189,0.0 15.827626786488862,59.98905961101811,0.0 15.827612266807435,59.98910020061477,0.0 15.827612817898363,59.989141436002264,0.0 15.827628421205333,59.98918192454584,0.0 15.82765854981249,59.98922029882876,0.0 15.827966875021582,59.989526837187604,0.0 15.828017398415758,59.9895662161837,0.0 15.82808313102888,59.98959948621222,0.0 15.82816121189062,59.98962519919591,0.0 15.828248242547978,59.9896422359748,0.0 15.828340434986371,59.98964985502019,0.0 15.8284337765109,59.989647724711574,0.0 15.828524204409607,59.989635937771325,0.0 15.828857801128079,59.989573212800366,0.0 15.828946492824283,59.98955062233903,0.0 15.829644422244327,59.98932070568546,0.0 15.829723066827576,59.98928776334114,0.0 15.829784700506831,59.98924672480657,0.0 15.830141195777369,59.988942143997235,0.0 15.830149434871636,59.98893479143795,0.0 15.830332666726466,59.98876382661248,0.0 15.830365269827137,59.98872507637094,0.0 15.83038286907066,59.98868395882781,0.0 15.830384846377683,59.98864191814864,0.0 15.830371132358673,59.988600430916705,0.0 15.830342208742865,59.98856095427133,0.0 15.830299091450861,59.98852487472976,0.0 15.830243294906538,59.988493459490414,0.0 15.830176778842498,59.988467811927094,0.0 15.830101879468046,59.98844883283766,0.0 15.829667653445695,59.988363346633754,0.0 15.82960223651066,59.988353282163146,0.0 15.829056564136195,59.98829172483037,0.0</coordinates>
+                        </LinearRing>
+                    </outerBoundaryIs>
+                </Polygon>
+                <Point>
+                    <altitudeMode>absolute</altitudeMode>
+                    <coordinates>15.82900069951183,59.988965932541674,0.0</coordinates>
+                </Point>
+            </MultiGeometry>
+        </Placemark>
+        <Placemark>
+            <styleUrl>#active_outage</styleUrl>
+            <ExtendedData>
+                <Data name="status">
+                    <value>2</value>
+                </Data>
+                <Data name="type">
+                    <value>1</value>
+                </Data>
+                <Data name="current_affected_customers">
+                    <value>0</value>
+                </Data>
+                <Data name="previously_affected_customers">
+                    <value>0</value>
+                </Data>
+                <Data name="future_affected_customers">
+                    <value>0</value>
+                </Data>
+                <Data name="occurred">
+                    <value>2026-11-13 09:00</value>
+                </Data>
+                <Data name="reported">
+                    <value>2026-11-11 10:19</value>
+                </Data>
+                <Data name="planned_restored_time">
+                    <value>2026-11-13 13:00</value>
+                </Data>
+                <Data name="planned_occurred_time">
+                    <value>2026-11-13 09:00</value>
+                </Data>
+                <Data name="restored">
+                    <value>2026-11-13 11:02</value>
+                </Data>
+                <Data name="planned_not_started">
+                    <value>false</value>
+                </Data>
+                <Data name="planned_no_affected_customers">
+                    <value>false</value>
+                </Data>
+                <Data name="outage_oid">
+                    <value>62684702</value>
+                </Data>
+                <Data name="outage_subtype">
+                    <value>0</value>
+                </Data>
+                <Data name="outage_id">
+                    <value>64594</value>
+                </Data>
+                <Data name="note_external">
+                    <value>Arbete i lågspänningsnätet.</value>
+                </Data>
+            </ExtendedData>
+            <MultiGeometry>
+                <Polygon>
+                    <extrude>true</extrude>
+                    <altitudeMode>absolute</altitudeMode>
+                    <outerBoundaryIs>
+                        <LinearRing>
+                            <coordinates>15.16711748663267,60.13274402985417,0.0 15.16716220869838,60.13278194076094,0.0 15.16722089852353,60.13281477103407,0.0 15.16729130069876,60.13284125900777,0.0 15.16737070968921,60.132860386747836,0.0 15.16745607380959,60.13287141917279,0.0 15.167544112505144,60.13287393230452,0.0 15.167631442430618,60.13286782956291,0.0 15.167714707480577,60.13285334547754,0.0 15.167790707772633,60.132831036674226,0.0 15.167856522625215,60.13280176048253,0.0 15.16790962280274,60.13276664198684,0.0 15.167947967713918,60.13272703078747,0.0 15.167970083827633,60.1326844491338,0.0 15.167975121293521,60.13264053342307,0.0 15.167962886592154,60.132596971313305,0.0 15.167933849961607,60.13255543686729,0.0 15.167608497017147,60.13220499967145,0.0 15.167563775222316,60.13216708891193,0.0 15.167505086210298,60.13213425878716,0.0 15.167434685374605,60.132107770923696,0.0 15.167355278161141,60.13208864321904,0.0 15.167269916102251,60.13207761072695,0.0 15.167181879554525,60.132075097411764,0.0 15.167094551645555,60.13208119985687,0.0 15.16701128827255,60.13209568355337,0.0 15.166935289147018,60.1321179919115,0.0 15.166869474839766,60.13214726764825,0.0 15.16681637455001,60.132182385730296,0.0 15.166778028910848,60.13222199660567,0.0 15.166755911566005,60.1322645780638,0.0 15.166750872532118,60.13230849373131,0.0 15.166763105523989,60.13235205595565,0.0 15.166792140499966,60.132393590660286,0.0 15.16711748663267,60.13274402985417,0.0</coordinates>
+                        </LinearRing>
+                    </outerBoundaryIs>
+                </Polygon>
+                <Point>
+                    <altitudeMode>absolute</altitudeMode>
+                    <coordinates>15.16736299383105,60.13247451499503,0.0</coordinates>
+                </Point>
+            </MultiGeometry>
+        </Placemark>
+    </Document>
+</kml>

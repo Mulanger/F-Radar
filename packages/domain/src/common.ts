@@ -24,6 +24,8 @@ export const SOURCE_IDS = [
   'mcf_flood',
   'scb',
   'trafikverket',
+  /** Grid operators' public outage maps (docs/plans/stromavbrott.md). */
+  'utility_outages',
   'geoapify_geocoding',
   'lantmateriet_address',
   'boverket_energy',

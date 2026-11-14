@@ -8,7 +8,7 @@ import { FreshnessSchema, IsoDateTimeSchema, SeveritySchema, SourceIdSchema } fr
  * full provenance. The classes are never mixed in the UI: a forecast is not an observation,
  * an official warning is not a public event, and static/statistical context never raises alerts.
  */
-export const DATA_CLASSES = ['FORECAST', 'MODEL', 'OBSERVATION', 'OFFICIAL_WARNING', 'PUBLIC_EVENT', 'STATIC_GEODATA', 'REGIONAL_STATISTIC'] as const;
+export const DATA_CLASSES = ['FORECAST', 'MODEL', 'OBSERVATION', 'OFFICIAL_WARNING', 'PUBLIC_EVENT', 'STATIC_GEODATA', 'REGIONAL_STATISTIC', 'UTILITY_OUTAGE'] as const;
 export const DataClassSchema = z.enum(DATA_CLASSES);
 export type DataClass = z.infer<typeof DataClassSchema>;
 
@@ -123,7 +123,8 @@ export const PropertyMonitoringContextSchema = z.object({
   flood: FloodContextSchema.nullable(),
   statistics: RegionalStatisticSchema.nullable(),
   /** How the property status was derived (documented, transparent; never a risk score). */
-  statusMethod: z.literal('highest_official_warning'),
+  /** `_or_outage`: a matched grid-operator outage can raise the status (docs/plans/stromavbrott.md). */
+  statusMethod: z.enum(['highest_official_warning', 'highest_official_warning_or_outage']),
   /** Per-source availability for THIS property (coverage can differ from global source health). */
   coverage: z.array(
     z.object({

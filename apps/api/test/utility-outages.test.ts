@@ -1,0 +1,220 @@
+import { describe, expect, it } from 'vitest';
+import { loadServerEnv } from '@fastighetsradar/config';
+import type { JobRow, OrgUtilityOutageRow } from '@fastighetsradar/db';
+import type { PropertySnapshot } from '@fastighetsradar/domain';
+import { inReminderWindow, outageSmsPhase, type OutageCandidate } from '../src/notifications/engine';
+import {
+  aggregateUtilityJob,
+  buildUtilityOutageJobs,
+  propertyUtilityStatus,
+  resolveOperatorStatuses,
+  withUtilityOutages,
+  type OperatorStatus,
+} from '../src/monitoring/utility-outages';
+
+const NOW = new Date('2026-11-14T13:30:00Z');
+const ACTIVATED = new Date('2026-11-14T10:00:00Z');
+const all = { category: 'power_outage' as const, utilities: ['electricity' as const], unplanned: true, planned: true, plannedReminder: true, restored: true, changes: true };
+const cand = (o: Partial<OutageCandidate> = {}): OutageCandidate => ({
+  change_type: 'new',
+  created_at: new Date(NOW.getTime() - 60_000),
+  last_seen_at: new Date(NOW.getTime() - 60_000),
+  source_updated_at: null,
+  match_method: 'outage_polygon',
+  geocode_precision: 'building',
+  position_source: 'geocoded',
+  utility: 'electricity',
+  kind: 'unplanned',
+  state: 'ongoing',
+  planned_start: null,
+  ...o,
+});
+
+describe('outage SMS phase (anti-spam, docs/plans/stromavbrott.md §2.1, §7)', () => {
+  it('unplanned ongoing inside the polygon → start SMS', () => {
+    expect(outageSmsPhase(all, cand(), NOW, ACTIVATED)).toBe('start');
+  });
+  it('never for area, near or point matches, or an approximate position', () => {
+    for (const m of ['outage_postal_area', 'outage_area', 'outage_adjacent', 'outage_point', 'outage_street', null])
+      expect(outageSmsPhase(all, cand({ match_method: m }), NOW, ACTIVATED)).toBeNull();
+    expect(outageSmsPhase(all, cand({ geocode_precision: 'street' }), NOW, ACTIVATED)).toBeNull();
+    expect(outageSmsPhase(all, cand({ geocode_precision: 'street', position_source: 'manual_pin' }), NOW, ACTIVATED)).toBe('start');
+  });
+  it('never for unknown kind, stale data, old changes or before the rule was activated', () => {
+    expect(outageSmsPhase(all, cand({ kind: 'unknown' }), NOW, ACTIVATED)).toBeNull();
+    expect(outageSmsPhase(all, cand({ last_seen_at: new Date(NOW.getTime() - 21 * 60_000) }), NOW, ACTIVATED)).toBeNull();
+    expect(outageSmsPhase(all, cand({ created_at: new Date(NOW.getTime() - 31 * 60_000) }), NOW, ACTIVATED)).toBeNull();
+    expect(outageSmsPhase(all, cand(), NOW, new Date(NOW.getTime()))).toBeNull();
+  });
+  it('planned: only when published, at least 2 h before start, and only if selected', () => {
+    const planned = cand({ kind: 'planned', state: 'upcoming', planned_start: new Date(NOW.getTime() + 3 * 3600_000) });
+    expect(outageSmsPhase(all, planned, NOW, ACTIVATED)).toBe('planned');
+    expect(outageSmsPhase({ ...all, planned: false }, planned, NOW, ACTIVATED)).toBeNull();
+    expect(outageSmsPhase(all, { ...planned, planned_start: new Date(NOW.getTime() + 3600_000) }, NOW, ACTIVATED)).toBeNull();
+    // Planned work that has started is not announced again.
+    expect(outageSmsPhase(all, cand({ kind: 'planned', state: 'ongoing' }), NOW, ACTIVATED)).toBeNull();
+    // Customer-count-only updates of a fault never produce an SMS.
+    expect(outageSmsPhase(all, cand({ change_type: 'updated' }), NOW, ACTIVATED)).toBeNull();
+  });
+  it('restored and changes depend on the rule (and, when enqueuing, on an earlier SMS)', () => {
+    expect(outageSmsPhase(all, cand({ change_type: 'ended', state: 'restored' }), NOW, ACTIVATED)).toBe('restored');
+    expect(outageSmsPhase({ ...all, restored: false }, cand({ change_type: 'ended', state: 'restored' }), NOW, ACTIVATED)).toBeNull();
+    expect(outageSmsPhase(all, cand({ change_type: 'ended', kind: 'planned', state: 'withdrawn' }), NOW, ACTIVATED)).toBe('change');
+    expect(outageSmsPhase(all, cand({ change_type: 'updated', kind: 'planned', state: 'upcoming' }), NOW, ACTIVATED)).toBe('change');
+    expect(outageSmsPhase({ ...all, changes: false }, cand({ change_type: 'updated', kind: 'planned', state: 'upcoming' }), NOW, ACTIVATED)).toBeNull();
+  });
+  it('reminder window is 18:00–21:00 Stockholm time on the day before start (DST-safe)', () => {
+    const start = new Date('2026-11-17T08:00:00Z'); // 09:00 local
+    expect(inReminderWindow(start, new Date('2026-11-16T17:00:00Z'))).toBe(true); // 18:00
+    expect(inReminderWindow(start, new Date('2026-11-16T19:59:00Z'))).toBe(true); // 20:59
+    expect(inReminderWindow(start, new Date('2026-11-16T20:00:00Z'))).toBe(false); // 21:00
+    expect(inReminderWindow(start, new Date('2026-11-16T16:59:00Z'))).toBe(false); // 17:59
+    expect(inReminderWindow(start, new Date('2026-11-15T18:00:00Z'))).toBe(false); // two days before
+    // Night of the DST change (25 Oct 2026): evening before still works.
+    expect(inReminderWindow(new Date('2026-10-25T08:00:00Z'), new Date('2026-10-24T17:30:00Z'))).toBe(true);
+  });
+});
+
+const job = (id: string, o: Partial<JobRow> = {}): JobRow =>
+  ({
+    job_id: id,
+    source_id: 'utility_outages',
+    interval_seconds: 300,
+    enabled: true,
+    next_run_at: NOW,
+    lease_owner: null,
+    lease_until: null,
+    last_started_at: NOW,
+    last_finished_at: NOW,
+    last_success_at: new Date(NOW.getTime() - 60_000),
+    last_status: 'ok',
+    last_error_code: null,
+    last_error_detail: null,
+    last_items: 1,
+    last_duration_ms: 100,
+    consecutive_failures: 0,
+    source_updated_at: null,
+    ...o,
+  }) as JobRow;
+
+describe('collector jobs and health', () => {
+  it('one job per operator, all disabled unless SOURCE_UTILITY_OUTAGES_ENABLED', () => {
+    const off = buildUtilityOutageJobs(loadServerEnv({}));
+    expect(off.length).toBeGreaterThan(10);
+    expect(off.every((j) => !j.enabled)).toBe(true);
+    const on = buildUtilityOutageJobs(loadServerEnv({ SOURCE_UTILITY_OUTAGES_ENABLED: 'true', UTILITY_OUTAGE_OPERATORS: 'vattenfall,digpro:fev' }));
+    expect(on.filter((j) => j.enabled).map((j) => j.jobId).sort()).toEqual(['utility_concessions:digpro:fev', 'utility_outages:digpro:fev', 'utility_outages:vattenfall']);
+    expect(on.every((j) => j.intervalSeconds === 300 || j.jobId.startsWith('utility_concessions:'))).toBe(true);
+  });
+  it('poll interval cannot go below 120 s', () => {
+    expect(() => loadServerEnv({ UTILITY_OUTAGE_POLL_SECONDS: '60' })).toThrow();
+  });
+  it('source health = oldest operator success, error if any operator fails', () => {
+    const agg = aggregateUtilityJob([
+      job('utility_outages:vattenfall'),
+      job('utility_outages:digpro:fev', { last_success_at: new Date(NOW.getTime() - 3600_000), last_status: 'error', last_error_code: 'timeout' }),
+      job('utility_outages:digpro:vax', { enabled: false, last_success_at: null }),
+    ])!;
+    expect(agg.job_id).toBe('utility_outages');
+    expect(agg.last_success_at!.getTime()).toBe(NOW.getTime() - 3600_000);
+    expect(agg.last_status).toBe('error');
+    expect(aggregateUtilityJob([job('smhi_warnings')])).toBeNull();
+  });
+  it('operator is current only with a recent success and no failing last run', () => {
+    const env = loadServerEnv({ SOURCE_UTILITY_OUTAGES_ENABLED: 'true' });
+    const st = resolveOperatorStatuses(env, [job('utility_outages:vattenfall'), job('utility_outages:digpro:fev', { last_success_at: new Date(NOW.getTime() - 25 * 60_000) })], NOW);
+    expect(st.find((o) => o.operatorId === 'vattenfall')).toMatchObject({ enabled: true, current: true });
+    expect(st.find((o) => o.operatorId === 'digpro:fev')).toMatchObject({ enabled: true, current: false });
+    expect(st.find((o) => o.operatorId === 'digpro:vax')).toMatchObject({ enabled: false, current: false });
+  });
+});
+
+const PID = '11111111-1111-4111-8111-111111111111';
+const row = (o: Partial<OrgUtilityOutageRow> = {}): OrgUtilityOutageRow => ({
+  property_id: PID,
+  event_id: 'e1',
+  match_method: 'outage_polygon',
+  distance_m: '0',
+  effective_severity: 'critical',
+  operator_id: 'vattenfall',
+  operator_name: 'Vattenfall Eldistribution',
+  utility: 'electricity',
+  kind: 'unplanned',
+  state: 'ongoing',
+  affected_customers: 120,
+  area_customer_total: null,
+  reported_at: null,
+  planned_start: null,
+  planned_end: null,
+  actual_start: new Date('2026-11-14T13:05:00Z'),
+  estimated_restore: new Date('2026-11-14T16:00:00Z'),
+  restored_at: null,
+  ended_at: null,
+  place_label: 'INGARÖ',
+  operator_text: 'Felsökning pågår',
+  cause: null,
+  source_url: 'https://www.vattenfalleldistribution.se/stromavbrott/pagaende-stromavbrott/',
+  geometry: null,
+  geocode_precision: 'building',
+  position_source: 'geocoded',
+  ...o,
+});
+const op = (o: Partial<OperatorStatus> = {}): OperatorStatus => ({
+  operatorId: 'vattenfall',
+  name: 'Vattenfall Eldistribution',
+  mapUrl: 'https://x',
+  enabled: true,
+  current: true,
+  lastSuccessAt: NOW.toISOString(),
+  lastStatus: 'ok',
+  errorCode: null,
+  ...o,
+});
+const snap = (status: PropertySnapshot['property']['status'] = 'normal') =>
+  ({
+    property: { id: PID, status, statusReason: 'Inga aktiva officiella varningar för fastighetens läge' },
+    activeAlertCount: 0,
+    monitoring: { statusMethod: 'highest_official_warning' },
+  }) as unknown as PropertySnapshot;
+
+describe('property outage section and status', () => {
+  it('coverage: "Inga registrerade avbrott" only inside a monitored, current grid', () => {
+    const inputs = (operators: OperatorStatus[], concessions = [{ property_id: PID, operator_id: 'vattenfall' }]) => ({ outages: [], concessions, operators });
+    expect(propertyUtilityStatus(PID, inputs([op()])).coverage).toBe('monitored');
+    expect(propertyUtilityStatus(PID, inputs([op({ current: false })])).coverage).toBe('stale');
+    expect(propertyUtilityStatus(PID, inputs([op({ enabled: false })])).coverage).toBe('not_monitored');
+    expect(propertyUtilityStatus(PID, inputs([op()], [])).coverage).toBe('unknown');
+  });
+
+  it('an unplanned outage covering the address makes the property red with a descriptive reason', () => {
+    const s = withUtilityOutages(snap(), { outages: [row()], concessions: [], operators: [op()] });
+    expect(s.property.status).toBe('critical');
+    expect(s.property.statusReason).toBe('Oplanerat strömavbrott registrerat av Vattenfall Eldistribution');
+    expect(s.activeAlertCount).toBe(1);
+    expect(s.utilityOutages![0]!.current).toHaveLength(1);
+    expect(s.monitoring!.statusMethod).toBe('highest_official_warning_or_outage');
+  });
+
+  it('upcoming planned work is listed but does not change today’s status', () => {
+    const s = withUtilityOutages(snap(), { outages: [row({ kind: 'planned', state: 'upcoming', planned_start: new Date('2026-11-30T08:00:00Z'), actual_start: null })], concessions: [], operators: [op()] });
+    expect(s.property.status).toBe('normal');
+    expect(s.utilityOutages![0]!.upcoming).toHaveLength(1);
+    expect(s.utilityOutages![0]!.upcoming[0]!.severity).toBe('monitor');
+  });
+
+  it('postal-area matches are blue; near matches are panel-only and never raise status', () => {
+    const area = withUtilityOutages(snap(), { outages: [row({ match_method: 'outage_postal_area', area_customer_total: 605, affected_customers: 23 })], concessions: [], operators: [op()] });
+    expect(area.property.status).toBe('monitor');
+    expect(area.utilityOutages![0]!.current[0]!.precisionLabel).toContain('23 av 605');
+    const near = withUtilityOutages(snap(), { outages: [row({ match_method: 'outage_adjacent', distance_m: '12' })], concessions: [], operators: [op()] });
+    expect(near.property.status).toBe('normal');
+    expect(near.utilityOutages![0]!.nearby).toHaveLength(1);
+    expect(near.utilityOutages![0]!.current).toHaveLength(0);
+  });
+
+  it('a red official warning is not lowered by a smaller outage', () => {
+    const s = withUtilityOutages(snap('critical'), { outages: [row({ kind: 'planned', state: 'ongoing' })], concessions: [], operators: [op()] });
+    expect(s.property.status).toBe('critical');
+    expect(s.property.statusReason).toBe('Inga aktiva officiella varningar för fastighetens läge');
+  });
+});

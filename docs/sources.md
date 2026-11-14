@@ -24,6 +24,7 @@ shows the data with attribution, and no alerts/SMS are sent.
 | MCF översvämningskartering (WFS) | `mcf_flood` | STATIC_GEODATA | **Working and live-tested** | Uppsala/Fyrisån hits all 3 scenarios; Stockholm property: no mapped area within 1 km |
 | SCB PxWebApi v2 (TAB628) | `scb` | REGIONAL_STATISTIC | **Working and live-tested** | Stockholm 0180: population, density, land area (2025) |
 | SMHI oceanography (sea level) | `smhi_oceanography` | OBSERVATION | **Working and live-tested 2026-11-14** | Parameter 6 RH 2000, station catalogue + latest-day series; fixture contracts and real adapter test |
+| Grid operators’ outage maps (Vattenfall, Göteborg Energi, 12 Digpro operators) | `utility_outages` | UTILITY_OUTAGE | **Implemented, off by default (`SOURCE_UTILITY_OUTAGES_ENABLED`)** | Fixture contracts from real responses + live test of all 14 operators 2026-11-14; real-DB suite written (see below) |
 | SL boats (Trafiklab) | `sl_deviations` | PUBLIC_EVENT | **Off; locally gated adapter not live-enabled** | Keyless messages and sites endpoints verified HTTP 200; fixtures cover localisation; separate key variable and flag missing |
 | Geoapify geocoding | `geoapify_geocoding` | – | Working and live-tested (Agent 2) | onboarding only |
 | Lantmäteriet address | `lantmateriet_address` | – | **Disabled pending authorization** | requires approval + credentials |
@@ -174,6 +175,22 @@ shows the data with attribution, and no alerts/SMS are sent.
   decision about the requested key gate plus an enabled adapter smoke test; there is no provider API key to obtain
   for these currently keyless endpoints. The existing Trafikverket key must never be reused here.
 
+### Grid operators' outage maps – `utility_outages` (Fas 1, verified 2026-11-14)
+
+Plan and rules: [`docs/plans/stromavbrott.md`](plans/stromavbrott.md) · decision: [ADR 0006](decisions/0006-stromavbrott.md).
+No official open API exists; these are the JSON/KML feeds the operators' own public maps load (no key,
+no login). Every payload is validated; unknown records are skipped (`partial`), never guessed.
+
+| Operator(s) | Endpoint | Precision | Notes |
+|---|---|---|---|
+| Vattenfall Eldistribution | `GET https://arkmap.vattenfalleldistribution.se/incidents.json` | polygon (flat **lat,lon** array → swapped) | Status codes from the map's own code: 1–4 ongoing fault, 6 ongoing planned, 7 upcoming planned; others → `unknown` (logged, no SMS). Planned end from "mellan HH:MM och HH:MM" only when the first clock equals `startTime`. Postal codes (`areacode`) and municipality (`muni`, 4 digits) kept. |
+| 12 Digpro operators (Växjö, Falun, Hedemora, Halmstad, Härnösand, Bergs Tingslag, Lerum, Linde, Södra Hallands Kraft, Uddevalla, Västerbergslagen, Dala Energi) | `GET https://<host>/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=fpp_<cust>`, concession `/bios/site/concession.kml` (Falun, Hedemora, Halmstad, Södra Hallands Kraft, Dala Energi) | polygon, or point (≤ 30 m, panel only) | `type` 1 planned / 2 fault. State from fields, not `styleUrl` (`#active_outage` can carry a past `restored`). Planned work still "ongoing" > 24 h after its planned end → `unknown`. `planned_no_affected_customers=true` ignored. 0 customers → unknown (—). |
+| Göteborg Energi Nät | `POST https://www.goteborgenergi.se/external-web/api/outages-map-element/current-outages` (body `{}`) → KML `/GoteborgEnergi/Outages/FilteredOutagesKml.ashx?type=36857905&active=1` + `&active=0` (recently restored) | Digpro schema (often points) | Only KML URLs on the company host/handler are followed. Planned electricity outages in advance: not yet observed (none published on 2026-11-14). |
+
+Per-property matching, colours and SMS rules: ADR 0006. Health per operator is listed under
+`utilityOperators` in `GET /v1/sources/status`; the `utility_outages` source row summarises them
+(oldest success; error if any operator's last run failed).
+
 ### Derived forecast field
 
 `weather.apparent_temperature` is the SMHI wind-chill formula applied to the same forecast interval's
@@ -198,6 +215,7 @@ It is **not applied in production**. Follow-up on 2026-11-14 verified all five m
 | Point forecasts | latest run per property only (overwritten) |
 | Station observations | latest value per station/parameter; stations silent > 2 days deleted; air hourly input history 7 days |
 | Warnings / events | while active; ended/cancelled events deleted 7 days after ending |
+| Utility outages (`utility_outages`) | while active; matched 24 h after ending (panel "nyligen återställt"); deleted 30 days after ending |
 | Change log (`monitoring_changes`, future SMS input) | 30 days |
 | Collector runs (`integration_runs`) | 14 days |
 | Context (MCF/SGU/SCB) | latest per property; deleted with the property |

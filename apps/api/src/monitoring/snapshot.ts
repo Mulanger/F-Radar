@@ -62,6 +62,7 @@ const SOURCE_LABEL: Partial<Record<SourceId, string>> = {
   smhi_observations: 'SMHI',
   air_quality: 'SMHI / Naturvårdsverket',
   sl_deviations: 'SL via Trafiklab',
+  utility_outages: 'Nätbolag',
 };
 const AUTHORITY: Partial<Record<SourceId, string>> = {
   smhi_forecast: 'SMHI',
@@ -467,7 +468,8 @@ export function buildFeed(changes: Array<{ id: string; property_id: string; sour
     .map((c) => ({
       id: `chg-${c.id}`,
       publishedAt: c.created_at.toISOString(),
-      title: `${CHANGE_SV[c.change_type] ?? c.change_type}: ${c.headline}`,
+      // Outage rows already carry a complete, state-specific title ("Strömmen är tillbaka …").
+      title: c.source_id === 'utility_outages' ? c.headline : `${CHANGE_SV[c.change_type] ?? c.change_type}: ${c.headline}`,
       sourceLabel: SOURCE_LABEL[c.source_id as SourceId] ?? c.source_id,
       sourceId: c.source_id as SourceId,
       severity: c.change_type === 'ended' || c.change_type === 'cancelled' ? 'normal' : (SEV_STATUS[c.severity] ?? 'unknown'),
