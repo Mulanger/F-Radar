@@ -88,14 +88,11 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
             <div className={css.heroActions} style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
               <Link
                 href={signedIn ? '/overview' : '/sign-up'}
-                className={`${css.primary} ${css.desktopOnly}`}
+                className={`${css.primary} ${css.heroPrimary}`}
                 style={{ height: 52, display: 'flex', alignItems: 'center', gap: 10, padding: '0 26px', borderRadius: 999, background: '#14171A', fontSize: 16, fontWeight: 500, boxShadow: '0 10px 24px -12px rgba(20,23,26,0.5)' }}
               >
-                {signedIn ? 'Öppna översikten' : 'Kom igång'}
+                {signedIn ? 'Öppna översikten' : 'Skapa konto'}
                 <span aria-hidden="true" style={{ fontSize: 15, opacity: 0.7 }}>→</span>
-              </Link>
-              <Link href="/overview" className={`${css.primary} ${css.mobileHeroPrimary}`}>
-                Öppna översikten<span aria-hidden="true">→</span>
               </Link>
               <a href="#sa-fungerar-det" className={css.secondary} style={{ height: 52, display: 'flex', alignItems: 'center', padding: '0 24px', borderRadius: 999, background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(20,23,26,0.07)', fontSize: 16, fontWeight: 500 }}>
                 <span className={css.desktopOnly}>Se hur det fungerar</span>

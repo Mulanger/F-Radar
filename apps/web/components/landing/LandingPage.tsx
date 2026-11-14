@@ -75,19 +75,18 @@ function LandingHeader({ signedIn }: { signedIn: boolean }) {
             </a>
           ))}
         </div>
-        <Link href="/overview" className={`${css.primary} ${css.mobileNavCta}`}>Öppna översikten</Link>
-        <div className={css.desktopOnly} style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
+        <div className={css.navAuthActions} style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
           {signedIn ? (
             <Link href="/overview" className={css.primary} style={{ height: 40, display: 'flex', alignItems: 'center', padding: '0 18px', borderRadius: 999, fontSize: 14.5, fontWeight: 500, background: '#14171A' }}>
               Öppna översikten
             </Link>
           ) : (
             <>
-              <Link href="/sign-in" className={`${css.ghost} ${css.navCtaSecondary}`} style={{ height: 40, display: 'flex', alignItems: 'center', padding: '0 16px', borderRadius: 999, fontSize: 14.5, fontWeight: 500 }}>
+              <Link href="/sign-in" className={`${css.ghost} ${css.navSignIn}`} style={{ height: 40, display: 'flex', alignItems: 'center', padding: '0 16px', borderRadius: 999, fontSize: 14.5, fontWeight: 500 }}>
                 Logga in
               </Link>
-              <Link href="/sign-up" className={css.primary} style={{ height: 40, display: 'flex', alignItems: 'center', padding: '0 18px', borderRadius: 999, fontSize: 14.5, fontWeight: 500, background: '#14171A' }}>
-                Kom igång
+              <Link href="/sign-up" className={`${css.primary} ${css.navSignUp}`} style={{ height: 40, display: 'flex', alignItems: 'center', padding: '0 18px', borderRadius: 999, fontSize: 14.5, fontWeight: 500, background: '#14171A' }}>
+                Skapa konto
               </Link>
             </>
           )}

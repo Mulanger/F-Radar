@@ -42,7 +42,7 @@
   .revealHidden { opacity: 1; transform: none; }
 }
 
-.mobileOnly, .mobileHeroDescription, .mobileHeroPrimary, .mobileNavCta, .mobileIllustration { display: none; }
+.mobileOnly, .mobileHeroDescription, .mobileIllustration { display: none; }
 .mobileFeatureDetails, .stepsPagination { display: none; }
 .stepsList { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,320px),1fr)); gap: 20px; }
 
@@ -68,21 +68,13 @@
     box-shadow: 0 1px 2px rgba(20,23,26,.03), 0 12px 32px -18px rgba(20,23,26,.14) !important;
   }
   .navBrand > span:first-child { width: 30px !important; height: 30px !important; border-radius: 8px !important; }
-  .navBrand > span:last-child { font-size: 15px !important; letter-spacing: -.01em !important; }
+  .navBrand { gap: 8px !important; }
+  .navBrand > span:last-child { font-size: 14px !important; letter-spacing: -.01em !important; }
   .navLinks { display: none !important; }
-  .mobileNavCta {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: none;
-    height: 38px;
-    padding: 0 15px;
-    border-radius: 999px;
-    background: #14171a;
-    font-size: 13.5px;
-    font-weight: 600;
-    white-space: nowrap;
-  }
+  .navAuthActions { gap: 4px !important; }
+  .navAuthActions > a { height: 38px !important; padding: 0 15px !important; font-size: 13.5px !important; white-space: nowrap; }
+  .navAuthActions > .navSignIn { padding: 0 8px !important; font-size: 13px !important; }
+  .navAuthActions > .navSignUp { padding: 0 10px !important; font-size: 13px !important; }
   .heroSection { padding: 8px 8px 0 !important; }
   .heroFrame {
     min-height: 500px;
@@ -132,7 +124,7 @@
     font-weight: 500 !important;
     white-space: nowrap;
   }
-  .heroActions > .mobileHeroPrimary {
+  .heroActions > .heroPrimary {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -187,7 +179,6 @@
   .mobileWeather dt { color: #59636b; font-weight: 400; }
   .mobileWeather dd { margin: 0; }
   .dragHint { display: none; }
-  .navCtaSecondary { display: none !important; }
 }
 
 /* The complete mobile landing reference: copy, illustration, then supporting details.
@@ -385,9 +376,12 @@
 }
 
 @media (max-width: 359px) {
-  .navBrand { gap: 7px !important; }
-  .navBrand > span:last-child { font-size: 13px !important; }
-  .mobileNavCta { padding: 0 10px; font-size: 12px; }
+  .navigation { gap: 4px !important; }
+  .navBrand { gap: 6px !important; }
+  .navBrand > span:last-child { display: none; }
+  .navAuthActions > a { padding: 0 10px !important; font-size: 12px !important; }
+  .navigation .navAuthActions > .navSignIn { padding: 0 6px !important; font-size: 12px !important; }
+  .navigation .navAuthActions > .navSignUp { padding: 0 8px !important; font-size: 12px !important; }
   .heroCopy { padding-right: 14px !important; padding-left: 14px !important; }
   .heroActions > a { padding: 0 10px !important; font-size: 12.5px !important; }
   .mobileWeather { gap: 8px; padding: 6px 9px; font-size: 11px; }

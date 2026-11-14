@@ -41,10 +41,10 @@ describe('LandingPage (signed out)', () => {
     render(<LandingPage signedIn={false} />);
     const nav = screen.getByRole('navigation', { name: 'Huvudmeny' });
     expect(within(nav).getByRole('link', { name: 'Logga in' }).getAttribute('href')).toBe('/sign-in');
-    expect(within(nav).getByRole('link', { name: 'Kom igång' }).getAttribute('href')).toBe('/sign-up');
-    // Variant 3a keeps the overview shortcut on mobile; Clerk handles signed-out access.
-    const mobileOverviewLinks = screen.getAllByRole('link', { name: /Öppna översikten/ });
-    for (const link of mobileOverviewLinks) expect(link.getAttribute('href')).toBe('/overview');
+    expect(within(nav).getByRole('link', { name: 'Skapa konto' }).getAttribute('href')).toBe('/sign-up');
+    expect(screen.queryByRole('link', { name: /Öppna översikten/ })).toBeNull();
+    const hero = screen.getByRole('region', { name: 'Introduktion' });
+    expect(within(hero).getByRole('link', { name: /Skapa konto/ }).getAttribute('href')).toBe('/sign-up');
   });
 
   it('has no dead links', () => {
@@ -92,6 +92,9 @@ describe('LandingPage (signed in)', () => {
     for (const l of links) expect(l.getAttribute('href')).toBe('/overview');
     expect(screen.queryByLabelText('E-postadress')).toBeNull();
     const nav = screen.getByRole('navigation', { name: 'Huvudmeny' });
-    expect(within(nav).queryByRole('link', { name: 'Kom igång' })).toBeNull();
+    expect(within(nav).queryByRole('link', { name: 'Skapa konto' })).toBeNull();
+    expect(within(nav).queryByRole('link', { name: 'Logga in' })).toBeNull();
+    const hero = screen.getByRole('region', { name: 'Introduktion' });
+    expect(within(hero).getByRole('link', { name: /Öppna översikten/ }).getAttribute('href')).toBe('/overview');
   });
 });
