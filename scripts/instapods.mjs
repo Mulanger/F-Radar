@@ -50,12 +50,12 @@ export function assertAllowedPath(path) {
   }
 }
 
-export async function api(method, path, body, { raw = false } = {}) {
+export async function api(method, path, body, { raw = false, timeoutMs = 60_000 } = {}) {
   assertAllowedPath(path);
   const res = await fetch(BASE + path, {
     method,
     redirect: 'error',
-    signal: AbortSignal.timeout(60_000),
+    signal: AbortSignal.timeout(timeoutMs),
     headers: { Authorization: `Bearer ${loadToken()}`, ...(body && !(body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}) },
     body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
   });

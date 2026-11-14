@@ -132,7 +132,8 @@ try {
     swapped = true;
   }
   envAttempted = true;
-  const update = await api('PUT', `/pods/${ALLOWED_POD}/env`, { vars });
+  // InstaPods restarts the app while applying env; a release that ignores SIGTERM takes ~95 s to stop.
+  const update = await api('PUT', `/pods/${ALLOWED_POD}/env`, { vars }, { timeoutMs: 300_000 });
   if (update.status !== 200) throw new Error(`Environment update failed (${update.status}).`);
   await exec('sudo systemctl restart --no-block app');
   if (!await waitHealthy(previousPid)) throw new Error('New release health check failed.');
