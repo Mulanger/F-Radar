@@ -8,6 +8,8 @@ import { PER_PROPERTY_JOBS } from './jobs';
 import { buildFeed, buildPropertySnapshot, buildUpcoming } from './snapshot';
 import { resolveRuntimeStatuses } from './status';
 import { notificationSnapshots } from '../notifications/snapshots';
+import { loadPropertyHistory } from './history';
+import type { HistoryPeriod } from '@fastighetsradar/domain';
 
 export interface TenantContext extends OrgContext {
   clerkOrgId: string;
@@ -66,6 +68,10 @@ export class MonitoringService {
 
   async changes(t: TenantContext, limit: number) {
     return listRecentChangesForOrg(this.db, t.organizationId, limit);
+  }
+
+  async history(t: TenantContext, id: string, period: HistoryPeriod) {
+    return loadPropertyHistory(this.db, t, id, period);
   }
 
   /** Property created/moved/deleted: re-match events now, schedule per-property collectors. */

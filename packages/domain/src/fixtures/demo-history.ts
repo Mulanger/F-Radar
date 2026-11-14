@@ -108,7 +108,6 @@ export function buildDemoHistory(
   if (!property) throw new Error('Unknown demo property');
   const seed = seedOf(propertyId);
   const dates = historyDates(period);
-  const weatherStation = 'smhi_observations:98230:';
   const distanceMeters = stationDistance(property.location.lat, property.location.lon);
   const parameters = [
     'precipitation',
@@ -118,20 +117,33 @@ export function buildDemoHistory(
     'temperature_crossings',
     'wind_gust',
     'sea_level',
+    ...(propertyId === 'demo-ulvsunda-lager' ? ['water_flow'] : []),
   ];
-  const stations: HistoryStation[] = parameters.map((parameter) => ({
-    id: parameter === 'sea_level' ? 'smhi_oceanography:33097:sea_level' : weatherStation + parameter,
-    stationId: parameter === 'sea_level' ? '33097' : parameter === 'wind_gust' ? 'demo-wind' : '98230',
-    name:
-      parameter === 'sea_level'
-        ? 'Stockholm (demo)'
-        : parameter === 'wind_gust'
-          ? 'Stockholm, vindstation (demo)'
-          : 'Stockholm-Observatoriekullen A (demo)',
-    distanceMeters: parameter === 'sea_level' ? 3400 + (seed % 2200) : distanceMeters,
-    sourceId: parameter === 'sea_level' ? 'smhi_oceanography' : 'smhi_observations',
-    parameter,
-  }));
+  const stations: HistoryStation[] = parameters.map((parameter) => {
+    let station = {
+      sourceId: 'smhi_observations',
+      stationId: '98230',
+      name: 'Stockholm-Observatoriekullen A (demo)',
+      distanceMeters,
+    };
+    if (parameter === 'sea_level')
+      station = {
+        sourceId: 'smhi_oceanography',
+        stationId: '33097',
+        name: 'Stockholm (demo)',
+        distanceMeters: 3400 + (seed % 2200),
+      };
+    if (parameter === 'wind_gust')
+      station = { ...station, stationId: 'demo-wind', name: 'Stockholm, vindstation (demo)' };
+    if (parameter === 'water_flow')
+      station = {
+        sourceId: 'smhi_hydrology',
+        stationId: 'demo-flow',
+        name: 'Bällstaån, flödesstation (demo)',
+        distanceMeters: 800,
+      };
+    return { ...station, id: `${station.sourceId}:${station.stationId}:${parameter}`, parameter };
+  });
   const rows = dates.map((date) => {
     const d = new Date(date + 'T12:00:00Z');
     const day = Math.floor(+d / HISTORY.dayMs);
@@ -148,6 +160,7 @@ export function buildDemoHistory(
       mean: roundHistory(mean),
       wind: roundHistory(5 + Math.abs(Math.sin(day * 0.3)) * 9 + (date === '2025-11-11' ? 9 : 0)),
       sea: roundHistory(10 + Math.sin(day * 0.15) * 25 + (autumn ? 13 : 0)),
+      flow: roundHistory(2 + Math.sin(day * 0.04) * 1.2 + (autumn ? 1.5 : 0)),
     };
   });
   const series: HistorySeries[] = parameters.map((key) => {
@@ -163,6 +176,7 @@ export function buildDemoHistory(
         temperature_crossings: r.min < 0 && r.max > 0 ? 2 : 0,
         wind_gust: r.wind,
         sea_level: r.sea,
+        water_flow: r.flow,
       }[key]!;
     });
     return {
@@ -175,9 +189,11 @@ export function buildDemoHistory(
             ? 'm/s'
             : key === 'sea_level'
               ? 'cm RW'
-              : key === 'temperature_crossings'
-                ? 'passager'
-                : '°C',
+              : key === 'water_flow'
+                ? 'm³/s'
+                : key === 'temperature_crossings'
+                  ? 'passager'
+                  : '°C',
       dayDefinition:
         key === 'precipitation'
           ? 'smhi_06_utc'
@@ -185,10 +201,13 @@ export function buildDemoHistory(
             ? 'smhi_18_utc'
             : key === 'temperature_mean'
               ? 'smhi_00_utc'
-              : 'swedish_calendar',
+              : key === 'water_flow'
+                ? 'smhi_hydro_cest'
+                : 'swedish_calendar',
       values,
       coverage: values.map((v) => (v === null ? 0 : 1)),
       origins: ['smhi_archive'],
+      originCodes: values.map((value) => (value === null ? '-' : 's')).join(''),
       since: '2024-11-12',
       ...(key === 'sea_level'
         ? {
@@ -269,7 +288,10 @@ export function buildDemoHistory(
     kpis: historyKpis(dates, series, monthly, events),
     gaps: historyGaps(dates, series),
     frostWeeks: frostWeeks(dates, series),
-    flowReferences: [],
+    flowReferences:
+      propertyId === 'demo-ulvsunda-lager'
+        ? Array.from({ length: 12 }, (_, i) => ({ month: i + 1, p75: 2.8, p95: 4.2, years: 5, samples: 150 }))
+        : [],
     origin: 'demo_fixture',
     since: { events: '2024-11-12T00:00:00.000Z', measurements: '2024-11-12' },
     attribution:

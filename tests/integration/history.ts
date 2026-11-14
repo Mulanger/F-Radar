@@ -186,6 +186,14 @@ export function registerHistoryTests(pool: pg.Pool) {
         origin: 'smhi_archive' as const,
       }));
       await saveStationDaily(pool, 'smhi_observations', 'history-rain', 'precipitation', 'smhi_06_utc', days);
+      await saveStationDaily(
+        pool,
+        'smhi_observations',
+        'history-rain',
+        'precipitation',
+        'swedish_calendar',
+        days.map((day) => ({ ...day, origin: 'own_aggregate' as const })),
+      );
       await saveHistoryNormals(
         pool,
         'history-rain',
@@ -198,6 +206,15 @@ export function registerHistoryTests(pool: pg.Pool) {
         (await propertyHistoryStations(pool, a, property.id, parameters)).some((s) => s.historyDays >= 300),
       );
       assert.deepEqual(await propertyHistoryStations(pool, b, property.id, parameters), []);
+      const selectedCandidate = (await propertyHistoryStations(pool, a, property.id, parameters)).find(
+        (s) => s.stationId === 'history-rain',
+      )!;
+      assert.equal(
+        selectedCandidate.historyDays,
+        365,
+        'calendar-day aggregates do not inflate native-series coverage',
+      );
+      assert.ok(selectedCandidate.since);
 
       const app = await buildApp(loadServerEnv({ NODE_ENV: 'test' }), {
         logger: false,
@@ -316,8 +333,8 @@ export function registerHistoryTests(pool: pg.Pool) {
       assert.equal(
         (await pool.query(`SELECT count(*)::int AS n FROM station_daily WHERE station_id='history-rain'`))
           .rows[0].n,
-        365,
-        'public station data remains shared',
+        730,
+        'public station data remains shared across both day definitions',
       );
     });
   });

@@ -265,26 +265,29 @@ async function aggregateStoredTemperatureCrossings(db: Queryable): Promise<numbe
 export interface HistoryStationCandidate extends HistoryStation {
   historyDays: number;
   normalMonths: number;
+  since: string | null;
 }
 
 export async function propertyHistoryStations(
   db: Queryable,
   organizationId: string,
   propertyId: string,
-  parameters: Array<{ sourceId: string; key: string; distanceM: number }>,
+  parameters: Array<{ sourceId: string; key: string; distanceM: number; definition: string }>,
 ): Promise<HistoryStationCandidate[]> {
   const { rows } = await db.query<HistoryStationCandidate>(
     `SELECT s.source_id || ':' || s.station_id || ':' || s.parameter AS id,
        s.source_id AS "sourceId",s.station_id AS "stationId",s.parameter,s.name,
        ST_Distance(s.location,p.location) AS "distanceMeters",
        (SELECT count(*)::int FROM station_daily d WHERE d.source_id=s.source_id AND d.station_id=s.station_id
-         AND d.parameter=s.parameter AND d.coverage=1 AND d.value IS NOT NULL
+         AND d.parameter=s.parameter AND d.day_definition=def.definition AND d.coverage=1 AND d.value IS NOT NULL
          AND d.date >= (now()-make_interval(days => $4))::date) AS "historyDays",
+       (SELECT min(d.date)::text FROM station_daily d WHERE d.source_id=s.source_id AND d.station_id=s.station_id
+         AND d.parameter=s.parameter AND d.day_definition=def.definition) AS since,
        CASE WHEN s.parameter='precipitation' THEN
          (SELECT count(*)::int FROM station_precipitation_normals n WHERE n.source_id=s.source_id
            AND n.station_id=s.station_id AND n.years >= $5) ELSE 0 END AS "normalMonths"
      FROM properties p
-     CROSS JOIN jsonb_to_recordset($3::jsonb) AS def("sourceId" text,key text,"distanceM" integer)
+     CROSS JOIN jsonb_to_recordset($3::jsonb) AS def("sourceId" text,key text,"distanceM" integer,definition text)
      JOIN history_stations s ON s.source_id=def."sourceId" AND s.parameter=def.key
        AND ST_DWithin(s.location,p.location,def."distanceM")
      WHERE p.id=$2 AND p.organization_id=$1 ORDER BY "distanceMeters",s.station_id`,

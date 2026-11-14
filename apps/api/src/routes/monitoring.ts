@@ -1,5 +1,5 @@
 import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
-import { portfolioRisk, PropertyIdParamSchema, type StreamUpdate } from '@fastighetsradar/domain';
+import { HistoryQuerySchema, historyPeriod, portfolioRisk, PropertyIdParamSchema, type StreamUpdate } from '@fastighetsradar/domain';
 import { resolveSmsMode, type ServerEnv } from '@fastighetsradar/config';
 import { resolveSourceStatuses } from '@fastighetsradar/integrations';
 import { orgContext } from '../auth';
@@ -57,6 +57,20 @@ export function registerMonitoringRoutes(app: FastifyInstance, deps: MonitoringR
   app.get('/v1/properties/:id/snapshot', { preHandler: deps.requireOrg }, async (req) => {
     const r = await one(req);
     return { generatedAt: gen(), snapshot: r.snapshot, sources: r.statuses };
+  });
+
+  app.get('/v1/properties/:id/history', { preHandler: deps.requireOrg }, async (req) => {
+    const { id } = PropertyIdParamSchema.parse(req.params);
+    const query = HistoryQuerySchema.parse(req.query);
+    let period;
+    try {
+      period = historyPeriod(query);
+    } catch {
+      throw new HttpProblem(400, 'Invalid history period');
+    }
+    const result = await svc().history(orgContext(req), id, period);
+    if (!result) throw new HttpProblem(404, 'Property not found');
+    return result;
   });
 
   app.get('/v1/properties/:id/forecast', { preHandler: deps.requireOrg }, async (req) => {

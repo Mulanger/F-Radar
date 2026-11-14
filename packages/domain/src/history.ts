@@ -24,6 +24,7 @@ export const HISTORY = {
   candidatesPerProperty: 3,
   retryHours: 6,
   catalogRefreshHours: 24,
+  collectionIntervalSeconds: 86_400,
   dailyCoverage: 1,
   wetDayMm: 10,
   mobileMaxBars: 60,
@@ -117,6 +118,8 @@ export const HistorySeriesSchema = z.object({
   min: z.array(z.number().nullable()).optional(),
   max: z.array(z.number().nullable()).optional(),
   origins: z.array(z.enum(['smhi_archive', 'own_aggregate'])),
+  /** Per date: s = SMHI file, o = own aggregate, - = no stored row. */
+  originCodes: z.string().regex(/^[so-]*$/),
   since: HistoryDateSchema.nullable(),
 });
 export type HistorySeries = z.infer<typeof HistorySeriesSchema>;
@@ -207,7 +210,10 @@ export const PropertyHistorySchema = z
   })
   .superRefine((h, ctx) => {
     for (const s of h.daily.series) {
-      if ([s.values, s.coverage, s.min, s.max].some((a) => a && a.length !== h.daily.dates.length)) {
+      if (
+        s.originCodes.length !== h.daily.dates.length ||
+        [s.values, s.coverage, s.min, s.max].some((a) => a && a.length !== h.daily.dates.length)
+      ) {
         ctx.addIssue({ code: 'custom', message: 'Series length differs from date axis.' });
       }
     }
@@ -352,7 +358,11 @@ export function historyKpis(
   const normalComplete =
     monthly.length > 0 && monthly.every((m) => m.complete && m.normal !== null && m.value !== null);
   const normalTotal = monthly.reduce((sum, m) => sum + (m.normal ?? 0), 0);
-  const water = series.find((s) => s.key === 'sea_level') ?? series.find((s) => s.key === 'water_flow');
+  const hasCompleteWater = (s: HistorySeries) =>
+    s.values.some((value, index) => value !== null && s.coverage[index] === 1);
+  const water =
+    series.find((s) => s.key === 'sea_level' && hasCompleteWater(s)) ??
+    series.find((s) => s.key === 'water_flow' && hasCompleteWater(s));
   const waterValues = water
     ? (water.max ?? water.values).flatMap((v, i) =>
         v !== null && water.coverage[i] === 1 ? [{ value: v, date: dates[i]!, series: water.key }] : [],

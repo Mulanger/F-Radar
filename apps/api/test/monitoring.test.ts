@@ -324,4 +324,19 @@ describe('monitoring HTTP endpoints', () => {
     ac.abort();
     await reader.cancel().catch(() => undefined);
   });
+
+  it('protects history and validates ranges before reading stored history', async () => {
+    const url = `/v1/properties/${PID}/history`;
+    expect((await app.inject({ method: 'GET', url })).statusCode).toBe(401);
+    expect((await app.inject({ method: 'GET', url, headers: { authorization: 'Bearer noorg' } })).statusCode).toBe(403);
+    const headers = { authorization: 'Bearer org' };
+    expect((await app.inject({ method: 'GET', url, headers })).statusCode).toBe(404);
+    for (const query of [
+      '?range=invalid', '?range=custom', '?range=custom&from=2026-02-30&to=2026-03-01',
+      '?range=custom&from=2023-01-01&to=2026-01-01', '?range=30d&from=2026-01-01',
+      '?range=custom&from=2026-03-01&to=2026-01-01', '?range=custom&from=2099-01-01&to=2099-01-02',
+    ]) {
+      expect((await app.inject({ method: 'GET', url: url + query, headers })).statusCode, query).toBe(400);
+    }
+  });
 });
