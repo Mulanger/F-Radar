@@ -189,9 +189,7 @@ The air test took ~168 s due to the upstream API. The existing provider smoke su
 landing audit. None of these tests sends SMS, modifies customer records or deploys anything.
 
 Migration **0005_environment_station_history.sql** creates air history and classifies HYPE as MODEL.
-It is **not applied in production**. The local PostgreSQL connection at localhost refused connections,
-so actual PostgreSQL/PostGIS migration execution could not be tested here. The ordinary migration runner
-and SQL contract tests still run locally; operational rollout needs the normal migration step.
+It is **not applied in production**. Follow-up on 2026-11-14 verified all five migrations from an empty local PostgreSQL 16.15 / PostGIS 3.4.2 database, the idempotent second pass, station history reads/writes and seven-day retention. See [migration verification](db-migration-verification.md) for test counts and evidence. Operational rollout still needs the normal migration step.
 
 ## Retention (job `retention`, daily)
 

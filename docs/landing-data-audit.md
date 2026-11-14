@@ -1,5 +1,7 @@
 # Slutrapport – startsidans datapunkter
 
+Uppföljning: databasmigrationen har nu verifierats mot riktig lokal PostgreSQL/PostGIS. Se [verifieringsrapporten](db-migration-verification.md) för aktuella resultat och testantal; begränsningen om saknad lokal databas längre ned är historik från första uppgiften.
+
 Datum: 2026-11-14. Gren: `codex/landing-data-parity`. Ingen push eller driftsättning har gjorts.
 ”Levereras i skarpt läge” nedan avser den implementerade livevägen efter ordinarie migration och
 release, inte ett påstående om att den befintliga driften redan har uppdaterats.

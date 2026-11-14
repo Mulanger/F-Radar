@@ -77,7 +77,7 @@ const sveavagen = {
 async function resetSchema() {
   await pool.query(`
     DROP TABLE IF EXISTS sms_delivery_callbacks,notification_attempts,notification_properties,notification_outbox,notification_daily_usage,notification_usage,notification_global_usage,notification_rate_buckets,alert_evaluation_state,alert_rule_recipients,alert_rule_properties,sms_recipients,
-      monitoring_changes, property_event_matches, source_events, observation_stations, property_forecasts,
+      monitoring_changes, property_event_matches, source_events, station_observation_history, observation_stations, property_forecasts,
       property_context, admin_areas, provider_jobs, property_monitoring, integration_runs, alert_rules, property_source_profiles, properties,
       source_catalog, organization_members, users, organizations, schema_migrations CASCADE;
     DROP FUNCTION IF EXISTS fr_set_updated_at() CASCADE;`);
