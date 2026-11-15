@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 // Clerk server helpers are mocked: the loader must only forward the session token.
 const authMock = vi.fn();
 vi.mock('@clerk/nextjs/server', () => ({ auth: () => authMock() }));
-import { assessPropertyRisk, portfolioRisk, type Portfolio, type PropertySnapshot } from '@fastighetsradar/domain';
+import { assessPropertyRisk, type Portfolio, type PropertySnapshot } from '@fastighetsradar/domain';
 import { demoPortfolio } from '@fastighetsradar/domain/fixtures';
 import { buildOverviewVM } from '@/lib/view-models/overview';
 import { buildDetailVM } from '@/lib/view-models/detail';
@@ -25,7 +25,6 @@ describe('overview view-model reproduces the approved design values', () => {
   it('KPIs', () => {
     expect(vm.kpi.total).toBe(8);
     expect(vm.kpi.alerts).toBe(14);
-    expect(vm.kpi.atRisk).toBe(3);
     expect(vm.kpi.warnings).toBe(3);
     expect(vm.kpi.warnAffected).toBe(4);
     expect(vm.kpi.wx).toBe(7);
@@ -35,17 +34,16 @@ describe('overview view-model reproduces the approved design values', () => {
   });
 
   it('hero and health', () => {
-    // Riskindex v1 (ADR 0003) replaces the hand-picked demo score: mean of the properties' index.
-    const pr = portfolioRisk(demoPortfolio.properties.map((x) => ({ name: x.property.name, risk: x.riskIndex })));
-    expect(vm.hero.risk).toBe(String(pr.score));
-    expect(vm.hero.riskLabel).toMatch(new RegExp(`^(Låg|Bevaka) · högst Ulvsunda Lager \\(${pr.highest!.score}\\)$`));
+    // Status line: properties with an active official warning (Bevaka or higher) and the worst one.
+    expect(vm.hero.status.headline).toBe('5 av 8 fastigheter med varning');
+    expect(vm.hero.status.detail).toBe('Högst: Augustendal Brygga · Orange varning (kraftig vind)'); // highest status first
+    expect(vm.hero.statusDash.startsWith(String((5 / 8) * 2 * Math.PI * 28))).toBe(true);
     expect(vm.hero.avgTemp).toBe('3,9');
     expect(vm.hero.maxRain).toBe('22,1');
     expect(vm.hero.maxRainAt).toBe('Augustendal Brygga');
     expect(vm.hero.gust).toBe('25');
-    expect(vm.healthPct).toBe(38);
-    // Weather / water / VMA at "Bevaka" or higher – regional news, static flood mapping, traffic and air never count.
-    expect(vm.cats.map((c) => [c.label, c.n])).toEqual([['Väder', 1], ['Vatten', 3], ['VMA', 1]]);
+    // Weather / water / VMA / power at "Bevaka" or higher – regional news, static flood mapping, traffic and air never count.
+    expect(vm.cats.map((c) => [c.label, c.n])).toEqual([['Väder', 1], ['Vatten', 3], ['VMA', 1], ['El och värme', 0]]);
   });
 
   it('table sorted by risk and feed formatted in local time', () => {
@@ -123,8 +121,7 @@ describe('missing data is never rendered as a normal value', () => {
     expect(d.sms.rules.find((r) => r.code === 'RN')!.hit).toBe(false);
 
     const vm = buildOverviewVM(portfolio, ui);
-    expect(vm.hero.risk).toBe('—');
-    expect(vm.hero.riskLabel).toBe('Ej bedömd');
+    expect(vm.hero.status.headline).toBe('0 av 1 fastighet med varning'); // warning status is still assessed
     expect(vm.rows[0]!.temp).toBe('—');
     expect(vm.rows[0]!.aq).toBe('—');
     expect(vm.kpi.alertsDelta).toBeNull();
@@ -199,7 +196,7 @@ describe('live portfolio without connected sources', () => {
   it('marks every monitoring panel as not connected instead of normal', () => {
     const vm = buildOverviewVM(live, ui);
     expect(vm.avail).toEqual({ weather: false, warnings: false, events: false, air: false, flood: false, alerts: true });
-    expect(vm.healthPct).toBeNull();
+    expect(vm.hero.status).toMatchObject({ headline: 'Status kan inte bedömas', fill: 0 });
     expect(vm.kpi.barLabel).toBe('1 ej bedömda ännu · inga offentliga datakällor anslutna');
     expect(vm.rows[0]!.status).toBe('Ej bedömd');
     const d = buildDetailVM(live, live.properties[0]!, { ready: true, metric: 'temp', smsOn: false, isRuleOn: (_i, f) => f });

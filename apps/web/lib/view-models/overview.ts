@@ -1,6 +1,6 @@
 import { nowcastVM } from './nowcast';
 import type { Portfolio, PropertySnapshot, PropertyStatus } from '@fastighetsradar/domain';
-import { formatClock, formatLongDate, formatNumber, portfolioRisk, type RiskFactorKey } from '@fastighetsradar/domain';
+import { formatClock, formatLongDate, formatNumber, type RiskFactorKey } from '@fastighetsradar/domain';
 import { C, EXPOSURE_SV, SEV, STATUS_ORDER, WL, riskStyle } from '../design/tokens';
 import { smooth } from './chart';
 import { rulesFor, eventCounts } from './rules';
@@ -23,6 +23,20 @@ const sev = (st: PropertyStatus) => SEV[st] ?? SEV.unknown;
 const riskOf = riskScore;
 /** Properties where a risk factor reaches "Bevaka" or higher (ADR 0003) – static data alone never counts. */
 const factorAtLeastWatch = (s: PropertySnapshot, key: RiskFactorKey) => (s.riskIndex?.factors.find((f) => f.key === key)?.points ?? 0) >= 25;
+const STATUS_RANK: Record<string, number> = { unknown: 0, normal: 0, monitor: 1, warning: 2, critical: 3 };
+const WARN_RANK: Record<string, number> = { Yellow: 1, Orange: 2, Red: 3, VMA: 4 };
+const worstWarning = (s: PropertySnapshot) =>
+  [...s.warnings].filter((w) => isOfficialLevel(w.level)).sort((a, b) => (WARN_RANK[b.level] ?? 0) - (WARN_RANK[a.level] ?? 0))[0];
+const worstRank = (s: PropertySnapshot) => WARN_RANK[worstWarning(s)?.level ?? ''] ?? 0;
+/** "Orange varning (kraftig vind)" / "VMA (brand)" – the authority's own type text, first letter lower-cased. */
+function describeWorst(s: PropertySnapshot): string {
+  const w = worstWarning(s);
+  if (!w) return sev(s.property.status).label;
+  const type = w.type.split(' — ')[0]!;
+  const what = type.charAt(0).toLocaleLowerCase('sv') + type.slice(1);
+  if (w.level === 'VMA') return `${w.geo.match === 'county' ? 'VMA i länet' : 'VMA'} (${what})`;
+  return `${WL[w.level].label} varning (${what})`;
+}
 
 export function filterByGroup(p: Portfolio, group: string) {
   return group === 'all' ? p.properties : p.properties.filter((s) => s.property.segment === group);
@@ -70,21 +84,27 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
   const spMax = Math.max(...sp, 1);
   const spark = sp.length ? smooth(sp.map((v, i) => [(i / (sp.length - 1)) * 100, 28 - (v / spMax) * 24])) : '';
 
-  const pr = portfolioRisk(list.map((s) => ({ name: s.property.name, risk: s.riskIndex })));
-  const avgRisk = pr.score;
   const maxRainP = [...list].sort((a, b) => n0(rain(b)) - n0(rain(a)))[0];
   const gustP = [...list].sort((a, b) => n0(gust(b)) - n0(gust(a)))[0];
   const temps = list.map(temp).filter((v): v is number => v !== null);
 
+  // Hero status: properties with an active official warning (status Bevaka or higher) and the worst one.
   const C30 = 2 * Math.PI * 28;
-  const DC = 2 * Math.PI * 54;
-  let cum = 0;
-  const donut = STATUS_ORDER.map((k) => {
-    const len = ready ? (counts[k] / n) * DC : 0;
-    const o = { key: k, c: SEV[k].c, dash: `${Math.max(0, len - 3)} ${DC}`, off: `${-cum}` };
-    cum += len;
-    return o;
-  });
+  const flagged = list.filter((s) => STATUS_RANK[s.property.status] >= 1);
+  const top = [...flagged].sort((a, b) => STATUS_RANK[b.property.status] - STATUS_RANK[a.property.status] || worstRank(b) - worstRank(a))[0];
+  const assessedN = STATUS_ORDER.reduce((a, k) => a + counts[k], 0);
+  const unassessedN = list.length - assessedN;
+  const status = (() => {
+    if (!list.length) return { headline: 'Inga fastigheter ännu', detail: 'Lägg till en fastighet för att starta bevakningen', c: SEV.unknown.c, fill: 0 };
+    if (!assessedN) return { headline: 'Status kan inte bedömas', detail: 'Varningskällorna är inte aktuella just nu', c: SEV.unknown.c, fill: 0 };
+    const tail = unassessedN ? ` · ${unassessedN} ej bedömda` : '';
+    return {
+      headline: `${flagged.length} av ${list.length} ${list.length === 1 ? 'fastighet' : 'fastigheter'} med varning`,
+      detail: (top ? `Högst: ${top.property.name} · ${describeWorst(top)}` : 'Inga aktiva officiella varningar') + tail,
+      c: top ? sev(top.property.status).c : SEV.normal.c,
+      fill: flagged.length / list.length,
+    };
+  })();
 
   // Per risk factor: properties at "Bevaka" or higher. Regional news, static flood mapping, traffic and
   // outdoor air can never reach that alone, so they do not inflate these bars (ADR 0003).
@@ -92,6 +112,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     { label: 'Väder', n: list.filter((s) => factorAtLeastWatch(s, 'weather')).length, c: 'oklch(0.6 0.1 240)' },
     { label: 'Vatten', n: list.filter((s) => factorAtLeastWatch(s, 'water')).length, c: 'oklch(0.62 0.08 215)' },
     { label: 'VMA', n: list.filter((s) => factorAtLeastWatch(s, 'vma')).length, c: 'oklch(0.6 0.17 28)' },
+    { label: 'El och värme', n: list.filter((s) => factorAtLeastWatch(s, 'power')).length, c: 'oklch(0.66 0.13 70)' },
   ];
   const catMax = Math.max(1, ...catsRaw.map((c) => c.n));
 
@@ -163,7 +184,6 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     active: ui.group === g.id,
   }));
 
-  const riskSt = riskStyle(pr.level);
   const upcomingTone = { monitor: SEV.monitor.c, critical: SEV.critical.c, warning: SEV.warning.c, cold: 'oklch(0.6 0.1 265)' };
 
   const avail = availability(portfolio);
@@ -182,11 +202,8 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     groups,
     hero: {
       count: list.length,
-      risk: show(avgRisk),
-      riskC: riskSt.c,
-      riskLabel: pr.level ? `${riskSt.label} · högst ${pr.highest!.name} (${pr.highest!.score})` : 'Ej bedömd',
-      riskDelta: portfolio.demoTrends?.riskDeltaLabel ?? null,
-      riskDash: `${ready && avgRisk !== null ? (avgRisk / 100) * C30 : 0} ${C30}`,
+      status,
+      statusDash: `${ready ? status.fill * C30 : 0} ${C30}`,
       avgTemp: temps.length ? formatNumber(temps.reduce((a, b) => a + b, 0) / temps.length, 1) : '—',
       maxRain: show(maxRainP ? rain(maxRainP) : null),
       maxRainAt: maxRainP?.property.name ?? '—',
@@ -204,11 +221,6 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
       spark,
       alertsDelta: portfolio.demoTrends?.alertsDeltaLabel ?? null,
       alertsSince: portfolio.demoTrends?.alertsSince ?? '',
-      atRisk: counts.warning + counts.critical,
-      dots: sorted.map((q) => ({
-        id: q.property.id,
-        c: q.property.status === 'warning' || q.property.status === 'critical' ? SEV[q.property.status].c : C.trackOff,
-      })),
       warnings: wl.length,
       warnAffected: warnAff,
       warnChips: (Object.keys(wc) as Array<keyof typeof WL>).map((k) => ({ key: k, label: WL[k].label + ' ×' + wc[k], bg: WL[k].bg, fg: WL[k].fg })),
@@ -228,10 +240,6 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     ],
     feed,
     rows,
-    donut,
-    /** Null when no property has an assessed status (never 0 % or 100 % by default). */
-    healthPct: assessed ? Math.round((counts.normal / assessed) * 100) : null,
-    health: STATUS_ORDER.map((k) => ({ key: k, label: SEV[k].label, c: SEV[k].c, n: counts[k], pct: Math.round((counts[k] / n) * 100) + '%' })),
     cats: catsRaw.map((c) => ({ ...c, w: ready ? (c.n / catMax) * 100 + '%' : '0%' })),
     upcoming: portfolio.upcoming.map((u) => ({ ...u, source:u.sourceId ? (u.sourceId==='krisinformation'?'Krisinformation':'SMHI')+' · uppdaterad '+formatClock(u.sourceUpdatedAt) : null, c: upcomingTone[u.tone] })),
   };

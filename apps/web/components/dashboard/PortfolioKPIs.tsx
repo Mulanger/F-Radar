@@ -2,7 +2,7 @@
 
 import type { OverviewVM } from '@/lib/view-models/overview';
 import { C, smallCard } from '@/lib/design/tokens';
-import { IconAlert, IconBellSimple, IconBuildingSimple, IconMessage, IconRain, IconShield } from '../ui/icons';
+import { IconAlert, IconBellSimple, IconBuildingSimple, IconMessage, IconRain } from '../ui/icons';
 
 const kpiCard: React.CSSProperties = {
   ...smallCard,
@@ -63,20 +63,6 @@ export function PortfolioKPIs({ vm }: { vm: OverviewVM }) {
       </div>
 
       <div className="fr-hover-lift" style={kpiCard}>
-        <KpiHead icon={<IconShield />} bg="oklch(0.95 0.045 65)" fg="oklch(0.6 0.15 55)" label="Fastigheter med varning" />
-        <div style={big}>
-          {v(a.warnings || a.weather, k.atRisk)}
-          <span style={{ fontSize: 15, color: C.text4 }}> av {k.total}</span>
-        </div>
-        <div style={{ display: 'flex', gap: 5, marginTop: 'auto' }}>
-          {k.dots.map((d) => (
-            <span key={d.id} style={{ width: 12, height: 12, borderRadius: 4, background: d.c }} />
-          ))}
-        </div>
-        <div style={foot}>{a.warnings || a.weather ? 'Orange, röd varning eller VMA' : 'Status kräver anslutna källor'}</div>
-      </div>
-
-      <div className="fr-hover-lift" style={kpiCard}>
         <KpiHead icon={<IconAlert size={15} sw={1.8} />} bg="oklch(0.95 0.06 95)" fg="oklch(0.5 0.1 85)" label="Officiella varningar" />
         <div style={big}>{v(a.warnings, k.warnings)}</div>
         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 'auto' }}>
@@ -100,7 +86,7 @@ export function PortfolioKPIs({ vm }: { vm: OverviewVM }) {
         <div style={foot}>{a.weather ? 'Prognos över tröskelvärden kommande 24 h' : 'SMHI-prognos ej ansluten ännu'}</div>
       </div>
 
-      <div className="fr-hover-lift" style={kpiCard}>
+      <div className="fr-hover-lift" style={{ ...kpiCard, gridColumn: '1 / -1' }}>
         <KpiHead icon={<IconMessage size={15} sw={1.8} />} bg="oklch(0.95 0.035 155)" fg="oklch(0.52 0.12 155)" label="Aktiva SMS-regler" />
         <div style={big}>{v(a.alerts, k.sms)}</div>
         <div style={{ height: 6, borderRadius: 3, background: C.chip, marginTop: 'auto', overflow: 'hidden' }}>

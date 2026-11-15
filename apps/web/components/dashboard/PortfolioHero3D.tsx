@@ -46,7 +46,7 @@ export function PortfolioHero3D({ vm, isDemo }: { vm: OverviewVM; isDemo: boolea
       <div
         className="fr-hero-bottom"
         style={{
-          position: 'absolute', left: 24, bottom: 22, width: 260, padding: 16, borderRadius: 20,
+          position: 'absolute', left: 24, bottom: 22, maxWidth: 380, padding: 16, borderRadius: 20,
           background: 'rgba(255,255,255,0.62)', backdropFilter: 'blur(18px) saturate(1.4)', WebkitBackdropFilter: 'blur(18px) saturate(1.4)',
           border: '1px solid rgba(255,255,255,0.9)', boxShadow: '0 20px 40px -24px rgba(20,23,26,0.35)',
           display: 'flex', alignItems: 'center', gap: 14, overflow: 'hidden',
@@ -55,20 +55,11 @@ export function PortfolioHero3D({ vm, isDemo }: { vm: OverviewVM; isDemo: boolea
         <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '40%', background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.7),transparent)', animation: 'frShimmer 6s ease-in-out infinite' }} />
         <svg width="68" height="68" viewBox="0 0 68 68" style={{ flexShrink: 0, transform: 'rotate(-90deg)' }} aria-hidden="true">
           <circle cx="34" cy="34" r="28" fill="none" stroke="rgba(20,23,26,0.07)" strokeWidth="6" />
-          <circle cx="34" cy="34" r="28" fill="none" stroke={h.riskC} strokeWidth="6" strokeLinecap="round" strokeDasharray={h.riskDash} style={{ transition: 'stroke-dasharray 1.4s cubic-bezier(.2,.8,.2,1)' }} />
+          <circle cx="34" cy="34" r="28" fill="none" stroke={h.status.c} strokeWidth="6" strokeLinecap="round" strokeDasharray={h.statusDash} style={{ transition: 'stroke-dasharray 1.4s cubic-bezier(.2,.8,.2,1)' }} />
         </svg>
-        <div style={{ position: 'relative' }}>
-          <div style={{ fontSize: 12, color: C.text3 }} title={`Medelvärdet av fastigheternas riskindex (v1)${isDemo ? ' · demodata' : ''}. Bara aktuella officiella varningar kan ge Förhöjd eller Hög.`}>
-            Portföljens riskpoäng
-          </div>
-          <div style={{ fontSize: 30, fontWeight: 500, letterSpacing: '-0.03em' }}>
-            {h.risk}
-            <span style={{ fontSize: 14, color: C.text4 }}> / 100</span>
-          </div>
-          <div style={{ fontSize: 12, color: h.riskC }}>
-            {h.riskLabel}
-            {h.riskDelta ? ` · ${h.riskDelta}` : ''}
-          </div>
+        <div style={{ position: 'relative', minWidth: 0 }} title={`Fastigheter med en aktiv officiell varning (SMHI eller VMA) för sitt läge${isDemo ? ' · demodata' : ''}.`}>
+          <div style={{ fontSize: 20, fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1.2 }}>{h.status.headline}</div>
+          <div style={{ fontSize: 12.5, color: C.text2, marginTop: 4, lineHeight: 1.4 }}>{h.status.detail}</div>
         </div>
       </div>
       <div className="fr-hero-stats" style={{ position: 'absolute', right: 20, top: 20, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
