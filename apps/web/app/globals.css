@@ -46,21 +46,46 @@ button { font-family: inherit; }
  */
 .fr-mobilebar, .fr-sidebar-backdrop { display: none; }
 .fr-only-compact { display: none !important; }
+.fr-mobile-nav, .fr-mobile-account { display: none; }
 
 @media (max-width: 899.98px) {
+  html:has(.fr-shell) { scrollbar-width: none; }
+  html:has(.fr-shell)::-webkit-scrollbar { display: none; }
   .fr-shell { flex-direction: column; }
   /* overflow-x: clip guards against decorative overflow (e.g. chart tooltips at the edge) without breaking sticky. */
-  .fr-main { padding: 16px 16px 40px !important; overflow-x: clip; }
+  .fr-main { padding: 0 0 calc(116px + env(safe-area-inset-bottom, 0px)) !important; overflow-x: clip; }
+  .fr-desktop-dashboard-view { display: none !important; }
+  .fr-header { display: none !important; }
 
   /* Compact top bar with the hamburger; the sidebar becomes a slide-in drawer. */
   .fr-mobilebar {
     display: flex; align-items: center; gap: 10px;
-    position: sticky; top: 0; z-index: 1500;
-    padding: 10px 16px;
-    background: rgba(247, 248, 246, 0.92);
+    position: relative; top: 0; z-index: 1500;
+    min-height: 52px; box-sizing: border-box; padding: max(4px, env(safe-area-inset-top, 0px)) 16px 4px 20px;
+    background: rgba(243, 244, 242, 0.94);
     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(20, 23, 26, 0.06);
+    border-bottom: none;
   }
+  .fr-mobilebar-detail { display: none; }
+  .fr-mobile-account { display: flex; align-items: center; gap: 12px; padding: 8px; }
+  .fr-mobile-brand { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 600; letter-spacing: -.02em; }
+  .fr-mobile-brand-mark { width: 30px; height: 30px; border-radius: 10px; background: #14171a; display: grid; place-items: center; }
+  .fr-mobilebar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .fr-mobilebar-bell { width: 44px; height: 44px; border-radius: 50%; background: #fff; border: 1px solid #14171a0f; display: grid; place-items: center; position: relative; box-sizing: border-box; }
+  .fr-mobilebar-bell-dot { position: absolute; top: 10px; right: 11px; width: 8px; height: 8px; border-radius: 50%; background: oklch(.62 .19 28); border: 2px solid white; }
+  .fr-mobile-profile { width: 44px; height: 44px; border-radius: 50%; border: none; background: oklch(.88 .04 215); color: oklch(.38 .07 225); display: grid; place-items: center; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .fr-mobile-nav { display: flex; align-items: center; gap: 2px; position: fixed; z-index: 1400; left: max(14px, calc((100vw - 600px) / 2)); right: max(14px, calc((100vw - 600px) / 2)); bottom: max(14px, env(safe-area-inset-bottom, 0px)); height: 66px; padding: 6px; box-sizing: border-box; border-radius: 33px; background: rgba(255,255,255,.8); backdrop-filter: blur(24px) saturate(1.8); -webkit-backdrop-filter: blur(24px) saturate(1.8); border: 1px solid rgba(255,255,255,.95); box-shadow: 0 14px 34px -14px #14171a4d, 0 1px 2px #14171a0f; }
+  .fr-mobile-nav-item { flex: 1; min-width: 0; height: 54px; border: none; border-radius: 27px; background: transparent; color: #6b737b; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; position: relative; padding: 0; cursor: pointer; font: inherit; font-size: 10.5px; transition: background .2s,color .2s; }
+  .fr-mobile-nav-item[aria-current='page'] { background: #e9ece8; color: #14171a; font-weight: 600; }
+  .fr-mobile-nav-item:active { background: #e9ece8; }
+  .fr-mobile-nav-icon { display: grid; place-items: center; }
+  .fr-mobile-nav-badge { position: absolute; top: 3px; left: calc(50% + 5px); min-width: 17px; height: 17px; padding: 0 4px; box-sizing: border-box; border-radius: 9px; background: oklch(.6 .19 28); color: white; font-size: 10px; font-weight: 600; display: grid; place-items: center; border: 1.5px solid #fff; }
+  .fr-mobile-nav--android { left: 0; right: 0; bottom: 0; height: calc(80px + env(safe-area-inset-bottom, 0px)); padding: 12px 4px env(safe-area-inset-bottom, 0px); align-items: flex-start; border: 0; border-top: 1px solid #14171a0f; border-radius: 0; background: rgba(247,248,246,.95); box-shadow: none; }
+  .fr-mobile-nav--android .fr-mobile-nav-item { height: 56px; gap: 4px; font-size: 12px; border-radius: 0; }
+  .fr-mobile-nav--android .fr-mobile-nav-item[aria-current='page'] { background: transparent; }
+  .fr-mobile-nav--android .fr-mobile-nav-icon { width: 64px; height: 32px; border-radius: 16px; transition: background .2s; }
+  .fr-mobile-nav--android .fr-mobile-nav-item[aria-current='page'] .fr-mobile-nav-icon { background: #e2e9e5; }
+  .fr-mobile-nav--android .fr-mobile-nav-badge { top: -2px; }
   .fr-sidebar {
     position: fixed !important; top: 0; left: 0; bottom: 0; z-index: 1700;
     width: min(300px, 86vw) !important; height: 100vh !important; height: 100dvh !important;
@@ -89,7 +114,7 @@ button { font-family: inherit; }
 
 /* Phones: one card per row, hero/map overlays stacked instead of overlapping. */
 @media (max-width: 599.98px) {
-  .fr-main h1 { font-size: 32px !important; }
+  .fr-main .fr-desktop-dashboard-view h1 { font-size: 32px !important; }
   .fr-row > * { flex-basis: 100% !important; min-width: 0 !important; }
 
   /* 3D heroes: intro, stats and readouts flow around a fixed-height scene. */

@@ -26,6 +26,8 @@ import { PropertyTimeline } from './PropertyTimeline';
 import { SMSRulesPanel } from './SMSRulesPanel';
 import { MonitoringContextPanel } from './MonitoringContextPanel';
 import { UtilityOutagePanel } from './UtilityOutagePanel';
+import { useMobileDashboard } from '@/lib/design/use-mobile-dashboard';
+import { MobilePropertyDetail } from '../mobile/MobilePropertyDetail';
 
 const HistoryView = dynamic(() => import('./HistoryView').then((module) => module.HistoryView));
 
@@ -45,6 +47,7 @@ export function PropertyDetail() {
   const ds = useDashboard();
   const smsRef = useRef<HTMLDivElement>(null);
   const editor = usePropertyEditor();
+  const mobile = useMobileDashboard();
   const id = params?.propertyId ? decodeURIComponent(params.propertyId) : undefined;
   const s = ds.property(id);
   if (!s) return null;
@@ -64,8 +67,14 @@ export function PropertyDetail() {
     if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 24, behavior: 'smooth' });
   };
 
+  if (mobile) return <MobilePropertyDetail d={d} historyOpen={historyOpen} history={historyOpen ? <HistoryView key={s.property.id} propertyId={s.property.id} mode={ds.mode} referenceTime={ds.portfolio.generatedAt} /> : null} onHistoryChange={(open) => {
+    const query = new URLSearchParams(searchParams.toString());
+    if (open) query.set('vy', 'historik'); else query.delete('vy');
+    router.replace(`${pathname}${query.size ? '?' + query.toString() : ''}`, { scroll: false });
+  }} onSwitch={switchTo} />;
+
   return (
-    <div data-screen-label="02 Property Detail" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 20, animation: 'frFade .45s ease both' }}>
+    <div className="fr-desktop-dashboard-view" data-screen-label="02 Property Detail" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 20, animation: 'frFade .45s ease both' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
         <div style={{ minWidth: 0 }}>
           <nav aria-label="Brödsmulor" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.text4 }}>

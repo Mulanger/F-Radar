@@ -1,6 +1,3 @@
-import { redirect } from 'next/navigation';
-import { demoPortfolio } from '@fastighetsradar/domain/fixtures';
+import { MobilePropertyIndex } from '@/components/mobile/MobilePropertyIndex';
 
-export default function DemoPropertiesIndex() {
-  redirect(`/demo/properties/${demoPortfolio.properties[0]!.property.id}`);
-}
+export default function DemoPropertiesIndex() { return <MobilePropertyIndex />; }

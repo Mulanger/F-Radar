@@ -1,11 +1,12 @@
 'use client';
 
+import styles from './PortfolioOverview.module.css';
 import type { OverviewVM } from '@/lib/view-models/overview';
 import { C, FONT_MONO, card, cardSub, cardTitle } from '@/lib/design/tokens';
 
 export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: boolean; onOpen: (id: string) => void }) {
   return (
-    <div style={{ ...card, flex: '1 1 380px', height: 460, boxSizing: 'border-box', padding: '20px 8px 8px 20px', display: 'flex', flexDirection: 'column' }}>
+    <div className={styles.feed} style={{ ...card, boxSizing: 'border-box', padding: '20px 8px 8px 20px', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 12, marginBottom: 12 }}>
         <div>
           <div style={cardTitle}>Händelseflöde</div>
@@ -43,7 +44,7 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13.5, lineHeight: 1.35, textWrap: 'pretty' }}>{f.title}</div>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, fontSize: 11.5, color: C.text4 }}>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, fontSize: 11.5, color: C.text4, flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: FONT_MONO, fontSize: 10.5, padding: '2px 6px', borderRadius: 5, background: C.chip, color: C.text2 }}>{f.src}</span>
                 {f.prop}
               </div>

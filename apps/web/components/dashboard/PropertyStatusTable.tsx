@@ -1,23 +1,17 @@
 'use client';
 
 import type { OverviewVM } from '@/lib/view-models/overview';
-import type { PropertySnapshot } from '@fastighetsradar/domain';
 import { C, FONT_MONO, card, cardSub, cardTitle } from '@/lib/design/tokens';
-import { Toggle } from '../ui/Toggle';
 import { IconChevronRight } from '../ui/icons';
 
-const COLS = 'minmax(210px,1.8fr) 112px minmax(190px,1.3fr) 150px 96px 130px 92px 60px 128px 56px 24px';
+const COLS = 'minmax(210px,1.8fr) 112px minmax(190px,1.3fr) 150px 96px 130px 92px 60px 128px 24px';
 
 export function PropertyStatusTable({
   vm,
-  smsInteractive,
   onOpen,
-  onToggleSms,
 }: {
   vm: OverviewVM;
-  smsInteractive: boolean;
   onOpen: (id: string) => void;
-  onToggleSms: (s: PropertySnapshot) => void;
 }) {
   return (
     <div style={{ ...card, padding: '20px 20px 8px' }}>
@@ -34,7 +28,7 @@ export function PropertyStatusTable({
             role="row"
             style={{ display: 'grid', gridTemplateColumns: COLS, gap: 12, padding: '10px 12px', fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.text4, borderBottom: '1px solid rgba(20,23,26,0.06)' }}
           >
-            {['Fastighet', 'Status', 'Väder nu', 'Officiell varning', 'Översvämning', 'I närheten', 'Luft', 'Larm', 'Riskpoäng', 'SMS', ''].map((h, i) => (
+            {['Fastighet', 'Status', 'Väder nu', 'Officiell varning', 'Översvämning', 'I närheten', 'Luft', 'Larm', 'Riskpoäng', ''].map((h, i) => (
               <div key={i} role="columnheader">{h}</div>
             ))}
           </div>
@@ -84,9 +78,6 @@ export function PropertyStatusTable({
                   <div style={{ height: 5, borderRadius: 3, width: r.riskW, background: r.riskC, transition: 'width 1s' }} />
                 </div>
                 <span style={{ fontFamily: FONT_MONO, fontSize: 12, width: 22, textAlign: 'right' }}>{r.risk}</span>
-              </div>
-              <div role="cell">
-                <Toggle on={r.smsOn} disabled={!smsInteractive} onToggle={() => onToggleSms(r.snapshot)} label={`SMS-larm för ${r.name}`} />
               </div>
               <IconChevronRight stroke={C.text4} />
             </div>

@@ -1,24 +1,31 @@
 'use client';
 
 import type { OverviewVM } from '@/lib/view-models/overview';
-import { C, smallCard } from '@/lib/design/tokens';
+import { C, glass } from '@/lib/design/tokens';
+import styles from './PortfolioOverview.module.css';
 import { IconAlert, IconBellSimple, IconBuildingSimple, IconMessage, IconRain, IconShield } from '../ui/icons';
 
 const kpiCard: React.CSSProperties = {
-  ...smallCard,
+  ...glass(0.72, 16),
+  borderRadius: 14,
+  padding: '10px 12px',
+  minWidth: 0,
+  minHeight: 84,
+  boxSizing: 'border-box',
+  boxShadow: '0 10px 28px -20px rgba(20,23,26,0.25)',
   display: 'flex',
   flexDirection: 'column',
-  gap: 8,
-  transition: 'transform .25s,box-shadow .25s',
+  gap: 6,
+  transition: 'transform .25s,box-shadow .25s,background .25s',
 };
-const big: React.CSSProperties = { fontSize: 34, fontWeight: 500, letterSpacing: '-0.035em', lineHeight: 1 };
-const foot: React.CSSProperties = { fontSize: 11.5, color: C.text4 };
+const big: React.CSSProperties = { fontSize: 22, fontWeight: 500, letterSpacing: '-0.035em', lineHeight: 1 };
+const foot: React.CSSProperties = { fontSize: 11, color: C.text4 };
 
 function KpiHead({ icon, bg, fg, label }: { icon: React.ReactNode; bg: string; fg: string; label: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: C.text3 }}>
-      <span style={{ width: 28, height: 28, borderRadius: 9, background: bg, display: 'grid', placeItems: 'center', color: fg }}>{icon}</span>
-      {label}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: C.text3, minWidth: 0 }}>
+      <span style={{ width: 20, height: 20, flexShrink: 0, borderRadius: 6, background: bg, display: 'grid', placeItems: 'center', color: fg }}>{icon}</span>
+      <span title={label} style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
     </div>
   );
 }
@@ -29,84 +36,75 @@ export function PortfolioKPIs({ vm }: { vm: OverviewVM }) {
   // Live data without connected sources: show "—", never 0 (0 would read as "no risk").
   const v = (ok: boolean, value: React.ReactNode) => (ok ? value : '—');
   return (
-    <div style={{ flex: '1 1 420px', display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 14 }}>
-      <div className="fr-hover-lift" style={kpiCard}>
-        <KpiHead icon={<IconBuildingSimple size={15} sw={1.8} />} bg={C.chip} fg={C.ink} label="Fastigheter totalt" />
+    <div className={styles.kpis}>
+      <div className={`fr-hover-lift ${styles.kpi}`} style={kpiCard} title={k.barLabel}>
+        <KpiHead icon={<IconBuildingSimple size={11} sw={1.8} />} bg={C.chip} fg={C.ink} label="Fastigheter totalt" />
         <div style={big}>{k.total}</div>
         <div style={{ display: 'flex', gap: 3, height: 6, marginTop: 'auto' }}>
           {k.bar.map((b) => (
             <div key={b.key} style={{ height: 6, borderRadius: 3, width: b.w, background: b.c }} />
           ))}
         </div>
-        <div style={foot}>{k.barLabel}</div>
       </div>
 
-      <div className="fr-hover-lift" style={kpiCard}>
-        <KpiHead icon={<IconBellSimple />} bg="oklch(0.95 0.035 30)" fg="oklch(0.56 0.17 28)" label="Aktiva larm" />
+      <div className={`fr-hover-lift ${styles.kpi}`} style={kpiCard}>
+        <KpiHead icon={<IconBellSimple size={11} />} bg="oklch(0.95 0.035 30)" fg="oklch(0.56 0.17 28)" label="Aktiva larm" />
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
           <div style={big}>{v(a.alerts, k.alerts)}</div>
           {k.spark && (
-            <svg width="90" height="30" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
+            <svg width="44" height="18" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
               <path d={k.spark} fill="none" stroke="oklch(0.6 0.17 28)" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
           )}
         </div>
-        <div style={{ ...foot, marginTop: 'auto' }}>
-          {k.alertsDelta ? (
-            <>
-              <span style={{ color: 'oklch(0.56 0.17 28)' }}>{k.alertsDelta}</span> {k.alertsSince}
-            </>
-          ) : (
-            a.alerts ? 'Ingen historik ännu' : 'Ej ansluten ännu'
-          )}
-        </div>
+        {!a.alerts && <div style={foot}>Ej ansluten ännu</div>}
       </div>
 
-      <div className="fr-hover-lift" style={kpiCard}>
-        <KpiHead icon={<IconShield />} bg="oklch(0.95 0.045 65)" fg="oklch(0.6 0.15 55)" label="Fastigheter med varning" />
+      <div className={`fr-hover-lift ${styles.kpi}`} style={kpiCard}>
+        <KpiHead icon={<IconShield size={11} />} bg="oklch(0.95 0.045 65)" fg="oklch(0.6 0.15 55)" label="Fastigheter med varning" />
         <div style={big}>
           {v(a.warnings || a.weather, k.atRisk)}
-          <span style={{ fontSize: 15, color: C.text4 }}> av {k.total}</span>
+          <span style={{ fontSize: 11, color: C.text4 }}> av {k.total}</span>
         </div>
-        <div style={{ display: 'flex', gap: 5, marginTop: 'auto' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 'auto' }}>
           {k.dots.map((d) => (
-            <span key={d.id} style={{ width: 12, height: 12, borderRadius: 4, background: d.c }} />
+            <span key={d.id} style={{ width: 8, height: 8, borderRadius: 2, background: d.c }} />
           ))}
         </div>
-        <div style={foot}>{a.warnings || a.weather ? 'Orange, röd varning eller VMA' : 'Status kräver anslutna källor'}</div>
+        {!a.warnings && !a.weather && <div style={foot}>Källor ej anslutna</div>}
       </div>
 
-      <div className="fr-hover-lift" style={kpiCard}>
-        <KpiHead icon={<IconAlert size={15} sw={1.8} />} bg="oklch(0.95 0.06 95)" fg="oklch(0.5 0.1 85)" label="Officiella varningar" />
+      <div className={`fr-hover-lift ${styles.kpi}`} style={kpiCard}>
+        <KpiHead icon={<IconAlert size={11} sw={1.8} />} bg="oklch(0.95 0.06 95)" fg="oklch(0.5 0.1 85)" label="Officiella varningar" />
         <div style={big}>{v(a.warnings, k.warnings)}</div>
         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 'auto' }}>
           {k.warnChips.map((w) => (
-            <span key={w.key} style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 8, background: w.bg, color: w.fg }}>{w.label}</span>
+            <span key={w.key} style={{ fontSize: 10, fontWeight: 500, padding: '2px 6px', borderRadius: 6, background: w.bg, color: w.fg }}>{w.label}</span>
           ))}
         </div>
-        <div style={foot}>{a.warnings ? `Berör ${k.warnAffected} fastigheter` : 'SMHI / Krisinformation ej anslutna ännu'}</div>
+        {!a.warnings && <div style={foot}>Källor ej anslutna</div>}
       </div>
 
-      <div className="fr-hover-lift" style={kpiCard}>
-        <KpiHead icon={<IconRain />} bg="oklch(0.95 0.03 230)" fg="oklch(0.52 0.1 235)" label="Väderhändelser idag" />
+      <div className={`fr-hover-lift ${styles.kpi}`} style={kpiCard}>
+        <KpiHead icon={<IconRain size={11} />} bg="oklch(0.95 0.03 230)" fg="oklch(0.52 0.1 235)" label="Väderhändelser idag" />
         <div style={big}>{v(a.weather, k.wx)}</div>
-        <div style={{ display: 'flex', gap: 6, marginTop: 'auto', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 4, marginTop: 'auto', flexWrap: 'wrap' }}>
           {k.wxSplit.map((x) => (
-            <span key={x.label} style={{ fontSize: 11.5, padding: '3px 8px', borderRadius: 8, background: C.chip, color: C.text2 }}>
-              {x.label} <b style={{ fontWeight: 600, color: C.ink }}>{x.n}</b>
+            <span key={x.label} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: C.chip, color: C.text2 }}>
+              {x.label} <b style={{ fontWeight: 600, color: C.ink }}>{a.weather ? x.n : '—'}</b>
             </span>
           ))}
         </div>
-        <div style={foot}>{a.weather ? 'Prognos över tröskelvärden kommande 24 h' : 'SMHI-prognos ej ansluten ännu'}</div>
+        {!a.weather && <div style={foot}>Prognos ej ansluten</div>}
       </div>
 
-      <div className="fr-hover-lift" style={kpiCard}>
-        <KpiHead icon={<IconMessage size={15} sw={1.8} />} bg="oklch(0.95 0.035 155)" fg="oklch(0.52 0.12 155)" label="Aktiva SMS-regler" />
+      <div className={`fr-hover-lift ${styles.kpi}`} style={kpiCard}>
+        <KpiHead icon={<IconMessage size={11} sw={1.8} />} bg="oklch(0.95 0.035 155)" fg="oklch(0.52 0.12 155)" label="Aktiva SMS-regler" />
         <div style={big}>{v(a.alerts, k.sms)}</div>
         <div style={{ height: 6, borderRadius: 3, background: C.chip, marginTop: 'auto', overflow: 'hidden' }}>
           <div style={{ height: 6, borderRadius: 3, background: 'oklch(0.65 0.13 155)', width: k.smsW, transition: 'width .8s' }} />
         </div>
-        <div style={foot}>{a.alerts ? k.smsSub : 'SMS-larm är inte aktiverade · inga SMS skickas'}</div>
+        {!a.alerts && <div style={foot}>SMS ej aktiverat</div>}
       </div>
     </div>
   );

@@ -1,10 +1,12 @@
 import { redirect } from 'next/navigation';
+import type { Viewport } from 'next';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { AppShell } from '@/components/shell/AppShell';
 import { LiveUnavailable } from '@/components/shell/LiveUnavailable';
 import { loadLivePortfolio } from '@/lib/data/portfolio';
 
 export const dynamic = 'force-dynamic';
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' };
 
 /**
  * Authenticated customer dashboard. No property data is requested until Clerk has
