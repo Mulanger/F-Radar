@@ -3,7 +3,7 @@ import type { ServerEnv } from '@fastighetsradar/config';
 import type { DataSourceStatus, Freshness, SourceId } from '@fastighetsradar/domain';
 import type { JobRow } from '@fastighetsradar/db';
 import { SOURCE_MANIFEST, resolveSourceStatuses } from '@fastighetsradar/integrations';
-import { aggregateUtilityJob } from './utility-outages';
+import { aggregateUtilityJob, failingUtilityOperators } from './utility-outages';
 
 /**
  * Runtime source status = configuration status (env + manifest) merged with collector job health.
@@ -67,8 +67,9 @@ export function freshnessOf(lastSuccess: Date | null, windowS: number | undefine
 
 export function resolveRuntimeStatuses(env: ServerEnv, jobs: JobRow[], now = new Date()): DataSourceStatus[] {
   const byJob = new Map(jobs.map((j) => [j.job_id, j]));
-  // One job per grid operator: the source row summarises them (oldest success, any failure).
+  // One job per grid operator: the source row summarises the collector (fails only when no operator delivers).
   const utility = aggregateUtilityJob(jobs);
+  const utilityOps = failingUtilityOperators(jobs);
   if (utility) byJob.set('utility_outages', utility);
   return resolveSourceStatuses(env).map((cfg) => {
     const job = byJob.get(cfg.sourceId);
@@ -100,6 +101,9 @@ export function resolveRuntimeStatuses(env: ServerEnv, jobs: JobRow[], now = new
     if (freshness !== 'fresh') return { ...common, status: 'stale', note: `Inaktuell – senast lyckad hämtning för länge sedan${job.last_error_code ? ` (${ERROR_TEXT[job.last_error_code] ?? job.last_error_code})` : ''}` };
     if (job.last_status === 'error') return { ...common, status: 'degraded', note: `Senaste hämtningen misslyckades (${ERROR_TEXT[job.last_error_code ?? ''] ?? 'fel'}); visar senast hämtade data` };
     if (job.last_status === 'partial') return { ...common, status: 'degraded', note: 'Ofullständig hämtning – vissa poster kunde inte kontrolleras' };
-    return { ...common, status: 'ok', note: null };
+    const note = cfg.sourceId === 'utility_outages' && utilityOps.failing > 0
+      ? `${utilityOps.failing} av ${utilityOps.total} nätbolag kunde inte kontrolleras – visas per fastighet`
+      : null;
+    return { ...common, status: 'ok', note };
   });
 }

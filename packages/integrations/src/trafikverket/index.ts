@@ -113,7 +113,11 @@ export function parseTrafikverket(raw: unknown): { events: NormalizedSourceEvent
       // The feed also contains ordinary ferry services. A timetable is not a disruption.
       if (ferry && (!x.Message?.trim() || x.IconId === 'ferryDepartureOnSchedule')) continue;
       const wkt = x.Geometry?.Line?.WGS84 ?? x.Geometry?.Point?.WGS84 ?? x.Geometry?.WGS84 ?? null;
-      if (!wkt || !WKT_OK.test(wkt)) {
+      // A deviation without any position (e.g. "Följ omledningsskyltar" attached to a roadwork situation)
+      // is normal in the feed and can never be located: ignored, not a parse failure. Only malformed
+      // geometry counts as skipped (which keeps the run partial and stops ending missing events).
+      if (!wkt) continue;
+      if (!WKT_OK.test(wkt)) {
         skipped++;
         continue;
       }

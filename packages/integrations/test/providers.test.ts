@@ -224,6 +224,24 @@ describe('Trafikverket', () => {
   it('surfaces API errors instead of returning an empty (falsely calm) list', () => {
     expect(parseTrafikverket({ RESPONSE: { RESULT: [{ ERROR: { MESSAGE: 'Invalid key' } }] } })).toEqual({ error: 'Invalid key' });
   });
+
+  it('ignores deviations without a position but counts malformed geometry as skipped', () => {
+    // Real feed shape 2026-11-15: a roadwork situation with a "Följ omledningsskyltar" deviation lacking Geometry.
+    const situation = (geometry: unknown) => ({
+      Id: 'SE_STA_TRISSID_1_1',
+      Deviation: [
+        { Id: 'A', MessageType: 'Vägarbete', MessageCode: 'Vägarbete', Geometry: { Point: { WGS84: 'POINT (18.05 59.37)' } } },
+        { Id: 'B', MessageType: 'Trafikmeddelande', MessageCode: 'Följ omledningsskyltar', MessageCodeValue: 'followDiversionSigns', ...(geometry ? { Geometry: geometry } : {}) },
+      ],
+    });
+    const ok = parseTrafikverket({ RESPONSE: { RESULT: [{ Situation: [situation(null)] }] } });
+    if ('error' in ok) throw new Error(ok.error);
+    expect(ok.events.map((e) => e.externalId)).toEqual(['A']);
+    expect(ok.skipped).toBe(0);
+    const bad = parseTrafikverket({ RESPONSE: { RESULT: [{ Situation: [situation({ WGS84: 'GARBAGE' })] }] } });
+    if ('error' in bad) throw new Error(bad.error);
+    expect(bad.skipped).toBe(1);
+  });
 });
 
 describe('SMHI MetObs', () => {

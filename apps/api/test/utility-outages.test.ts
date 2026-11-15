@@ -116,9 +116,32 @@ describe('collector jobs and health', () => {
       job('utility_outages:digpro:vax', { enabled: false, last_success_at: null }),
     ])!;
     expect(agg.job_id).toBe('utility_outages');
-    expect(agg.last_success_at!.getTime()).toBe(NOW.getTime() - 3600_000);
-    expect(agg.last_status).toBe('error');
+    // One failing operator does not fail the source: it is reported per operator and per property.
+    expect(agg.last_success_at!.getTime()).toBe(job('x').last_success_at!.getTime());
+    expect(agg.last_status).toBe('ok');
+    expect(agg.last_error_code).toBeNull();
+    // An operator that never succeeded (blocked host) does not make the source "never succeeded".
+    const blocked = aggregateUtilityJob([job('utility_outages:vattenfall'), job('utility_outages:digpro:hem', { last_success_at: null, last_status: 'error', last_error_code: 'network' })])!;
+    expect(blocked.last_status).toBe('ok');
+    expect(blocked.last_success_at).not.toBeNull();
+    // Nothing delivering → the source fails.
+    const down = aggregateUtilityJob([
+      job('utility_outages:vattenfall', { last_status: 'error', last_error_code: 'timeout' }),
+      job('utility_outages:digpro:hem', { last_success_at: null, last_status: 'error', last_error_code: 'network' }),
+    ])!;
+    expect(down.last_status).toBe('error');
+    expect(down.last_error_code).toBe('timeout');
     expect(aggregateUtilityJob([job('smhi_warnings')])).toBeNull();
+  });
+  it('keeps the source current while noting operators that could not be checked', async () => {
+    const { resolveRuntimeStatuses } = await import('../src/monitoring/status');
+    const env = loadServerEnv({ SOURCE_UTILITY_OUTAGES_ENABLED: 'true' });
+    const s = resolveRuntimeStatuses(env, [
+      job('utility_outages:vattenfall'),
+      job('utility_outages:digpro:hem', { last_success_at: null, last_status: 'error', last_error_code: 'network' }),
+    ], NOW).find((x) => x.sourceId === 'utility_outages')!;
+    expect(s.status).toBe('ok');
+    expect(s.note).toMatch(/^1 av \d+ nätbolag kunde inte kontrolleras/);
   });
   it('flags a feed that keeps failing to parse as "format_changed", other repeated failures as "unreachable"', () => {
     const env = loadServerEnv({ SOURCE_UTILITY_OUTAGES_ENABLED: 'true' });

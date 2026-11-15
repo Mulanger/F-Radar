@@ -158,20 +158,34 @@ export function resolveOperatorStatuses(env: ServerEnv, jobs: JobRow[], now: Dat
  * Source-level health for 'utility_outages' summarises the enabled operator jobs: the OLDEST last
  * success (so one stale operator makes the source stale) and 'error' when any operator's last run failed.
  */
+/**
+ * Source-level health of the outage collector as a whole. One operator failing (e.g. a grid company
+ * that blocks the server's network) must not mark the source "ej aktuell" for every customer: that is
+ * reported per operator (`attention`) and per property ("kunde inte kontrolleras – <bolag>").
+ * The source fails only when NO operator is delivering; freshness follows the newest success.
+ */
 export function aggregateUtilityJob(jobs: JobRow[]): JobRow | null {
   const ops = jobs.filter((j) => j.job_id.startsWith(UTILITY_JOB_PREFIX) && j.enabled);
   if (!ops.length) return null;
-  const successes = ops.map((j) => j.last_success_at);
-  const oldest = successes.some((s) => !s) ? null : successes.reduce((a, b) => (a!.getTime() < b!.getTime() ? a : b), successes[0]!);
+  const successes = ops.map((j) => j.last_success_at).filter((d): d is Date => !!d);
+  const newest = successes.length ? successes.reduce((a, b) => (a.getTime() > b.getTime() ? a : b)) : null;
+  const delivering = ops.filter((j) => j.last_status === 'ok' || j.last_status === 'partial');
   const failing = ops.find((j) => j.last_status === 'error');
+  const ran = ops.some((j) => j.last_status);
   return {
     ...ops[0]!,
     job_id: 'utility_outages',
-    last_success_at: oldest,
-    last_status: failing ? 'error' : ops.some((j) => j.last_status === 'partial') ? 'partial' : (ops[0]!.last_status ?? null),
-    last_error_code: failing?.last_error_code ?? null,
+    last_success_at: newest,
+    last_status: !ran ? null : delivering.length ? 'ok' : 'error',
+    last_error_code: delivering.length ? null : (failing?.last_error_code ?? null),
     interval_seconds: Math.min(...ops.map((j) => j.interval_seconds)),
   };
+}
+
+/** Enabled operators whose latest fetch failed (shown as a note on an otherwise healthy source). */
+export function failingUtilityOperators(jobs: JobRow[]): { failing: number; total: number } {
+  const ops = jobs.filter((j) => j.job_id.startsWith(UTILITY_JOB_PREFIX) && j.enabled);
+  return { failing: ops.filter((j) => j.last_status === 'error').length, total: ops.length };
 }
 
 /* ------------------------------------------------------------------ */
