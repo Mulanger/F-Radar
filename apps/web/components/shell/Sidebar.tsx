@@ -100,7 +100,7 @@ export function Sidebar() {
   return (
     <>
       <div className={`fr-mobilebar${pathname.startsWith(`${basePath}/properties/`) ? ' fr-mobilebar-detail' : ''}`}>
-        <Link href={`${basePath}/overview`} className="fr-mobile-brand" aria-label="FastighetsRadar – översikt"><span className="fr-mobile-brand-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="#fff" strokeWidth="1.7" /><circle cx="12" cy="12" r="3.5" fill="#7CC7DD" /></svg></span><span>FastighetsRadar</span></Link>
+        <Link href={`${basePath}/overview`} className="fr-mobile-brand" aria-label="FastighetsRadar – översikt"><LogoMark /><span>FastighetsRadar</span></Link>
         <div className="fr-mobilebar-actions">
         <Link href={`${basePath}/alerts`} className="fr-mobilebar-bell" aria-label="Aviseringar"><IconBell size={19} />{totalAlerts > 0 && <span className="fr-mobilebar-bell-dot" />}</Link>
         {isDemo ? <button
