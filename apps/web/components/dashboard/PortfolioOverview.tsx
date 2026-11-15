@@ -1,28 +1,35 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { buildOverviewVM, filterByGroup } from '@/lib/view-models/overview';
 import { C } from '@/lib/design/tokens';
 import { PortfolioHero3D } from './PortfolioHero3D';
-import { PortfolioKPIs } from './PortfolioKPIs';
 import { PortfolioMap } from '../maps/PortfolioMap';
 import { AlertFeed } from './AlertFeed';
 import { PropertyStatusTable } from './PropertyStatusTable';
 import { PortfolioAnalytics, UpcomingConditions } from './PortfolioAnalytics';
 import { EmptyPortfolio } from './EmptyPortfolio';
+import { MonitoringStatus } from './MonitoringStatus';
+import styles from './PortfolioOverview.module.css';
+import { useMobileDashboard } from '@/lib/design/use-mobile-dashboard';
+import { MobilePortfolioOverview } from '../mobile/MobilePortfolioOverview';
 
 /** Page 1 – Portfolio Overview (`/overview`). */
 export function PortfolioOverview() {
   const ds = useDashboard();
+  const [statusFull, setStatusFull] = useState(false);
   const { portfolio, ready, group, isSmsOn, isRuleOn } = ds;
   const vm = buildOverviewVM(portfolio, { ready, group, isSmsOn, isRuleOn });
   // Stable list identity so the map only refits when the filter actually changes.
   const mapList = useMemo(() => filterByGroup(portfolio, group), [portfolio, group]);
   const isDemo = ds.mode === 'demo';
+  const mobile = useMobileDashboard();
+
+  if (mobile) return <MobilePortfolioOverview vm={vm} />;
 
   return (
-    <div data-screen-label="01 Portfolio Overview" style={{ display: 'flex', flexDirection: 'column', gap: 20, animation: 'frFade .45s ease both' }}>
+    <div className="fr-desktop-dashboard-view" data-screen-label="01 Portfolio Overview" style={{ display: 'flex', flexDirection: 'column', gap: 20, animation: 'frFade .45s ease both' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontSize: 13, color: C.text3, display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -55,17 +62,21 @@ export function PortfolioOverview() {
         </div>
       </div>
 
-      <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+      <div className={styles.summaryRow}>
         <PortfolioHero3D vm={vm} isDemo={isDemo} />
-        <PortfolioKPIs vm={vm} />
-      </div>
-
-      <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-        <PortfolioMap list={mapList} legend={vm.legend} layers={ds.layers} onToggleLayer={ds.toggleLayer} onOpen={(id) => ds.openProperty(id)} />
         <AlertFeed vm={vm} isDemo={isDemo} onOpen={(id) => ds.openProperty(id)} />
       </div>
 
-      {vm.isEmpty ? <EmptyPortfolio /> : <PropertyStatusTable vm={vm} smsInteractive={ds.smsInteractive} onOpen={(id) => ds.openProperty(id)} onToggleSms={ds.toggleSms} />}
+      <div className={styles.mapRow}>
+        <PortfolioMap list={mapList} legend={vm.legend} layers={ds.layers} onToggleLayer={ds.toggleLayer} onOpen={(id) => ds.openProperty(id)} />
+        <MonitoringStatus vm={vm} onOpen={ds.openProperty} expanded={statusFull} onToggleFull={() => setStatusFull((v) => !v)} />
+      </div>
+
+      {vm.isEmpty ? <EmptyPortfolio /> : statusFull && (
+        <div id="portfolio-full-status" className={styles.fullTable}>
+          <PropertyStatusTable vm={vm} onOpen={(id) => ds.openProperty(id)} />
+        </div>
+      )}
 
       <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         <PortfolioAnalytics vm={vm} />

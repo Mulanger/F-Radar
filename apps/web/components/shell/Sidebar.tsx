@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { C, monoChip } from '@/lib/design/tokens';
 import { formatClock } from '@fastighetsradar/domain';
-import { IconAlert, IconAnalytics, IconBuilding, IconClose, IconDashboard, IconMap, IconMenu, IconMessage, IconSliders } from '../ui/icons';
+import { IconAlert, IconAnalytics, IconBuilding, IconClose, IconDashboard, IconMap, IconMessage, IconSliders, IconBell } from '../ui/icons';
 import { LogoMark } from '../ui/LogoMark';
+import { MobileNavigation } from '../mobile/MobileNavigation';
+import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
 
 const navItem: React.CSSProperties = {
   display: 'flex',
@@ -44,6 +46,7 @@ export function Sidebar() {
   // Below 900 px the sidebar becomes a slide-in drawer (see `.fr-sidebar` in globals.css);
   // on desktop this state has no visual effect.
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLElement>(null);
   const [menuPath, setMenuPath] = useState(pathname);
   if (menuPath !== pathname) {
     setMenuPath(pathname);
@@ -51,9 +54,23 @@ export function Sidebar() {
   }
   useEffect(() => {
     if (!menuOpen) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const media = window.matchMedia('(max-width: 899.98px)');
+    const onViewport = () => { if (!media.matches) setMenuOpen(false); };
+    media.addEventListener('change', onViewport);
+    menuRef.current?.querySelector<HTMLButtonElement>('button[aria-label="Stäng meny"]')?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); setMenuOpen(false); }
+      if (e.key !== 'Tab') return;
+      const items = Array.from(menuRef.current?.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), [tabindex="0"]') ?? []).filter(el => el.getClientRects().length > 0);
+      const first = items[0], last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+      if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+    };
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    return () => { document.removeEventListener('keydown', onKey); media.removeEventListener('change', onViewport); document.body.style.overflow = previousOverflow; previousFocus?.focus(); };
   }, [menuOpen]);
   const nav = (fn: () => void) => (e: React.MouseEvent) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
@@ -62,7 +79,9 @@ export function Sidebar() {
     fn();
   };
   const isSms = pathname === '/sms-rules';
-  const isOverview = !isSms && !pathname.startsWith(`${basePath}/properties`);
+  const isAlerts = pathname === `${basePath}/alerts`;
+  const isProperties = pathname.startsWith(`${basePath}/properties`);
+  const isOverview = !isSms && !isAlerts && !isProperties;
   const totalAlerts = portfolio.properties.reduce((a, s) => a + s.activeAlertCount, 0);
   const isDemo = mode === 'demo';
   // Health is judged over ENABLED monitoring sources only; deliberately disabled / not-yet-implemented
@@ -80,21 +99,28 @@ export function Sidebar() {
 
   return (
     <>
-      <div className="fr-mobilebar">
-        <Logo />
-        <button
+      <div className={`fr-mobilebar${pathname.startsWith(`${basePath}/properties/`) ? ' fr-mobilebar-detail' : ''}`}>
+        <Link href={`${basePath}/overview`} className="fr-mobile-brand" aria-label="FastighetsRadar – översikt"><span className="fr-mobile-brand-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="#fff" strokeWidth="1.7" /><circle cx="12" cy="12" r="3.5" fill="#7CC7DD" /></svg></span><span>FastighetsRadar</span></Link>
+        <div className="fr-mobilebar-actions">
+        <Link href={`${basePath}/alerts`} className="fr-mobilebar-bell" aria-label="Aviseringar"><IconBell size={19} />{totalAlerts > 0 && <span className="fr-mobilebar-bell-dot" />}</Link>
+        {isDemo ? <button
           type="button"
           onClick={() => setMenuOpen(true)}
-          aria-label="Öppna meny"
+          aria-label="Öppna profil och meny"
           aria-expanded={menuOpen}
           aria-controls="fr-sidebar"
-          style={menuBtn}
+          className="fr-mobile-profile"
         >
-          <IconMenu />
-        </button>
+          {portfolio.viewer.initials}
+        </button> : <UserButton appearance={{ elements: { userButtonAvatarBox: { width: 44, height: 44 } } }} />}
+        </div>
       </div>
       <div className={`fr-sidebar-backdrop${menuOpen ? ' fr-open' : ''}`} onClick={() => setMenuOpen(false)} aria-hidden="true" />
       <aside
+        ref={menuRef}
+        role={menuOpen ? 'dialog' : undefined}
+        aria-modal={menuOpen || undefined}
+        aria-label={menuOpen ? 'Meny och inställningar' : undefined}
         id="fr-sidebar"
         className={`fr-sidebar${menuOpen ? ' fr-open' : ''}`}
         style={{
@@ -116,20 +142,16 @@ export function Sidebar() {
             Översikt
           </Link>
           <Link
-            href={selectedId ? `${basePath}/properties/${encodeURIComponent(selectedId)}` : `${basePath}/overview`}
-            onClick={nav(() => (selectedId ? openProperty(selectedId) : goOverview()))}
-            aria-current={!isOverview && !isSms ? 'page' : undefined}
-            style={{ ...navItem, ...(!isOverview && !isSms ? navOn : navOff) }}
+            href={menuOpen ? `${basePath}/properties` : selectedId ? `${basePath}/properties/${encodeURIComponent(selectedId)}` : `${basePath}/overview`}
+            onClick={menuOpen ? () => setMenuOpen(false) : nav(() => (selectedId ? openProperty(selectedId) : goOverview()))}
+            aria-current={isProperties ? 'page' : undefined}
+            style={{ ...navItem, ...(isProperties ? navOn : navOff) }}
           >
             <IconBuilding />
             Fastigheter
             <span style={{ marginLeft: 'auto', fontSize: 12, color: C.text4 }}>{portfolio.properties.length}</span>
           </Link>
-          <PendingLink
-            icon={<IconAlert />}
-            label="Larm"
-            badge={totalAlerts > 0 ? <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: '#fff', background: 'oklch(0.6 0.18 28)', borderRadius: 20, padding: '2px 7px' }}>{totalAlerts}</span> : undefined}
-          />
+          <Link href={`${basePath}/alerts`} onClick={() => setMenuOpen(false)} aria-current={isAlerts ? 'page' : undefined} style={{ ...navItem, ...(isAlerts ? navOn : navOff) }}><IconAlert />Larm{totalAlerts > 0 && <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: '#fff', background: 'oklch(0.6 0.18 28)', borderRadius: 20, padding: '2px 7px' }}>{totalAlerts}</span>}</Link>
           <PendingLink icon={<IconMap />} label="Kartvy" />
           <PendingLink icon={<IconAnalytics />} label="Analys" />
           <div style={{ ...sectionLabel, padding: '22px 12px 8px' }}>Konfiguration</div>
@@ -138,6 +160,7 @@ export function Sidebar() {
         </nav>
   
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {!isDemo && <div className="fr-mobile-account"><UserButton /><OrganizationSwitcher hidePersonal afterSelectOrganizationUrl={`${basePath}/overview`} afterCreateOrganizationUrl={`${basePath}/overview`} afterLeaveOrganizationUrl="/onboarding" /></div>}
           <div style={{ borderRadius: 18, padding: 14, background: C.white, border: '1px solid rgba(20,23,26,0.05)', display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600 }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: isDemo ? C.demo : allOk ? C.live : 'oklch(0.6 0.15 55)', animation: 'frBreath 2.4s ease-in-out infinite' }} />
@@ -162,6 +185,7 @@ export function Sidebar() {
           </div>
         </div>
       </aside>
+      <MobileNavigation onSettings={() => setMenuOpen(true)} />
     </>
   );
 }

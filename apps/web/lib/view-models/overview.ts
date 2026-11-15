@@ -94,13 +94,18 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
   const top = [...flagged].sort((a, b) => STATUS_RANK[b.property.status] - STATUS_RANK[a.property.status] || worstRank(b) - worstRank(a))[0];
   const assessedN = STATUS_ORDER.reduce((a, k) => a + counts[k], 0);
   const unassessedN = list.length - assessedN;
+  /** `n` is null when nothing can be assessed (shown as "—", never 0). `label` is the worst status. */
   const status = (() => {
-    if (!list.length) return { headline: 'Inga fastigheter ännu', detail: 'Lägg till en fastighet för att starta bevakningen', c: SEV.unknown.c, fill: 0 };
-    if (!assessedN) return { headline: 'Status kan inte bedömas', detail: 'Varningskällorna är inte aktuella just nu', c: SEV.unknown.c, fill: 0 };
+    const base = { total: list.length, n: null as number | null, label: SEV.unknown.label, fill: 0, c: SEV.unknown.c };
+    if (!list.length) return { ...base, headline: 'Inga fastigheter ännu', detail: 'Lägg till en fastighet för att starta bevakningen' };
+    if (!assessedN) return { ...base, headline: 'Status kan inte bedömas', detail: 'Varningskällorna är inte aktuella just nu' };
     const tail = unassessedN ? ` · ${unassessedN} ej bedömda` : '';
     return {
+      ...base,
+      n: flagged.length,
       headline: `${flagged.length} av ${list.length} ${list.length === 1 ? 'fastighet' : 'fastigheter'} med varning`,
       detail: (top ? `Högst: ${top.property.name} · ${describeWorst(top)}` : 'Inga aktiva officiella varningar') + tail,
+      label: top ? sev(top.property.status).label : SEV.normal.label,
       c: top ? sev(top.property.status).c : SEV.normal.c,
       fill: flagged.length / list.length,
     };
