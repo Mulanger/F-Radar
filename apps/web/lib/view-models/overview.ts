@@ -31,7 +31,8 @@ const worstRank = (s: PropertySnapshot) => WARN_RANK[worstWarning(s)?.level ?? '
 /** "Orange varning (kraftig vind)" / "VMA (brand)" – the authority's own type text, first letter lower-cased. */
 function describeWorst(s: PropertySnapshot): string {
   const w = worstWarning(s);
-  if (!w) return sev(s.property.status).label;
+  // Status raised by an outage at the address (or another non-warning reason): use its stated reason.
+  if (!w) return s.property.statusReason ?? sev(s.property.status).label;
   const type = w.type.split(' — ')[0]!;
   const what = type.charAt(0).toLocaleLowerCase('sv') + type.slice(1);
   if (w.level === 'VMA') return `${w.geo.match === 'county' ? 'VMA i länet' : 'VMA'} (${what})`;

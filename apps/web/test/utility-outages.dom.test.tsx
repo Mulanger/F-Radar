@@ -2,8 +2,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import type { PropertySnapshot, PropertyUtilityStatus, UtilityOutageView } from '@fastighetsradar/domain';
-import { UtilityOutagePanel } from '@/components/properties/UtilityOutagePanel';
-import { buildUtilityOutageVM, outageShapes } from '@/lib/view-models/utility-outages';
+import { LocalEventsPanel } from '@/components/properties/LocalEventsPanel';
+import { outageEventsFor, outageShapes } from '@/lib/view-models/utility-outages';
+import type { DetailVM } from '@/lib/view-models/detail';
 import { SEV } from '@/lib/design/tokens';
 
 afterEach(cleanup);
@@ -48,86 +49,62 @@ const status = (o: Partial<PropertyUtilityStatus> = {}): PropertyUtilityStatus =
 });
 const snap = (u?: PropertyUtilityStatus) => ({ utilityOutages: u ? [u] : undefined }) as unknown as PropertySnapshot;
 
-describe('Elnät panel view-model', () => {
-  it('is hidden without an outage section (demo / old payload)', () => {
-    expect(buildUtilityOutageVM(snap()).available).toBe(false);
+describe('outages among the property events', () => {
+  it('lists nothing without matched outages – coverage lives in the risk factor', () => {
+    expect(outageEventsFor(snap())).toEqual([]);
+    expect(outageEventsFor(snap(status()))).toEqual([]);
   });
 
-  it('says "Inga registrerade avbrott" only for a monitored, current grid', () => {
-    expect(buildUtilityOutageVM(snap(status())).state).toMatchObject({ label: 'Inga registrerade avbrott', tone: SEV.normal });
-    expect(buildUtilityOutageVM(snap(status({ coverage: 'stale' }))).state!.label).toBe('Ej bedömd');
-    expect(buildUtilityOutageVM(snap(status({ coverage: 'not_monitored' }))).state!.label).toBe('Nätet bevakas inte ännu');
-    const unknown = buildUtilityOutageVM(snap(status({ coverage: 'unknown', operator: null }))).state!;
-    expect(unknown.label).toBe('Nätbolaget är okänt');
-    expect(unknown.detail).toMatch(/kan inte bekräftas/);
-  });
-
-  it('names the operator of an unmonitored grid and explains boundary cases', () => {
-    expect(buildUtilityOutageVM(snap(status({ coverage: 'not_monitored', operator: { id: 'ei:Kraftringen Nät AB', name: 'Kraftringen Nät AB', mapUrl: null } }))).state!.detail).toContain('Kraftringen Nät AB');
-    const border = buildUtilityOutageVM(snap(status({ coverage: 'unknown', operator: null, operatorCandidates: ['Vattenfall Eldistribution', 'Kraftringen Nät AB'] }))).state!;
-    expect(border.label).toBe('Osäkert nätbolag');
-    expect(border.detail).toContain('Vattenfall Eldistribution och Kraftringen Nät AB');
-    expect(buildUtilityOutageVM(snap(status())).footer).toContain('Energimarknadsinspektionen');
-  });
-
-  it('an unplanned outage is red and wins over coverage messages', () => {
-    const vm = buildUtilityOutageVM(snap(status({ coverage: 'stale', current: [view()] })));
-    expect(vm.state).toMatchObject({ label: 'Oplanerat strömavbrott', tone: SEV.critical });
-    expect(vm.current[0]).toMatchObject({ badge: 'Oplanerat', title: 'Oplanerat strömavbrott – Vattenfall Eldistribution' });
-    expect(vm.current[0]!.facts).toContainEqual(['Berörda kunder', '120']);
-  });
-
-  it('planned work is blue with its time window; restored is green', () => {
-    const vm = buildUtilityOutageVM(
+  it('lists only outages that cover the property (high/medium), never area or near matches', () => {
+    const rows = outageEventsFor(
       snap(
         status({
-          upcoming: [view({ id: 'p', kind: 'planned', state: 'upcoming', severity: 'monitor', plannedStart: '2026-11-30T08:00:00.000Z', plannedEnd: '2026-11-30T13:00:00.000Z', actualStart: null })],
-          recentlyRestored: [view({ id: 'r', state: 'restored', severity: 'info', restoredAt: '2026-11-14T15:00:00.000Z' })],
+          current: [view(), view({ id: 'area', matchMethod: 'outage_postal_area', precisionLevel: 'area', severity: null })],
+          nearby: [view({ id: 'near', matchMethod: 'outage_adjacent', precisionLevel: 'low', severity: null })],
         }),
       ),
     );
-    expect(vm.upcoming[0]).toMatchObject({ badge: 'Planerat', tone: SEV.monitor });
-    expect(vm.upcoming[0]!.facts[0]).toEqual(['Tid', '30/11 09:00–14:00']);
-    expect(vm.restored[0]).toMatchObject({ badge: 'Återställt', tone: SEV.normal, title: 'Strömmen är tillbaka enligt Vattenfall Eldistribution' });
+    expect(rows.map((r) => r.id)).toEqual(['e1']);
+    expect(rows[0]).toMatchObject({ kind: 'Ström', title: 'Oplanerat strömavbrott – Vattenfall Eldistribution', c: SEV.critical.c, operatorText: 'Felsökning pågår' });
+    expect(rows[0]!.when).toMatch(/^Oplanerat · start /);
   });
 
-  it('district heating rows join the panel, which is then titled "El och fjärrvärme"', () => {
+  it('orders ongoing, planned, then restored; district heating gets its own label', () => {
     const heat: PropertyUtilityStatus = { ...status({ coverage: 'unknown', operator: null }), utility: 'district_heating', upcoming: [view({ id: 'h', utility: 'district_heating', kind: 'planned', state: 'upcoming', severity: 'monitor', plannedStart: '2026-11-15T10:00:00.000Z', plannedEnd: '2026-11-16T01:00:00.000Z' })] };
-    const vm = buildUtilityOutageVM({ utilityOutages: [status(), heat] } as unknown as PropertySnapshot);
-    expect(vm.title).toBe('El och fjärrvärme');
-    expect(vm.upcoming[0]!.title).toBe('Planerat fjärrvärmeavbrott 15/11 11:00–16/11 02:00 – Vattenfall Eldistribution');
-    expect(vm.state!.label).toBe('Inga registrerade avbrott'); // power-grid coverage wording is unchanged
+    const rows = outageEventsFor({
+      utilityOutages: [status({ current: [view()], recentlyRestored: [view({ id: 'r', state: 'restored', severity: 'info', restoredAt: '2026-11-14T15:00:00.000Z' })] }), heat],
+    } as unknown as PropertySnapshot);
+    expect(rows.map((r) => [r.id, r.kind])).toEqual([['e1', 'Ström'], ['h', 'Fjärrvärme'], ['r', 'Ström']]);
+    expect(rows[1]!.title).toBe('Planerat fjärrvärmeavbrott 15/11 11:00–16/11 02:00 – Vattenfall Eldistribution');
+    expect(rows[2]).toMatchObject({ title: 'Strömmen är tillbaka enligt Vattenfall Eldistribution', c: SEV.normal.c });
   });
 
-  it('missing customer counts render as "—", never 0', () => {
-    const vm = buildUtilityOutageVM(snap(status({ current: [view({ affectedCustomers: null })] })));
-    expect(vm.current[0]!.facts).toContainEqual(['Berörda kunder', '—']);
-  });
-
-  it('map shapes only for outages with geometry; area/planned dashed', () => {
-    const shapes = outageShapes(snap(status({ current: [view()], upcoming: [view({ id: 'p', state: 'upcoming', kind: 'planned', severity: 'monitor' })], nearby: [view({ id: 'n', geometry: null })] })));
+  it('map shapes only for outages covering the property; planned dashed', () => {
+    const shapes = outageShapes(snap(status({
+      current: [view(), view({ id: 'a', precisionLevel: 'area', matchMethod: 'outage_postal_area' })],
+      upcoming: [view({ id: 'p', state: 'upcoming', kind: 'planned', severity: 'monitor' })],
+      nearby: [view({ id: 'n', precisionLevel: 'low' })],
+    })));
     expect(shapes.map((s) => [s.id, s.dashed])).toEqual([['e1', false], ['p', true]]);
   });
 });
 
-describe('<UtilityOutagePanel />', () => {
-  it('renders the red state, the operator’s own text and a source link', () => {
-    render(<UtilityOutagePanel vm={buildUtilityOutageVM(snap(status({ current: [view()] })))} />);
-    expect(screen.getByRole('status').textContent).toContain('Oplanerat strömavbrott');
+describe('<LocalEventsPanel /> with outages', () => {
+  const d = (outageEvents: ReturnType<typeof outageEventsFor>) =>
+    ({ live: null, avail: { events: true }, noEvents: true, events: [], crisisN: 0, trafficN: 0, otherN: 0, outageEvents }) as unknown as DetailVM;
+
+  it('shows an outage that covers the property with the operator text and a source link', () => {
+    render(<LocalEventsPanel d={d(outageEventsFor(snap(status({ current: [view()] }))))} />);
+    expect(screen.getByTestId('outage-event').textContent).toContain('Berör fastigheten');
     expect(screen.getByText(/Felsökning pågår/)).toBeTruthy();
-    const link = screen.getByRole('link', { name: /Källa: Vattenfall Eldistribution/ });
-    expect(link.getAttribute('rel')).toContain('noopener');
+    expect(screen.getByRole('link', { name: /Vattenfall Eldistribution · avbrottskarta/ }).getAttribute('rel')).toContain('noopener');
+    expect(screen.queryByText(/Inga rapporterade/)).toBeNull();
     expect(document.body.textContent).not.toMatch(/kris|fara|akut/i);
   });
 
-  it('lists near matches separately and says they are not confirmed', () => {
-    render(<UtilityOutagePanel vm={buildUtilityOutageVM(snap(status({ nearby: [view({ matchMethod: 'outage_adjacent', precisionLevel: 'low', severity: null, precisionLabel: 'Nära avbrottsområdet – inte bekräftat att fastigheten berörs' })] })))} />);
-    expect(screen.getByText(/I närheten – inte bekräftat/)).toBeTruthy();
-    expect(screen.getByRole('status').textContent).toContain('Inga registrerade avbrott');
-  });
-
-  it('renders nothing when unavailable', () => {
-    const { container } = render(<UtilityOutagePanel vm={buildUtilityOutageVM(snap())} />);
-    expect(container.innerHTML).toBe('');
+  it('keeps the empty state when nothing affects the property', () => {
+    render(<LocalEventsPanel d={d([])} />);
+    expect(screen.queryByTestId('outage-event')).toBeNull();
+    expect(screen.getByText(/Inga rapporterade/)).toBeTruthy();
   });
 });

@@ -17,7 +17,6 @@ import { NowcastPanel } from '../properties/NowcastPanel';
 import { ForecastDays } from '../properties/ForecastDays';
 import { MeasuredRainPanel } from '../properties/MeasuredRainPanel';
 import { MonitoringContextPanel } from '../properties/MonitoringContextPanel';
-import { UtilityOutagePanel } from '../properties/UtilityOutagePanel';
 import styles from './mobile.module.css';
 
 export function MobilePropertyDetail({ d, historyOpen, history, onHistoryChange, onSwitch }: {
@@ -62,7 +61,6 @@ export function MobilePropertyDetail({ d, historyOpen, history, onHistoryChange,
         {d.timeline.length ? d.timeline.map((t, i) => <div className={styles.timelineRow} key={`${t.time}-${i}`}><span className={styles.timelineDot} style={{ borderColor: t.c }} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.35 }}>{t.title}</div><div className={styles.meta} style={{ marginTop: 2 }}>{t.detail}</div></div><span className={styles.time}>{t.time}</span></div>) : <div className={styles.empty}>Ingen historik tillgänglig ännu.</div>}
       </div></MobileSection>
       <div className={styles.detailPanels}>
-        {d.outages.available && <UtilityOutagePanel vm={d.outages} />}
         <NowcastPanel d={d} /><ForecastDays d={d} /><MeasuredRainPanel d={d} />{d.live && <MonitoringContextPanel d={d} />}
       </div>
       <div className={styles.section}>

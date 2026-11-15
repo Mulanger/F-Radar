@@ -248,9 +248,10 @@ describe('property outage section and status', () => {
     expect(s.utilityOutages![0]!.upcoming[0]!.severity).toBe('monitor');
   });
 
-  it('postal-area matches are blue from 25 customers, smaller ones panel-only; near matches never raise status', () => {
+  it('postal-area and near matches never raise status – the property is not shown to be affected', () => {
     const area = withUtilityOutages(snap(), { outages: [row({ match_method: 'outage_postal_area', affected_customers: 60 })], concessions: [], operators: [op()] });
-    expect(area.property.status).toBe('monitor');
+    expect(area.property.status).toBe('normal');
+    expect(area.utilityOutages![0]!.current[0]!.severity).toBeNull();
     expect(area.utilityOutages![0]!.current[0]!.precisionLabel).toBe('I fastighetens postnummerområde – inte säkert att fastigheten berörs');
     const small = withUtilityOutages(snap(), { outages: [row({ match_method: 'outage_postal_area', affected_customers: 8 })], concessions: [], operators: [op()] });
     expect(small.property.status).toBe('normal');

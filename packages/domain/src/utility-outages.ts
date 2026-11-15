@@ -73,10 +73,10 @@ export function outageEffectiveSeverity(
   o: { kind: OutageKind; state: OutageState },
   level: OutageMatchPrecisionLevel,
 ): z.infer<typeof SeveritySchema> | null {
-  if (level === 'low') return null;
+  // Near or area-level matches (postal area, operating area) do not show that the property itself is
+  // affected: they stay off the feed and the status (the risk factor still notes them).
+  if (level === 'low' || level === 'area') return null;
   const ended = o.state === 'restored' || o.state === 'withdrawn';
-  // Area-level matches (postal area, operating area) only surface unplanned/unknown outages.
-  if (level === 'area') return o.kind === 'planned' ? null : o.state === 'ongoing' ? 'monitor' : ended ? 'info' : null;
   if (ended) return 'info';
   if (o.state === 'upcoming') return 'monitor';
   if (o.state === 'ongoing') {

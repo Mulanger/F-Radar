@@ -25,7 +25,6 @@ import { LocalEventsMap } from '../maps/LocalEventsMap';
 import { PropertyTimeline } from './PropertyTimeline';
 import { SMSRulesPanel } from './SMSRulesPanel';
 import { MonitoringContextPanel } from './MonitoringContextPanel';
-import { UtilityOutagePanel } from './UtilityOutagePanel';
 import { useMobileDashboard } from '@/lib/design/use-mobile-dashboard';
 import { MobilePropertyDetail } from '../mobile/MobilePropertyDetail';
 
@@ -183,12 +182,6 @@ export function PropertyDetail() {
         aria-hidden={historyOpen}
         inert={historyOpen}
       >
-      {d.outages.available && (
-        <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-          <UtilityOutagePanel vm={d.outages} />
-        </div>
-      )}
-
       <EnvironmentalMetrics d={d} isDemo={isDemo} />
 
       <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>

@@ -28,7 +28,28 @@ export function LocalEventsPanel({ d }: { d: DetailVM }) {
           {d.live ? 'Händelsekällorna (Krisinformation, Trafikverket) kunde inte hämtas – händelser i närheten kan inte visas.' : 'Händelsekällorna (Krisinformation, Trafikverket) är inte anslutna – händelser i närheten kan inte visas.'}
         </div>
       )}
-      {d.avail.events && d.noEvents && <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: C.text3, borderRadius: 14, background: '#F8F9F8' }}>{d.live ? 'Inga rapporterade händelser i närheten' : 'Inga rapporterade störningar i närheten'}</div>}
+      {d.avail.events && d.noEvents && !d.outageEvents.length && <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: C.text3, borderRadius: 14, background: '#F8F9F8' }}>{d.live ? 'Inga rapporterade händelser i närheten' : 'Inga rapporterade störningar i närheten'}</div>}
+      {/* Outages that cover the property itself come first; coverage status lives in the risk factor. */}
+      {d.outageEvents.map((o) => (
+        <div key={o.id} data-testid="outage-event" style={{ display: 'flex', gap: 12, padding: '12px 0', borderTop: '1px solid rgba(20,23,26,0.05)' }}>
+          <span style={{ flexShrink: 0, alignSelf: 'flex-start', fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 7, background: o.bg, color: o.c }}>{o.kind}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, lineHeight: 1.35 }}>{o.title}</div>
+            <div style={{ fontSize: 11.5, color: C.text2, marginTop: 3 }}>
+              <b style={{ fontWeight: 600 }}>Berör fastigheten</b> · {o.when}
+            </div>
+            {o.operatorText && <div style={{ fontSize: 11.5, color: C.text3, marginTop: 3 }}>Nätbolaget: ”{o.operatorText}”</div>}
+            <div style={{ fontSize: 11, color: C.text4, marginTop: 3 }}>
+              Källa:{' '}
+              {o.sourceUrl ? (
+                <a href={o.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>{o.source}</a>
+              ) : (
+                o.source
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
       {d.events.map((e) => (
         <div key={e.id} style={{ display: 'flex', gap: 12, padding: '12px 0', borderTop: '1px solid rgba(20,23,26,0.05)' }}>
           <span style={{ flexShrink: 0, alignSelf: 'flex-start', fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 7, background: e.bg, color: e.c }}>{e.kind}</span>

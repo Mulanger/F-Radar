@@ -8,7 +8,7 @@ import type { ChartMetric } from '../state/dashboard-state';
 import { chartOf } from './chart';
 import { eventCounts, rulesFor, type RuleView } from './rules';
 import { availability, forecastValues, mappedExposure, metricValue, show, sourceLine } from './snapshot';
-import { buildUtilityOutageVM, outageShapes } from './utility-outages';
+import { outageEventsFor, outageShapes } from './utility-outages';
 
 /**
  * Property Detail view-model – port of the prototype's `renderVals()` detail section.
@@ -138,8 +138,8 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
 
   return {
     id: p.id,
-    /** Grid operator outages (docs/plans/stromavbrott.md). */
-    outages: buildUtilityOutageVM(s),
+    /** Grid operator outages that cover the property – listed with its events (docs/plans/stromavbrott.md). */
+    outageEvents: outageEventsFor(s),
     outageShapes: outageShapes(s),
     avail,
     origin: p.origin,

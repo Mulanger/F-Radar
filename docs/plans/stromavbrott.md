@@ -342,6 +342,11 @@ inget SMS.
 "Strömavbrott i fastighetens postnummerområde (23 av 605 anläggningar) – {nätbolag}", **blå** / `monitor`,
 fastighetsstatus `monitor`. Planerat → syns bara i fastighetspanelen. **Inget SMS.**
 
+> **Ändrat 2026-11-15:** avbrottspanelen på fastighetssidan är borttagen. Avbrott listas bland
+> fastighetens händelser och i händelseflödet **endast när fastigheten berörs** (precision hög/medel).
+> Låg- och områdesprecision ger ingen flödesrad, ingen status och ingen rad på fastighetssidan;
+> riskfaktorn "El och värme" visar fortfarande bevakningsstatus (och ger 5 p för områdesträffar).
+
 Fastighetens slutliga status = högsta av officiella varningar och avbrott (`STATUS_RANK` i
 `snapshot.ts`). Status-texten (`reason`) anger den högsta orsaken, t.ex.
 "Oplanerat strömavbrott registrerat av Vattenfall Eldistribution". Avbrottskällans hälsa får **inte**
