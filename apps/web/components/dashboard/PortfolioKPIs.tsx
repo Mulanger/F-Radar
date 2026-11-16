@@ -4,7 +4,7 @@ import type { OverviewVM } from '@/lib/view-models/overview';
 import { C, glass } from '@/lib/design/tokens';
 import styles from './PortfolioOverview.module.css';
 import { IconAlert, IconBellSimple, IconBuildingSimple, IconMessage, IconRain } from '../ui/icons';
-import { OnOffBadge } from '../ui/OnOffBadge';
+import { OnOffToggle } from '../ui/OnOffToggle';
 
 const kpiCard: React.CSSProperties = {
   ...glass(0.72, 16),
@@ -34,13 +34,13 @@ function KpiHead({ icon, bg, fg, label }: { icon: React.ReactNode; bg: string; f
   );
 }
 
-/** Small first-row card: icon and value side by side, the label underneath at full width. */
+/** Small first-row card: icon left, value centred in the space beside it, the label underneath at full width. */
 function SmallKpi({ icon, bg, fg, label, title, children }: { icon: React.ReactNode; bg: string; fg: string; label: string; title?: string; children: React.ReactNode }) {
   return (
     <div className={`fr-hover-lift ${styles.kpi}`} style={smallCard} title={title}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, minHeight: 22 }}>
-        <span style={{ width: 20, height: 20, flexShrink: 0, borderRadius: 6, background: bg, display: 'grid', placeItems: 'center', color: fg }}>{icon}</span>
-        {children}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 26 }}>
+        <span style={{ width: 26, height: 26, flexShrink: 0, borderRadius: 8, background: bg, display: 'grid', placeItems: 'center', color: fg }}>{icon}</span>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'center' }}>{children}</div>
       </div>
       <div style={{ fontSize: 11, color: C.text3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
     </div>
@@ -64,7 +64,7 @@ export function PortfolioKPIs({ vm }: { vm: OverviewVM }) {
 
       <SmallKpi icon={<IconMessage size={11} sw={1.8} />} bg="oklch(0.95 0.035 155)" fg="oklch(0.52 0.12 155)" label="SMS-larm" title={a.alerts ? k.smsSub : 'SMS-larm är inte aktiverade · inga SMS skickas'}>
         <span role="img" aria-label={k.smsOn ? 'SMS-larm aktiverat' : 'SMS-larm inte aktiverat'} style={{ display: 'grid' }}>
-          <OnOffBadge on={k.smsOn} />
+          <OnOffToggle on={k.smsOn} width={32} />
         </span>
       </SmallKpi>
 
