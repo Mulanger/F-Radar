@@ -4,6 +4,7 @@ import type { OverviewVM } from '@/lib/view-models/overview';
 import { C, glass } from '@/lib/design/tokens';
 import styles from './PortfolioOverview.module.css';
 import { IconAlert, IconBellSimple, IconBuildingSimple, IconMessage, IconRain } from '../ui/icons';
+import { OnOffBadge } from '../ui/OnOffBadge';
 
 const kpiCard: React.CSSProperties = {
   ...glass(0.72, 16),
@@ -46,21 +47,6 @@ function SmallKpi({ icon, bg, fg, label, title, children }: { icon: React.ReactN
   );
 }
 
-/** Round check / cross badge for the SMS on/off state. */
-function OnOff({ on }: { on: boolean }) {
-  const c = on ? 'oklch(0.58 0.13 155)' : 'oklch(0.6 0.18 27)';
-  return (
-    <span
-      aria-hidden="true"
-      style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', background: `color-mix(in oklch, ${c} 14%, white)`, boxShadow: `inset 0 0 0 1px color-mix(in oklch, ${c} 28%, white)` }}
-    >
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-        {on ? <path d="M5 12.5l4.5 4.5L19 7.5" /> : <path d="M7 7l10 10M17 7L7 17" />}
-      </svg>
-    </span>
-  );
-}
-
 export function PortfolioKPIs({ vm }: { vm: OverviewVM }) {
   const k = vm.kpi;
   const a = vm.avail;
@@ -78,7 +64,7 @@ export function PortfolioKPIs({ vm }: { vm: OverviewVM }) {
 
       <SmallKpi icon={<IconMessage size={11} sw={1.8} />} bg="oklch(0.95 0.035 155)" fg="oklch(0.52 0.12 155)" label="SMS-larm" title={a.alerts ? k.smsSub : 'SMS-larm är inte aktiverade · inga SMS skickas'}>
         <span role="img" aria-label={k.smsOn ? 'SMS-larm aktiverat' : 'SMS-larm inte aktiverat'} style={{ display: 'grid' }}>
-          <OnOff on={k.smsOn} />
+          <OnOffBadge on={k.smsOn} />
         </span>
       </SmallKpi>
 
