@@ -239,6 +239,8 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
       sms: smsN,
       smsW: ready ? (smsN / Math.max(1, smsMax)) * 100 + '%' : '0%',
       smsSub: `${smsProps.length} av ${list.length} fastigheter med SMS aktiverat`,
+      /** SMS alerts switched on for at least one property (hero shows a check / cross, not a count). */
+      smsOn: avail.alerts && smsProps.length > 0,
     },
     legend: [
       ...STATUS_ORDER.map((k) => ({ key: k as string, label: SEV[k].label, c: SEV[k].c, n: counts[k] })),
