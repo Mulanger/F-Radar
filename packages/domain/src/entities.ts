@@ -365,6 +365,8 @@ export const UpcomingConditionSchema = z.object({
   id: z.string(),
   label: z.string(),
   where: z.string(),
+  /** The property the condition applies to (portfolio-level rows without one are shown unfiltered). */
+  propertyId: z.string().optional(),
   when: z.string(),
   value: z.string(),
   tone: z.enum(['monitor', 'critical', 'warning', 'cold']),

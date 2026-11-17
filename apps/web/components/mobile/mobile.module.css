@@ -94,11 +94,6 @@
 .factor { display: grid; grid-template-columns: 86px minmax(0,1fr) 18px; align-items: center; gap: 10px; font-size: 13px; }
 .factorTrack { height: 9px; border-radius: 5px; background: #f4f5f4; overflow: hidden; }
 .factorTrack div { height: 100%; border-radius: inherit; transition: width 1s; }
-.upcoming { padding: 4px 16px; }
-.upcomingRow { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid #14171a0d; }
-.upcomingRow:last-child { border: 0; }
-.upcomingBar { width: 4px; align-self: stretch; border-radius: 2px; flex-shrink: 0; }
-.upcomingValue { font-size: 21px; font-weight: 500; letter-spacing: -.03em; max-width: 38%; overflow-wrap: anywhere; text-align: right; }
 .empty { padding: 24px 14px; text-align: center; font-size: 13px; line-height: 1.5; color: #6b737b; }
 .mapDialog { width: calc(100% - 24px); max-width: 800px; padding: 16px; box-sizing: border-box; border: 1px solid #14171a0d; border-radius: 26px; background: #f3f4f2; color: #14171a; max-height: calc(100dvh - 24px); overflow: auto; }
 .mapDialog::backdrop { background: #14171a66; backdrop-filter: blur(6px); }

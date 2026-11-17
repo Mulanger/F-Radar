@@ -3,6 +3,7 @@ import type { Portfolio, PropertySnapshot, PropertyStatus } from '@fastighetsrad
 import { formatClock, formatLongDate, formatNumber, type RiskFactorKey } from '@fastighetsradar/domain';
 import { C, EXPOSURE_SV, SEV, STATUS_ORDER, WL, riskStyle } from '../design/tokens';
 import { smooth } from './chart';
+import { buildUpcomingEvents } from './upcoming';
 import { rulesFor, eventCounts } from './rules';
 import { availability, isOfficialLevel, mappedExposure, metricValue, n0, riskScore, show } from './snapshot';
 
@@ -190,8 +191,6 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     active: ui.group === g.id,
   }));
 
-  const upcomingTone = { monitor: SEV.monitor.c, critical: SEV.critical.c, warning: SEV.warning.c, cold: 'oklch(0.6 0.1 265)' };
-
   const avail = availability(portfolio);
   const assessed = STATUS_ORDER.reduce((a, k) => a + counts[k], 0);
   const notAssessed = list.length - assessed;
@@ -249,7 +248,9 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     feed,
     rows,
     cats: catsRaw.map((c) => ({ ...c, w: ready ? (c.n / catMax) * 100 + '%' : '0%' })),
-    upcoming: portfolio.upcoming.map((u) => ({ ...u, source:u.sourceId ? (u.sourceId==='krisinformation'?'Krisinformation':'SMHI')+' · uppdaterad '+formatClock(u.sourceUpdatedAt) : null, c: upcomingTone[u.tone] })),
+    upcoming: buildUpcomingEvents(portfolio, new Set(list.map((s) => s.property.id))),
+    /** Reference "now" for grouping upcoming rows into today / tomorrow (source clock in demo). */
+    referenceAt: portfolio.generatedAt,
   };
 }
 

@@ -8,7 +8,8 @@ import { PortfolioHero3D } from './PortfolioHero3D';
 import { PortfolioMap } from '../maps/PortfolioMap';
 import { AlertFeed } from './AlertFeed';
 import { PropertyStatusTable } from './PropertyStatusTable';
-import { PortfolioAnalytics, UpcomingConditions } from './PortfolioAnalytics';
+import { PortfolioAnalytics } from './PortfolioAnalytics';
+import { UpcomingPanel } from '../upcoming/UpcomingPanel';
 import { EmptyPortfolio } from './EmptyPortfolio';
 import { MonitoringStatus } from './MonitoringStatus';
 import styles from './PortfolioOverview.module.css';
@@ -79,8 +80,8 @@ export function PortfolioOverview() {
       )}
 
       <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+        <UpcomingPanel vm={vm} />
         <PortfolioAnalytics vm={vm} />
-        <UpcomingConditions vm={vm} />
       </div>
     </div>
   );

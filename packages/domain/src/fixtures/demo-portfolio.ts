@@ -474,11 +474,15 @@ export const demoPortfolio: Portfolio = {
   ],
   properties: snapshots,
   feed,
+  // Same shape as the live builder (apps/api buildUpcoming): ids `<kind>-<propertyId>`, one property each.
   upcoming: [
-    { id: 'u1', label: 'Kraftigt regn väntas', where: 'Nacka Strand och Hammarby', when: 'tors 13 nov · 06:00–20:00', value: '22 mm', tone: 'monitor', origin: 'demo_fixture' },
-    { id: 'u2', label: 'Hårdast vind väntas', where: 'Augustendal Brygga', when: 'I natt · kulmen runt 03:00', value: '25 m/s', tone: 'critical', origin: 'demo_fixture' },
-    { id: 'u3', label: 'Kallaste området', where: 'Bromma · Ulvsunda', when: 'tors 13 nov · 05:00', value: '−3,4°', tone: 'cold', origin: 'demo_fixture' },
-    { id: 'u4', label: 'Nästa officiella varningsperiod', where: 'SMHI gul — kraftigt regn', when: 'Börjar tors 06:00 · 4 fastigheter', value: '15 h', tone: 'warning', origin: 'demo_fixture' },
+    { id: `official-${demoPropertyId('augustendal-brygga')}-wind`, label: 'Kraftig vind', where: 'Augustendal Brygga', propertyId: demoPropertyId('augustendal-brygga'), when: 'ons 18:00', validAt: t('18:00'), sourceId: 'smhi_warnings', sourceUpdatedAt: t('14:30'), official: true, value: 'Orange varning', tone: 'warning', origin: 'demo_fixture' },
+    { id: `rain-${demoPropertyId('sjostaden-kaj')}`, label: 'Kraftig nederbörd (prognos, 24 h)', where: 'Sjöstaden Kaj', propertyId: demoPropertyId('sjostaden-kaj'), when: 'Närmaste 24 h', validAt: DEMO_REFERENCE_TIME, sourceId: 'smhi_forecast', sourceUpdatedAt: t('14:00'), value: '22 mm', tone: 'monitor', origin: 'demo_fixture' },
+    { id: `official-${demoPropertyId('sjostaden-kaj')}-water`, label: 'Höga vattenstånd', where: 'Sjöstaden Kaj', propertyId: demoPropertyId('sjostaden-kaj'), when: 'ons 22:00', validAt: t('22:00'), sourceId: 'smhi_warnings', sourceUpdatedAt: t('14:30'), official: true, value: 'Gul varning', tone: 'monitor', origin: 'demo_fixture' },
+    { id: `freeze-thaw-${demoPropertyId('ulvsunda-lager')}`, label: 'Växlande plus- och minusgrader (prognos)', where: 'Ulvsunda Lager', propertyId: demoPropertyId('ulvsunda-lager'), when: 'ons 23:00', validAt: t('23:00'), sourceId: 'smhi_forecast', sourceUpdatedAt: t('14:00'), value: '3 gånger', explanation: 'kan ge is och istappar på tak', tone: 'cold', origin: 'demo_fixture' },
+    { id: `frost-${demoPropertyId('ulvsunda-lager')}`, label: 'Minusgrader (prognos)', where: 'Ulvsunda Lager', propertyId: demoPropertyId('ulvsunda-lager'), when: 'tors 04:00', validAt: t('04:00', THU), sourceId: 'smhi_forecast', sourceUpdatedAt: t('14:00'), value: '-3°', tone: 'cold', origin: 'demo_fixture' },
+    { id: `intense-rain-${demoPropertyId('augustendal-brygga')}`, label: 'Intensivt regn (prognos)', where: 'Augustendal Brygga', propertyId: demoPropertyId('augustendal-brygga'), when: 'tors 08:00', validAt: t('08:00', THU), sourceId: 'smhi_forecast', sourceUpdatedAt: t('14:00'), value: 'ca 9 mm på en timme', tone: 'warning', origin: 'demo_fixture' },
+    { id: `gust-${demoPropertyId('strandhuset')}`, label: 'Hårda vindbyar (prognos)', where: 'Strandhuset', propertyId: demoPropertyId('strandhuset'), when: 'tors 10:00', validAt: t('10:00', THU), sourceId: 'smhi_forecast', sourceUpdatedAt: t('14:00'), value: '17 m/s', tone: 'monitor', origin: 'demo_fixture' },
   ],
   sources: [
     { sourceId: 'smhi_forecast', label: 'SMHI', status: 'demo', lastSuccessAt: null, lastCheckedAt: null, freshness: 'unknown', errorCode: null, note: 'Demodata' },

@@ -1,12 +1,12 @@
 'use client';
 
 import type { OverviewVM } from '@/lib/view-models/overview';
-import { C, card, cardSub, cardTitle } from '@/lib/design/tokens';
+import { card, cardSub, cardTitle } from '@/lib/design/tokens';
 
 /** Properties affected per risk factor (status overview lives in the hero). */
 export function PortfolioAnalytics({ vm }: { vm: OverviewVM }) {
   return (
-    <div style={{ ...card, flex: '1.5 1 620px', padding: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div style={{ ...card, flex: '1 1 340px', alignSelf: 'flex-start', padding: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div>
         <div style={cardTitle}>Påverkade fastigheter per kategori</div>
         <div
@@ -27,33 +27,6 @@ export function PortfolioAnalytics({ vm }: { vm: OverviewVM }) {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-export function UpcomingConditions({ vm }: { vm: OverviewVM }) {
-  return (
-    <div style={{ ...card, flex: '1 1 380px', padding: 22, display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ marginBottom: 8 }}>
-        <div style={cardTitle}>Kommande förhållanden</div>
-        <div style={cardSub}>Prognos och officiell information · kommande 48 h</div>
-      </div>
-      {vm.upcoming.length === 0 && (
-        <div style={{ fontSize: 13, color: C.text3, padding: '12px 0' }}>
-          {!vm.avail.weather ? 'Prognos otillgänglig' : 'Inga tillgängliga prognoser över de valda tröskelvärdena under de närmaste 48 h'}
-        </div>
-      )}
-      {vm.upcoming.map((u) => (
-        <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderTop: '1px solid rgba(20,23,26,0.05)' }}>
-          <div style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, background: u.c }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, color: C.text3 }}>{u.label}</div>
-            <div style={{ fontSize: 14, fontWeight: 500, marginTop: 2 }}>{u.where}</div>
-            <div style={{ fontSize: 12, color: C.text4, marginTop: 2 }}>{u.when}</div>{u.explanation && <div style={{fontSize:11,color:C.text3,marginTop:2}}>{u.explanation}</div>}{u.source && <div style={{fontSize:11,color:C.text4,marginTop:2}}>{u.source}</div>}
-          </div>
-          <div style={{ fontSize: u.value.length > 12 ? 14 : 22, fontWeight: 500, letterSpacing: '-0.03em', whiteSpace: 'normal', maxWidth:'45%', overflowWrap:'anywhere' }}>{u.value}</div>
-        </div>
-      ))}
     </div>
   );
 }
