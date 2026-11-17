@@ -7,8 +7,8 @@ import styles from './mobile.module.css';
 export function MobileKPIs({ vm }: { vm: OverviewVM }) {
   const k = vm.kpi, a = vm.avail;
   const head = (icon: React.ReactNode, label: string, bg: string, color: string) => <div className={styles.kpiHead}><span className={styles.kpiIcon} style={{ background: bg, color }}>{icon}</span>{label}</div>;
-  // Small first-row card: icon left, value centred in the space beside it, the label underneath at full width.
-  const small = (icon: React.ReactNode, label: string, bg: string, color: string, value: React.ReactNode, title?: string) => <div className={styles.kpi} style={{ gridColumn: 'span 2', padding: 12, gap: 8 }} title={title}><div style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 28 }}><span className={styles.kpiIcon} style={{ background: bg, color }}>{icon}</span><div style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'center' }}>{value}</div></div><div className={styles.kpiHead} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>{label}</div></div>;
+  // Small first-row card; its layout adapts to the card's own width (see .smallInner in mobile.module.css).
+  const small = (icon: React.ReactNode, label: string, bg: string, color: string, value: React.ReactNode, title?: string) => <div className={`${styles.kpi} ${styles.smallKpi}`} title={title}><div className={styles.smallInner}><span className={styles.kpiIcon} style={{ background: bg, color }}>{icon}</span><div className={styles.smallValue}>{value}</div><div className={styles.smallLabel}>{label}</div></div></div>;
   return <div className={styles.kpis} style={{ gridTemplateColumns: 'repeat(6,minmax(0,1fr))' }}>
     {small(<IconBuildingSimple size={14} />, 'Fastigheter', C.chip, C.ink, <div className={styles.kpiValue} style={{ fontSize: 24 }}>{k.total}</div>, k.barLabel)}
     {small(<IconBellSimple size={14} />, 'Aktiva larm', 'oklch(.95 .035 30)', 'oklch(.56 .17 28)', <div className={styles.kpiValue} style={{ fontSize: 24 }}>{a.alerts ? k.alerts : '—'}</div>)}
