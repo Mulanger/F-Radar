@@ -185,7 +185,7 @@ export function registerUtilityOutageTests(pool: pg.Pool) {
       assert.equal(n.rows[0].n, 1);
     });
 
-    it('postal-area outages never create feed rows or a status (the property is not shown to be affected)', async () => {
+    it('postal-area outages: blue feed row from 25 customers (with caveat), none below, never SMS precision', async () => {
       const f = await fixture();
       const big = outage({ precision: 'postal_area', affectedCustomers: 60 });
       const small = outage({ precision: 'postal_area', affectedCustomers: 8 });
@@ -193,8 +193,9 @@ export function registerUtilityOutageTests(pool: pg.Pool) {
       await rematchUtilityOutages(pool);
       const mBig = await matchesFor(big.externalId);
       assert.ok(mBig.every((x) => x.match_method === 'outage_postal_area'));
-      assert.equal(mBig.find((x) => x.property_id === f.inside.id)?.effective_severity, null);
-      assert.equal((await changesFor(big.externalId)).length, 0, 'area outage: no feed rows');
+      assert.equal(mBig.find((x) => x.property_id === f.inside.id)?.effective_severity, 'monitor');
+      const cBig = await changesFor(big.externalId);
+      assert.ok(cBig.length > 0 && cBig.every((x) => x.severity === 'monitor' && x.headline.endsWith('– i fastighetens postnummerområde')));
       assert.equal((await changesFor(small.externalId)).length, 0, 'small area outage: no feed rows');
       assert.ok((await matchesFor(small.externalId)).every((x) => x.effective_severity === null), 'but listed for the panel');
     });

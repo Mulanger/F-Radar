@@ -346,6 +346,12 @@ fastighetsstatus `monitor`. Planerat → syns bara i fastighetspanelen. **Inget 
 > fastighetens händelser och i händelseflödet **endast när fastigheten berörs** (precision hög/medel).
 > Låg- och områdesprecision ger ingen flödesrad, ingen status och ingen rad på fastighetssidan;
 > riskfaktorn "El och värme" visar fortfarande bevakningsstatus (och ger 5 p för områdesträffar).
+>
+> **Ändrat 2026-11-17:** områdesprecision visas igen enligt stycket ovan. Ett pågående oplanerat avbrott i
+> fastighetens postnummer- eller driftområde (minst 25 berörda kunder) ger en blå flödesrad och status
+> `monitor`, och listas bland fastighetens händelser med förbehållet "inte säkert att fastigheten berörs"
+> (aldrig "Berör fastigheten"). Planerat arbete på områdesnivå visas inte. Fortfarande **inget SMS**.
+> Skäl: Ellevio publicerar bara postnummerområden, så nästan alla Stockholmsfastigheter blev tysta vid avbrott.
 
 Fastighetens slutliga status = högsta av officiella varningar och avbrott (`STATUS_RANK` i
 `snapshot.ts`). Status-texten (`reason`) anger den högsta orsaken, t.ex.

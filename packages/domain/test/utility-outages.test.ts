@@ -26,7 +26,10 @@ describe('outage precision → severity (docs/plans/stromavbrott.md §5.3)', () 
   it('red only for an unplanned ongoing outage with high precision', () => {
     expect(outageEffectiveSeverity({ kind: 'unplanned', state: 'ongoing' }, 'high')).toBe('critical');
     expect(outageEffectiveSeverity({ kind: 'unplanned', state: 'ongoing' }, 'medium')).toBe('warning');
-    expect(outageEffectiveSeverity({ kind: 'unplanned', state: 'ongoing' }, 'area')).toBeNull();
+    // Area level (e.g. Ellevio postal areas): blue, never orange/red.
+    expect(outageEffectiveSeverity({ kind: 'unplanned', state: 'ongoing' }, 'area')).toBe('monitor');
+    expect(outageEffectiveSeverity({ kind: 'unplanned', state: 'restored' }, 'area')).toBe('info');
+    expect(outageEffectiveSeverity({ kind: 'planned', state: 'ongoing' }, 'area')).toBeNull();
     expect(outageEffectiveSeverity({ kind: 'planned', state: 'ongoing' }, 'high')).toBe('warning');
     expect(outageEffectiveSeverity({ kind: 'planned', state: 'upcoming' }, 'high')).toBe('monitor');
     expect(outageEffectiveSeverity({ kind: 'unknown', state: 'ongoing' }, 'high')).toBe('warning');

@@ -2,6 +2,7 @@ import type { ServerEnv } from '@fastighetsradar/config';
 import {
   isPositionConfirmed,
   outageEffectiveSeverity,
+  outageFeedTitle,
   outageHeadline,
   outageMatchLevel,
   outagePrecisionLabel,
@@ -297,9 +298,12 @@ export function withUtilityOutages(s: PropertySnapshot, inputs: UtilityInputs): 
     if (STATUS_RANK[st] > STATUS_RANK[status]) {
       status = st;
       raised = true;
+      const headline = outageHeadline({ utility: v.utility, kind: v.kind, state: v.state, plannedStart: v.plannedStart, plannedEnd: v.plannedEnd }, v.operatorName);
       reason = v.kind === 'unplanned' && v.precisionLevel === 'high'
         ? `Oplanerat ${utilityNoun(v.utility)} registrerat av ${v.operatorName}`
-        : outageHeadline({ utility: v.utility, kind: v.kind, state: v.state, plannedStart: v.plannedStart, plannedEnd: v.plannedEnd }, v.operatorName);
+        : v.precisionLevel === 'area'
+          ? outageFeedTitle(headline, v.precisionLevel, v.matchMethod, v.placeLabel)
+          : headline;
     }
   }
   const counted = sections.flatMap((u) => u.current).filter((v) => v.severity === 'critical' || v.severity === 'warning').length;

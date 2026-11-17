@@ -73,10 +73,13 @@ export function outageEffectiveSeverity(
   o: { kind: OutageKind; state: OutageState },
   level: OutageMatchPrecisionLevel,
 ): z.infer<typeof SeveritySchema> | null {
-  // Near or area-level matches (postal area, operating area) do not show that the property itself is
-  // affected: they stay off the feed and the status (the risk factor still notes them).
-  if (level === 'low' || level === 'area') return null;
+  // Near matches do not show that the property itself is affected: panel/risk factor only.
+  if (level === 'low') return null;
   const ended = o.state === 'restored' || o.state === 'withdrawn';
+  // Area-level matches (postal area, operating area; ≥ AREA_FEED_MIN_CUSTOMERS) surface ongoing
+  // unplanned/unknown outages as blue 'monitor' with a caveat – never red/orange, never SMS.
+  // Planned work at area level is not shown (re-enabled 2026-11-17 after a missed Ellevio outage).
+  if (level === 'area') return o.kind === 'planned' ? null : o.state === 'ongoing' || o.state === 'unknown' ? 'monitor' : ended ? 'info' : null;
   if (ended) return 'info';
   if (o.state === 'upcoming') return 'monitor';
   if (o.state === 'ongoing') {

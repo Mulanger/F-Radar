@@ -248,11 +248,15 @@ describe('property outage section and status', () => {
     expect(s.utilityOutages![0]!.upcoming[0]!.severity).toBe('monitor');
   });
 
-  it('postal-area and near matches never raise status – the property is not shown to be affected', () => {
+  it('an unplanned outage in the postal area gives Info with a caveat; small area and near matches never raise status', () => {
     const area = withUtilityOutages(snap(), { outages: [row({ match_method: 'outage_postal_area', affected_customers: 60 })], concessions: [], operators: [op()] });
-    expect(area.property.status).toBe('normal');
-    expect(area.utilityOutages![0]!.current[0]!.severity).toBeNull();
+    expect(area.property.status).toBe('monitor');
+    expect(area.property.statusReason).toBe('Oplanerat strömavbrott – Vattenfall Eldistribution – i fastighetens postnummerområde');
+    expect(area.activeAlertCount).toBe(0);
+    expect(area.utilityOutages![0]!.current[0]!.severity).toBe('monitor');
     expect(area.utilityOutages![0]!.current[0]!.precisionLabel).toBe('I fastighetens postnummerområde – inte säkert att fastigheten berörs');
+    const plannedArea = withUtilityOutages(snap(), { outages: [row({ match_method: 'outage_postal_area', affected_customers: 60, kind: 'planned' })], concessions: [], operators: [op()] });
+    expect(plannedArea.property.status).toBe('normal');
     const small = withUtilityOutages(snap(), { outages: [row({ match_method: 'outage_postal_area', affected_customers: 8 })], concessions: [], operators: [op()] });
     expect(small.property.status).toBe('normal');
     expect(small.utilityOutages![0]!.nearby).toHaveLength(1);

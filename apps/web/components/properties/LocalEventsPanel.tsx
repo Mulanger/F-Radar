@@ -29,14 +29,14 @@ export function LocalEventsPanel({ d }: { d: DetailVM }) {
         </div>
       )}
       {d.avail.events && d.noEvents && !d.outageEvents.length && <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: C.text3, borderRadius: 14, background: '#F8F9F8' }}>{d.live ? 'Inga rapporterade händelser i närheten' : 'Inga rapporterade störningar i närheten'}</div>}
-      {/* Outages that cover the property itself come first; coverage status lives in the risk factor. */}
+      {/* Outages come first: those that cover the property, then (with a caveat) ongoing ones in its postal/operating area. */}
       {d.outageEvents.map((o) => (
         <div key={o.id} data-testid="outage-event" style={{ display: 'flex', gap: 12, padding: '12px 0', borderTop: '1px solid rgba(20,23,26,0.05)' }}>
           <span style={{ flexShrink: 0, alignSelf: 'flex-start', fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 7, background: o.bg, color: o.c }}>{o.kind}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13.5, lineHeight: 1.35 }}>{o.title}</div>
             <div style={{ fontSize: 11.5, color: C.text2, marginTop: 3 }}>
-              <b style={{ fontWeight: 600 }}>Berör fastigheten</b> · {o.when}
+              {o.areaOnly ? <span style={{ color: C.text3 }}>{o.scope}</span> : <b style={{ fontWeight: 600 }}>{o.scope}</b>} · {o.when}
             </div>
             {o.operatorText && <div style={{ fontSize: 11.5, color: C.text3, marginTop: 3 }}>Nätbolaget: ”{o.operatorText}”</div>}
             <div style={{ fontSize: 11, color: C.text4, marginTop: 3 }}>

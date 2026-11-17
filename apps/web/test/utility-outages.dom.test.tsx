@@ -55,17 +55,24 @@ describe('outages among the property events', () => {
     expect(outageEventsFor(snap(status()))).toEqual([]);
   });
 
-  it('lists only outages that cover the property (high/medium), never area or near matches', () => {
+  it('lists outages that cover the property and, with a caveat, ongoing ones in its postal area – never near matches', () => {
     const rows = outageEventsFor(
       snap(
         status({
-          current: [view(), view({ id: 'area', matchMethod: 'outage_postal_area', precisionLevel: 'area', severity: null })],
+          current: [
+            view(),
+            view({ id: 'area', operatorName: 'Ellevio', matchMethod: 'outage_postal_area', precisionLevel: 'area', severity: 'monitor', affectedCustomers: 223, precisionLabel: 'I fastighetens postnummerområde – inte säkert att fastigheten berörs' }),
+            // Planned work at area level has no severity and is not listed.
+            view({ id: 'area-planned', kind: 'planned', matchMethod: 'outage_postal_area', precisionLevel: 'area', severity: null }),
+          ],
           nearby: [view({ id: 'near', matchMethod: 'outage_adjacent', precisionLevel: 'low', severity: null })],
         }),
       ),
     );
-    expect(rows.map((r) => r.id)).toEqual(['e1']);
-    expect(rows[0]).toMatchObject({ kind: 'Ström', title: 'Oplanerat strömavbrott – Vattenfall Eldistribution', c: SEV.critical.c, operatorText: 'Felsökning pågår' });
+    expect(rows.map((r) => r.id)).toEqual(['e1', 'area']);
+    expect(rows[0]).toMatchObject({ kind: 'Ström', title: 'Oplanerat strömavbrott – Vattenfall Eldistribution', c: SEV.critical.c, operatorText: 'Felsökning pågår', scope: 'Berör fastigheten', areaOnly: false });
+    expect(rows[1]).toMatchObject({ title: 'Oplanerat strömavbrott – Ellevio – i fastighetens postnummerområde', c: SEV.monitor.c, scope: 'I fastighetens postnummerområde – inte säkert att fastigheten berörs', areaOnly: true });
+    expect(rows[1]!.when).toMatch(/· 223 kunder berörda$/);
     expect(rows[0]!.when).toMatch(/^Oplanerat · start /);
   });
 
@@ -100,6 +107,14 @@ describe('<LocalEventsPanel /> with outages', () => {
     expect(screen.getByRole('link', { name: /Vattenfall Eldistribution · avbrottskarta/ }).getAttribute('rel')).toContain('noopener');
     expect(screen.queryByText(/Inga rapporterade/)).toBeNull();
     expect(document.body.textContent).not.toMatch(/kris|fara|akut/i);
+  });
+
+  it('never says "Berör fastigheten" for an outage known only by postal area', () => {
+    const area = view({ id: 'a', operatorName: 'Ellevio', matchMethod: 'outage_postal_area', precisionLevel: 'area', severity: 'monitor', precisionLabel: 'I fastighetens postnummerområde – inte säkert att fastigheten berörs' });
+    render(<LocalEventsPanel d={d(outageEventsFor(snap(status({ current: [area] }))))} />);
+    const row = screen.getByTestId('outage-event').textContent!;
+    expect(row).toContain('inte säkert att fastigheten berörs');
+    expect(row).not.toContain('Berör fastigheten');
   });
 
   it('keeps the empty state when nothing affects the property', () => {
