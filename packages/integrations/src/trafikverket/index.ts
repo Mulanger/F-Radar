@@ -17,7 +17,7 @@ import type { AdapterContext, AdapterResult, NormalizedSourceEvent } from '../ty
  */
 export const TRAFIKVERKET_ATTRIBUTION = 'Källa: Trafikverket (CC0)';
 export const TRAFIKVERKET_API_URL = 'https://api.trafikinfo.trafikverket.se/v2/data.json';
-/** Fallback radius for a point without its own (the organizations' default distance is 500 m). */
+/** Minimum fetch radius: deviations are found by their point, their stretch can reach much further. */
 export const TRAFIKVERKET_RADIUS_M = 2_000;
 export const TRAFIKVERKET_POINTS_PER_REQUEST = 20;
 

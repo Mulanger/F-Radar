@@ -36,6 +36,7 @@ import {
   SCB_TABLE,
   SGU_ATTRIBUTION,
   TRAFIKVERKET_POINTS_PER_REQUEST,
+  TRAFIKVERKET_RADIUS_M,
   fetchHydrology, fetchHydrologyReference,
   fetchMetObsStationSeries,
   fetchOceanography,
@@ -146,22 +147,28 @@ async function runKrisinformation(ctx: JobContext): Promise<JobResult> {
 
 /**
  * Query points for Trafikverket: nearby properties share one point (~1 km grid) to keep requests
- * small. The shared point's radius covers every member's own distance (its radius plus how far it
- * lies from the shared point), so no property misses an event within its organization's distance.
- * Deviations are found by their own point; their stretch can reach further, so +200 m margin.
+ * small. The shared point's radius covers every member (its radius plus how far it lies from the
+ * shared point).
+ *
+ * Trafikverket filters on each deviation's POINT, while we match on its whole stretch: a 5 km
+ * roadwork can pass 100 m from a property with its point 3 km away. So the fetch radius is never
+ * below TRAFIKVERKET_RADIUS_M (2 km, as before distances were configurable) and always has a margin
+ * above the organization's distance – a stretch that is no longer fetched would be ended.
  */
+const fetchRadius = (distanceM: number) => Math.max(distanceM, TRAFIKVERKET_RADIUS_M) + 500;
+
 export function trafikverketQueryPoints(targets: Array<{ lat: number; lon: number; trafficRadiusM: number }>): Array<{ lat: number; lon: number; radiusM: number }> {
   const cells = new Map<string, { lat: number; lon: number; radiusM: number }>();
   for (const t of targets) {
     const key = `${t.lat.toFixed(2)},${t.lon.toFixed(2)}`;
     const c = cells.get(key);
     if (!c) {
-      cells.set(key, { lat: t.lat, lon: t.lon, radiusM: t.trafficRadiusM + 200 });
+      cells.set(key, { lat: t.lat, lon: t.lon, radiusM: fetchRadius(t.trafficRadiusM) });
       continue;
     }
     const dx = (t.lon - c.lon) * 111_320 * Math.cos((c.lat * Math.PI) / 180);
     const dy = (t.lat - c.lat) * 110_540;
-    c.radiusM = Math.max(c.radiusM, Math.ceil(t.trafficRadiusM + 200 + Math.hypot(dx, dy)));
+    c.radiusM = Math.max(c.radiusM, Math.ceil(fetchRadius(t.trafficRadiusM) + Math.hypot(dx, dy)));
   }
   return [...cells.values()];
 }

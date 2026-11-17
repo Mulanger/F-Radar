@@ -84,11 +84,17 @@ describe('Trafikverket distance (Inställningar)', () => {
       { lat: 57.7, lon: 11.9, trafficRadiusM: 100 },
     ]);
     expect(pts).toHaveLength(2);
-    expect(pts[0]!.radiusM).toBeGreaterThanOrEqual(3000 + 200 + 150);
-    expect(pts[0]!.radiusM).toBeLessThan(3000 + 200 + 200);
-    expect(pts[1]!.radiusM).toBe(300);
+    expect(pts[0]!.radiusM).toBeGreaterThanOrEqual(3000 + 500 + 150);
+    expect(pts[0]!.radiusM).toBeLessThan(3000 + 500 + 200);
     const q = buildTrafikverketQuery('k', pts);
-    expect(q).toContain('radius="300m"');
-    expect(q).toMatch(/radius="33\d\dm"/);
+    expect(q).toMatch(/radius="36\d\dm"/);
+  });
+
+  it('never fetches less than 2 km: a long stretch near the property can have its point far away', () => {
+    // Regression: with 500 m + margin, 4–8 km roadworks passing ~110 m from a property were no longer
+    // fetched and so were wrongly ended.
+    const [p] = trafikverketQueryPoints([{ lat: 59.3, lon: 18.0, trafficRadiusM: 100 }]);
+    expect(p!.radiusM).toBe(2500);
+    expect(trafikverketQueryPoints([{ lat: 59.3, lon: 18.0, trafficRadiusM: 500 }])[0]!.radiusM).toBe(2500);
   });
 });
