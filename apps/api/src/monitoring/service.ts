@@ -7,6 +7,7 @@ import {
   listOrgUtilityOutages,
   listProperties,
   listRecentChangesForOrg,
+  listPropertyActivity,
   loadOrgMonitoring,
   rematchEvents,
   rematchUtilityOutages,
@@ -115,6 +116,12 @@ export class MonitoringService {
 
   async changes(t: TenantContext, limit: number) {
     return listRecentChangesForOrg(this.db, t.organizationId, limit);
+  }
+
+  /** Short activity log for one property; null when the property is not in the organization. */
+  async activity(t: TenantContext, id: string) {
+    if (!(await getProperty(this.db, t, id))) return null;
+    return listPropertyActivity(this.db, t.organizationId, id);
   }
 
   async history(t: TenantContext, id: string, period: HistoryPeriod) {

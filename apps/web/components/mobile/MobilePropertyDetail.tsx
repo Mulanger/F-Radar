@@ -17,12 +17,14 @@ import { NowcastPanel } from '../properties/NowcastPanel';
 import { ForecastDays } from '../properties/ForecastDays';
 import { MeasuredRainPanel } from '../properties/MeasuredRainPanel';
 import { MonitoringContextPanel } from '../properties/MonitoringContextPanel';
+import { usePropertyTimeline } from '../properties/use-property-timeline';
 import styles from './mobile.module.css';
 
 export function MobilePropertyDetail({ d, historyOpen, history, onHistoryChange, onSwitch }: {
   d: DetailVM; historyOpen: boolean; history: React.ReactNode; onHistoryChange: (open: boolean) => void; onSwitch: (id: string) => void;
 }) {
   const ds = useDashboard();
+  const timeline = usePropertyTimeline(d);
   const editor = usePropertyEditor();
   const config = useMemo(() => ({ ...detailSceneConfig(d.floors, d.hex, d.floodExposure), shift: 0, fit: { top: 30, bottom: 26, side: 12 } }), [d.floors, d.hex, d.floodExposure]);
   return <div className={styles.page} data-screen-label="Mobil fastighetssida">
@@ -58,7 +60,7 @@ export function MobilePropertyDetail({ d, historyOpen, history, onHistoryChange,
       </MobileSection>
       <div className={styles.detailPanels}><div className={styles.detailMap}><LocalEventsMap d={d} /></div><LocalEventsPanel d={d} /></div>
       <MobileSection title="Tidslinje" subtitle="Varningar, larm och avslutade händelser"><div className={`${styles.surface} ${styles.timeline}`}>
-        {d.timeline.length ? d.timeline.map((t, i) => <div className={styles.timelineRow} key={`${t.time}-${i}`}><span className={styles.timelineDot} style={{ borderColor: t.c }} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.35 }}>{t.title}</div><div className={styles.meta} style={{ marginTop: 2 }}>{t.detail}</div></div><span className={styles.time}>{t.time}</span></div>) : <div className={styles.empty}>Ingen historik tillgänglig ännu.</div>}
+        {timeline.entries.length ? timeline.entries.map((t, i) => <div className={styles.timelineRow} key={`${t.time}-${i}`}><span className={styles.timelineDot} style={{ borderColor: t.c }} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.35 }}>{t.title}</div><div className={styles.meta} style={{ marginTop: 2 }}>{t.detail}</div></div><span className={styles.time}>{t.time}</span></div>) : <div className={styles.empty}>{timeline.emptyText}</div>}
       </div></MobileSection>
       <div className={styles.detailPanels}>
         <NowcastPanel d={d} /><ForecastDays d={d} /><MeasuredRainPanel d={d} />{d.live && <MonitoringContextPanel d={d} />}

@@ -45,7 +45,7 @@ export function sinceLabel(validFrom: string, nowIso: string, sv: boolean): stri
 
 /**
  * DEMO-ONLY timeline. The prototype assembled this list with hardcoded clock times.
- * Live mode must render the API's short activity log instead (IMPLEMENTATION.md §2.2).
+ * Live properties load the API's short activity log instead (usePropertyTimeline, IMPLEMENTATION.md §2.2).
  */
 export function buildDemoTimeline(s: PropertySnapshot, rules: RuleView[], smsOn: boolean) {
   const tl: Array<{ time: string; title: string; detail: string; c: string }> = [];

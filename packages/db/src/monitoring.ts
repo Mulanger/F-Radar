@@ -1,4 +1,4 @@
-import { HISTORY, WEATHER_WATER, stationMatchDistance } from '@fastighetsradar/domain';
+import { ACTIVITY, HISTORY, WEATHER_WATER, stationMatchDistance, type ActivityItem } from '@fastighetsradar/domain';
 import { aggregateStoredHistory } from './history';
 import { applyUtilityOutageRetention } from './utility-outages';
 import { createHash } from 'node:crypto';
@@ -763,6 +763,39 @@ export async function listRecentChangesForOrg(db: Queryable, organizationId: str
     [organizationId, limit],
   );
   return rows;
+}
+
+/**
+ * TENANT read: a property's short activity log ("Tidslinje") – stored monitoring changes plus SMS
+ * alerts that named the property, newest first. Traffic (several changes a day, already listed under
+ * local events) and regional news are left out so warnings stay visible: Krisinformation only as VMA.
+ */
+export async function listPropertyActivity(db: Queryable, organizationId: string, propertyId: string, days: number = ACTIVITY.days, limit: number = ACTIVITY.limit): Promise<ActivityItem[]> {
+  const [changes, sms] = await Promise.all([
+    db.query<{ id: string; source_id: string; change_type: 'new' | 'updated' | 'ended' | 'cancelled'; severity: string; headline: string; created_at: Date; level: string | null; attribution: string | null }>(
+      `SELECT c.id::text, c.source_id, c.change_type, c.severity, c.headline, c.created_at, e.level, e.attribution
+         FROM monitoring_changes c LEFT JOIN source_events e ON e.id = c.event_id
+        WHERE c.organization_id = $1 AND c.property_id = $2 AND c.created_at > now() - make_interval(days => $3)
+          AND (c.source_id IN ('smhi_warnings', 'utility_outages') OR (c.source_id = 'krisinformation' AND c.severity = 'critical'))
+        ORDER BY c.created_at DESC, c.id DESC LIMIT $4`,
+      [organizationId, propertyId, days, limit],
+    ),
+    db.query<{ id: string; rule_name: string; status: string; is_test: boolean; at: Date; recipients: number }>(
+      `SELECT min(n.id::text) AS id, n.rule_name, n.status, n.is_test, date_trunc('minute', n.created_at) AS at, count(*)::int AS recipients
+         FROM notification_outbox n
+         JOIN notification_properties np ON np.organization_id = n.organization_id AND np.notification_id = n.id
+        WHERE n.organization_id = $1 AND np.property_id = $2 AND n.created_at > now() - make_interval(days => $3)
+          AND n.status NOT IN ('queued', 'processing', 'retry')
+        GROUP BY n.rule_name, n.status, n.is_test, date_trunc('minute', n.created_at)
+        ORDER BY at DESC LIMIT $4`,
+      [organizationId, propertyId, days, limit],
+    ),
+  ]);
+  const items: ActivityItem[] = [
+    ...changes.rows.map((r) => ({ kind: 'change' as const, id: `c${r.id}`, at: r.created_at.toISOString(), sourceId: r.source_id, changeType: r.change_type, severity: r.severity, level: r.level, headline: r.headline, attribution: r.attribution })),
+    ...sms.rows.map((r) => ({ kind: 'sms' as const, id: `s${r.id}`, at: r.at.toISOString(), ruleName: r.rule_name, status: r.status, recipients: r.recipients, isTest: r.is_test })),
+  ];
+  return items.sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit);
 }
 
 /* Shared public radar-grid cache. Reads for snapshots remain organization scoped above. */

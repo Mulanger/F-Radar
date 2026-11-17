@@ -1,5 +1,5 @@
 import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
-import { HistoryQuerySchema, historyPeriod, portfolioRisk, PropertyIdParamSchema, type StreamUpdate } from '@fastighetsradar/domain';
+import { ACTIVITY, HistoryQuerySchema, historyPeriod, portfolioRisk, PropertyIdParamSchema, type StreamUpdate } from '@fastighetsradar/domain';
 import { resolveSmsMode, type ServerEnv } from '@fastighetsradar/config';
 import { resolveSourceStatuses } from '@fastighetsradar/integrations';
 import { orgContext } from '../auth';
@@ -113,6 +113,14 @@ export function registerMonitoringRoutes(app: FastifyInstance, deps: MonitoringR
   app.get('/v1/properties/:id/flood', { preHandler: deps.requireOrg }, async (req) => {
     const { snapshot } = await one(req);
     return { generatedAt: gen(), dataClass: 'STATIC_GEODATA', exposure: snapshot.flood, context: snapshot.monitoring?.flood ?? null };
+  });
+
+  /** Short activity log for the property's "Tidslinje" (ACTIVITY.days, newest first). */
+  app.get('/v1/properties/:id/activity', { preHandler: deps.requireOrg }, async (req) => {
+    const { id } = PropertyIdParamSchema.parse(req.params);
+    const items = await svc().activity(orgContext(req), id);
+    if (!items) throw new HttpProblem(404, 'Property not found');
+    return { propertyId: id, since: new Date(Date.now() - ACTIVITY.days * 86_400_000).toISOString(), items };
   });
 
   app.get('/v1/changes', { preHandler: deps.requireOrg }, async (req) => {

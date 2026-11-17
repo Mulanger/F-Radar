@@ -2,17 +2,19 @@
 
 import type { DetailVM } from '@/lib/view-models/detail';
 import { C, FONT_MONO, card, cardSub, cardTitle } from '@/lib/design/tokens';
+import { usePropertyTimeline } from './use-property-timeline';
 
 /** Short activity timeline (not a permanent property journal – IMPLEMENTATION.md §2.2). */
 export function PropertyTimeline({ d }: { d: DetailVM }) {
+  const { entries, emptyText } = usePropertyTimeline(d);
   return (
     <div style={{ ...card, flex: '1 1 380px', padding: 22 }}>
       <div style={{ marginBottom: 16 }}>
         <div style={cardTitle}>Tidslinje</div>
         <div style={cardSub}>Varningar, utlösta regler och avslutade händelser</div>
       </div>
-      {d.timeline.length === 0 ? (
-        <div style={{ fontSize: 13, color: C.text3 }}>Ingen aktivitet nyligen</div>
+      {entries.length === 0 ? (
+        <div style={{ fontSize: 13, color: C.text3 }}>{emptyText}</div>
       ) : (
         <ol
           style={{
@@ -20,7 +22,7 @@ export function PropertyTimeline({ d }: { d: DetailVM }) {
             backgroundImage: 'linear-gradient(#ECEEED,#ECEEED)', backgroundRepeat: 'no-repeat', backgroundSize: '1.5px calc(100% - 12px)', backgroundPosition: '5px 6px',
           }}
         >
-          {d.timeline.map((t, i) => (
+          {entries.map((t, i) => (
             <li key={i} style={{ position: 'relative', display: 'flex', gap: 12 }}>
               <span style={{ position: 'absolute', left: -22, top: 4, width: 12, height: 12, borderRadius: '50%', background: '#fff', border: `3px solid ${t.c}`, boxSizing: 'border-box' }} />
               <div style={{ flex: 1, minWidth: 0 }}>
