@@ -29,6 +29,7 @@ const view = (o: Partial<UtilityOutageView> = {}): UtilityOutageView => ({
   actualStart: '2026-11-14T13:05:00.000Z',
   estimatedRestore: '2026-11-14T16:00:00.000Z',
   restoredAt: null,
+  restoredInferred: false,
   operatorText: 'Felsökning pågår',
   cause: null,
   placeLabel: 'INGARÖ',
@@ -84,6 +85,25 @@ describe('outages among the property events', () => {
     expect(rows.map((r) => [r.id, r.kind])).toEqual([['e1', 'Ström'], ['h', 'Fjärrvärme'], ['r', 'Ström']]);
     expect(rows[1]!.title).toBe('Planerat fjärrvärmeavbrott 15/11 11:00–16/11 02:00 – Vattenfall Eldistribution');
     expect(rows[2]).toMatchObject({ title: 'Strömmen är tillbaka enligt Vattenfall Eldistribution', c: SEV.normal.c });
+  });
+
+  it('a vanished ticket is grey and neutral, and hidden while the same operator still has an outage there', () => {
+    const area = { matchMethod: 'outage_postal_area' as const, precisionLevel: 'area' as const, operatorId: 'ellevio', operatorName: 'Ellevio' };
+    const vanished = view({ ...area, id: 'old', state: 'withdrawn', severity: 'info', operatorText: 'Vi undersöker omfattningen av avbrottet.' });
+    // Alone: listed, but never as "Strömmen är tillbaka".
+    const alone = outageEventsFor(snap(status({ recentlyRestored: [vanished] })));
+    expect(alone).toHaveLength(1);
+    expect(alone[0]).toMatchObject({ title: 'Strömavbrott visas inte längre hos Ellevio – inget besked om att det är åtgärdat', c: SEV.unknown.c });
+    expect(alone[0]!.when).toMatch(/^Visas inte längre hos nätbolaget/);
+    // While another Ellevio outage covers the property it was replaced (581219 → 581216): not shown.
+    const replaced = outageEventsFor(snap(status({ current: [view({ ...area, id: 'new', severity: 'monitor' })], recentlyRestored: [vanished] })));
+    expect(replaced.map((r) => r.id)).toEqual(['new']);
+  });
+
+  it('removal from a map-only operator reads "troligen tillbaka", never "enligt"', () => {
+    const rows = outageEventsFor(snap(status({ recentlyRestored: [view({ state: 'restored', severity: 'info', restoredInferred: true, restoredAt: '2026-11-14T15:00:00.000Z' })] })));
+    expect(rows[0]!.title).toBe('Strömmen är troligen tillbaka – avbrottet visas inte längre hos Vattenfall Eldistribution');
+    expect(rows[0]!.when).toMatch(/^Borttaget från kartan /);
   });
 
   it('map shapes only for outages covering the property; planned dashed', () => {

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  outageVanished,
+  PLATFORMS_REPORTING_RESTORED,
   formatOutageWindow,
   isPositionConfirmed,
   NotificationRuleInputSchema,
@@ -82,6 +84,23 @@ describe('Swedish wording (ADR 0003)', () => {
       'Strömavbrott registrerat – Vattenfall Eldistribution',
     ]);
     for (const h of all) expect(h).not.toMatch(/kris|fara|akut/i);
+  });
+
+  it('a vanished outage is never "tillbaka enligt" the operator (Ellevio 2026-11-17)', () => {
+    const op = 'Ellevio';
+    // Operator reports restoration itself: vanished = merged/removed, not over.
+    expect(outageHeadline({ ...base, kind: 'unplanned', state: 'withdrawn' }, op)).toBe('Strömavbrott visas inte längre hos Ellevio – inget besked om att det är åtgärdat');
+    expect(outageVanished({ kind: 'unplanned', state: 'withdrawn' })).toBe(true);
+    expect(outageVanished({ kind: 'planned', state: 'withdrawn' })).toBe(false);
+    expect(outageVanished({ kind: 'unplanned', state: 'restored' })).toBe(false);
+    // Operator that only removes outages from its map: our inference, worded as such.
+    expect(outageHeadline({ ...base, kind: 'unplanned', state: 'restored', restoredInferred: true }, 'Vattenfall Eldistribution')).toBe(
+      'Strömmen är troligen tillbaka – avbrottet visas inte längre hos Vattenfall Eldistribution',
+    );
+    expect(outageHeadline({ ...base, kind: 'unplanned', state: 'restored', restoredInferred: true }, 'X')).not.toMatch(/enligt/);
+    expect(PLATFORMS_REPORTING_RESTORED).toEqual(expect.arrayContaining(['ellevio', 'goteborg_energi', 'digpro', 'tekniskaverken']));
+    expect(PLATFORMS_REPORTING_RESTORED).not.toContain('vattenfall');
+    expect(PLATFORMS_REPORTING_RESTORED).not.toContain('eon');
   });
 
   it('feed titles carry the precision caveat for anything below high precision', () => {

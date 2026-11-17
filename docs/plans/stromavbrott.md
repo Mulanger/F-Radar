@@ -369,6 +369,14 @@ göra status `unknown` – den påverkar bara avbrottspanelen.
   (`utility_outages.missing_polls`). Först vid **2 missade hämtningar i rad** avslutas det
   (`ended_reason = 'missing_from_feed'`; för `upcoming` → `state = 'withdrawn'`). Återkommer det före
   det nollställs räknaren. Ett misslyckat eller `partial` svar ändrar aldrig `missing_polls`.
+  > **Ändrat 2026-11-17:** ett försvunnet avbrott är aldrig "Strömmen är tillbaka enligt {nätbolag}".
+  > Nätbolag som själva rapporterar återställt (`PLATFORMS_REPORTING_RESTORED`: Ellevio, Göteborg Energi,
+  > Digpro, Tekniska verken) slår ihop och ersätter ärenden, så hos dem blir det `withdrawn`:
+  > "Strömavbrott visas inte längre hos {nätbolag} – inget besked om att det är åtgärdat", grått, inget SMS.
+  > Täcker ett annat pågående avbrott från samma nätbolag fastigheten visas det inte alls (Ellevio 581219 →
+  > 581216). Nätbolag som bara tar bort avbrott från kartan (Vattenfall, E.ON, Trimble) ger `restored` med
+  > `restored_inferred`: "Strömmen är troligen tillbaka – avbrottet visas inte längre hos {nätbolag}";
+  > "tillbaka"-SMS:et säger samma sak. Migration 0014 rättade redan avslutade avbrott.
 - **Tomt svar** (0 avbrott, giltigt format) är normalt och betyder "inga avbrott".
 - **Version (`version_hash`)** beräknas **bara** av: `state`, `kind`, `plannedStart`/`plannedEnd`
   avrundat till 15 min, `estimatedRestore` avrundat till 30 min, och `utility`. Antal kunder, geometri

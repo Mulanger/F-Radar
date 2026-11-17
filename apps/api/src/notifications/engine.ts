@@ -231,7 +231,8 @@ export function outageSmsPhase(
   const ended = e.change_type === "ended";
   if (ended) {
     if (e.state === "restored") return c.restored ? "restored" : null;
-    if (e.state === "withdrawn") return c.changes ? "change" : null;
+    // A vanished unplanned/unknown outage is not known to be over: no SMS at all (never "tillbaka").
+    if (e.state === "withdrawn") return e.kind === "planned" && c.changes ? "change" : null;
     return null;
   }
   if (!test && now.getTime() - e.last_seen_at.getTime() > 20 * 60000) return null;

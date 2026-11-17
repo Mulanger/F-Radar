@@ -2,6 +2,7 @@ import {
   formatWeekdayClock,
   outageFeedTitle,
   outageHeadline,
+  outageVanished,
   type PropertySnapshot,
   type UtilityKind,
   type UtilityOutageView,
@@ -38,7 +39,10 @@ export interface OutageEventVM {
 const KIND_SV: Record<UtilityKind, string> = { electricity: 'Ström', district_heating: 'Fjärrvärme', district_cooling: 'Fjärrkyla', gas: 'Gas' };
 
 const tone = (v: UtilityOutageView): SeverityStyle =>
-  v.state === 'restored' || v.state === 'withdrawn'
+  // Green only when the operator says it is over; a vanished outage stays neutral grey.
+  outageVanished(v)
+    ? SEV.unknown
+    : v.state === 'restored' || v.state === 'withdrawn'
     ? SEV.normal
     : v.severity === 'critical'
       ? SEV.critical
@@ -61,8 +65,8 @@ function whenOf(v: UtilityOutageView): string {
   const at = (iso: string | null) => (iso ? formatWeekdayClock(iso, '—') : '—');
   // The planned window is already part of the headline.
   if (v.state === 'upcoming') return v.plannedStart ? 'Planerat arbete' : 'Planerat arbete · tid ej angiven';
-  if (v.state === 'restored') return `Åter ${at(v.restoredAt)}`;
-  if (v.state === 'withdrawn') return 'Borttaget av nätbolaget';
+  if (v.state === 'restored') return v.restoredInferred ? `Borttaget från kartan ${at(v.restoredAt)}` : `Åter ${at(v.restoredAt)}`;
+  if (v.state === 'withdrawn') return outageVanished(v) ? 'Visas inte längre hos nätbolaget' : 'Borttaget av nätbolaget';
   const start = `start ${at(v.actualStart ?? v.plannedStart)}`;
   if (v.kind === 'planned') return `Planerat arbete pågår · ${start} · planerat slut ${at(v.plannedEnd)}`;
   return `${v.kind === 'unplanned' ? 'Oplanerat' : 'Avbrott'} · ${start} · beräknat klart ${at(v.estimatedRestore)}`;
@@ -72,10 +76,13 @@ export function outageEventsFor(s: PropertySnapshot): OutageEventVM[] {
   const sections = s.utilityOutages ?? [];
   const byStart = (a: UtilityOutageView, b: UtilityOutageView) => Date.parse(a.plannedStart ?? a.actualStart ?? '') - Date.parse(b.plannedStart ?? b.actualStart ?? '');
   const pick = (k: 'current' | 'upcoming' | 'recentlyRestored') => sections.flatMap((u) => u[k]).filter(listedForProperty).sort(byStart);
-  return [...pick('current'), ...pick('upcoming'), ...pick('recentlyRestored')].map((v) => {
+  const current = pick('current');
+  // A ticket that vanished while another from the same operator still covers the property was replaced.
+  const replaced = (v: UtilityOutageView) => outageVanished(v) && current.some((c) => c.operatorId === v.operatorId && c.utility === v.utility);
+  return [...current, ...pick('upcoming'), ...pick('recentlyRestored').filter((v) => !replaced(v))].map((v) => {
     const t = tone(v);
     const areaOnly = v.precisionLevel === 'area';
-    const headline = outageHeadline({ utility: v.utility, kind: v.kind, state: v.state, plannedStart: v.plannedStart, plannedEnd: v.plannedEnd }, v.operatorName);
+    const headline = outageHeadline({ utility: v.utility, kind: v.kind, state: v.state, plannedStart: v.plannedStart, plannedEnd: v.plannedEnd, restoredInferred: v.restoredInferred }, v.operatorName);
     return {
       id: v.id,
       kind: KIND_SV[v.utility] ?? 'Avbrott',

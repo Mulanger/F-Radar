@@ -60,6 +60,9 @@ describe('outage SMS phase (anti-spam, docs/plans/stromavbrott.md §2.1, §7)', 
     expect(outageSmsPhase(all, cand({ change_type: 'ended', state: 'restored' }), NOW, ACTIVATED)).toBe('restored');
     expect(outageSmsPhase({ ...all, restored: false }, cand({ change_type: 'ended', state: 'restored' }), NOW, ACTIVATED)).toBeNull();
     expect(outageSmsPhase(all, cand({ change_type: 'ended', kind: 'planned', state: 'withdrawn' }), NOW, ACTIVATED)).toBe('change');
+    // A fault that vanished from the operator's list is not known to be over: no SMS at all.
+    expect(outageSmsPhase(all, cand({ change_type: 'ended', kind: 'unplanned', state: 'withdrawn' }), NOW, ACTIVATED)).toBeNull();
+    expect(outageSmsPhase(all, cand({ change_type: 'ended', kind: 'unknown', state: 'withdrawn' }), NOW, ACTIVATED)).toBeNull();
     expect(outageSmsPhase(all, cand({ change_type: 'updated', kind: 'planned', state: 'upcoming' }), NOW, ACTIVATED)).toBe('change');
     expect(outageSmsPhase({ ...all, changes: false }, cand({ change_type: 'updated', kind: 'planned', state: 'upcoming' }), NOW, ACTIVATED)).toBeNull();
   });
@@ -184,6 +187,7 @@ const row = (o: Partial<OrgUtilityOutageRow> = {}): OrgUtilityOutageRow => ({
   actual_start: new Date('2026-11-14T13:05:00Z'),
   estimated_restore: new Date('2026-11-14T16:00:00Z'),
   restored_at: null,
+  restored_inferred: false,
   ended_at: null,
   place_label: 'INGARÖ',
   operator_text: 'Felsökning pågår',

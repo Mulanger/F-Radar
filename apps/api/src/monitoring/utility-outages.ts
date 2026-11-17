@@ -3,6 +3,7 @@ import {
   isPositionConfirmed,
   outageEffectiveSeverity,
   outageFeedTitle,
+  PLATFORMS_REPORTING_RESTORED,
   outageHeadline,
   outageMatchLevel,
   outagePrecisionLabel,
@@ -60,6 +61,8 @@ async function runOperator(op: UtilityOperator, ctx: JobContext): Promise<JobRes
     op.id,
     d.outages.map((o) => ({ ...o, operatorName: op.name, attribution: attribution(op) })),
     d.skipped === 0,
+    new Date(),
+    { reportsRestored: PLATFORMS_REPORTING_RESTORED.includes(op.platform) },
   );
   const changes = await rematchUtilityOutages(ctx.db);
   return {
@@ -221,6 +224,7 @@ function toView(r: OrgUtilityOutageRow): UtilityOutageView {
     actualStart: iso(r.actual_start),
     estimatedRestore: iso(r.estimated_restore),
     restoredAt: iso(r.restored_at) ?? (r.state === 'restored' ? iso(r.ended_at) : null),
+    restoredInferred: r.state === 'restored' && Boolean(r.restored_inferred),
     operatorText: r.operator_text,
     cause: r.cause,
     placeLabel: r.place_label,

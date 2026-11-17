@@ -405,9 +405,10 @@ export class NotificationService {
       planned_end: Date | null;
       actual_start: Date | null;
       estimated_restore: Date | null;
+      restored_inferred: boolean;
     };
     const cols = `e.external_id,e.version,e.last_seen_at,e.source_updated_at,e.first_seen_at,e.extra->>'operatorName' AS operator_name,
-      m.match_method,p.geocode_precision,p.position_source,u.utility,u.kind,u.state,u.planned_start,u.planned_end,u.actual_start,u.estimated_restore`;
+      m.match_method,p.geocode_precision,p.position_source,u.utility,u.kind,u.state,u.planned_start,u.planned_end,u.actual_start,u.estimated_restore,u.restored_inferred`;
     const { rows } = await tx.query<Row>(
       `SELECT c.id,c.property_id,c.event_id,c.change_type,c.created_at,${cols}
       FROM monitoring_changes c JOIN source_events e ON e.id=c.event_id JOIN utility_outages u ON u.event_id=e.id
@@ -446,7 +447,10 @@ export class NotificationService {
             ? `Planerat ${noun} ${window} visas inte längre hos nätbolaget`
             : `Ändrad tid: planerat ${noun} ${window}`;
         case "restored":
-          return `${back} är tillbaka enligt nätbolaget`;
+          // Operators that only remove outages from the map never say power is back: our inference.
+          return x.restored_inferred
+            ? `${back} är troligen tillbaka – avbrottet visas inte längre hos nätbolaget`
+            : `${back} är tillbaka enligt nätbolaget`;
       }
     };
     const grouped = new Map<string, Trigger>();

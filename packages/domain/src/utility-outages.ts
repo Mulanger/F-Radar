@@ -110,6 +110,11 @@ export const UtilityOutageViewSchema = z.object({
   actualStart: IsoDateTimeSchema.nullable(),
   estimatedRestore: IsoDateTimeSchema.nullable(),
   restoredAt: IsoDateTimeSchema.nullable(),
+  /**
+   * True when 'restored' is OUR inference: the operator never reports restoration and removed the
+   * outage from its map (Vattenfall, E.ON, Trimble). Shown as "troligen tillbaka", never "enligt".
+   */
+  restoredInferred: z.boolean().default(false),
   /** Operator's own customer text – shown verbatim and attributed. */
   operatorText: z.string().nullable(),
   cause: z.string().nullable(),
@@ -176,11 +181,30 @@ export function formatOutageWindow(start: string | null, end: string | null): st
 }
 
 /** Event-level headline used in the feed and as the SMS description. */
-export function outageHeadline(o: { utility: UtilityKind; kind: OutageKind; state: OutageState; plannedStart: string | null; plannedEnd: string | null }, operatorName: string): string {
+/**
+ * An outage that disappeared from the operator's list without the operator saying it is over
+ * (`withdrawn`, not planned work). Never presented or sent as "Strömmen är tillbaka".
+ */
+/**
+ * Platforms whose operators report restoration themselves. For them an outage that disappears from
+ * the list was merged/re-issued or removed – not restored. The others (Vattenfall, E.ON, Trimble,
+ * ServiceAlert) only remove outages from the map, so removal is read as "troligen tillbaka".
+ * Seen in live data 2026-11-17: Ellevio, Göteborg Energi, Digpro, Tekniska verken report restored.
+ */
+export const PLATFORMS_REPORTING_RESTORED: readonly string[] = ['ellevio', 'goteborg_energi', 'digpro', 'tekniskaverken'];
+
+export function outageVanished(o: { kind: OutageKind; state: OutageState }): boolean {
+  return o.state === 'withdrawn' && o.kind !== 'planned';
+}
+
+export function outageHeadline(o: { utility: UtilityKind; kind: OutageKind; state: OutageState; plannedStart: string | null; plannedEnd: string | null; restoredInferred?: boolean }, operatorName: string): string {
   const noun = UTILITY_NOUN[o.utility];
   const Noun = noun[0]!.toUpperCase() + noun.slice(1);
+  if (o.state === 'restored' && o.restoredInferred) return `${UTILITY_BACK[o.utility].replace(' är tillbaka', ' är troligen tillbaka')} – avbrottet visas inte längre hos ${operatorName}`;
   if (o.state === 'restored') return `${UTILITY_BACK[o.utility]} enligt ${operatorName}`;
-  if (o.state === 'withdrawn') return `${o.kind === 'planned' ? `Planerat ${noun}` : Noun} visas inte längre hos ${operatorName}`;
+  // Withdrawn = no longer in the operator's list. For an outage that was under way this is NOT a
+  // statement that power is back (tickets are merged and re-issued), so it says so.
+  if (o.state === 'withdrawn') return o.kind === 'planned' ? `Planerat ${noun} visas inte längre hos ${operatorName}` : `${Noun} visas inte längre hos ${operatorName} – inget besked om att det är åtgärdat`;
   if (o.kind === 'planned') {
     if (o.state === 'upcoming') {
       const w = formatOutageWindow(o.plannedStart, o.plannedEnd);

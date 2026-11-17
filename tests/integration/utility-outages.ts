@@ -148,13 +148,30 @@ export function registerUtilityOutageTests(pool: pg.Pool) {
 
       await storeUtilityOutages(pool, OP.id, [], true);
       await rematchUtilityOutages(pool);
-      const ended = await pool.query(`SELECT e.status, e.ended_reason, u.state FROM source_events e JOIN utility_outages u ON u.event_id = e.id WHERE e.external_id = $1`, [o.externalId]);
-      assert.deepEqual(ended.rows[0], { status: 'ended', ended_reason: 'missing_from_feed', state: 'restored' });
+      const ended = await pool.query(`SELECT e.status, e.ended_reason, u.state, u.restored_inferred FROM source_events e JOIN utility_outages u ON u.event_id = e.id WHERE e.external_id = $1`, [o.externalId]);
+      // The test operator only removes outages from its map: removal reads as "troligen tillbaka", never "enligt".
+      assert.deepEqual(ended.rows[0], { status: 'ended', ended_reason: 'missing_from_feed', state: 'restored', restored_inferred: true });
       const c = await changesFor(o.externalId);
       const endRows = c.filter((x) => x.change_type === 'ended');
       assert.equal(endRows.length, 2);
-      assert.ok(endRows.every((x) => x.headline === 'Strömmen är tillbaka enligt Testnät AB' && x.severity === 'info'));
+      assert.ok(endRows.every((x) => x.headline === 'Strömmen är troligen tillbaka – avbrottet visas inte längre hos Testnät AB' && x.severity === 'info'));
       assert.ok(endRows.every((x) => x.property_id !== f.adjacent.id), 'panel-only matches never get feed rows');
+    });
+
+    it('operator that reports restoration: a vanished ticket is withdrawn, and silent while another covers the property', async () => {
+      await fixture();
+      const a = outage();
+      const b = { ...outage(), externalId: `${a.externalId}-b` };
+      const opts = { reportsRestored: true };
+      await storeUtilityOutages(pool, OP.id, [a, b], true, new Date(), opts);
+      await rematchUtilityOutages(pool);
+      // Ticket a vanishes (merged into b, as Ellevio 581219 → 581216) for two complete polls.
+      await storeUtilityOutages(pool, OP.id, [b], true, new Date(), opts);
+      await storeUtilityOutages(pool, OP.id, [b], true, new Date(), opts);
+      await rematchUtilityOutages(pool);
+      const ended = await pool.query(`SELECT u.state, u.restored_inferred, e.headline FROM source_events e JOIN utility_outages u ON u.event_id = e.id WHERE e.external_id = $1`, [a.externalId]);
+      assert.deepEqual(ended.rows[0], { state: 'withdrawn', restored_inferred: false, headline: 'Strömavbrott visas inte längre hos Testnät AB – inget besked om att det är åtgärdat' });
+      assert.equal((await changesFor(a.externalId)).filter((x) => x.change_type === 'ended').length, 0, 'replaced, not over: no feed row');
     });
 
     it('planned work: blue when published, version bump only for a material time change', async () => {
