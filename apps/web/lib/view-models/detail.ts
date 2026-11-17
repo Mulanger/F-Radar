@@ -283,6 +283,7 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
     },
     events: s.events.map((e) => ({
       id: e.id,
+      category: e.category,
       kind: CATEGORY_SV[e.category] ?? e.category,
       title: e.title,
       src: e.sourceLabel,

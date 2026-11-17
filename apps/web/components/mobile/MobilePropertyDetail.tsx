@@ -11,8 +11,7 @@ import { IconChevronLeft, IconChevronRight, IconRain, IconThermometer, IconWind,
 import { MobileRiskGauge } from './MobileRiskGauge';
 import { MobileSection, MobileStatusBadge, MobileWeatherCard } from './MobilePrimitives';
 import { MobileWeatherChart } from './MobileWeatherChart';
-import { LocalEventsMap } from '../maps/LocalEventsMap';
-import { LocalEventsPanel } from '../properties/LocalEventsPanel';
+import { LocalEvents } from '../properties/LocalEvents';
 import { NowcastPanel } from '../properties/NowcastPanel';
 import { ForecastDays } from '../properties/ForecastDays';
 import { MeasuredRainPanel } from '../properties/MeasuredRainPanel';
@@ -58,7 +57,7 @@ export function MobilePropertyDetail({ d, historyOpen, history, onHistoryChange,
           {d.water.watercourse && <div className={styles.sectionSub}>{d.water.watercourse.text}<br />{d.water.watercourse.value} · {d.water.watercourse.classification}<div className={styles.small}>{d.water.watercourse.source}</div></div>}
         </div>
       </MobileSection>
-      <div className={styles.detailPanels}><div className={styles.detailMap}><LocalEventsMap d={d} /></div><LocalEventsPanel d={d} /></div>
+      <div className={styles.detailPanels}><LocalEvents d={d} layout="mobile" mapClassName={styles.detailMap} /></div>
       <MobileSection title="Tidslinje" subtitle="Varningar, larm och avslutade händelser"><div className={`${styles.surface} ${styles.timeline}`}>
         {timeline.entries.length ? timeline.entries.map((t, i) => <div className={styles.timelineRow} key={`${t.time}-${i}`}><span className={styles.timelineDot} style={{ borderColor: t.c }} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.35 }}>{t.title}</div><div className={styles.meta} style={{ marginTop: 2 }}>{t.detail}</div></div><span className={styles.time}>{t.time}</span></div>) : <div className={styles.empty}>{timeline.emptyText}</div>}
       </div></MobileSection>

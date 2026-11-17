@@ -123,6 +123,14 @@ export function registerMonitoringRoutes(app: FastifyInstance, deps: MonitoringR
     return { propertyId: id, since: new Date(Date.now() - ACTIVITY.days * 86_400_000).toISOString(), items };
   });
 
+  /** Affected stretch/point of the property's matched traffic events, for "Visa på karta". */
+  app.get('/v1/properties/:id/event-map', { preHandler: deps.requireOrg }, async (req) => {
+    const { id } = PropertyIdParamSchema.parse(req.params);
+    const items = await svc().eventMap(orgContext(req), id);
+    if (!items) throw new HttpProblem(404, 'Property not found');
+    return { propertyId: id, items };
+  });
+
   app.get('/v1/changes', { preHandler: deps.requireOrg }, async (req) => {
     const rows = await svc().changes(orgContext(req), 100);
     return {

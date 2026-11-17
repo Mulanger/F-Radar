@@ -156,6 +156,8 @@
 .timelineDot { position: absolute; left: -22px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 3px solid; box-sizing: border-box; }
 .detailPanels > * { flex: initial !important; }
 .detailMap > div { height: 240px !important; min-height: 0 !important; }
+/* Design: the phone map shows only "Öppna karta"; the full map view explains every layer. */
+.detailMap :global(.fr-map-legend) { display: none !important; }
 @media (max-width: 359.98px) {
   .weatherCard { padding: 10px 8px; gap: 6px; }.weatherIcon { width: 26px; height: 26px; }.weatherValue { font-size: 17px; }
   .heroStat { padding: 10px 8px; }.heroStat strong { font-size: 22px; }

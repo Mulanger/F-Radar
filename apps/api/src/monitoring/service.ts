@@ -8,6 +8,7 @@ import {
   listProperties,
   listRecentChangesForOrg,
   listPropertyActivity,
+  listPropertyEventMap,
   loadOrgMonitoring,
   rematchEvents,
   rematchUtilityOutages,
@@ -122,6 +123,12 @@ export class MonitoringService {
   async activity(t: TenantContext, id: string) {
     if (!(await getProperty(this.db, t, id))) return null;
     return listPropertyActivity(this.db, t.organizationId, id);
+  }
+
+  /** Published geometry of the property's nearby traffic events ("Visa på karta"); null when the property is not in the organization. */
+  async eventMap(t: TenantContext, id: string) {
+    if (!(await getProperty(this.db, t, id))) return null;
+    return listPropertyEventMap(this.db, t.organizationId, id);
   }
 
   async history(t: TenantContext, id: string, period: HistoryPeriod) {

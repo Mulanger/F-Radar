@@ -20,8 +20,7 @@ import { OfficialWarnings } from './OfficialWarnings';
 import { EnvironmentalMetrics } from './EnvironmentalMetrics';
 import { WeatherCharts } from './WeatherCharts';
 import { WaterRiskPanel } from './WaterRiskPanel';
-import { LocalEventsPanel } from './LocalEventsPanel';
-import { LocalEventsMap } from '../maps/LocalEventsMap';
+import { LocalEvents } from './LocalEvents';
 import { PropertyTimeline } from './PropertyTimeline';
 import { SMSRulesPanel } from './SMSRulesPanel';
 import { MonitoringContextPanel } from './MonitoringContextPanel';
@@ -196,8 +195,7 @@ export function PropertyDetail() {
       {d.live && <MonitoringContextPanel d={d} />}
 
       <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-        <LocalEventsPanel d={d} />
-        <LocalEventsMap d={d} />
+        <LocalEvents d={d} layout="desktop" />
       </div>
 
       <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>

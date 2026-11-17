@@ -10,7 +10,7 @@ import { esc, loadLeaflet, newMap, pinIcon } from './leaflet-utils';
  * "Local Context" map on Property Detail. Keeps one Leaflet instance alive while the
  * user switches properties and flies to the new location (prototype behaviour).
  */
-export function LocalEventsMap({ d }: { d: DetailVM }) {
+export function LocalEventsMap({ d, onOpen }: { d: DetailVM; onOpen?: () => void }) {
   const elRef = useRef<HTMLDivElement>(null);
   const ctxRef = useRef<{ L: typeof Leaflet; map: Leaflet.Map; group: Leaflet.LayerGroup } | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -83,6 +83,12 @@ export function LocalEventsMap({ d }: { d: DetailVM }) {
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: 'oklch(0.65 0.15 55)' }} />Händelse</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: 'rgba(84,148,176,0.45)' }} />Översvämningszon</span>
       </div>
+      {onOpen && (
+        <button type="button" className="fr-map-open" onClick={onOpen} style={{ position: 'absolute', right: 12, bottom: 34, zIndex: 500, height: 40, padding: '0 14px 0 12px', borderRadius: 20, border: 'none', background: '#FFFFFF', boxShadow: '0 6px 16px -6px rgba(20,23,26,0.35)', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 500, color: C.ink, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14" /></svg>
+          Öppna karta
+        </button>
+      )}
     </div>
   );
 }

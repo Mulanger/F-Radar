@@ -1,4 +1,4 @@
-import { ACTIVITY, HISTORY, WEATHER_WATER, stationMatchDistance, type ActivityItem } from '@fastighetsradar/domain';
+import { ACTIVITY, EventMapGeometrySchema, HISTORY, WEATHER_WATER, eventPlaceFromHeadline, stationMatchDistance, trafficMapStyle, type ActivityItem, type EventMapItem } from '@fastighetsradar/domain';
 import { aggregateStoredHistory } from './history';
 import { applyUtilityOutageRetention } from './utility-outages';
 import { createHash } from 'node:crypto';
@@ -796,6 +796,58 @@ export async function listPropertyActivity(db: Queryable, organizationId: string
     ...sms.rows.map((r) => ({ kind: 'sms' as const, id: `s${r.id}`, at: r.at.toISOString(), ruleName: r.rule_name, status: r.status, recipients: r.recipients, isTest: r.is_test })),
   ];
   return items.sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit);
+}
+
+/** Most map items returned per property; the matched list is already limited to events within 2 km. */
+export const EVENT_MAP_LIMIT = 40;
+
+/**
+ * Published geometry of the property's matched traffic events for "Visa på karta" (organization
+ * scoped through the property). Lines are simplified to ~1 m and rounded to 6 decimals.
+ */
+export async function listPropertyEventMap(db: Queryable, organizationId: string, propertyId: string): Promise<EventMapItem[]> {
+  const { rows } = await db.query<{
+    event_id: string; source_id: string; event_type: string | null; headline: string; description: string | null; area_label: string | null;
+    valid_from: Date | null; valid_to: Date | null; extra: Record<string, unknown> | null; geometry: unknown; length_m: number | null;
+  }>(
+    `SELECT e.id::text AS event_id, e.source_id, e.event_type, e.headline, e.description, e.area_label, e.valid_from, e.valid_to, e.extra,
+            ST_AsGeoJSON(CASE WHEN GeometryType(e.geom) = 'MULTIPOINT' THEN ST_GeometryN(e.geom, 1)
+                              WHEN GeometryType(e.geom) = 'MULTILINESTRING' THEN ST_LineMerge(ST_SimplifyPreserveTopology(e.geom, 0.00001))
+                              ELSE ST_SimplifyPreserveTopology(e.geom, 0.00001) END, 6)::json AS geometry,
+            CASE WHEN GeometryType(e.geom) IN ('LINESTRING', 'MULTILINESTRING') THEN round(ST_Length(e.geom::geography))::int END AS length_m
+       FROM property_event_matches m
+       JOIN source_events e ON e.id = m.event_id AND e.status = 'active'
+       JOIN properties p ON p.id = m.property_id AND p.organization_id = $1
+      WHERE m.organization_id = $1 AND m.property_id = $2
+        AND e.source_id IN ('trafikverket', 'sl_deviations') AND e.geom IS NOT NULL
+      ORDER BY m.distance_m NULLS LAST, e.id
+      LIMIT $3`,
+    [organizationId, propertyId, EVENT_MAP_LIMIT],
+  );
+  const items: EventMapItem[] = [];
+  for (const r of rows) {
+    const g = EventMapGeometrySchema.safeParse(r.geometry);
+    // Anything else (e.g. a GeometryCollection) cannot be drawn as a stretch or point: left out.
+    if (!g.success) continue;
+    const x = r.extra ?? {};
+    const str = (k: string) => (typeof x[k] === 'string' && (x[k] as string).trim() ? (x[k] as string).trim() : null);
+    const style = trafficMapStyle({ sourceId: r.source_id, messageCodeValue: str('messageCodeValue'), iconId: str('iconId'), transportMode: str('transportMode') });
+    items.push({
+      eventId: r.event_id,
+      geometry: g.data,
+      radiusM: null,
+      lengthM: r.length_m === null ? null : Number(r.length_m),
+      label: r.event_type?.trim() || 'Trafikhändelse',
+      icon: style.icon,
+      hue: style.hue,
+      impact: str('severityText'),
+      where: r.area_label?.trim() || eventPlaceFromHeadline(r.headline, r.event_type),
+      description: r.description?.trim() || null,
+      validFrom: r.valid_from ? r.valid_from.toISOString() : null,
+      validTo: r.valid_to ? r.valid_to.toISOString() : null,
+    });
+  }
+  return items;
 }
 
 /* Shared public radar-grid cache. Reads for snapshots remain organization scoped above. */

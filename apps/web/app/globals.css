@@ -13,6 +13,7 @@ button { font-family: inherit; }
 
 @keyframes frPulse { 0% { transform: scale(.6); opacity: .6 } 100% { transform: scale(2.4); opacity: 0 } }
 @keyframes frBreath { 0%, 100% { opacity: 1 } 50% { opacity: .4 } }
+@keyframes frRing { 0% { transform: scale(1); opacity: .45 } 100% { transform: scale(1.9); opacity: 0 } }
 @keyframes frShimmer { 0% { transform: translateX(-150%) skewX(-20deg) } 60%, 100% { transform: translateX(350%) skewX(-20deg) } }
 @keyframes frFade { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
 
@@ -135,6 +136,7 @@ button { font-family: inherit; }
   .fr-map-legend { right: 68px; flex-wrap: wrap; gap: 4px 12px !important; }
   /* Keep the (wrapping) Leaflet attribution visible below the overlays. */
   .fr-map-legend, .fr-map-zoom { bottom: 40px !important; }
+  .fr-map-open { bottom: 44px !important; }
 }
 
 /* IMPLEMENTATION.md §14.3: prefers-reduced-motion disables non-essential animation. */

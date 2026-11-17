@@ -13,3 +13,4 @@ export * from './water-information';
 export * from './history';
 export * from './utility-outages';
 export * from './activity';
+export * from './event-map';
