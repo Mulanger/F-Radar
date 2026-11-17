@@ -28,12 +28,12 @@ export const UPCOMING_ICON = {
 type IconKey = keyof typeof UPCOMING_ICON;
 
 type Tone = UpcomingCondition['tone'];
-/** Card palette per tone. "cold" (frost, snow, ice) uses the calm blue of "Bevaka". */
+/** Card palette per tone. "cold" (frost, snow, ice) uses the calm blue of "Info". */
 const TONE: Record<Tone, { c: string; bg: string; fg: string; label: string }> = {
   critical: { c: SEV.critical.c, bg: SEV.critical.bg, fg: 'oklch(0.48 0.17 27)', label: 'Kritisk' },
   warning: { c: SEV.warning.c, bg: SEV.warning.bg, fg: 'oklch(0.48 0.13 55)', label: 'Varning' },
-  monitor: { c: SEV.monitor.c, bg: SEV.monitor.bg, fg: 'oklch(0.45 0.11 245)', label: 'Bevaka' },
-  cold: { c: SEV.monitor.c, bg: SEV.monitor.bg, fg: 'oklch(0.45 0.11 245)', label: 'Bevaka' },
+  monitor: { c: SEV.monitor.c, bg: SEV.monitor.bg, fg: 'oklch(0.45 0.11 245)', label: 'Info' },
+  cold: { c: SEV.monitor.c, bg: SEV.monitor.bg, fg: 'oklch(0.45 0.11 245)', label: 'Info' },
 };
 export const UPCOMING_ACK_STYLE = { c: SEV.normal.c, bg: SEV.normal.bg, fg: 'oklch(0.43 0.1 155)' };
 

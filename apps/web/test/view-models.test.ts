@@ -30,7 +30,18 @@ describe('overview view-model reproduces the approved design values', () => {
     expect(vm.kpi.wx).toBe(7);
     expect(vm.kpi.sms).toBe(30);
     expect(vm.kpi.smsSub).toBe('7 av 8 fastigheter med SMS aktiverat');
-    expect(vm.kpi.barLabel).toBe('Ingen aktiv varning: 3 · Bevaka: 2 · Varning: 2 · Kritisk: 1');
+    expect(vm.kpi.barLabel).toBe('Ingen aktiv varning: 3 · Info: 2 · Varning: 2 · Kritisk: 1');
+  });
+
+  it('names the properties behind each weather pill, worst first', () => {
+    for (const x of vm.kpi.wxSplit) expect(x.items).toHaveLength(x.n);
+    expect(vm.kpi.wxSplit.reduce((a, x) => a + x.n, 0)).toBe(vm.kpi.wx);
+    const rain = vm.kpi.wxSplit.find((x) => x.label === 'Regn')!;
+    const mm = rain.items.map((i) => Number(i.text.match(/([\d,]+) mm/)![1]!.replace(',', '.')));
+    expect(mm).toEqual([...mm].sort((a, b) => b - a));
+    expect(rain.items[0]!.text).toMatch(/^Väntar [\d,]+ mm regn kommande 24 h$/);
+    const frost = vm.kpi.wxSplit.find((x) => x.label === 'Frost')!;
+    expect(frost.items.every((i) => /^Känns som −?\d+° just nu$/.test(i.text))).toBe(true);
   });
 
   it('hero and health', () => {

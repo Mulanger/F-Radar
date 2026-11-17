@@ -41,7 +41,7 @@ export interface SeverityStyle {
 
 export const SEV: Record<Exclude<PropertyStatus, 'unknown'>, SeverityStyle> & { unknown: SeverityStyle } = {
   normal: { label: 'Ingen aktiv varning', c: 'oklch(0.55 0.12 155)', bg: 'oklch(0.95 0.035 155)', hex: 0x3fa66b, hx: '#3FA66B' },
-  monitor: { label: 'Bevaka', c: 'oklch(0.54 0.12 245)', bg: 'oklch(0.95 0.03 245)', hex: 0x4a7fd0, hx: '#4A7FD0' },
+  monitor: { label: 'Info', c: 'oklch(0.54 0.12 245)', bg: 'oklch(0.95 0.03 245)', hex: 0x4a7fd0, hx: '#4A7FD0' },
   warning: { label: 'Varning', c: 'oklch(0.6 0.15 55)', bg: 'oklch(0.95 0.045 65)', hex: 0xe08a2e, hx: '#E08A2E' },
   critical: { label: 'Kritisk', c: 'oklch(0.57 0.19 27)', bg: 'oklch(0.95 0.04 25)', hex: 0xd8473a, hx: '#D8473A' },
   // Not in the prototype: used when status cannot be determined (missing data ≠ normal).

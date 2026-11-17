@@ -5,6 +5,7 @@ import { C, glass } from '@/lib/design/tokens';
 import styles from './PortfolioOverview.module.css';
 import { IconAlert, IconBellSimple, IconBuildingSimple, IconMessage, IconRain } from '../ui/icons';
 import { OnOffToggle } from '../ui/OnOffToggle';
+import { WeatherKpiPills } from './WeatherKpiPills';
 
 const kpiCard: React.CSSProperties = {
   ...glass(0.72, 16),
@@ -83,11 +84,7 @@ export function PortfolioKPIs({ vm }: { vm: OverviewVM }) {
         <KpiHead icon={<IconRain size={11} />} bg="oklch(0.95 0.03 230)" fg="oklch(0.52 0.1 235)" label="Väderhändelser idag" />
         <div style={big}>{v(a.weather, k.wx)}</div>
         <div style={{ display: 'flex', gap: 4, marginTop: 'auto', flexWrap: 'wrap' }}>
-          {k.wxSplit.map((x) => (
-            <span key={x.label} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: C.chip, color: C.text2 }}>
-              {x.label} <b style={{ fontWeight: 600, color: C.ink }}>{a.weather ? x.n : '—'}</b>
-            </span>
-          ))}
+          <WeatherKpiPills split={k.wxSplit} available={a.weather} pillStyle={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: C.chip, color: C.text2 }} />
         </div>
         {!a.weather && <div style={foot}>Prognos ej ansluten</div>}
       </div>

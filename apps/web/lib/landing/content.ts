@@ -10,7 +10,7 @@ export type SeverityKey = 'normal' | 'monitor' | 'warning' | 'critical';
 /** Landing-page status pills (same palette as the dashboard). */
 export const SEVERITY: Record<SeverityKey, { label: string; bg: string; fg: string; dot: string }> = {
   normal: { label: 'Ingen aktiv varning', bg: '#E2F3E8', fg: '#2B7D4D', dot: '#3FA66B' },
-  monitor: { label: 'Bevaka', bg: '#E3ECF9', fg: '#3463AE', dot: '#4A7FD0' },
+  monitor: { label: 'Info', bg: '#E3ECF9', fg: '#3463AE', dot: '#4A7FD0' },
   warning: { label: 'Varning', bg: '#FDEBD8', fg: '#A9530C', dot: '#E08A2E' },
   critical: { label: 'VMA', bg: '#FCE4E1', fg: '#B8362B', dot: '#D8473A' },
 };
@@ -60,7 +60,7 @@ export const HERO_ANNOTATIONS: HeroAnnotation[] = [
   { source: 'SMHI', time: '14:32', badge: { label: 'Orange', ...BADGE.orange }, title: 'Kraftig vind', detail: 'Byar upp till 25 m/s längs kusten', dot: '#E08A2E', severity: 'warning' },
   { source: 'SMHI', time: '10:00', badge: { label: 'Observation', ...BADGE.grey }, title: 'Havsvattenstånd +41 cm', detail: 'SMHI Skeppsholmen · 4,4 km · relativt medel', dot: '#9AA1A8', severity: 'normal' },
   { source: 'Krisinformation', time: '13:20', badge: { label: 'VMA', ...BADGE.red }, title: 'Industribrand', detail: 'Håll fönster och ventilation stängda', dot: '#D8473A', severity: 'critical' },
-  { source: 'Trafikverket', time: '13:10', badge: { label: 'Bevaka', ...BADGE.blue }, title: 'Vägarbete på Värmdövägen', detail: 'Trafikhändelse · 0,9 km från adressen', dot: '#4A7FD0', severity: 'normal' },
+  { source: 'Trafikverket', time: '13:10', badge: { label: 'Info', ...BADGE.blue }, title: 'Vägarbete på Värmdövägen', detail: 'Trafikhändelse · 0,9 km från adressen', dot: '#4A7FD0', severity: 'normal' },
   { source: 'SMHI', time: '12:50', badge: { label: 'Gul', ...BADGE.yellow }, title: 'Kraftigt regn', detail: '20–30 mm inom 12 timmar', dot: '#D9B21F', severity: 'monitor' },
   { source: 'SMHI / Naturvårdsverket', time: '12:00', badge: { label: 'Observation', ...BADGE.grey }, title: 'PM2,5 1,5 µg/m³ · NO₂ 10,8 µg/m³', detail: 'Hornsgatan · 6,3 km · 14 nov · timhalter', dot: '#3FA66B', severity: 'normal' },
 ];

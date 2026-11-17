@@ -11,9 +11,9 @@ export function PortfolioAnalytics({ vm }: { vm: OverviewVM }) {
         <div style={cardTitle}>Påverkade fastigheter per kategori</div>
         <div
           style={cardSub}
-          title="Fastigheter där riskfaktorn når Bevaka eller högre. Karterade scenarier, regional information, trafik och utomhusluft räknas inte här."
+          title="Fastigheter där riskfaktorn når nivå Info eller högre. Karterade scenarier, regional information, trafik och utomhusluft räknas inte här."
         >
-          Riskfaktor på Bevaka eller högre
+          Riskfaktor på nivå Info eller högre
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

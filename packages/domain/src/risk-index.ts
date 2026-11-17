@@ -47,7 +47,7 @@ export const RiskIndexSchema = z.object({
 });
 export type RiskIndex = z.infer<typeof RiskIndexSchema>;
 
-export const RISK_LEVEL_SV: Record<RiskLevel, string> = { low: 'Låg', watch: 'Bevaka', elevated: 'Förhöjd', high: 'Hög' };
+export const RISK_LEVEL_SV: Record<RiskLevel, string> = { low: 'Låg', watch: 'Info', elevated: 'Förhöjd', high: 'Hög' };
 
 const BANDS: Array<{ level: RiskLevel; max: number }> = [
   { level: 'low', max: 24 },
@@ -318,7 +318,7 @@ const UTILITY_SV: Record<string, string> = { electricity: 'strömavbrott', distr
  * not a present impact). Never above "Förhöjd": an outage is the operator's registration, not an
  * official warning.
  *   unplanned, address inside the area (high)   55  Förhöjd
- *   unplanned, medium precision                 30  Bevaka
+ *   unplanned, medium precision                 30  Info
  *   planned work in progress (high)             15  Låg
  *   area-level / anything else                   5 / 0
  * Assessed when the power grid is monitored and current, or when an outage is matched.

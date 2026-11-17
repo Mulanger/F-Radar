@@ -3,6 +3,7 @@ import { C } from '@/lib/design/tokens';
 import { OnOffToggle } from '../ui/OnOffToggle';
 import { IconBuildingSimple, IconBellSimple, IconAlert, IconRain, IconMessage } from '../ui/icons';
 import styles from './mobile.module.css';
+import { WeatherKpiPills } from '../dashboard/WeatherKpiPills';
 
 export function MobileKPIs({ vm }: { vm: OverviewVM }) {
   const k = vm.kpi, a = vm.avail;
@@ -14,6 +15,6 @@ export function MobileKPIs({ vm }: { vm: OverviewVM }) {
     {small(<IconBellSimple size={14} />, 'Aktiva larm', 'oklch(.95 .035 30)', 'oklch(.56 .17 28)', <div className={styles.kpiValue} style={{ fontSize: 24 }}>{a.alerts ? k.alerts : '—'}</div>)}
     {small(<IconMessage size={14} />, 'SMS-larm', 'oklch(.95 .035 155)', 'oklch(.52 .12 155)', <span role="img" aria-label={k.smsOn ? 'SMS-larm aktiverat' : 'SMS-larm inte aktiverat'} style={{ display: 'grid' }}><OnOffToggle on={k.smsOn} width={36} /></span>, a.alerts ? k.smsSub : 'SMS-larm är inte aktiverade')}
     <div className={styles.kpi} style={{ gridColumn: 'span 3' }}>{head(<IconAlert size={14} />, 'Officiella varningar', 'oklch(.95 .06 95)', 'oklch(.5 .1 85)')}<div className={styles.kpiValue}>{a.warnings ? k.warnings : '—'}</div><div className={styles.kpiGraphic}>{k.warnChips.map(w => <span className={styles.chip} key={w.key} style={{ background: w.bg, color: w.fg }}>{w.label}</span>)}</div><div className={styles.small}>{a.warnings ? `Berör ${k.warnAffected} fastigheter` : 'Källor ej anslutna'}</div></div>
-    <div className={styles.kpi} style={{ gridColumn: 'span 3' }}>{head(<IconRain size={14} />, 'Väderhändelser idag', 'oklch(.95 .03 230)', 'oklch(.52 .1 235)')}<div className={styles.kpiValue}>{a.weather ? k.wx : '—'}</div><div className={styles.kpiGraphic}>{k.wxSplit.map(w => <span className={styles.chip} key={w.label}>{w.label} <b>{a.weather ? w.n : '—'}</b></span>)}</div><div className={styles.small}>{a.weather ? 'Över tröskelvärden 24 h' : 'Prognos ej ansluten'}</div></div>
+    <div className={styles.kpi} style={{ gridColumn: 'span 3' }}>{head(<IconRain size={14} />, 'Väderhändelser idag', 'oklch(.95 .03 230)', 'oklch(.52 .1 235)')}<div className={styles.kpiValue}>{a.weather ? k.wx : '—'}</div><div className={styles.kpiGraphic}><WeatherKpiPills split={k.wxSplit} available={a.weather} pillClassName={styles.chip} /></div><div className={styles.small}>{a.weather ? 'Över tröskelvärden 24 h' : 'Prognos ej ansluten'}</div></div>
   </div>;
 }

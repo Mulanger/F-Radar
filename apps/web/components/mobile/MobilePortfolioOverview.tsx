@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { OverviewVM } from '@/lib/view-models/overview';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { C } from '@/lib/design/tokens';
@@ -11,13 +11,12 @@ import { MobileRiskGauge } from './MobileRiskGauge';
 import { MobileFeedRows, MobileSection, MobileStatusRows, MobileWeatherCard } from './MobilePrimitives';
 import { MobilePortfolioMap } from './MobilePortfolioMap';
 import { MobileKPIs } from './MobileKPIs';
+import { MobileScrollList } from './MobileScrollList';
 import { MobilePortfolioAnalytics } from './MobilePortfolioAnalytics';
 import styles from './mobile.module.css';
 
 export function MobilePortfolioOverview({ vm }: { vm: OverviewVM }) {
   const ds = useDashboard();
-  const [feedAll, setFeedAll] = useState(false);
-  const [statusAll, setStatusAll] = useState(false);
   const config = useMemo(() => ({ ...portfolioSceneConfig(), shift: 0, fit: { top: 34, bottom: 24, side: 10 } }), []);
   const st = vm.hero.status;
   const demo = ds.mode === 'demo';
@@ -47,15 +46,13 @@ export function MobilePortfolioOverview({ vm }: { vm: OverviewVM }) {
       <MobileSection title="Händelseflöde" subtitle="Offentliga källor i portföljen" id="mobile-events" meta={<span className={styles.riskBadge} style={{ color: demo ? 'oklch(.45 .1 70)' : hasFeed ? 'oklch(.45 .11 155)' : C.text3, background: demo ? 'oklch(.95 .05 80)' : hasFeed ? 'oklch(.95 .035 155)' : C.chip }}><span className={styles.dot} style={{ width: 6, height: 6 }} />{demo ? 'Demo' : hasFeed ? 'Live' : 'Ej ansluten'}</span>}>
         <div className={`${styles.surface} ${styles.list}`}>
           {!vm.feed.length && <div className={styles.empty}>{hasFeed ? 'Inga händelser för valda fastigheter.' : 'Händelser visas när de offentliga datakällorna levererar data.'}</div>}
-          <MobileFeedRows feed={feedAll ? vm.feed : vm.feed.slice(0, 4)} basePath={ds.basePath} />
-          {vm.feed.length > 4 && <button className={styles.more} aria-expanded={feedAll} onClick={() => setFeedAll(v => !v)}>{feedAll ? 'Visa färre händelser' : `Visa alla ${vm.feed.length} händelser`}</button>}
+          <MobileScrollList visible={4} count={vm.feed.length} label="Händelser"><MobileFeedRows feed={vm.feed} basePath={ds.basePath} /></MobileScrollList>
         </div>
       </MobileSection>
       <MobileSection title="Bevakningsstatus" subtitle="Sorterat efter risk" meta={<span className={styles.meta}>Risk</span>}>
         <div className={`${styles.surface} ${styles.list}`}>
           {!vm.rows.length && <div className={styles.empty}>Inga fastigheter i vald grupp.</div>}
-          <MobileStatusRows rows={statusAll ? vm.rows : vm.rows.slice(0, 5)} basePath={ds.basePath} />
-          {vm.rows.length > 5 && <button className={styles.more} aria-expanded={statusAll} onClick={() => setStatusAll(v => !v)}>{statusAll ? 'Visa färre fastigheter' : `Visa alla ${vm.rows.length} fastigheter`}</button>}
+          <MobileScrollList visible={5} count={vm.rows.length} label="Fastigheter"><MobileStatusRows rows={vm.rows} basePath={ds.basePath} /></MobileScrollList>
           {vm.rows.some(r => r.nowcast.badge) && <div className={styles.small} style={{ marginTop: 10 }}>MET Norway · bearbetad av FastighetsRadar · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></div>}
         </div>
       </MobileSection>

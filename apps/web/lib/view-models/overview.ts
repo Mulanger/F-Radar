@@ -22,7 +22,7 @@ export interface OverviewUi {
 type CountedStatus = (typeof STATUS_ORDER)[number];
 const sev = (st: PropertyStatus) => SEV[st] ?? SEV.unknown;
 const riskOf = riskScore;
-/** Properties where a risk factor reaches "Bevaka" or higher (ADR 0003) – static data alone never counts. */
+/** Properties where a risk factor reaches "Info" (watch) or higher (ADR 0003) – static data alone never counts. */
 const factorAtLeastWatch = (s: PropertySnapshot, key: RiskFactorKey) => (s.riskIndex?.factors.find((f) => f.key === key)?.points ?? 0) >= 25;
 const STATUS_RANK: Record<string, number> = { unknown: 0, normal: 0, monitor: 1, warning: 2, critical: 3 };
 const WARN_RANK: Record<string, number> = { Yellow: 1, Orange: 2, Red: 3, VMA: 4 };
@@ -38,6 +38,22 @@ function describeWorst(s: PropertySnapshot): string {
   const what = type.charAt(0).toLocaleLowerCase('sv') + type.slice(1);
   if (w.level === 'VMA') return `${w.geo.match === 'county' ? 'VMA i länet' : 'VMA'} (${what})`;
   return `${WL[w.level].label} varning (${what})`;
+}
+
+/** One property behind a weather KPI pill ("Väderhändelser idag"). */
+export interface WxItem {
+  propertyId: string;
+  name: string;
+  text: string;
+}
+export interface WxSplit {
+  label: string;
+  n: number;
+  /** Heading of the detail card, e.g. "Kraftigt regn". */
+  title: string;
+  /** The threshold, shown under the heading. */
+  rule: string;
+  items: WxItem[];
 }
 
 export function filterByGroup(p: Portfolio, group: string) {
@@ -72,9 +88,21 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
   const temp = (s: PropertySnapshot) => metricValue(s, 'weather.air_temperature');
   const aqi = (s: PropertySnapshot) => metricValue(s, 'air_quality.index');
 
-  const wxR = list.filter((s) => n0(rain(s)) >= 15).length;
-  const wxW = list.filter((s) => n0(gust(s)) >= 15).length;
-  const wxF = list.filter((s) => feels(s) !== null && feels(s)! < 0).length;
+  // Weather KPI: which properties pass each threshold and by how much (worst first) – shown when a pill is clicked.
+  const wxItems = (value: (s: PropertySnapshot) => number | null, hit: (v: number) => boolean, worst: 'max' | 'min', text: (v: number) => string): WxItem[] =>
+    list
+      .flatMap((s) => {
+        const v = value(s);
+        return v !== null && hit(v) ? [{ v, propertyId: s.property.id, name: s.property.name }] : [];
+      })
+      .sort((a, b) => (worst === 'max' ? b.v - a.v : a.v - b.v))
+      .map(({ v, propertyId, name }) => ({ propertyId, name, text: text(v) }));
+  const wxRain = wxItems(rain, (v) => v >= 15, 'max', (v) => `Väntar ${formatNumber(v, 1)} mm regn kommande 24 h`);
+  const wxWind = wxItems(gust, (v) => v >= 15, 'max', (v) => `Byvind ${formatNumber(v, 0)} m/s just nu`);
+  const wxFrost = wxItems(feels, (v) => v < 0, 'min', (v) => `Känns som ${formatNumber(v, 0)}° just nu`);
+  const wxR = wxRain.length;
+  const wxW = wxWind.length;
+  const wxF = wxFrost.length;
 
   const smsProps = list.filter(ui.isSmsOn);
   const smsN = smsProps.reduce((a, s) => a + rulesFor(s, ui.isRuleOn).filter((r) => r.on).length, 0);
@@ -90,7 +118,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
   const gustP = [...list].sort((a, b) => n0(gust(b)) - n0(gust(a)))[0];
   const temps = list.map(temp).filter((v): v is number => v !== null);
 
-  // Hero status: properties with an active official warning (status Bevaka or higher) and the worst one.
+  // Hero status: properties with an active official warning (status Info/monitor or higher) and the worst one.
   const C30 = 2 * Math.PI * 28;
   const flagged = list.filter((s) => STATUS_RANK[s.property.status] >= 1);
   const top = [...flagged].sort((a, b) => STATUS_RANK[b.property.status] - STATUS_RANK[a.property.status] || worstRank(b) - worstRank(a))[0];
@@ -113,7 +141,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     };
   })();
 
-  // Per risk factor: properties at "Bevaka" or higher. Regional news, static flood mapping, traffic and
+  // Per risk factor: properties at "Info" (watch) or higher. Regional news, static flood mapping, traffic and
   // outdoor air can never reach that alone, so they do not inflate these bars (ADR 0003).
   const catsRaw = [
     { label: 'Väder', n: list.filter((s) => factorAtLeastWatch(s, 'weather')).length, c: 'oklch(0.6 0.1 240)' },
@@ -231,10 +259,10 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
       warnChips: (Object.keys(wc) as Array<keyof typeof WL>).map((k) => ({ key: k, label: WL[k].label + ' ×' + wc[k], bg: WL[k].bg, fg: WL[k].fg })),
       wx: wxR + wxW + wxF,
       wxSplit: [
-        { label: 'Regn', n: wxR },
-        { label: 'Vind', n: wxW },
-        { label: 'Frost', n: wxF },
-      ],
+        { label: 'Regn', n: wxR, title: 'Kraftigt regn', rule: 'Minst 15 mm nederbörd kommande 24 h (SMHI-prognos)', items: wxRain },
+        { label: 'Vind', n: wxW, title: 'Hård vind', rule: 'Byvind minst 15 m/s just nu (SMHI-prognos)', items: wxWind },
+        { label: 'Frost', n: wxF, title: 'Minusgrader', rule: 'Upplevd temperatur under 0° just nu', items: wxFrost },
+      ] satisfies WxSplit[],
       sms: smsN,
       smsW: ready ? (smsN / Math.max(1, smsMax)) * 100 + '%' : '0%',
       smsSub: `${smsProps.length} av ${list.length} fastigheter med SMS aktiverat`,

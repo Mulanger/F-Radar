@@ -162,3 +162,9 @@
   .healthTop { gap: 8px; }.donut { width: 96px; height: 96px; }.healthRow { font-size: 11px; gap: 4px; }
   .kpi { padding: 12px; }.statusRow { gap: 8px; }
 }
+
+/* Long overview lists scroll inside their card (Händelseflöde, Bevakningsstatus). */
+.scrollWrap { position: relative; }
+.scrollList { position: relative; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #d5d9d7 transparent; }
+.scrollList:focus-visible { outline: 2px solid #14171a; outline-offset: 2px; border-radius: 8px; }
+.scrollFade::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 28px; pointer-events: none; background: linear-gradient(rgba(255,255,255,0), #fff); }

@@ -7,7 +7,6 @@ import { useDashboard } from '@/lib/state/dashboard-state';
 import { C, monoChip } from '@/lib/design/tokens';
 import { formatClock } from '@fastighetsradar/domain';
 import { IconAlert, IconAnalytics, IconBuilding, IconClose, IconDashboard, IconMap, IconMessage, IconSliders, IconBell } from '../ui/icons';
-import { LogoMark } from '../ui/LogoMark';
 import { MobileNavigation } from '../mobile/MobileNavigation';
 import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
 
@@ -100,7 +99,7 @@ export function Sidebar() {
   return (
     <>
       <div className={`fr-mobilebar${pathname.startsWith(`${basePath}/properties/`) ? ' fr-mobilebar-detail' : ''}`}>
-        <Link href={`${basePath}/overview`} className="fr-mobile-brand" aria-label="FastighetsRadar – översikt"><LogoMark /><span>FastighetsRadar</span></Link>
+        <Link href={`${basePath}/overview`} className="fr-mobile-brand" aria-label="FastighetsRadar – översikt"><span>FastighetsRadar</span></Link>
         <div className="fr-mobilebar-actions">
         <Link href={`${basePath}/alerts`} className="fr-mobilebar-bell" aria-label="Aviseringar"><IconBell size={19} />{totalAlerts > 0 && <span className="fr-mobilebar-bell-dot" />}</Link>
         {isDemo ? <button
@@ -197,8 +196,7 @@ const menuBtn: React.CSSProperties = {
 
 function Logo() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <LogoMark />
+    <div style={{ display: 'flex', alignItems: 'center', minHeight: 32 }}>
       <div style={{ fontSize: 17, fontWeight: 600, letterSpacing: '-0.02em' }}>FastighetsRadar</div>
     </div>
   );

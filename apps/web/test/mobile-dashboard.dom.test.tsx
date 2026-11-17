@@ -34,19 +34,17 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe('mobile portfolio overview', () => {
-  it('expands and collapses events and properties independently, without SMS controls', () => {
+  it('scrolls long event and property lists inside their cards instead of expanding them, without SMS controls', () => {
     render(<MobilePortfolioOverview vm={vm} />);
     const feed = screen.getByRole('region', { name: 'Händelseflöde' });
     const status = screen.getByRole('region', { name: 'Bevakningsstatus' });
-    expect(within(feed).getAllByRole('link')).toHaveLength(4);
-    fireEvent.click(within(feed).getByRole('button', { name: 'Visa alla 10 händelser' }));
-    expect(within(feed).getAllByRole('link')).toHaveLength(vm.feed.length);
-    fireEvent.click(within(feed).getByRole('button', { name: 'Visa färre händelser' }));
-    expect(within(feed).getAllByRole('link')).toHaveLength(4);
+    const feedScroll = within(feed).getByRole('region', { name: `Händelser, ${vm.feed.length} st – scrolla för fler` });
+    expect(within(feedScroll).getAllByRole('link')).toHaveLength(vm.feed.length);
+    expect(within(feed).queryByRole('button', { name: /Visa alla/ })).toBeNull();
     // Property links only; the attribution link is a separate source link.
-    expect(within(status).getAllByRole('link').filter(a => a.getAttribute('href')?.startsWith('/demo/properties/'))).toHaveLength(5);
-    fireEvent.click(within(status).getByRole('button', { name: 'Visa alla 8 fastigheter' }));
-    expect(within(status).getAllByRole('link').filter(a => a.getAttribute('href')?.startsWith('/demo/properties/'))).toHaveLength(8);
+    const statusScroll = within(status).getByRole('region', { name: 'Fastigheter, 8 st – scrolla för fler' });
+    expect(within(statusScroll).getAllByRole('link').filter(a => a.getAttribute('href')?.startsWith('/demo/properties/'))).toHaveLength(8);
+    expect(within(status).queryByRole('button', { name: /Visa alla/ })).toBeNull();
     expect(screen.queryAllByRole('switch')).toHaveLength(0);
   });
 

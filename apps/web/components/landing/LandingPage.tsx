@@ -11,7 +11,7 @@ import {
 } from '@/lib/landing/content';
 import { LandingHero } from './LandingHero';
 import { ForecastPanel, GetStartedForm, SmsRuleDemo, WaterCanvas } from './LandingInteractive';
-import { Badge, Bullets, LogoMark, StatusPill } from './Primitives';
+import { Badge, Bullets, StatusPill } from './Primitives';
 import { Reveal } from './Reveal';
 import { StepsCarousel } from './StepsCarousel';
 import {
@@ -64,7 +64,6 @@ function LandingHeader({ signedIn }: { signedIn: boolean }) {
         }}
       >
         <a href="#top" className={css.navBrand} aria-label="FastighetsRadar – till toppen" style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
-          <LogoMark />
           <span style={{ fontWeight: 600, fontSize: 17, letterSpacing: '-0.02em' }}>FastighetsRadar</span>
         </a>
         {/* Links that do not fit wrap onto a hidden second row (design behaviour on narrow screens). */}
@@ -491,7 +490,6 @@ function GetStarted({ signedIn }: { signedIn: boolean }) {
   return (
     <section id="kom-igang" className={css.getStartedSection} aria-labelledby="kom-igang-rubrik" style={{ scrollMarginTop: 90, padding: 'clamp(100px,12vw,170px) clamp(12px,2vw,24px) 0' }}>
       <Reveal className={css.getStartedPanel} style={{ maxWidth: 1320, margin: '0 auto', borderRadius: 32, background: 'linear-gradient(180deg,#E6EEF1 0%,#EEF2F2 100%)', border: '1px solid rgba(255,255,255,0.9)', padding: 'clamp(56px,8vw,110px) clamp(24px,4vw,48px)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 22 }}>
-        <LogoMark size={52} />
         <h2 id="kom-igang-rubrik" style={{ margin: 0, fontWeight: 500, fontSize: 'clamp(36px,4.8vw,64px)', lineHeight: 1, letterSpacing: '-0.045em', textWrap: 'balance', maxWidth: '14em' }}>
           Börja bevaka din första fastighet.
         </h2>
@@ -515,7 +513,6 @@ function LandingFooter() {
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 40 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 320 }}>
             <a href="#top" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <LogoMark size={30} />
               <span style={{ fontWeight: 600, fontSize: 16, letterSpacing: '-0.02em' }}>FastighetsRadar</span>
             </a>
             <span style={{ fontSize: 14.5, lineHeight: 1.55, color: '#6B737B' }}>Miljö- och samhällsbevakning för fastigheter, byggd på svensk offentlig data.</span>
