@@ -28,6 +28,8 @@ import {
   leaseDueJob,
   loadOrgMonitoring,
   rematchEvents,
+  getOrganizationSettings,
+  saveTrafficRadius,
   requestJobRun,
   upsertCountyAreas,
   upsertPropertyContext,
@@ -309,7 +311,10 @@ describe('real PostgreSQL / PostGIS', () => {
       ev({ externalId: 'news:1', dataClass: 'PUBLIC_EVENT', category: 'Crisis', level: 'Info', severity: 'info', countyNames: ['Stockholms län'] }),
       ev({ externalId: 'news:2', dataClass: 'PUBLIC_EVENT', category: 'Crisis', level: 'Info', severity: 'info', countyNames: ['*'] }),
     ]);
-    // Traffic: one line ~1.3 km from Sveavägen (inside 2 km), one ~19 km away.
+    // Traffic: one line ~1.3 km from Sveavägen, one ~19 km away. Organization A watches traffic within
+    // 2 km (Inställningar); new organizations start at 500 m.
+    assert.equal((await getOrganizationSettings(pool, A.organizationId)).trafficRadiusM, 500);
+    await pool.query('UPDATE organizations SET traffic_radius_m = 2000 WHERE id = $1', [A.organizationId]);
     await upsertSourceEvents(pool, 'trafikverket', [
       ev({ externalId: 'tv-near', dataClass: 'PUBLIC_EVENT', category: 'Traffic', level: null, severity: 'warning', geometryWkt: 'LINESTRING (18.06 59.325, 18.08 59.325)' }),
       ev({ externalId: 'tv-far', dataClass: 'PUBLIC_EVENT', category: 'Traffic', level: null, severity: 'warning', geometryWkt: 'POINT (18.4 59.33)' }),
@@ -323,6 +328,15 @@ describe('real PostgreSQL / PostGIS', () => {
     const near = ma.events.find((e) => e.external_id === 'tv-near')!;
     assert.equal(near.match_method, 'within_radius');
     assert.ok(Number(near.distance_m) > 1_100 && Number(near.distance_m) < 1_500, `distance ${near.distance_m}`);
+    // A shorter distance drops the match at once without "Avslutad" feed rows; a longer one restores it
+    // silently, and the next rematch does not report it as new.
+    const changesBefore = (await pool.query('SELECT count(*)::int AS n FROM monitoring_changes')).rows[0].n;
+    assert.deepEqual(await saveTrafficRadius(pool, A.organizationId, 500), { removed: 1, added: 0 });
+    assert.ok(!(await loadOrgMonitoring(pool, A.organizationId)).events.some((e) => e.external_id === 'tv-near'));
+    assert.deepEqual(await rematchEvents(pool), []);
+    assert.deepEqual(await saveTrafficRadius(pool, A.organizationId, 2000), { removed: 0, added: 1 });
+    assert.deepEqual(await rematchEvents(pool), []);
+    assert.equal((await pool.query('SELECT count(*)::int AS n FROM monitoring_changes')).rows[0].n, changesBefore);
     // A message for the whole county (no municipality list) covers the property's municipality (ADR 0003).
     assert.equal(ma.events.find((e) => e.external_id === 'news:1')!.match_method, 'municipality');
     assert.ok(ma.events.every((e) => e.property_id === pa.id) && mb.events.every((e) => e.property_id === pb.id), 'tenant isolation');

@@ -1,5 +1,6 @@
 'use client';
 
+import { formatTrafficRadius } from '@fastighetsradar/domain';
 import type { DetailVM } from '@/lib/view-models/detail';
 import { C, card, cardSub, cardTitle, tile } from '@/lib/design/tokens';
 import type { EventMapState } from './use-event-map';
@@ -13,7 +14,7 @@ export function LocalEventsPanel({ d, map }: { d: DetailVM; map?: EventMapState 
     <div style={{ ...card, flex: '1 1 380px', padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div>
         <div style={cardTitle}>Händelser och störningar i närheten</div>
-        <div style={cardSub}>{d.live ? 'Trafikverket inom 2 km · Krisinformation per län (regional information)' : 'Inom 1,5 km från fastigheten'}</div>
+        <div style={cardSub}>{d.live ? `Trafikverket inom ${d.trafficRadiusM ? formatTrafficRadius(d.trafficRadiusM) : 'valt avstånd'} · Krisinformation per län (regional information)` : 'Inom 1,5 km från fastigheten'}</div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
         {[

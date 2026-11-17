@@ -149,12 +149,12 @@ function HowItWorks() {
                 <span style={{ ...sourceChip, fontSize: 12, padding: '4px 8px', borderRadius: 8, background: '#FFFFFF', position: 'absolute', right: 16, top: 40 }}>Krisinformation</span>
                 <span style={{ ...sourceChip, fontSize: 12, padding: '4px 8px', borderRadius: 8, background: '#FFFFFF', position: 'absolute', left: 22, bottom: 30 }}>Trafikverket</span>
                 <span style={{ ...sourceChip, fontSize: 12, padding: '4px 8px', borderRadius: 8, background: '#FFFFFF', position: 'absolute', right: 26, bottom: 18 }}>SGU</span>
-                <span style={{ position: 'absolute', left: '50%', top: '50%', margin: '16px 0 0 -38px', fontFamily: MONO, fontSize: 11, color: '#4A5157' }}>radie 2 km</span>
+                <span style={{ position: 'absolute', left: '50%', top: '50%', margin: '16px 0 0 -38px', fontFamily: MONO, fontSize: 11, color: '#4A5157' }}>radie 500 m</span>
               </div>
               <div style={stepText}>
                 <span style={stepNo}>02</span>
                 <h3 style={stepH3}>Vi bevakar positionen</h3>
-                <p style={stepP}>Vädervarningar matchas geografiskt, trafik inom 2 km och VMA per kommun eller län. Mätningar märks med station och avstånd.</p>
+                <p style={stepP}>Vädervarningar matchas geografiskt, trafik inom ett avstånd ni väljer (100 m–3 km) och VMA per kommun eller län. Mätningar märks med station och avstånd.</p>
               </div>
             </Reveal>
           </li>
@@ -372,7 +372,7 @@ function InstrumentsFeature() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, paddingBottom: 10 }}>
             <div style={cardHead}>
               <span style={cardTitle}>Händelser i närheten</span>
-              <span style={cardSub}>Trafikhändelser inom larmradien 2 km · VMA per kommun/län</span>
+              <span style={cardSub}>Trafikhändelser inom valt avstånd (standard 500 m) · VMA per kommun/län</span>
             </div>
             <span style={{ fontFamily: MONO, fontSize: 13, color: '#4A5157', paddingTop: 4 }}>4 st</span>
           </div>

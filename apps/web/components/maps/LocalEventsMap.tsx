@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type * as Leaflet from 'leaflet';
+import { formatTrafficRadius } from '@fastighetsradar/domain';
 import type { DetailVM } from '@/lib/view-models/detail';
 import { C, card, glass } from '@/lib/design/tokens';
 import { esc, loadLeaflet, newMap, pinIcon } from './leaflet-utils';
@@ -44,7 +45,8 @@ export function LocalEventsMap({ d, onOpen }: { d: DetailVM; onOpen?: () => void
     // Decorative exposure indication – not an MCF polygon.
     if (d.floodExposure === 'High' || d.floodExposure === 'Medium')
       group.addLayer(L.circle([lat + 0.0015, lon + 0.0025], { radius: d.floodExposure === 'High' ? 420 : 260, stroke: false, fillColor: '#5494B0', fillOpacity: 0.3 }));
-    group.addLayer(L.circle([lat, lon], { radius: 1000, color: sevHx, weight: 1.5, dashArray: '6 6', fillColor: sevHx, fillOpacity: 0.04 }));
+    // Live: the organization's Trafikverket distance (Inställningar); demo: the design's 1 km.
+    group.addLayer(L.circle([lat, lon], { radius: d.trafficRadiusM ?? 1000, color: sevHx, weight: 1.5, dashArray: '6 6', fillColor: sevHx, fillOpacity: 0.04 }));
     // Grid operator outage areas matched to this property (real published geometry only).
     d.outageShapes.forEach((o) => {
       group.addLayer(
@@ -69,17 +71,17 @@ export function LocalEventsMap({ d, onOpen }: { d: DetailVM; onOpen?: () => void
     group.addLayer(L.marker([lat, lon], { icon: pinIcon(L, sevHx, 22), title: d.name }));
     map.flyTo([lat, lon], 14, { duration: 0.8 });
     // Redraw only when the property (or its data) changes.
-  }, [d.id, d.name, d.lat, d.lon, d.events.length, d.hex, d.floodExposure, d.outageShapes.map((o) => o.id + o.color).join(), loaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [d.id, d.name, d.lat, d.lon, d.trafficRadiusM, d.events.length, d.hex, d.floodExposure, d.outageShapes.map((o) => o.id + o.color).join(), loaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div style={{ ...card, flex: '1.3 1 460px', minHeight: 420, position: 'relative', overflow: 'hidden', background: C.mapBg }}>
       <div ref={elRef} style={{ position: 'absolute', inset: 0, zIndex: 0 }} role="region" aria-label={`Karta över närområdet för ${d.name}`} />
       <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 500, padding: '12px 16px', borderRadius: 16, ...glass(0.82, 16) }}>
         <div style={{ fontSize: 15, fontWeight: 600 }}>Närområde</div>
-        <div style={{ fontSize: 12, color: C.text3 }}>Larmradie 1 km · händelser · översvämningszon{d.outageShapes.length ? ' · avbrottsområden' : ''}</div>
+        <div style={{ fontSize: 12, color: C.text3 }}>{d.trafficRadiusM ? `Trafikavstånd ${formatTrafficRadius(d.trafficRadiusM)}` : 'Larmradie 1 km'} · händelser · översvämningszon{d.outageShapes.length ? ' · avbrottsområden' : ''}</div>
       </div>
       <div className="fr-map-legend" style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 500, display: 'flex', gap: 14, padding: '10px 14px', borderRadius: 14, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(16px)', fontSize: 12, color: C.text2 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', border: `1.5px dashed ${d.c}` }} />Larmradie</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', border: `1.5px dashed ${d.c}` }} />{d.trafficRadiusM ? 'Trafikavstånd' : 'Larmradie'}</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: 'oklch(0.65 0.15 55)' }} />Händelse</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: 'rgba(84,148,176,0.45)' }} />Översvämningszon</span>
       </div>

@@ -9,6 +9,7 @@ import {
   listRecentChangesForOrg,
   listPropertyActivity,
   listPropertyEventMap,
+  getOrganizationSettings,
   loadOrgMonitoring,
   rematchEvents,
   rematchUtilityOutages,
@@ -86,12 +87,13 @@ export class MonitoringService {
   }
 
   async portfolio(t: TenantContext, now = new Date()): Promise<Portfolio> {
-    const [properties, data, statuses, changes, utility] = await Promise.all([
+    const [properties, data, statuses, changes, utility, settings] = await Promise.all([
       listProperties(this.db, t),
       loadOrgMonitoring(this.db, t.organizationId),
       this.statuses(now),
       listRecentChangesForOrg(this.db, t.organizationId, 60),
       this.utilityInputs(t.organizationId, now),
+      getOrganizationSettings(this.db, t.organizationId),
     ]);
     const base = buildLivePortfolio({ clerkOrgId: t.clerkOrgId, orgSlug: t.orgSlug, properties, sources: statuses, now });
     const snapshots = await notificationSnapshots(this.db,t.organizationId,properties.map((p) => {
@@ -104,6 +106,7 @@ export class MonitoringService {
       properties: snapshots,
       feed: buildFeed(changes, new Set(properties.map((p) => p.id))),
       upcoming: buildUpcoming(snapshots, data.forecasts, now),
+      settings: { trafficRadiusM: settings.trafficRadiusM },
     };
   }
 

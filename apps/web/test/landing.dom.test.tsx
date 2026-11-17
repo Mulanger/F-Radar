@@ -36,7 +36,7 @@ describe('LandingPage (signed out)', () => {
     expect(text).not.toContain('SL-färjor');
     expect(text).not.toContain('Filtrera per område');
     expect(text).toContain('Grundvatten: regional modell och närmaste mätstation');
-    expect(text).toContain('larmradien 2 km');
+    expect(text).toContain('valt avstånd (standard 500 m)');
     expect(text).toContain('Nacka kommun');
     expect(text).toContain('relativt medelvattenstånd');
   });

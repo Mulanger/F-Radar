@@ -8,7 +8,7 @@ import type {
   NotificationRule,
   NotificationRuleInput,
 } from "@fastighetsradar/domain";
-import { NOTIFICATION_STATUS_LABELS } from "@fastighetsradar/domain";
+import { NOTIFICATION_STATUS_LABELS, TRAFFIC_RADIUS } from "@fastighetsradar/domain";
 import { C, card, cardSub, cardTitle } from "@/lib/design/tokens";
 import { Toggle } from "../ui/Toggle";
 
@@ -85,7 +85,7 @@ const conditionDefault = (
               restored: true,
               changes: true,
             }
-          : { category: "traffic", radiusMeters: 1000, updates: true };
+          : { category: "traffic", radiusMeters: TRAFFIC_RADIUS.default, updates: true };
 function newRule(
   propertyId: string | undefined,
   recipientIds: string[],
@@ -892,9 +892,9 @@ export function SmsManagement({
                   Radie från fastigheten (meter)
                   <input
                     type="number"
-                    min={100}
-                    max={2000}
-                    step={100}
+                    min={TRAFFIC_RADIUS.min}
+                    max={TRAFFIC_RADIUS.max}
+                    step={TRAFFIC_RADIUS.step}
                     required
                     style={inputStyle}
                     value={draft.condition.radiusMeters}
@@ -902,6 +902,9 @@ export function SmsManagement({
                       updateCondition({ radiusMeters: Number(e.target.value) })
                     }
                   />
+                  <span style={{ fontSize: 12, color: "#6B737B", fontWeight: 400 }}>
+                    Gäller inom organisationens trafikavstånd under Inställningar.
+                  </span>
                 </label>
               )}
               {draft.condition.category === "power_outage" && (() => {

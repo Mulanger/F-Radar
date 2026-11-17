@@ -403,5 +403,7 @@ export const PortfolioSchema = z.object({
     })
     .nullable(),
   viewer: z.object({ displayName: z.string(), role: z.string(), initials: z.string() }),
+  /** Organization settings that change what is shown (live only; Inställningar). */
+  settings: z.object({ trafficRadiusM: z.number().int().positive() }).optional(),
 });
 export type Portfolio = z.infer<typeof PortfolioSchema>;

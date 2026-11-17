@@ -12,6 +12,7 @@ import { registerCustomerRoutes } from './routes/customer';
 import { createClerkVerifier, registerAuth, type AuthVerifier } from './auth';
 import { loggerOptions } from './logger';
 import { registerNotificationRoutes } from './routes/notifications';
+import { registerSettingsRoutes } from './routes/settings';
 import { registerUpcomingRoutes } from './routes/upcoming';
 import type { PhoneVerificationProvider } from './notifications/verification';
 
@@ -70,6 +71,7 @@ export async function buildApp(env: ServerEnv, deps: AppDeps = {}): Promise<Fast
   registerMonitoringRoutes(app, { env, service: monitoring, requireUser, requireOrg });
   registerNotificationRoutes(app, { env, db: deps.db ?? null, requireOrg, verification: deps.verification });
   registerUpcomingRoutes(app, { db: deps.db ?? null, requireOrg });
+  registerSettingsRoutes(app, { db: deps.db ?? null, requireOrg });
 
   return app;
 }

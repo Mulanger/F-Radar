@@ -8,7 +8,8 @@ import type { AdapterContext, AdapterResult, NormalizedSourceEvent } from '../ty
  *
  * POST {TRAFIKVERKET_API_URL} with an XML query: objecttype "Situation", namespace
  * "road.trafficinfo", schemaversion 1.6. We query only around customer properties
- * (WITHIN radius on Deviation.Geometry.Point.WGS84, several points OR-ed per request), so
+ * (WITHIN radius on Deviation.Geometry.Point.WGS84 – each point with its own radius, from the
+ * organization's distance setting – several points OR-ed per request), so
  * the payload stays small. Deviation geometry is WKT (WGS84 Point and/or LineString).
  *
  * Requires TRAFIKVERKET_ENABLED=true and TRAFIKVERKET_API_KEY. The key is never logged.
@@ -16,14 +17,15 @@ import type { AdapterContext, AdapterResult, NormalizedSourceEvent } from '../ty
  */
 export const TRAFIKVERKET_ATTRIBUTION = 'Källa: Trafikverket (CC0)';
 export const TRAFIKVERKET_API_URL = 'https://api.trafikinfo.trafikverket.se/v2/data.json';
+/** Fallback radius for a point without its own (the organizations' default distance is 500 m). */
 export const TRAFIKVERKET_RADIUS_M = 2_000;
 export const TRAFIKVERKET_POINTS_PER_REQUEST = 20;
 
 const xmlAttr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-export function buildTrafikverketQuery(key: string, points: Array<{ lat: number; lon: number }>, radiusM = TRAFIKVERKET_RADIUS_M): string {
+export function buildTrafikverketQuery(key: string, points: Array<{ lat: number; lon: number; radiusM?: number }>, radiusM = TRAFIKVERKET_RADIUS_M): string {
   const within = points
-    .map((p) => `<WITHIN name="Deviation.Geometry.Point.WGS84" shape="center" value="${p.lon.toFixed(5)} ${p.lat.toFixed(5)}" radius="${Math.round(radiusM)}m"/>`)
+    .map((p) => `<WITHIN name="Deviation.Geometry.Point.WGS84" shape="center" value="${p.lon.toFixed(5)} ${p.lat.toFixed(5)}" radius="${Math.round(p.radiusM ?? radiusM)}m"/>`)
     .join('');
   return (
     `<REQUEST><LOGIN authenticationkey="${xmlAttr(key)}"/>` +
@@ -164,7 +166,7 @@ export function trafikverketReady(ctx: AdapterContext): boolean {
 }
 
 export async function fetchTrafikverketNear(
-  points: Array<{ lat: number; lon: number }>,
+  points: Array<{ lat: number; lon: number; radiusM?: number }>,
   ctx: AdapterContext,
 ): Promise<AdapterResult<{ events: NormalizedSourceEvent[]; skipped: number; deletedIds: string[] }>> {
   if (!trafikverketReady(ctx)) return { ok: false, error: 'access_required', detail: 'TRAFIKVERKET_API_KEY missing or source disabled' };

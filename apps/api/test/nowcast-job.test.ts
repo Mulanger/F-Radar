@@ -8,7 +8,7 @@ it('skips absent contact, respects Expires and preserves series on 304',async()=
   const fetchMock=vi.fn(async()=>new Response(null,{status:304,headers:{Expires:'Fri, 13 Nov 2026 17:10:00 GMT'}}));
   const ctx:JobContext={adapter:{env:loadServerEnv({}),fetch:fetchMock,now:()=>now,logger:{debug(){},info(){},warn(){},error(){}}},db:{async query<R>(sql:string){
     statements.push(sql);
-    return {rows:(sql.includes('FROM properties WHERE')?[{id:'p',lat:59.331,lon:18.061}]:sql.includes('FROM nowcast_points')?[cached]:[]) as R[]};
+    return {rows:(/FROM properties( p JOIN organizations o ON o\.id = p\.organization_id)?\s+WHERE/.test(sql)?[{id:'p',lat:59.331,lon:18.061}]:sql.includes('FROM nowcast_points')?[cached]:[]) as R[]};
   }}};
   expect((await runNowcast(ctx)).status).toBe('skipped');expect(statements).toHaveLength(0);
   ctx.adapter.env.MET_NORWAY_CONTACT='https://f-radar.fr-2.instapods.app';

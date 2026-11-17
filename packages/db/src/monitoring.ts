@@ -128,12 +128,13 @@ export interface MonitoringTarget {
   updatedAt: Date;
 }
 
-export async function listMonitoringTargets(db: Queryable): Promise<MonitoringTarget[]> {
-  const { rows } = await db.query<{ id: string; organization_id: string; lat: number; lon: number; municipality: string | null; updated_at: Date }>(
-    `SELECT id, organization_id, ST_Y(location::geometry) AS lat, ST_X(location::geometry) AS lon, municipality, updated_at
-       FROM properties WHERE status <> 'paused' ORDER BY created_at, id`,
+export async function listMonitoringTargets(db: Queryable): Promise<Array<MonitoringTarget & { /** The organization's Trafikverket distance (Inställningar). */ trafficRadiusM: number }>> {
+  const { rows } = await db.query<{ id: string; organization_id: string; lat: number; lon: number; municipality: string | null; updated_at: Date; traffic_radius_m: number }>(
+    `SELECT p.id, p.organization_id, ST_Y(p.location::geometry) AS lat, ST_X(p.location::geometry) AS lon, p.municipality, p.updated_at, o.traffic_radius_m
+       FROM properties p JOIN organizations o ON o.id = p.organization_id
+      WHERE p.status <> 'paused' ORDER BY p.created_at, p.id`,
   );
-  return rows.map((r) => ({ propertyId: r.id, organizationId: r.organization_id, lat: r.lat, lon: r.lon, municipality: r.municipality, updatedAt: r.updated_at }));
+  return rows.map((r) => ({ propertyId: r.id, organizationId: r.organization_id, lat: r.lat, lon: r.lon, municipality: r.municipality, updatedAt: r.updated_at, trafficRadiusM: Number(r.traffic_radius_m) }));
 }
 
 /* ------------------------------------------------------------------ */
@@ -321,8 +322,10 @@ export async function endEventsById(db: Queryable, sourceId: string, externalIds
 /* Geographic matching (PostGIS) + de-duplicated change log            */
 /* ------------------------------------------------------------------ */
 
-/** Traffic events are matched within 2 km (central-city 5 km produced ~50 mostly irrelevant events). */
-export const TRAFFIC_MATCH_RADIUS_M = 2_000;
+/**
+ * Traffic events are matched within the organization's distance (organizations.traffic_radius_m,
+ * TRAFFIC_RADIUS in the domain: 100–3000 m, default 500 m).
+ */
 
 export interface MatchChange {
   organizationId: string;
@@ -334,7 +337,7 @@ export interface MatchChange {
 /**
  * Recomputes property ↔ event matches for all active events in ONE statement (consistent snapshot):
  *  - smhi_warnings:   ST_Intersects(warning polygon, property point)
- *  - trafikverket:    ST_DWithin(deviation geometry, point, 5 km) + exact distance
+ *  - trafikverket:    ST_DWithin(deviation geometry, point, organization's traffic radius) + exact distance
  *  - krisinformation: property county (ST_Covers on county polygons) ∈ published counties,
  *                     '*' (national), or municipality name match
  * and writes one monitoring_changes row per new/updated/ended match (dedup_key is unique, so
@@ -344,8 +347,9 @@ export async function rematchEvents(db: Queryable): Promise<MatchChange[]> {
   const { rows } = await db.query<{ organization_id: string; property_id: string; source_id: string; change_type: MatchChange['changeType'] }>(
     `WITH props AS (
        SELECT p.id, p.organization_id, p.location, lower(regexp_replace(coalesce(p.municipality, ''), '\\s+(kommun|stad)$', '')) AS muni,
-              (SELECT a.name FROM admin_areas a WHERE a.kind = 'county' AND ST_Covers(a.geom, p.location::geometry) LIMIT 1) AS county
-         FROM properties p WHERE p.status <> 'paused'
+              (SELECT a.name FROM admin_areas a WHERE a.kind = 'county' AND ST_Covers(a.geom, p.location::geometry) LIMIT 1) AS county,
+              o.traffic_radius_m
+         FROM properties p JOIN organizations o ON o.id = p.organization_id WHERE p.status <> 'paused'
      ), cand AS (
        SELECT pr.id AS property_id, pr.organization_id, e.id AS event_id, e.version,
               CASE WHEN e.source_id = 'smhi_warnings' THEN 'polygon_intersection'
@@ -363,7 +367,7 @@ export async function rematchEvents(db: Queryable): Promise<MatchChange[]> {
          FROM props pr
          JOIN source_events e ON e.status = 'active' AND (
               (e.source_id = 'smhi_warnings' AND e.geom IS NOT NULL AND ST_Intersects(e.geom, pr.location::geometry))
-           OR (e.source_id IN ('trafikverket', 'sl_deviations') AND e.geom IS NOT NULL AND ST_DWithin(e.geom::geography, pr.location, ${TRAFFIC_MATCH_RADIUS_M}))
+           OR (e.source_id IN ('trafikverket', 'sl_deviations') AND e.geom IS NOT NULL AND ST_DWithin(e.geom::geography, pr.location, pr.traffic_radius_m))
            OR (e.source_id = 'krisinformation' AND (
                  pr.county = ANY(e.county_names) OR '*' = ANY(e.county_names)
                  OR (pr.muni <> '' AND EXISTS (
@@ -393,6 +397,8 @@ export async function rematchEvents(db: Queryable): Promise<MatchChange[]> {
               CASE WHEN e.status = 'cancelled' THEN 'cancelled' ELSE 'ended' END, e.data_class, e.severity, e.headline,
               g.property_id || ':' || g.event_id || ':v' || g.matched_version || ':end'
          FROM gone g JOIN source_events e ON e.id = g.event_id
+        -- A traffic event that is still active but no longer within the distance did not end.
+        WHERE NOT (e.status = 'active' AND e.source_id IN ('trafikverket', 'sl_deviations'))
        ON CONFLICT (dedup_key) DO NOTHING
        RETURNING organization_id, property_id, source_id, change_type
      ), up AS (

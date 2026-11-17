@@ -14,6 +14,7 @@ import {
   endMissingEvents,
   expireEvents,
   listMonitoringTargets,
+  type MonitoringTarget,
   propertiesNeedingContext,
   propertiesNeedingForecast,
   rematchEvents,
@@ -143,11 +144,31 @@ async function runKrisinformation(ctx: JobContext): Promise<JobResult> {
   };
 }
 
+/**
+ * Query points for Trafikverket: nearby properties share one point (~1 km grid) to keep requests
+ * small. The shared point's radius covers every member's own distance (its radius plus how far it
+ * lies from the shared point), so no property misses an event within its organization's distance.
+ * Deviations are found by their own point; their stretch can reach further, so +200 m margin.
+ */
+export function trafikverketQueryPoints(targets: Array<{ lat: number; lon: number; trafficRadiusM: number }>): Array<{ lat: number; lon: number; radiusM: number }> {
+  const cells = new Map<string, { lat: number; lon: number; radiusM: number }>();
+  for (const t of targets) {
+    const key = `${t.lat.toFixed(2)},${t.lon.toFixed(2)}`;
+    const c = cells.get(key);
+    if (!c) {
+      cells.set(key, { lat: t.lat, lon: t.lon, radiusM: t.trafficRadiusM + 200 });
+      continue;
+    }
+    const dx = (t.lon - c.lon) * 111_320 * Math.cos((c.lat * Math.PI) / 180);
+    const dy = (t.lat - c.lat) * 110_540;
+    c.radiusM = Math.max(c.radiusM, Math.ceil(t.trafficRadiusM + 200 + Math.hypot(dx, dy)));
+  }
+  return [...cells.values()];
+}
+
 async function runTrafikverket(ctx: JobContext): Promise<JobResult> {
   if (!trafikverketReady(ctx.adapter)) return { status: 'skipped', items: 0, errorCode: 'access_required', errorDetail: 'TRAFIKVERKET_ENABLED/KEY not set' };
-  const targets = await listMonitoringTargets(ctx.db);
-  // De-duplicate nearby points (~1 km grid) to keep requests small.
-  const pts = [...new Map(targets.map((t) => [`${t.lat.toFixed(2)},${t.lon.toFixed(2)}`, { lat: t.lat, lon: t.lon }])).values()];
+  const pts = trafikverketQueryPoints(await listMonitoringTargets(ctx.db));
   const all: NormalizedSourceEvent[] = [];
   const deleted: string[] = [];
   let skipped = 0;
@@ -288,7 +309,7 @@ async function runPerProperty(
   contextKey: string,
   maxAgeS: number,
   limit: number,
-  each: (t: Awaited<ReturnType<typeof listMonitoringTargets>>[number]) => Promise<{ ok: true } | { ok: false; result: JobResult; abort?: boolean }>,
+  each: (t: MonitoringTarget) => Promise<{ ok: true } | { ok: false; result: JobResult; abort?: boolean }>,
 ): Promise<JobResult> {
   const targets = await propertiesNeedingContext(ctx.db, sourceId, contextKey, maxAgeS, limit);
   let ok = 0;

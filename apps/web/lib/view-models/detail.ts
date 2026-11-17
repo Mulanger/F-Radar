@@ -312,6 +312,8 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
       })),
     },
     location: p.location,
+    /** Organization's Trafikverket distance (live; Inställningar), null in the demo. */
+    trafficRadiusM: live ? portfolio.settings?.trafficRadiusM ?? null : null,
     floodExposure: flood,
     live: live
       ? {

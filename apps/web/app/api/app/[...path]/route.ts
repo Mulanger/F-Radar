@@ -21,6 +21,7 @@ const ROUTES: Array<{ pattern: RegExp; methods: string[] }> = [
   { pattern: new RegExp(`^notifications/recipients/${UUID}/verification(/complete)?$`), methods: ['POST'] },
   { pattern: new RegExp(`^notifications/properties/${UUID}$`), methods: ['PATCH'] },
   { pattern: /^upcoming\/acknowledgements$/, methods: ['GET', 'POST'] },
+  { pattern: /^settings$/, methods: ['GET', 'PATCH'] },
   { pattern: /^me$/, methods: ['GET'] },
   { pattern: /^portfolio$/, methods: ['GET'] },
   { pattern: /^portfolio\/summary$/, methods: ['GET'] },

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRAFFIC_RADIUS } from "./organization-settings";
 
 export const NOTIFICATION_CATEGORIES = [
   {
@@ -30,7 +31,7 @@ export const NOTIFICATION_CATEGORIES = [
     source: "trafikverket",
     label: "Trafikverket",
     explanation:
-      "Nya betydande trafikstörningar och materiella ändringar inom vald radie (högst 2 km). Innebär inte att fastigheten är otillgänglig.",
+      "Nya betydande trafikstörningar och materiella ändringar inom vald radie (högst organisationens trafikavstånd, upp till 3 km). Innebär inte att fastigheten är otillgänglig.",
     enabled: true,
   },
   {
@@ -124,7 +125,7 @@ export const NotificationConditionSchema = z.discriminatedUnion("category", [
   z
     .object({
       category: z.literal("traffic"),
-      radiusMeters: z.number().int().min(100).max(2000),
+      radiusMeters: z.number().int().min(TRAFFIC_RADIUS.min).max(TRAFFIC_RADIUS.max),
       updates: z.boolean(),
     })
     .strict(),

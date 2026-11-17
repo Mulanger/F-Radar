@@ -307,7 +307,7 @@ describe('monitoring HTTP endpoints', () => {
   afterAll(() => app.close());
 
   it('require a verified user AND organization', async () => {
-    for (const url of ['/v1/portfolio', '/v1/portfolio/summary', `/v1/properties/${PID}/snapshot`, `/v1/properties/${PID}/forecast`, `/v1/properties/${PID}/warnings`, `/v1/properties/${PID}/events`, `/v1/properties/${PID}/environment`, `/v1/properties/${PID}/flood`, `/v1/properties/${PID}/activity`, `/v1/properties/${PID}/event-map`, '/v1/changes', '/v1/stream']) {
+    for (const url of ['/v1/portfolio', '/v1/portfolio/summary', `/v1/properties/${PID}/snapshot`, `/v1/properties/${PID}/forecast`, `/v1/properties/${PID}/warnings`, `/v1/properties/${PID}/events`, `/v1/properties/${PID}/environment`, `/v1/properties/${PID}/flood`, `/v1/properties/${PID}/activity`, `/v1/properties/${PID}/event-map`, '/v1/settings', '/v1/changes', '/v1/stream']) {
       expect((await app.inject({ method: 'GET', url })).statusCode, url).toBe(401);
       expect((await app.inject({ method: 'GET', url, headers: { authorization: 'Bearer noorg' } })).statusCode, url).toBe(403);
     }

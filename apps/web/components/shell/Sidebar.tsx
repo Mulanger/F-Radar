@@ -78,9 +78,10 @@ export function Sidebar() {
     fn();
   };
   const isSms = pathname === '/sms-rules';
+  const isSettings = pathname === '/settings';
   const isAlerts = pathname === `${basePath}/alerts`;
   const isProperties = pathname.startsWith(`${basePath}/properties`);
-  const isOverview = !isSms && !isAlerts && !isProperties;
+  const isOverview = !isSms && !isSettings && !isAlerts && !isProperties;
   const totalAlerts = portfolio.properties.reduce((a, s) => a + s.activeAlertCount, 0);
   const isDemo = mode === 'demo';
   // Health is judged over ENABLED monitoring sources only; deliberately disabled / not-yet-implemented
@@ -155,7 +156,7 @@ export function Sidebar() {
           <PendingLink icon={<IconAnalytics />} label="Analys" />
           <div style={{ ...sectionLabel, padding: '22px 12px 8px' }}>Konfiguration</div>
           {isDemo ? <PendingLink icon={<IconMessage />} label="SMS-regler" /> : <Link href="/sms-rules" aria-current={isSms?'page':undefined} style={{...navItem,...(isSms?navOn:navOff)}}><IconMessage/>SMS-regler</Link>}
-          <PendingLink icon={<IconSliders />} label="Inställningar" />
+          {isDemo ? <PendingLink icon={<IconSliders />} label="Inställningar" /> : <Link href="/settings" aria-current={isSettings ? 'page' : undefined} style={{ ...navItem, ...(isSettings ? navOn : navOff) }}><IconSliders />Inställningar</Link>}
         </nav>
   
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
