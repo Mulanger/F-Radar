@@ -2,7 +2,7 @@ import { monthlyFlowReference } from '@fastighetsradar/domain';
 import { httpJson,httpRequest,iso,num } from '../http';
 import type { AdapterContext,AdapterResult,StationObservation } from '../types';
 import { StationSeriesSchema } from './ocobs';
-import { readSmhiCsv } from './history';
+import { readSmhiCsv } from './csv';
 
 export function parseHydrology(raw:unknown):StationObservation[]|null {
   const p=StationSeriesSchema.safeParse(raw);

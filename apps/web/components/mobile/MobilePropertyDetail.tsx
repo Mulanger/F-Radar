@@ -15,20 +15,17 @@ import { LocalEvents } from '../properties/LocalEvents';
 import { NowcastPanel } from '../properties/NowcastPanel';
 import { ForecastDays } from '../properties/ForecastDays';
 import { MeasuredRainPanel } from '../properties/MeasuredRainPanel';
-import { MonitoringContextPanel } from '../properties/MonitoringContextPanel';
 import { usePropertyTimeline } from '../properties/use-property-timeline';
 import styles from './mobile.module.css';
 
-export function MobilePropertyDetail({ d, historyOpen, history, onHistoryChange, onSwitch }: {
-  d: DetailVM; historyOpen: boolean; history: React.ReactNode; onHistoryChange: (open: boolean) => void; onSwitch: (id: string) => void;
-}) {
+export function MobilePropertyDetail({ d, onSwitch }: { d: DetailVM; onSwitch: (id: string) => void }) {
   const ds = useDashboard();
   const timeline = usePropertyTimeline(d);
   const editor = usePropertyEditor();
   const config = useMemo(() => ({ ...detailSceneConfig(d.floors, d.hex, d.floodExposure), shift: 0, fit: { top: 30, bottom: 26, side: 12 } }), [d.floors, d.hex, d.floodExposure]);
   return <div className={styles.page} data-screen-label="Mobil fastighetssida">
-    <div className={styles.detailNav}><Link className={styles.back} href={`${ds.basePath}/properties`}><IconChevronLeft size={20} />Fastigheter</Link><div className={styles.switcher}><button className={styles.iconButton} aria-label="Föregående fastighet" onClick={() => onSwitch(d.prevId)}><IconChevronLeft size={20} /></button><span>{d.pos}</span><button className={styles.iconButton} aria-label="Nästa fastighet" onClick={() => onSwitch(d.nextId)}><IconChevronRight size={20} /></button></div></div>
-    <div className={styles.heading} style={{ paddingTop: 0, marginTop: -14 }}><div className={styles.date}>{[d.area, d.type].filter(Boolean).join(' · ')}</div><h1 style={{ fontSize: 32, lineHeight: 1.08 }}>{d.name}</h1><div className={styles.detailAddress}><MobileStatusBadge label={d.status} color={d.c} background={d.bg} /><span>{d.address}</span></div>{editor.enabled && <button className={styles.more} style={{ width: 'auto', background: '#fff' }} onClick={() => { const snapshot = ds.property(d.id); if (snapshot) editor.openEdit(snapshot); }}>Redigera fastighet</button>}</div>
+    <div className={styles.detailNav}><Link className={styles.back} href={`${ds.basePath}/properties`} aria-label="Tillbaka till fastigheter"><IconChevronLeft size={20} /><span className={styles.backLabel}>Fastigheter</span></Link><div className={styles.detailTitle}>{d.area && <div className={styles.detailArea}>{d.area}</div>}<h1 className={styles.detailName}>{d.name}</h1></div><div className={styles.switcher}><button className={styles.iconButton} aria-label="Föregående fastighet" onClick={() => onSwitch(d.prevId)}><IconChevronLeft size={20} /></button><span>{d.pos}</span><button className={styles.iconButton} aria-label="Nästa fastighet" onClick={() => onSwitch(d.nextId)}><IconChevronRight size={20} /></button></div></div>
+    <div className={styles.heading} style={{ paddingTop: 0, marginTop: -14 }}>{d.type && <div className={styles.date}>{d.type}</div>}<div className={styles.detailAddress}><MobileStatusBadge label={d.status} color={d.c} background={d.bg} /><span>{d.address}</span></div>{editor.enabled && <button className={styles.more} style={{ width: 'auto', background: '#fff' }} onClick={() => { const snapshot = ds.property(d.id); if (snapshot) editor.openEdit(snapshot); }}>Redigera fastighet</button>}</div>
     <section className={styles.hero} aria-label="Fastighetens risköversikt">
       <div className={styles.heroTop}><span className={styles.heroPill}><span className={styles.dot} style={{ color: ds.mode === 'demo' ? C.demo : d.gauge.c, width: 6, height: 6 }} />{ds.mode === 'demo' ? 'Illustration · Demo' : '3D-illustration'}</span><span className={styles.small}>{d.buildingLine}</span></div>
       <MobileRiskGauge score={d.risk} color={d.gauge.c} label="Fastighetens riskpoäng" config={config} ready={ds.ready} />
@@ -40,8 +37,7 @@ export function MobilePropertyDetail({ d, historyOpen, history, onHistoryChange,
         <MobileWeatherCard icon={<IconDrop size={16} />} label="Luftfuktighet" value={`${d.hum}%`} sub={`Daggpunkt ${d.dew}°`} />
       </div>
     </section>
-    <div className={styles.filters} role="group" aria-label="Fastighetsvy"><button className={styles.filter} aria-pressed={!historyOpen} onClick={() => onHistoryChange(false)}>Nu</button><button className={styles.filter} aria-pressed={historyOpen} onClick={() => onHistoryChange(true)}>Historik</button></div>
-    {historyOpen ? <div className={styles.detailPanels}>{history}</div> : <>
+    <>
       <MobileSection title="Riskfaktorer" subtitle={d.riskMeta}><div className={`${styles.surface} ${styles.health}`}>{d.factors.map(f => <div className={styles.detailFactor} key={f.label} title={f.title}><div className={styles.detailFactorLabel}><span style={{ color: C.text2 }}>{f.label}</span><span style={{ fontFamily: 'var(--font-geist-mono),monospace' }}>{f.v}</span></div><div className={styles.factorTrack} style={{ height: 6 }}><div style={{ background: f.c, width: f.w }} /></div><div className={styles.small}>{f.title}</div></div>)}<details className={styles.sectionSub}><summary>Så räknas poängen</summary><p>Poängen styrs av den tyngsta faktorn. Bara aktuella officiella varningar kan ge Förhöjd eller Hög. Indexet bygger på offentliga källor och är inte en besiktning eller försäkringsbedömning.</p></details></div></MobileSection>
       <MobileSection title="Officiella varningar" subtitle="SMHI · Krisinformation" meta={<span className={styles.meta}>{d.avail.warnings ? d.warnN : 'Ej ansluten'}</span>}>
         {(!d.avail.warnings || (!d.warnings.length && !d.noWarnings)) && <div className={`${styles.surface} ${styles.empty}`}>Varningar otillgängliga. Det betyder inte att varningar saknas.</div>}
@@ -62,11 +58,11 @@ export function MobilePropertyDetail({ d, historyOpen, history, onHistoryChange,
         {timeline.entries.length ? timeline.entries.map((t, i) => <div className={styles.timelineRow} key={`${t.time}-${i}`}><span className={styles.timelineDot} style={{ borderColor: t.c }} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.35 }}>{t.title}</div><div className={styles.meta} style={{ marginTop: 2 }}>{t.detail}</div></div><span className={styles.time}>{t.time}</span></div>) : <div className={styles.empty}>{timeline.emptyText}</div>}
       </div></MobileSection>
       <div className={styles.detailPanels}>
-        <NowcastPanel d={d} /><ForecastDays d={d} /><MeasuredRainPanel d={d} />{d.live && <MonitoringContextPanel d={d} />}
+        <NowcastPanel d={d} /><ForecastDays d={d} /><MeasuredRainPanel d={d} />
       </div>
       <div className={styles.section}>
         {ds.mode === 'live' ? <Link className={`${styles.surface} ${styles.configLink}`} href={`/sms-rules?property=${encodeURIComponent(d.id)}`}><span className={styles.weatherIcon}><IconMessage size={18} /></span><div style={{ flex: 1 }}><strong style={{ fontSize: 15 }}>SMS-inställningar</strong><div className={styles.sectionSub}>Hantera mottagare, regler och aktivering</div></div><IconChevronRight /></Link> : <div className={`${styles.surface} ${styles.configLink}`}><span className={styles.weatherIcon}><IconMessage size={18} /></span><div><strong style={{ fontSize: 15 }}>SMS-bevakning</strong><div className={styles.sectionSub}>Demodata · SMS-inställningar hanteras i ditt konto.</div></div></div>}
       </div>
-    </>}
+    </>
   </div>;
 }

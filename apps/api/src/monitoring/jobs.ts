@@ -1,7 +1,6 @@
-import { HISTORY, WEATHER_WATER } from '@fastighetsradar/domain';
+import { WEATHER_WATER } from '@fastighetsradar/domain';
 import type { ServerEnv } from '@fastighetsradar/config';
 import { NotificationService } from '../notifications/service';
-import { runHistoryAggregation, runHistoryBackfill } from './history';
 import { buildUtilityOutageJobs } from './utility-outages';
 import {
   stationsNeedingFlowReference, saveFlowReferences,
@@ -453,22 +452,6 @@ export function buildJobs(env: ServerEnv): MonitoringJob[] {
     { jobId: 'mcf_flood', sourceId: 'mcf_flood', intervalSeconds: 3_600, enabled: env.MCF_FLOOD_ENABLED, timeoutMs: 300_000, run: runMcf },
     { jobId: 'scb', sourceId: 'scb', intervalSeconds: 3_600, enabled: env.SOURCE_SCB_ENABLED, timeoutMs: 120_000, run: runScb },
     { jobId: 'air_quality', sourceId: 'air_quality', intervalSeconds: 3_600, enabled: env.SOURCE_AIR_QUALITY_ENABLED, timeoutMs: 600_000, run: runAirQuality },
-    {
-      jobId: 'history_backfill',
-      sourceId: null,
-      intervalSeconds: HISTORY.collectionIntervalSeconds,
-      enabled: env.SOURCE_SMHI_OBSERVATIONS_ENABLED || env.SOURCE_SMHI_HYDROLOGY_ENABLED || env.SOURCE_SMHI_OCEANOGRAPHY_ENABLED,
-      timeoutMs: 600_000,
-      run: runHistoryBackfill,
-    },
-    {
-      jobId: 'history_aggregate',
-      sourceId: null,
-      intervalSeconds: HISTORY.collectionIntervalSeconds,
-      enabled: true,
-      timeoutMs: 120_000,
-      run: runHistoryAggregation,
-    },
     ...buildUtilityOutageJobs(env),
     { jobId: 'retention', sourceId: null, intervalSeconds: 86_400, enabled: true, timeoutMs: 120_000, run: runRetention },
   ];
@@ -476,7 +459,7 @@ export function buildJobs(env: ServerEnv): MonitoringJob[] {
 }
 
 /** Jobs that compute per-property data and must run soon after a property is created/moved. */
-export const PER_PROPERTY_JOBS = ['met_nowcast', 'smhi_forecast', 'observation_backfill', 'history_backfill', 'sgu_groundwater', 'sgu_observed_groundwater', 'mcf_flood', 'scb'];
+export const PER_PROPERTY_JOBS = ['met_nowcast', 'smhi_forecast', 'observation_backfill', 'sgu_groundwater', 'sgu_observed_groundwater', 'mcf_flood', 'scb'];
 
 /** Backoff after failures: interval × 2^(n−1), min 60 s, max 6 h; Retry-After wins when longer. */
 export function nextRunSeconds(intervalSeconds: number, consecutiveFailures: number, result: JobResult): number {

@@ -42,7 +42,6 @@ import {
 import { buildApp } from '../../apps/api/src/app';
 import type { AuthVerifier, VerifiedIdentity } from '../../apps/api/src/auth';
 import { registerNotificationTests } from './notifications';
-import { registerHistoryTests } from './history';
 import { registerUtilityOutageTests } from './utility-outages';
 
 const url = process.env.TEST_DATABASE_URL;
@@ -466,6 +465,5 @@ describe('real PostgreSQL / PostGIS', () => {
     assert.equal(left[0].n, 0, 'matches cascade with the property');
   });
   registerNotificationTests(pool);
-  registerHistoryTests(pool);
   registerUtilityOutageTests(pool);
 });

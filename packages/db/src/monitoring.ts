@@ -1,5 +1,4 @@
-import { ACTIVITY, EventMapGeometrySchema, HISTORY, WEATHER_WATER, eventPlaceFromHeadline, stationMatchDistance, trafficMapStyle, type ActivityItem, type EventMapItem } from '@fastighetsradar/domain';
-import { aggregateStoredHistory } from './history';
+import { ACTIVITY, EventMapGeometrySchema, WEATHER_WATER, eventPlaceFromHeadline, stationMatchDistance, trafficMapStyle, type ActivityItem, type EventMapItem } from '@fastighetsradar/domain';
 import { applyUtilityOutageRetention } from './utility-outages';
 import { createHash } from 'node:crypto';
 import type { Queryable } from './migrations';
@@ -566,12 +565,8 @@ export const RETENTION = {
 } as const;
 
 export async function applyRetention(db: Queryable): Promise<Record<string, number>> {
-  // Always preserve daily values before raw readings are removed, even after scheduler downtime.
-  await aggregateStoredHistory(db);
   const del = async (sql: string, params: unknown[]) => (await db.query(sql, params)).rowCount ?? 0;
   return {
-    eventHistory: await del(`DELETE FROM property_event_history WHERE LEAST(ended_at,valid_to,matched_until) < now() - make_interval(months => $1)`, [HISTORY.eventRetentionMonths]),
-    stationDaily: await del(`DELETE FROM station_daily WHERE date < (now() - make_interval(years => $1))::date`, [HISTORY.dailyRetentionYears]),
     // Utility outages keep 30 days of history (applyUtilityOutageRetention).
     events: await del(`DELETE FROM source_events WHERE status <> 'active' AND source_id <> 'utility_outages' AND ended_at < now() - make_interval(days => $1)`, [RETENTION.endedEventsDays]),
     utilityOutages: await applyUtilityOutageRetention(db),

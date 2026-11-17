@@ -5,9 +5,7 @@ import { NowcastPanel } from './NowcastPanel';
 import { ForecastDays } from './ForecastDays';
 
 import { useRef } from 'react';
-import { useParams, usePathname, useSearchParams } from 'next/navigation';
-import dynamic from 'next/dynamic';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { buildDetailVM } from '@/lib/view-models/detail';
 import { C, FONT_MONO } from '@/lib/design/tokens';
@@ -23,11 +21,8 @@ import { WaterRiskPanel } from './WaterRiskPanel';
 import { LocalEvents } from './LocalEvents';
 import { PropertyTimeline } from './PropertyTimeline';
 import { SMSRulesPanel } from './SMSRulesPanel';
-import { MonitoringContextPanel } from './MonitoringContextPanel';
 import { useMobileDashboard } from '@/lib/design/use-mobile-dashboard';
 import { MobilePropertyDetail } from '../mobile/MobilePropertyDetail';
-
-const HistoryView = dynamic(() => import('./HistoryView').then((module) => module.HistoryView));
 
 /**
  * Page 2 – Property Detail (`/properties/[propertyId]`).
@@ -39,9 +34,6 @@ const HistoryView = dynamic(() => import('./HistoryView').then((module) => modul
 export function PropertyDetail() {
   const router = useRouter();
   const params = useParams<{ propertyId?: string }>();
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const historyOpen = searchParams.get('vy') === 'historik';
   const ds = useDashboard();
   const smsRef = useRef<HTMLDivElement>(null);
   const editor = usePropertyEditor();
@@ -52,24 +44,14 @@ export function PropertyDetail() {
 
   const isDemo = ds.mode === 'demo';
   const d = buildDetailVM(ds.portfolio, s, { ready: ds.ready, metric: ds.metric, smsOn: ds.isSmsOn(s), isRuleOn: ds.isRuleOn });
-  const switchTo = (pid: string) => {
-    if (historyOpen) {
-      router.push(`${ds.basePath}/properties/${encodeURIComponent(pid)}?${searchParams.toString()}`, { scroll: false });
-      return;
-    }
-    ds.openProperty(pid, { scroll: false });
-  };
+  const switchTo = (pid: string) => ds.openProperty(pid, { scroll: false });
   const configure = () => {
     if (!isDemo) { router.push(`/sms-rules?property=${encodeURIComponent(s.property.id)}`); return; }
     const el = smsRef.current;
     if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 24, behavior: 'smooth' });
   };
 
-  if (mobile) return <MobilePropertyDetail d={d} historyOpen={historyOpen} history={historyOpen ? <HistoryView key={s.property.id} propertyId={s.property.id} mode={ds.mode} referenceTime={ds.portfolio.generatedAt} /> : null} onHistoryChange={(open) => {
-    const query = new URLSearchParams(searchParams.toString());
-    if (open) query.set('vy', 'historik'); else query.delete('vy');
-    router.replace(`${pathname}${query.size ? '?' + query.toString() : ''}`, { scroll: false });
-  }} onSwitch={switchTo} />;
+  if (mobile) return <MobilePropertyDetail d={d} onSwitch={switchTo} />;
 
   return (
     <div className="fr-desktop-dashboard-view" data-screen-label="02 Property Detail" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 20, animation: 'frFade .45s ease both' }}>
@@ -137,31 +119,6 @@ export function PropertyDetail() {
         </div>
       </div>
 
-      <div role="group" aria-label="Fastighetsvy" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 24, background: '#E6E9E8', width: 'fit-content' }}>
-        {['Nu', 'Historik'].map((label) => {
-          const selected = (label === 'Historik') === historyOpen;
-          return (
-            <button
-              key={label}
-              aria-pressed={selected}
-              onClick={() => {
-            const query = new URLSearchParams(searchParams.toString());
-            if (label === 'Historik') query.set('vy', 'historik');
-            else query.delete('vy');
-            router.replace(`${pathname}${query.size ? '?' + query.toString() : ''}`, { scroll: false });
-              }}
-              style={{
-                border: 'none', borderRadius: 20, padding: '10px 24px',
-                background: selected ? '#fff' : 'transparent', color: selected ? C.ink : C.text2,
-                fontSize: 13, cursor: 'pointer', boxShadow: selected ? '0 1px 3px #14171a12' : undefined,
-              }}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
-
       <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         <PropertyHero3D d={d} isDemo={isDemo} />
         <div style={{ flex: '1 1 340px', display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -170,17 +127,6 @@ export function PropertyDetail() {
         </div>
       </div>
 
-      {historyOpen && <HistoryView key={s.property.id} propertyId={s.property.id} mode={ds.mode} referenceTime={ds.portfolio.generatedAt} />}
-
-      {/* Leaflet needs non-zero layout dimensions even when a direct history link hides its panels. */}
-      <div
-        style={historyOpen ? {
-          position: 'absolute', width: '100%', height: 0, overflow: 'hidden',
-          visibility: 'hidden', pointerEvents: 'none',
-        } : { display: 'contents' }}
-        aria-hidden={historyOpen}
-        inert={historyOpen}
-      >
       <EnvironmentalMetrics d={d} isDemo={isDemo} />
 
       <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
@@ -192,7 +138,6 @@ export function PropertyDetail() {
       <ForecastDays d={d} />
 
       <MeasuredRainPanel d={d} />
-      {d.live && <MonitoringContextPanel d={d} />}
 
       <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         <LocalEvents d={d} layout="desktop" />
@@ -201,7 +146,6 @@ export function PropertyDetail() {
       <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         <PropertyTimeline d={d} />
         <SMSRulesPanel ref={smsRef} d={d} onToggleSms={() => ds.toggleSms(s)} onToggleRule={ds.toggleRule} />
-      </div>
       </div>
     </div>
   );

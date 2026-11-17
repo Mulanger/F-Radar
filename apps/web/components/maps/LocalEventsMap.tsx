@@ -74,7 +74,7 @@ export function LocalEventsMap({ d, onOpen }: { d: DetailVM; onOpen?: () => void
   }, [d.id, d.name, d.lat, d.lon, d.trafficRadiusM, d.events.length, d.hex, d.floodExposure, d.outageShapes.map((o) => o.id + o.color).join(), loaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div style={{ ...card, flex: '1.3 1 460px', minHeight: 420, position: 'relative', overflow: 'hidden', background: C.mapBg }}>
+    <div style={{ ...card, flex: '1.3 1 460px', minHeight: 560, position: 'relative', overflow: 'hidden', background: C.mapBg }}>
       <div ref={elRef} style={{ position: 'absolute', inset: 0, zIndex: 0 }} role="region" aria-label={`Karta över närområdet för ${d.name}`} />
       <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 500, padding: '12px 16px', borderRadius: 16, ...glass(0.82, 16) }}>
         <div style={{ fontSize: 15, fontWeight: 600 }}>Närområde</div>

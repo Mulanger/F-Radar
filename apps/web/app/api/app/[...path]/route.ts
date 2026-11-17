@@ -25,7 +25,6 @@ const ROUTES: Array<{ pattern: RegExp; methods: string[] }> = [
   { pattern: /^me$/, methods: ['GET'] },
   { pattern: /^portfolio$/, methods: ['GET'] },
   { pattern: /^portfolio\/summary$/, methods: ['GET'] },
-  { pattern: new RegExp(`^properties/${UUID}/history$`), methods: ['GET'] },
   { pattern: new RegExp(`^properties/${UUID}/(snapshot|forecast|warnings|events|environment|flood|activity|event-map)$`), methods: ['GET'] },
   { pattern: /^sources\/status$/, methods: ['GET'] },
   { pattern: /^changes$/, methods: ['GET'] },

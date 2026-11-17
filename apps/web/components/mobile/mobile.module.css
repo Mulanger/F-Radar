@@ -120,7 +120,13 @@
 .propertyWeather { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
 .propertyWeather > div { padding: 8px 10px; border-radius: 12px; background: #f6f7f6; min-width: 0; }
 .propertyWeather strong { font-size: 14.5px; font-weight: 500; display: block; margin-top: 1px; }
-.detailNav { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 0; }
+/* Back · area + name (centred) · pager. The middle column shrinks and truncates; the sides keep their size. */
+.detailNav { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 0; }
+/* Phones: the back button shows only its arrow so the centred name has room (it keeps its accessible name). */
+@media (max-width: 419.98px) { .backLabel { display: none; } .detailNav .back { padding: 0 12px 0 10px; } }
+.detailTitle { min-width: 0; text-align: center; display: flex; flex-direction: column; align-items: center; }
+.detailArea { max-width: 100%; font-size: 11.5px; color: #6b737b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.detailName { max-width: 100%; margin: 1px 0 0; font-size: 18px; font-weight: 600; line-height: 1.15; letter-spacing: -0.02em; overflow-wrap: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .back { display: inline-flex; gap: 2px; align-items: center; min-height: 44px; padding: 0 16px 0 8px; border-radius: 22px; background: #fff; border: 1px solid #14171a0f; font-size: 14px; }
 .switcher { display: flex; align-items: center; border-radius: 22px; background: #fff; border: 1px solid #14171a0f; }
 .switcher button { background: transparent; border: 0; }.switcher span { font: 11.5px var(--font-geist-mono),monospace; color: #6b737b; min-width: 26px; text-align: center; }
@@ -155,7 +161,8 @@
 .timelineRow { position: relative; display: flex; gap: 12px; }
 .timelineDot { position: absolute; left: -22px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 3px solid; box-sizing: border-box; }
 .detailPanels > * { flex: initial !important; }
-.detailMap > div { height: 240px !important; min-height: 0 !important; }
+/* Taller map (design note 3: the width is right, the map was too cramped). */
+.detailMap > div { height: 380px !important; min-height: 0 !important; }
 /* Design: the phone map shows only "Öppna karta"; the full map view explains every layer. */
 .detailMap :global(.fr-map-legend) { display: none !important; }
 @media (max-width: 359.98px) {

@@ -24,8 +24,6 @@ import { PER_PROPERTY_JOBS } from './jobs';
 import { buildFeed, buildPropertySnapshot, buildUpcoming } from './snapshot';
 import { resolveRuntimeStatuses } from './status';
 import { notificationSnapshots } from '../notifications/snapshots';
-import { loadPropertyHistory } from './history';
-import type { HistoryPeriod } from '@fastighetsradar/domain';
 import { resolveOperatorStatuses, withUtilityOutages, type OperatorStatus, type UtilityInputs } from './utility-outages';
 
 export interface TenantContext extends OrgContext {
@@ -132,10 +130,6 @@ export class MonitoringService {
   async eventMap(t: TenantContext, id: string) {
     if (!(await getProperty(this.db, t, id))) return null;
     return listPropertyEventMap(this.db, t.organizationId, id);
-  }
-
-  async history(t: TenantContext, id: string, period: HistoryPeriod) {
-    return loadPropertyHistory(this.db, t, id, period);
   }
 
   /** Property created/moved/deleted: re-match events now, schedule per-property collectors. */
