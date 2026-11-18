@@ -1,13 +1,18 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { PropertySnapshot, PropertyUtilityStatus, UtilityOutageView } from '@fastighetsradar/domain';
 import { LocalEventsPanel } from '@/components/properties/LocalEventsPanel';
 import { outageEventsFor, outageShapes } from '@/lib/view-models/utility-outages';
 import type { DetailVM } from '@/lib/view-models/detail';
 import { SEV } from '@/lib/design/tokens';
 
-afterEach(cleanup);
+// The outage map view looks the property up in the dashboard portfolio (live: one outage fetched by id).
+vi.mock('@/lib/state/dashboard-state', () => ({ useDashboard: () => ({
+  mode: 'live', portfolio: { generatedAt: '2026-11-14T13:30:00.000Z', properties: [{ property: { id: 'p1', name: 'Natur', address: 'Frescativägen 40', origin: 'live', location: { lat: 59.37, lon: 18.05 } } }] },
+}) }));
+
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 const view = (o: Partial<UtilityOutageView> = {}): UtilityOutageView => ({
   id: 'e1',
@@ -118,7 +123,7 @@ describe('outages among the property events', () => {
 
 describe('<LocalEventsPanel /> with outages', () => {
   const d = (outageEvents: ReturnType<typeof outageEventsFor>) =>
-    ({ live: null, avail: { events: true }, noEvents: true, events: [], crisisN: 0, trafficN: 0, otherN: 0, outageEvents }) as unknown as DetailVM;
+    ({ id: 'p1', live: null, avail: { events: true }, noEvents: true, events: [], crisisN: 0, trafficN: 0, otherN: 0, outageEvents }) as unknown as DetailVM;
 
   it('shows an outage that covers the property with the operator text and a source link', () => {
     render(<LocalEventsPanel d={d(outageEventsFor(snap(status({ current: [view()] }))))} />);
@@ -135,6 +140,20 @@ describe('<LocalEventsPanel /> with outages', () => {
     const row = screen.getByTestId('outage-event').textContent!;
     expect(row).toContain('inte säkert att fastigheten berörs');
     expect(row).not.toContain('Berör fastigheten');
+  });
+
+  it('opens an outage with an area on the map – also when it is over – and not one known only by addresses', async () => {
+    const restored = view({ id: 'natur-1', state: 'restored', restoredAt: '2026-11-17T14:40:00.000Z', operatorName: 'Ellevio' });
+    const addresses = view({ id: 'addr', geometry: null as never });
+    const rows = outageEventsFor(snap(status({ current: [addresses], recentlyRestored: [restored] })));
+    expect(rows.map((r) => [r.id, r.mapEventId, r.mapEnded])).toEqual(expect.arrayContaining([['natur-1', 'natur-1', true], ['addr', null, false]]));
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<LocalEventsPanel d={d(rows)} />);
+    const buttons = screen.getAllByRole('button', { name: /Visa på karta$/ });
+    expect(buttons).toHaveLength(1);
+    fireEvent.click(buttons[0]!);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/app/properties/p1/event-map/natur-1', expect.anything()));
   });
 
   it('keeps the empty state when nothing affects the property', () => {

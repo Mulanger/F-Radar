@@ -34,6 +34,10 @@ export interface OutageEventVM {
   sourceUrl: string | null;
   c: string;
   bg: string;
+  /** The outage's event id when it has an area to show in "Visa på karta" (null: addresses only). */
+  mapEventId: string | null;
+  /** Over (restored or no longer listed): the map shows it greyed out. */
+  mapEnded: boolean;
 }
 
 const KIND_SV: Record<UtilityKind, string> = { electricity: 'Ström', district_heating: 'Fjärrvärme', district_cooling: 'Fjärrkyla', gas: 'Gas' };
@@ -95,6 +99,8 @@ export function outageEventsFor(s: PropertySnapshot): OutageEventVM[] {
       sourceUrl: v.sourceUrl,
       c: t.c,
       bg: t.bg,
+      mapEventId: v.geometry ? v.id : null,
+      mapEnded: v.state === 'restored' || v.state === 'withdrawn',
     };
   });
 }

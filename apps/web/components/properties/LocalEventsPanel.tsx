@@ -2,6 +2,7 @@
 
 import { formatTrafficRadius } from '@fastighetsradar/domain';
 import { NightMoon } from '../dashboard/NightMoon';
+import { useFeedEventMap } from '../dashboard/FeedEventMap';
 import type { DetailVM } from '@/lib/view-models/detail';
 import { C, card, cardSub, cardTitle, tile } from '@/lib/design/tokens';
 import type { EventMapState } from './use-event-map';
@@ -11,6 +12,8 @@ const MAP_ICON = 'M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14';
 
 /** "Local Events & Disruptions" list + counters. Events with a position open "Visa på karta". */
 export function LocalEventsPanel({ d, map }: { d: DetailVM; map?: EventMapState }) {
+  // Outages open the same map view as on the dashboard, one outage at a time (its area).
+  const outageMap = useFeedEventMap();
   return (
     <div style={{ ...card, flex: '1 1 380px', padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div>
@@ -53,9 +56,22 @@ export function LocalEventsPanel({ d, map }: { d: DetailVM; map?: EventMapState 
                 o.source
               )}
             </div>
+            {o.mapEventId && (
+              <button
+                type="button"
+                className={s.pill}
+                style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                onClick={() => outageMap.open({ propertyId: d.id, mapEventId: o.mapEventId, mapSingle: true, mapEnded: o.mapEnded })}
+                aria-label={`${o.title}. Visa på karta`}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={MAP_ICON} /></svg>
+                Visa på karta
+              </button>
+            )}
           </div>
         </div>
       ))}
+      {outageMap.view}
       {d.events.map((e) => {
         const onMap = Boolean(map?.mappable.has(e.id));
         const body = (

@@ -937,8 +937,8 @@ function outageItemOf(r: MapEventRow & OutageMapRow): EventMapItem | null {
 
 /**
  * TENANT read: one event from the organization's feed for this property, on the map – active or
- * ended (an ended event keeps its stretch until retention). The feed row is the proof of access:
- * matches of an ended event are gone, so the event must appear in this property's monitoring changes.
+ * ended (an ended event keeps its stretch until retention). Access: the event is in this property's
+ * own feed rows (matches of an ended traffic event are gone) or matched to it (outages keep theirs).
  */
 export async function getPropertyEventMapEvent(db: Queryable, organizationId: string, propertyId: string, eventId: string): Promise<PropertyEventMapEvent | null> {
   const { rows } = await db.query<MapEventRow & { status: string; ended_at: Date | null; distance_m: number | null } & OutageMapRow>(
@@ -951,7 +951,8 @@ export async function getPropertyEventMapEvent(db: Queryable, organizationId: st
        JOIN properties p ON p.id = $2 AND p.organization_id = $1
        LEFT JOIN utility_outages u ON u.event_id = e.id
       WHERE e.id = $3 AND e.geom IS NOT NULL AND e.source_id IN ${FEED_MAP_SOURCES_SQL}
-        AND EXISTS (SELECT 1 FROM monitoring_changes c WHERE c.organization_id = $1 AND c.property_id = $2 AND c.event_id = e.id)`,
+        AND (EXISTS (SELECT 1 FROM monitoring_changes c WHERE c.organization_id = $1 AND c.property_id = $2 AND c.event_id = e.id)
+             OR EXISTS (SELECT 1 FROM property_event_matches m WHERE m.organization_id = $1 AND m.property_id = $2 AND m.event_id = e.id))`,
     [organizationId, propertyId, eventId],
   );
   const r = rows[0];
