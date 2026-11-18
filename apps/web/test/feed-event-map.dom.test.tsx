@@ -25,6 +25,7 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 const ui = { ready: true, group: 'all', isSmsOn: (s: PropertySnapshot) => s.sms.enabled, isRuleOn: (_id: string, fallback: boolean) => fallback };
 const vm = buildOverviewVM(demoPortfolio, ui);
 const mappable = vm.feed.filter((f) => f.mapEventId);
+const ended = vm.feed.find((f) => f.mapEnded)!;
 const e4 = vm.feed.find((f) => f.title.startsWith('Körfält avstängt på E4'))!;
 
 describe('dashboard feed – map button', () => {
@@ -32,7 +33,25 @@ describe('dashboard feed – map button', () => {
     expect(mappable.length).toBeGreaterThan(0);
     expect(mappable.length).toBeLessThan(vm.feed.length);
     render(<AlertFeed vm={vm} isDemo onOpen={mocks.openProperty} />);
-    expect(screen.getAllByRole('button', { name: /^Visa på karta: / })).toHaveLength(mappable.length);
+    expect(screen.getAllByRole('button', { name: /^Visa (var det var )?på karta: / })).toHaveLength(mappable.length);
+    expect(screen.getAllByRole('button', { name: /^Visa var det var på karta: / })).toHaveLength(1);
+  });
+
+  it('shows an ended event greyed out where it was', async () => {
+    render(<AlertFeed vm={vm} isDemo onOpen={mocks.openProperty} />);
+    fireEvent.click(screen.getByRole('button', { name: `Visa var det var på karta: ${ended.title}` }));
+    const dialog = await screen.findByRole('dialog');
+    expect(mocks.openProperty).not.toHaveBeenCalled();
+    expect(dialog.textContent).toContain('Avslutad');
+    expect(dialog.textContent).toContain('Avslutad 07:40');
+    expect(dialog.textContent).toContain('Lindhagensgatan');
+    expect(dialog.textContent).toContain('Strandhuset');
+    // One event only: no stepping between events.
+    expect(screen.queryByRole('button', { name: 'Nästa händelse' })).toBeNull();
+    await waitFor(() => expect(dialog.querySelectorAll('.leaflet-overlay-pane path').length).toBeGreaterThanOrEqual(3));
+    expect([...dialog.querySelectorAll('.leaflet-overlay-pane path')].some((p) => p.getAttribute('stroke') === '#8E969D')).toBe(true);
+    // No pulsing ring on an ended event's marker.
+    expect(dialog.innerHTML).not.toContain('frRing');
   });
 
   it('opens the event on the map on the dashboard instead of going to the property', async () => {
@@ -56,7 +75,7 @@ describe('dashboard feed – map button', () => {
   it('puts the map button beside the link on mobile, not inside it', async () => {
     const onMap = vi.fn();
     render(<div><MobileFeedRows feed={vm.feed} basePath="/demo" onMap={onMap} /></div>);
-    const buttons = screen.getAllByRole('button', { name: /^Visa på karta: / });
+    const buttons = screen.getAllByRole('button', { name: /^Visa (var det var )?på karta: / });
     expect(buttons).toHaveLength(mappable.length);
     for (const b of buttons) expect(b.closest('a')).toBeNull();
     expect(screen.getAllByRole('link')).toHaveLength(vm.feed.length);

@@ -359,6 +359,8 @@ export const FeedItemSchema = z.object({
   propertyId: z.string(),
   /** The source event behind the row, when there is one (lets the dashboard open it on the map). */
   eventId: z.string().optional(),
+  /** The event has ended but its stretch is still stored: it can be shown on the map, greyed out. */
+  eventEndedOnMap: z.boolean().optional(),
   origin: DataOriginSchema,
 });
 export type FeedItem = z.infer<typeof FeedItemSchema>;

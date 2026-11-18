@@ -1,4 +1,4 @@
-import { ACTIVITY, EventMapGeometrySchema, WEATHER_WATER, eventPlaceFromHeadline, stationMatchDistance, trafficMapStyle, type ActivityItem, type EventMapItem } from '@fastighetsradar/domain';
+import { ACTIVITY, EventMapGeometrySchema, WEATHER_WATER, eventPlaceFromHeadline, stationMatchDistance, trafficMapStyle, type ActivityItem, type EventMapItem, type PropertyEventMapEvent } from '@fastighetsradar/domain';
 import { applyUtilityOutageRetention } from './utility-outages';
 import { createHash } from 'node:crypto';
 import type { Queryable } from './migrations';
@@ -758,9 +758,12 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
 }
 
 export async function listRecentChangesForOrg(db: Queryable, organizationId: string, limit = 50) {
-  const { rows } = await db.query<{ id: string; property_id: string; event_id: string | null; source_id: string; change_type: string; data_class: string; severity: string; headline: string; created_at: Date }>(
-    `SELECT id::text, property_id, event_id::text AS event_id, source_id, change_type, data_class, severity, headline, created_at
-       FROM monitoring_changes WHERE organization_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2`,
+  const { rows } = await db.query<{ id: string; property_id: string; event_id: string | null; source_id: string; change_type: string; data_class: string; severity: string; headline: string; created_at: Date; event_ended_on_map: boolean }>(
+    `SELECT c.id::text, c.property_id, c.event_id::text AS event_id, c.source_id, c.change_type, c.data_class, c.severity, c.headline, c.created_at,
+            COALESCE(e.status <> 'active' AND e.geom IS NOT NULL AND e.source_id IN ${MAP_SOURCES_SQL}, false) AS event_ended_on_map
+       FROM monitoring_changes c
+       LEFT JOIN source_events e ON e.id = c.event_id
+      WHERE c.organization_id = $1 ORDER BY c.created_at DESC, c.id DESC LIMIT $2`,
     [organizationId, limit],
   );
   return rows;
@@ -806,49 +809,87 @@ export const EVENT_MAP_LIMIT = 40;
  * Published geometry of the property's matched traffic events for "Visa på karta" (organization
  * scoped through the property). Lines are simplified to ~1 m and rounded to 6 decimals.
  */
-export async function listPropertyEventMap(db: Queryable, organizationId: string, propertyId: string): Promise<EventMapItem[]> {
-  const { rows } = await db.query<{
-    event_id: string; source_id: string; event_type: string | null; headline: string; description: string | null; area_label: string | null;
-    valid_from: Date | null; valid_to: Date | null; extra: Record<string, unknown> | null; geometry: unknown; length_m: number | null;
-  }>(
-    `SELECT e.id::text AS event_id, e.source_id, e.event_type, e.headline, e.description, e.area_label, e.valid_from, e.valid_to, e.extra,
-            ST_AsGeoJSON(CASE WHEN GeometryType(e.geom) = 'MULTIPOINT' THEN ST_GeometryN(e.geom, 1)
+/** Sources whose published geometry is drawn in "Visa på karta". */
+const MAP_SOURCES_SQL = `('trafikverket', 'sl_deviations')`;
+
+/** Geometry SQL shared by the map reads: one drawable Point/LineString per event, simplified. */
+const MAP_GEOMETRY_SQL = `ST_AsGeoJSON(CASE WHEN GeometryType(e.geom) = 'MULTIPOINT' THEN ST_GeometryN(e.geom, 1)
                               WHEN GeometryType(e.geom) = 'MULTILINESTRING' THEN ST_LineMerge(ST_SimplifyPreserveTopology(e.geom, 0.00001))
                               ELSE ST_SimplifyPreserveTopology(e.geom, 0.00001) END, 6)::json AS geometry,
-            CASE WHEN GeometryType(e.geom) IN ('LINESTRING', 'MULTILINESTRING') THEN round(ST_Length(e.geom::geography))::int END AS length_m
+            CASE WHEN GeometryType(e.geom) IN ('LINESTRING', 'MULTILINESTRING') THEN round(ST_Length(e.geom::geography))::int END AS length_m`;
+
+interface MapEventRow {
+  event_id: string; source_id: string; event_type: string | null; headline: string; description: string | null; area_label: string | null;
+  valid_from: Date | null; valid_to: Date | null; extra: Record<string, unknown> | null; geometry: unknown; length_m: number | null;
+}
+
+function mapItemOf(r: MapEventRow): EventMapItem | null {
+  const g = EventMapGeometrySchema.safeParse(r.geometry);
+  // Anything else (e.g. a GeometryCollection) cannot be drawn as a stretch or point: left out.
+  if (!g.success) return null;
+  const x = r.extra ?? {};
+  const str = (k: string) => (typeof x[k] === 'string' && (x[k] as string).trim() ? (x[k] as string).trim() : null);
+  const style = trafficMapStyle({ sourceId: r.source_id, messageCodeValue: str('messageCodeValue'), iconId: str('iconId'), transportMode: str('transportMode') });
+  return {
+    eventId: r.event_id,
+    geometry: g.data,
+    radiusM: null,
+    lengthM: r.length_m === null ? null : Number(r.length_m),
+    label: r.event_type?.trim() || 'Trafikhändelse',
+    icon: style.icon,
+    hue: style.hue,
+    impact: str('severityText'),
+    where: r.area_label?.trim() || eventPlaceFromHeadline(r.headline, r.event_type),
+    description: r.description?.trim() || null,
+    validFrom: r.valid_from ? r.valid_from.toISOString() : null,
+    validTo: r.valid_to ? r.valid_to.toISOString() : null,
+  };
+}
+
+/**
+ * TENANT read: one event from the organization's feed for this property, on the map – active or
+ * ended (an ended event keeps its stretch until retention). The feed row is the proof of access:
+ * matches of an ended event are gone, so the event must appear in this property's monitoring changes.
+ */
+export async function getPropertyEventMapEvent(db: Queryable, organizationId: string, propertyId: string, eventId: string): Promise<PropertyEventMapEvent | null> {
+  const { rows } = await db.query<MapEventRow & { status: string; ended_at: Date | null; distance_m: number | null }>(
+    `SELECT e.id::text AS event_id, e.source_id, e.event_type, e.headline, e.description, e.area_label, e.valid_from, e.valid_to, e.extra,
+            e.status, e.ended_at, round(ST_Distance(e.geom::geography, p.location))::int AS distance_m,
+            ${MAP_GEOMETRY_SQL}
+       FROM source_events e
+       JOIN properties p ON p.id = $2 AND p.organization_id = $1
+      WHERE e.id = $3 AND e.geom IS NOT NULL AND e.source_id IN ${MAP_SOURCES_SQL}
+        AND EXISTS (SELECT 1 FROM monitoring_changes c WHERE c.organization_id = $1 AND c.property_id = $2 AND c.event_id = e.id)`,
+    [organizationId, propertyId, eventId],
+  );
+  const r = rows[0];
+  const item = r ? mapItemOf(r) : null;
+  if (!r || !item) return null;
+  return {
+    propertyId,
+    item,
+    title: r.headline,
+    sourceId: r.source_id,
+    active: r.status === 'active',
+    endedAt: r.status === 'active' ? null : (r.ended_at ?? r.valid_to)?.toISOString() ?? null,
+    distanceM: r.distance_m === null ? null : Number(r.distance_m),
+  };
+}
+
+export async function listPropertyEventMap(db: Queryable, organizationId: string, propertyId: string): Promise<EventMapItem[]> {
+  const { rows } = await db.query<MapEventRow>(
+    `SELECT e.id::text AS event_id, e.source_id, e.event_type, e.headline, e.description, e.area_label, e.valid_from, e.valid_to, e.extra,
+            ${MAP_GEOMETRY_SQL}
        FROM property_event_matches m
        JOIN source_events e ON e.id = m.event_id AND e.status = 'active'
        JOIN properties p ON p.id = m.property_id AND p.organization_id = $1
       WHERE m.organization_id = $1 AND m.property_id = $2
-        AND e.source_id IN ('trafikverket', 'sl_deviations') AND e.geom IS NOT NULL
+        AND e.source_id IN ${MAP_SOURCES_SQL} AND e.geom IS NOT NULL
       ORDER BY m.distance_m NULLS LAST, e.id
       LIMIT $3`,
     [organizationId, propertyId, EVENT_MAP_LIMIT],
   );
-  const items: EventMapItem[] = [];
-  for (const r of rows) {
-    const g = EventMapGeometrySchema.safeParse(r.geometry);
-    // Anything else (e.g. a GeometryCollection) cannot be drawn as a stretch or point: left out.
-    if (!g.success) continue;
-    const x = r.extra ?? {};
-    const str = (k: string) => (typeof x[k] === 'string' && (x[k] as string).trim() ? (x[k] as string).trim() : null);
-    const style = trafficMapStyle({ sourceId: r.source_id, messageCodeValue: str('messageCodeValue'), iconId: str('iconId'), transportMode: str('transportMode') });
-    items.push({
-      eventId: r.event_id,
-      geometry: g.data,
-      radiusM: null,
-      lengthM: r.length_m === null ? null : Number(r.length_m),
-      label: r.event_type?.trim() || 'Trafikhändelse',
-      icon: style.icon,
-      hue: style.hue,
-      impact: str('severityText'),
-      where: r.area_label?.trim() || eventPlaceFromHeadline(r.headline, r.event_type),
-      description: r.description?.trim() || null,
-      validFrom: r.valid_from ? r.valid_from.toISOString() : null,
-      validTo: r.valid_to ? r.valid_to.toISOString() : null,
-    });
-  }
-  return items;
+  return rows.map(mapItemOf).filter((x): x is EventMapItem => x !== null);
 }
 
 /* Shared public radar-grid cache. Reads for snapshots remain organization scoped above. */

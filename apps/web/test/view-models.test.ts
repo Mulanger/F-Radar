@@ -7,6 +7,9 @@ vi.mock('@clerk/nextjs/server', () => ({ auth: () => authMock() }));
 import { assessPropertyRisk, type Portfolio, type PropertySnapshot } from '@fastighetsradar/domain';
 import { demoPortfolio } from '@fastighetsradar/domain/fixtures';
 import { buildOverviewVM } from '@/lib/view-models/overview';
+import { endedLabel, feedEventMapEntry } from '@/lib/view-models/event-map';
+import { SEV } from '@/lib/design/tokens';
+import { demoEndedEvent } from '@/lib/demo/event-map-demo';
 import { buildDetailVM } from '@/lib/view-models/detail';
 import { chartOf, smooth } from '@/lib/view-models/chart';
 import { loadDemoPortfolio, loadLivePortfolio } from '@/lib/data/portfolio';
@@ -38,8 +41,23 @@ describe('overview view-model reproduces the approved design values', () => {
     expect(e4.mapEventId).toBe('demo-arenastaden-hus-c-event-1');
     // A row without an event (or with one that has ended) gets no map button.
     expect(vm.feed.find((f) => f.title.startsWith('Gul varning hävd'))!.mapEventId).toBeNull();
-    const ended = buildOverviewVM({ ...demoPortfolio, feed: demoPortfolio.feed.map((f) => ({ ...f, eventId: f.eventId ? 'gone' : undefined })) }, ui);
-    expect(ended.feed.every((f) => f.mapEventId === null)).toBe(true);
+    const gone = buildOverviewVM({ ...demoPortfolio, feed: demoPortfolio.feed.map((f) => ({ ...f, eventId: f.eventId ? 'gone' : undefined, eventEndedOnMap: undefined })) }, ui);
+    expect(gone.feed.every((f) => f.mapEventId === null)).toBe(true);
+    // An ended event whose stretch is still stored opens greyed out.
+    const lindhagen = vm.feed.find((f) => f.title.includes('Lindhagensgatan'))!;
+    expect(lindhagen).toMatchObject({ mapEventId: 'demo-strandhuset-ended-0', mapEnded: true });
+    expect(e4.mapEnded).toBe(false);
+  });
+
+  it('draws an ended feed event grey, without the pulse colour, marked with when it ended', () => {
+    const x = demoEndedEvent('demo-strandhuset', 'demo-strandhuset-ended-0')!;
+    const e = feedEventMapEntry(x, demoPortfolio.generatedAt);
+    expect(e).toMatchObject({ ended: true, time: 'Avslutad 07:40', shape: 'line', exact: true, dist: '440 m', src: 'Trafikverket', label: 'Vägarbete' });
+    expect(e.hx).toBe('#8E969D');
+    expect(endedLabel('2025-11-11T15:50:00+01:00', demoPortfolio.generatedAt)).toBe('Avslutad 11 nov 15:50');
+    expect(feedEventMapEntry({ ...x, active: true, endedAt: null }, demoPortfolio.generatedAt)).toMatchObject({ ended: false, hx: SEV.critical.hx });
+    // Only the demo property the event belongs to.
+    expect(demoEndedEvent('demo-gotgarden', 'demo-strandhuset-ended-0')).toBeNull();
   });
 
   it('names the properties behind each weather pill, worst first', () => {

@@ -9,6 +9,7 @@ import {
   listRecentChangesForOrg,
   listPropertyActivity,
   listPropertyEventMap,
+  getPropertyEventMapEvent,
   getOrganizationSettings,
   loadOrgMonitoring,
   rematchEvents,
@@ -130,6 +131,11 @@ export class MonitoringService {
   async eventMap(t: TenantContext, id: string) {
     if (!(await getProperty(this.db, t, id))) return null;
     return listPropertyEventMap(this.db, t.organizationId, id);
+  }
+
+  /** One feed event on the map, also after it ended (null when unknown to this org/property). */
+  async eventMapEvent(t: TenantContext, id: string, eventId: string) {
+    return getPropertyEventMapEvent(this.db, t.organizationId, id, eventId);
   }
 
   /** Property created/moved/deleted: re-match events now, schedule per-property collectors. */

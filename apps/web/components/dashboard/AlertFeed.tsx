@@ -53,7 +53,7 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
               <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: C.text4, whiteSpace: 'nowrap' }}>{f.t}</div>
-              {f.mapEventId && <FeedMapButton title={f.title} onClick={() => map.open(f)} />}
+              {f.mapEventId && <FeedMapButton title={f.title} ended={f.mapEnded} onClick={() => map.open(f)} />}
             </div>
           </div>
         ))}

@@ -200,8 +200,9 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
   const feed = portfolio.feed
     .filter((f) => listIds.has(f.propertyId))
     .map((f) => {
-      // Only a current event with a position can be opened on the map (an ended one is gone).
+      // A current event with a position opens in colour; an ended one whose stretch is still stored, greyed out.
       const ev = f.eventId ? byId.get(f.propertyId)?.events.find((e) => e.id === f.eventId && e.location) : undefined;
+      const ended = !ev && !!f.eventId && f.eventEndedOnMap === true;
       return {
         id: f.id,
         t: formatClock(f.publishedAt),
@@ -212,7 +213,9 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
         prop: byId.get(f.propertyId)?.property.name ?? '—',
         propertyId: f.propertyId,
         /** Event to open in the map view, or null when the row has nothing to show there. */
-        mapEventId: ev ? ev.id : null,
+        mapEventId: ev ? ev.id : ended ? f.eventId! : null,
+        /** The event has ended: the map shows where it was, greyed out. */
+        mapEnded: ended,
       };
     });
 

@@ -178,7 +178,8 @@ const RAW: RawProperty[] = [
 ];
 
 // `ev`: index of the property's own event behind the row (opens it on the map from the dashboard).
-const RAW_FEED: Array<{ t: string; title: string; src: string; sev: PropertyStatus; slug: string; ev?: number }> = [
+// `ended`: id of an ended demo event (its stretch is in the web demo fixture, shown greyed out).
+const RAW_FEED: Array<{ t: string; title: string; src: string; sev: PropertyStatus; slug: string; ev?: number; ended?: string }> = [
   { t: '14:32', title: 'Orange varning — kraftig vind, byar upp till 25 m/s', src: 'SMHI', sev: 'critical', slug: 'augustendal-brygga' },
   { t: '14:05', title: 'Vattenståndet i Saltsjön +38 cm över medel och stigande', src: 'SMHI', sev: 'warning', slug: 'sjostaden-kaj' },
   { t: '13:48', title: 'Gräns för kraftigt regn överskriden — 12 mm på 3 h', src: 'Radar', sev: 'warning', slug: 'sjostaden-kaj' },
@@ -189,6 +190,7 @@ const RAW_FEED: Array<{ t: string; title: string; src: string; sev: PropertyStat
   { t: '10:15', title: 'Fastigheten ligger i karterad översvämningszon (15 m)', src: 'Länsstyrelsen', sev: 'warning', slug: 'augustendal-brygga' },
   { t: '09:02', title: 'Risk för frost i natt, −3 °C väntas', src: 'SMHI', sev: 'monitor', slug: 'ulvsunda-lager', ev: 2 },
   { t: '08:30', title: 'Gul varning hävd — vind', src: 'SMHI', sev: 'normal', slug: 'gotgarden' },
+  { t: '07:45', title: 'Avslutad: Vägarbete på Lindhagensgatan, ett körfält avstängt', src: 'Trafikverket', sev: 'normal', slug: 'strandhuset', ended: 'demo-strandhuset-ended-0' },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -461,6 +463,7 @@ const feed: FeedItem[] = RAW_FEED.map((f, i) => ({
   severity: f.sev,
   propertyId: demoPropertyId(f.slug),
   ...(f.ev === undefined ? {} : { eventId: `${demoPropertyId(f.slug)}-event-${f.ev}` }),
+  ...(f.ended ? { eventId: f.ended, eventEndedOnMap: true } : {}),
   origin: 'demo_fixture',
 }));
 

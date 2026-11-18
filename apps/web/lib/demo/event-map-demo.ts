@@ -1,4 +1,4 @@
-import type { EventMapItem } from '@fastighetsradar/domain';
+import type { EventMapItem, PropertyEventMapEvent } from '@fastighetsradar/domain';
 
 /**
  * Demo geometry for "Visa på karta" (fictional events from the demo portfolio), taken from the
@@ -31,4 +31,27 @@ export function demoEventMap(propertyId: string): EventMapItem[] {
   return Object.entries(DEMO_GEO)
     .filter(([id]) => id.startsWith(`${propertyId}-event-`))
     .map(([eventId, g]) => ({ eventId, ...g, lengthM: null, description: null, validFrom: null, validTo: null }));
+}
+
+/** Ended demo events from the feed ("Avslutad: …"), shown greyed out where they were. */
+const DEMO_ENDED: Record<string, Omit<PropertyEventMapEvent, 'active'>> = {
+  'demo-strandhuset-ended-0': {
+    propertyId: 'demo-strandhuset',
+    title: 'Vägarbete på Lindhagensgatan, ett körfält avstängt',
+    sourceId: 'trafikverket',
+    endedAt: '2025-11-12T07:40:00+01:00',
+    distanceM: 440,
+    item: {
+      eventId: 'demo-strandhuset-ended-0',
+      geometry: { type: 'LineString', coordinates: [[18.0205, 59.3345], [18.0233, 59.3349], [18.0262, 59.3352]] },
+      radiusM: null, lengthM: null, label: 'Vägarbete', icon: 'roadwork', hue: 'red', impact: 'Ett körfält avstängt', where: 'Lindhagensgatan',
+      description: null, validFrom: '2025-11-10T07:00:00+01:00', validTo: '2025-11-12T16:00:00+01:00',
+    },
+  },
+};
+
+/** An ended demo feed event on the map, or null when the id is not one of them. */
+export function demoEndedEvent(propertyId: string, eventId: string): PropertyEventMapEvent | null {
+  const x = DEMO_ENDED[eventId];
+  return x && x.propertyId === propertyId ? { ...x, active: false } : null;
 }

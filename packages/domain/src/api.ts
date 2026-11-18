@@ -113,3 +113,4 @@ export const PropertyRecordSchema = z.object({
 export type PropertyRecord = z.infer<typeof PropertyRecordSchema>;
 
 export const PropertyIdParamSchema = z.object({ id: z.string().uuid() });
+export const EventIdParamSchema = z.object({ eventId: z.string().uuid() });

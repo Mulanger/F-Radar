@@ -32,7 +32,7 @@ export function MobileFeedRows({ feed, basePath, onMap }: { feed: OverviewVM['fe
       <div className={styles.feedMain}><div className={styles.feedTitle}>{f.title}</div><div className={styles.feedMeta}><span className={styles.source}>{f.src}</span><span>{f.prop}</span></div></div>
       <time className={styles.time}>{f.t}</time>
     </Link>
-    {onMap && f.mapEventId && <span className={styles.feedMap}><FeedMapButton title={f.title} onClick={() => onMap(f)} /></span>}
+    {onMap && f.mapEventId && <span className={styles.feedMap}><FeedMapButton title={f.title} ended={f.mapEnded} onClick={() => onMap(f)} /></span>}
   </div>);
 }
 

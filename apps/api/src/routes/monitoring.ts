@@ -1,5 +1,5 @@
 import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
-import { ACTIVITY, portfolioRisk, PropertyIdParamSchema, type StreamUpdate } from '@fastighetsradar/domain';
+import { ACTIVITY, portfolioRisk, EventIdParamSchema, PropertyIdParamSchema, type StreamUpdate } from '@fastighetsradar/domain';
 import { resolveSmsMode, type ServerEnv } from '@fastighetsradar/config';
 import { resolveSourceStatuses } from '@fastighetsradar/integrations';
 import { orgContext } from '../auth';
@@ -115,6 +115,15 @@ export function registerMonitoringRoutes(app: FastifyInstance, deps: MonitoringR
     const items = await svc().eventMap(orgContext(req), id);
     if (!items) throw new HttpProblem(404, 'Property not found');
     return { propertyId: id, items };
+  });
+
+  /** One event from the property's feed on the map – also an ended one, shown greyed out. */
+  app.get('/v1/properties/:id/event-map/:eventId', { preHandler: deps.requireOrg }, async (req) => {
+    const { id } = PropertyIdParamSchema.parse(req.params);
+    const { eventId } = EventIdParamSchema.parse(req.params);
+    const result = await svc().eventMapEvent(orgContext(req), id, eventId);
+    if (!result) throw new HttpProblem(404, 'Event not found');
+    return result;
   });
 
   app.get('/v1/changes', { preHandler: deps.requireOrg }, async (req) => {

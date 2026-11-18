@@ -30,12 +30,13 @@ const Svg = ({ d, size = 18, sw = 2 }: { d: string; size?: number; sw?: number }
 const CHEV_L = 'm15 6-6 6 6 6';
 const CHEV_R = 'm9 6 6 6-6 6';
 
-function evMarker(L: typeof Leaflet, path: string, hx: string) {
+function evMarker(L: typeof Leaflet, path: string, hx: string, ended = false) {
   return L.divIcon({
     className: '',
     iconSize: [44, 44],
     iconAnchor: [22, 22],
-    html: `<div style="position:relative;width:44px;height:44px"><span style="position:absolute;inset:0;border-radius:15px;background:${hx};animation:frRing 2.2s ease-out infinite"></span><div style="position:absolute;inset:0;border-radius:15px;background:${hx};border:3px solid #fff;box-sizing:border-box;box-shadow:0 8px 18px -4px rgba(20,23,26,.45);display:grid;place-items:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg></div></div>`,
+    // An ended event does not pulse: nothing is happening there any more.
+    html: `<div style="position:relative;width:44px;height:44px">${ended ? '' : `<span style="position:absolute;inset:0;border-radius:15px;background:${hx};animation:frRing 2.2s ease-out infinite"></span>`}<div style="position:absolute;inset:0;border-radius:15px;background:${hx};border:3px solid #fff;box-sizing:border-box;box-shadow:0 8px 18px -4px rgba(20,23,26,.45);display:grid;place-items:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg></div></div>`,
   });
 }
 function propPin(L: typeof Leaflet, name: string) {
@@ -195,7 +196,7 @@ export function EventMapView({ entries, openId, onSelect, onClose, property, liv
     }
     const dist = near && distM(pp, near) > 25 ? { near, text: e.dist } : null;
     if (dist) layer.addLayer(L.polyline([pp, dist.near], { color: '#14171A', weight: 2, opacity: 0.55, dashArray: '2 6', lineCap: 'round', interactive: false }));
-    layer.addLayer(L.marker(mid, { icon: evMarker(L, EVENT_MAP_ICON_PATH[e.icon], e.hx), interactive: false, keyboard: false, zIndexOffset: 900 }));
+    layer.addLayer(L.marker(mid, { icon: evMarker(L, EVENT_MAP_ICON_PATH[e.icon], e.hx, e.ended), interactive: false, keyboard: false, zIndexOffset: 900 }));
     viewRef.current = { pp, ev: pts.length ? pts : [mid], dist, ends, hx: e.hx };
     fitTo([pp, ...viewRef.current.ev], false);
     placeTag();
@@ -253,6 +254,7 @@ export function EventMapView({ entries, openId, onSelect, onClose, property, liv
               </span>
               <div className={s.cardMain}>
                 <div className={s.badges}>
+                  {e.ended && <span className={`${s.label} ${s.endedBadge}`}>Avslutad</span>}
                   <span className={s.label} style={{ background: e.bg, color: e.fg }}>{e.label}</span>
                   <span className={s.src}>{e.src}</span>
                 </div>
@@ -263,7 +265,7 @@ export function EventMapView({ entries, openId, onSelect, onClose, property, liv
             <div className={s.facts}>
               <div><div className={s.factLabel}>Tid</div><div className={s.factValue}>{e.time}</div></div>
               <div><div className={s.factLabel}>Avstånd</div><div className={s.factValue}>{e.dist}</div></div>
-              <div><div className={s.factLabel}>Påverkan</div><div className={s.factValue}>{e.impact}</div></div>
+              <div><div className={s.factLabel}>{e.ended ? 'Påverkade' : 'Påverkan'}</div><div className={s.factValue}>{e.impact}</div></div>
             </div>
           </div>
         </div>

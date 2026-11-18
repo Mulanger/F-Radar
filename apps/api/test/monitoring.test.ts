@@ -248,6 +248,9 @@ describe('property snapshot from stored data', () => {
     // The source event behind a row travels with it, so the dashboard can open it on the map.
     const withEvent = buildFeed([{ id: '8', property_id: PID, event_id: 'ev-1', source_id: 'smhi_warnings', change_type: 'new', severity: 'monitor', headline: 'Snöfall', created_at: NOW }], new Set([PID]));
     expect(withEvent[0]).toMatchObject({ id: 'chg-8', eventId: 'ev-1' });
+    expect(withEvent[0]).not.toHaveProperty('eventEndedOnMap');
+    const ended = buildFeed([{ id: '9', property_id: PID, event_id: 'ev-2', event_ended_on_map: true, source_id: 'trafikverket', change_type: 'ended', severity: 'warning', headline: 'Vägarbete', created_at: NOW }], new Set([PID]));
+    expect(ended[0]).toMatchObject({ eventId: 'ev-2', eventEndedOnMap: true, severity: 'normal' });
     const s = buildPropertySnapshot(record, 'o', data(), statuses, NOW);
     const up = buildUpcoming([s], data().forecasts, NOW);
     expect(up.map((u) => u.id)).toEqual(expect.arrayContaining([`gust-${PID}`, `rain-${PID}`, `frost-${PID}`]));

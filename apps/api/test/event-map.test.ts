@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { PropertyEventMapSchema, eventPlaceFromHeadline, trafficMapStyle } from '@fastighetsradar/domain';
-import { listPropertyEventMap, type Queryable } from '@fastighetsradar/db';
+import { PropertyEventMapEventSchema, PropertyEventMapSchema, eventPlaceFromHeadline, trafficMapStyle } from '@fastighetsradar/domain';
+import { getPropertyEventMapEvent, listPropertyEventMap, type Queryable } from '@fastighetsradar/db';
 
 const ORG = '00000000-0000-4000-8000-00000000000a';
 const PID = '11111111-1111-4111-8111-111111111111';
+const EV = '22222222-2222-4222-8222-222222222222';
 
 describe('property event map ("Visa på karta")', () => {
   it('reads only the organization’s matched, active traffic events and keeps the published geometry', async () => {
@@ -37,6 +38,27 @@ describe('property event map ("Visa på karta")', () => {
     expect(items[0]).toMatchObject({ label: 'Vägarbete', icon: 'roadwork', hue: 'red', impact: 'Stor påverkan', where: 'Götgatan från Åsögatan till Folkungagatan', lengthM: 72, validTo: '2026-11-21T16:00:00.000Z' });
     expect(items[1]).toMatchObject({ icon: 'accident', hue: 'red', where: 'E4', lengthM: null, impact: null });
     expect(PropertyEventMapSchema.parse({ propertyId: PID, items }).items).toHaveLength(2);
+  });
+
+  it('reads one feed event – also an ended one – only through the organization’s own feed rows', async () => {
+    const calls: Array<{ sql: string; params: unknown[] }> = [];
+    let rows: unknown[] = [{
+      event_id: EV, source_id: 'trafikverket', event_type: 'Vägarbete', headline: 'Vägarbete: Väg 75 Södra Länken', description: null, area_label: null,
+      valid_from: new Date('2026-11-10T06:00:00Z'), valid_to: new Date('2026-11-17T16:00:00Z'), extra: { messageCodeValue: 'roadworks' },
+      geometry: { type: 'LineString', coordinates: [[18.07, 59.30], [18.08, 59.301]] }, length_m: 600, status: 'ended', ended_at: new Date('2026-11-17T14:50:00Z'), distance_m: 320,
+    }];
+    const db: Queryable = { async query<R>(sql: string, params: unknown[] = []) { calls.push({ sql, params }); return { rows: rows as R[] }; } };
+    const x = await getPropertyEventMapEvent(db, ORG, PID, EV);
+    expect(calls[0]!.params).toEqual([ORG, PID, EV]);
+    // Access: the property belongs to the org, and this property's own feed has a row for the event.
+    expect(calls[0]!.sql).toContain('p.organization_id = $1');
+    expect(calls[0]!.sql).toMatch(/c\.organization_id = \$1 AND c\.property_id = \$2 AND c\.event_id = e\.id/);
+    expect(calls[0]!.sql).not.toContain("e.status = 'active'");
+    expect(x).toMatchObject({ propertyId: PID, title: 'Vägarbete: Väg 75 Södra Länken', active: false, endedAt: '2026-11-17T14:50:00.000Z', distanceM: 320 });
+    expect(x!.item).toMatchObject({ eventId: EV, icon: 'roadwork', lengthM: 600 });
+    expect(PropertyEventMapEventSchema.parse(x).active).toBe(false);
+    rows = [];
+    expect(await getPropertyEventMapEvent(db, ORG, PID, EV)).toBeNull();
   });
 
   it('styles Trafikverket message codes', () => {

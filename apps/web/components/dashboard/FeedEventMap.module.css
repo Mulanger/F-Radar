@@ -18,6 +18,12 @@
   border-color: #14171a;
   color: #ffffff;
 }
+/* Ended event: a quieter, dashed button – it shows where something was, not what is happening. */
+.ended {
+  border-style: dashed;
+  border-color: rgba(20, 23, 26, 0.22);
+  color: #8e969d;
+}
 .mapButton:focus-visible {
   outline: 2px solid #4a86c5;
   outline-offset: 2px;

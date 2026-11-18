@@ -48,6 +48,22 @@ export type EventMapItem = z.infer<typeof EventMapItemSchema>;
 export const PropertyEventMapSchema = z.object({ propertyId: z.string(), items: z.array(EventMapItemSchema) });
 export type PropertyEventMap = z.infer<typeof PropertyEventMapSchema>;
 
+/**
+ * One event of the property's feed on the map – also after it has ended (its stretch is kept for a
+ * week), so the dashboard can show where it was, greyed out.
+ */
+export const PropertyEventMapEventSchema = z.object({
+  propertyId: z.string(),
+  item: EventMapItemSchema,
+  title: z.string(),
+  sourceId: z.string(),
+  active: z.boolean(),
+  endedAt: z.string().nullable(),
+  /** Shortest distance from the property to the stretch/point, metres. */
+  distanceM: z.number().nonnegative().nullable(),
+});
+export type PropertyEventMapEvent = z.infer<typeof PropertyEventMapEventSchema>;
+
 const RED_CODES = new Set(['roadClosed', 'roadworks', 'resurfacingWork', 'maintenanceWork', 'constructionWork', 'laneClosures', 'accident', 'accidentInvolvingHeavyLorries', 'vehicleOnFire']);
 
 /** Icon and colour for a Trafikverket deviation (MessageCodeValue / IconId) or an SL deviation. */

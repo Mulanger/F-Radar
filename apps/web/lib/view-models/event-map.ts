@@ -1,4 +1,4 @@
-import { formatClock, formatDistance, formatShortDate, swedishDateKey, type EventMapHue, type EventMapIcon, type EventMapItem } from '@fastighetsradar/domain';
+import { formatClock, formatDistance, formatShortDate, swedishDateKey, type EventMapHue, type EventMapIcon, type EventMapItem, type PropertyEventMapEvent } from '@fastighetsradar/domain';
 import { SEV } from '../design/tokens';
 import { geometryRuns, runLength, type LL } from '../maps/geo';
 import type { DetailVM } from './detail';
@@ -29,6 +29,8 @@ export interface EventMapEntry {
   extent: string;
   /** False while only the event's closest point is known (geometry loading or unavailable). */
   exact: boolean;
+  /** The event has ended: drawn grey, without the pulse, marked "Avslutad". */
+  ended: boolean;
 }
 
 export type EventMapStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -91,31 +93,61 @@ export function eventMapEntries(events: DetailVM['events'], items: EventMapItem[
         lengthM: null,
         extent: status === 'loading' || status === 'idle' ? 'Hämtar exakt läge…' : 'Närmaste punkt',
         exact: false,
+        ended: false,
       });
       continue;
     }
-    const runs = geometryRuns(x.geometry);
-    const line = x.geometry.type !== 'Point';
-    const shape = line ? 'line' : x.radiusM ? 'area' : 'point';
-    const lengthM = line ? x.lengthM ?? runs.reduce((s, r) => s + runLength(r), 0) : null;
-    out.push({
-      ...base,
-      time: x.validTo ? untilLabel(x.validTo, nowIso) : e.time,
-      label: x.label,
-      icon: x.icon,
-      ...HUE[x.hue],
-      impact: x.impact ?? '—',
-      where: x.where ?? x.label,
-      description: x.description,
-      shape,
-      runs,
-      radiusM: x.radiusM,
-      lengthM,
-      extent: shape === 'line' ? `Påverkad sträcka ≈ ${formatStretch(lengthM ?? 0)}` : shape === 'area' ? `Påverkat område · radie ${formatDistance(x.radiusM)}` : 'Exakt plats',
-      exact: true,
-    });
+    out.push({ ...base, ...placeOf(x), time: x.validTo ? untilLabel(x.validTo, nowIso) : e.time, ...HUE[x.hue], ended: false });
   }
   return out;
+}
+
+/** Shape, stretch and labels of a mapped event (shared by current and ended events). */
+function placeOf(x: EventMapItem) {
+  const runs = geometryRuns(x.geometry);
+  const line = x.geometry.type !== 'Point';
+  const shape: EventMapEntry['shape'] = line ? 'line' : x.radiusM ? 'area' : 'point';
+  const lengthM = line ? x.lengthM ?? runs.reduce((s, r) => s + runLength(r), 0) : null;
+  return {
+    label: x.label,
+    icon: x.icon,
+    impact: x.impact ?? '—',
+    where: x.where ?? x.label,
+    description: x.description,
+    shape,
+    runs,
+    radiusM: x.radiusM,
+    lengthM,
+    extent: shape === 'line' ? `Påverkad sträcka ≈ ${formatStretch(lengthM ?? 0)}` : shape === 'area' ? `Påverkat område · radie ${formatDistance(x.radiusM)}` : 'Exakt plats',
+    exact: true,
+  };
+}
+
+/** Grey for an event that has ended – it no longer affects anything, it only shows where it was. */
+const ENDED_HUE = { hx: '#8E969D', c: 'oklch(0.55 0.01 240)', bg: 'oklch(0.95 0.004 240)', fg: 'oklch(0.42 0.01 240)' };
+
+/** "Avslutad 15:50" today, otherwise "Avslutad 17 nov 15:50". */
+export function endedLabel(endedAt: string | null, nowIso: string): string {
+  if (!endedAt) return 'Avslutad';
+  const day = swedishDateKey(endedAt) === swedishDateKey(nowIso) ? '' : `${formatShortDate(endedAt).replace(/\.$/, '')} `;
+  return `Avslutad ${day}${formatClock(endedAt)}`;
+}
+
+const SOURCE_SV: Record<string, string> = { trafikverket: 'Trafikverket', sl_deviations: 'SL Trafikinfo' };
+
+/** One feed event on the map (dashboard). An ended one is drawn grey and marked "Avslutad". */
+export function feedEventMapEntry(x: PropertyEventMapEvent, nowIso: string): EventMapEntry {
+  const ended = !x.active;
+  return {
+    id: x.item.eventId,
+    title: x.title,
+    src: SOURCE_SV[x.sourceId] ?? x.sourceId,
+    dist: x.distanceM === null ? '—' : formatDistance(x.distanceM),
+    ...placeOf(x.item),
+    time: ended ? endedLabel(x.endedAt, nowIso) : x.item.validTo ? untilLabel(x.item.validTo, nowIso) : '—',
+    ...(ended ? ENDED_HUE : HUE[x.item.hue]),
+    ended,
+  };
 }
 
 /** Icon paths (24×24, stroked) for the map marker and the event card. */
