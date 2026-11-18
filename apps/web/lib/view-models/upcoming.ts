@@ -1,258 +1,308 @@
 import type { Portfolio, UpcomingCondition } from '@fastighetsradar/domain';
-import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE, formatClock } from '@fastighetsradar/domain';
+import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE, formatClock, formatWeekdayClock } from '@fastighetsradar/domain';
 import { SEV } from '../design/tokens';
+import { darkSpans } from './daylight';
 
 /**
- * "Kommande förhållanden" (next 48 h): plain information – a one-line summary, a 48 h strip and
- * simple rows grouped per day, each with what it means and what is good to do. Nothing here is
- * acknowledged; acknowledgement belongs to serious events in the feed (Händelseflöde).
+ * "Kommande förhållanden" (next 48 h) – designer's layout (Design förbättring, 2026-11-18):
+ * a headline sentence, filter chips per kind, and a timeline per property where every condition is a
+ * bar from its start to its end over the next 48 hours, with darkness shaded. Rows expand inline to
+ * what it means and what is good to do. Plain information – nothing here is acknowledged.
  *
- * The rows themselves come from the API (forecast thresholds + official warnings that start later);
- * this module only derives presentation: category, icon, short value + unit, guidance texts.
+ * The rows come from the API (forecast thresholds + official warnings that start later); this module
+ * only derives presentation.
  */
 
-export type UpcomingCat = 'wind' | 'rain' | 'temp' | 'water' | 'other';
-export const UPCOMING_CAT_LABEL: Record<UpcomingCat, string> = { wind: 'Vind', rain: 'Nederbörd', temp: 'Temperatur', water: 'Vatten', other: 'Övrigt' };
+export type UpcomingKind = 'warning' | 'ice' | 'frost' | 'freeze' | 'wind' | 'rain' | 'snow' | 'thunder';
 
-export const UPCOMING_ICON = {
-  wind: 'M17.7 7.7A2.5 2.5 0 1 1 19.5 12H2M9.6 4.6A2 2 0 1 1 11 8H2M12.6 19.4A2 2 0 1 0 14 16H2',
-  rain: 'M20 16.6A5 5 0 0 0 18 7h-1.3A8 8 0 1 0 4 15.3M16 14v6M8 14v6M12 16v6',
-  water: 'M2 7c2 0 2-1.5 4-1.5S8 7 10 7s2-1.5 4-1.5S16 7 18 7s2-1.5 4-1.5M2 12.5c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5M2 18c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5',
-  cycle: 'M7 20V4M3 8l4-4 4 4M17 4v16M13 16l4 4 4-4',
-  frost: 'M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7M9 3.5l3 2 3-2M9 20.5l3-2 3 2',
-  snow: 'M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7',
-  bolt: 'M13 2 3 14h9l-1 8 10-12h-9l1-8z',
-  alert: 'M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01',
-  check: 'M20 6 9 17l-5-5',
-} as const;
-type IconKey = keyof typeof UPCOMING_ICON;
-
-type Tone = UpcomingCondition['tone'];
-/** Card palette per tone. "cold" (frost, snow, ice) uses the calm blue of "Info". */
-const TONE: Record<Tone, { c: string; bg: string; fg: string; label: string }> = {
-  critical: { c: SEV.critical.c, bg: SEV.critical.bg, fg: 'oklch(0.48 0.17 27)', label: 'Kritisk' },
-  warning: { c: SEV.warning.c, bg: SEV.warning.bg, fg: 'oklch(0.48 0.13 55)', label: 'Varning' },
-  monitor: { c: SEV.monitor.c, bg: SEV.monitor.bg, fg: 'oklch(0.45 0.11 245)', label: 'Info' },
-  cold: { c: SEV.monitor.c, bg: SEV.monitor.bg, fg: 'oklch(0.45 0.11 245)', label: 'Info' },
+const BLUE = 'oklch(0.56 0.12 245)';
+/** Chip label and bar colour per kind (official warnings are coloured by their level instead). */
+export const UPCOMING_KIND: Record<UpcomingKind, { label: string; bar: string }> = {
+  warning: { label: 'Varningar', bar: 'oklch(0.7 0.16 55)' },
+  ice: { label: 'Halka', bar: 'oklch(0.68 0.15 58)' },
+  frost: { label: 'Minusgrader', bar: BLUE },
+  freeze: { label: 'Växlande ±0°', bar: `repeating-linear-gradient(135deg, ${BLUE} 0 3px, oklch(0.84 0.06 245) 3px 6px)` },
+  wind: { label: 'Vind', bar: 'oklch(0.62 0.09 195)' },
+  rain: { label: 'Nederbörd', bar: 'oklch(0.58 0.12 265)' },
+  snow: { label: 'Snö', bar: 'oklch(0.74 0.05 240)' },
+  thunder: { label: 'Åska', bar: 'oklch(0.56 0.15 305)' },
 };
+const KIND_ORDER: UpcomingKind[] = ['warning', 'ice', 'frost', 'freeze', 'wind', 'rain', 'snow', 'thunder'];
+const LEVEL_BAR: Record<string, string> = { gul: 'oklch(0.83 0.15 92)', orange: 'oklch(0.7 0.16 55)', röd: SEV.critical.c };
 
 interface Kind {
-  cat: UpcomingCat;
-  icon: IconKey;
-  /** Short value + unit for the card's right column. */
-  split: (value: string) => { value: string; unit: string };
-  /** One-line hint shown on the card (null = none). */
-  hint: string | null;
-  /** What the condition means, when the row carries no explanation of its own. */
+  kind: UpcomingKind;
+  /** Value and unit for the right column, from the row's value and its span. */
+  value: (u: UpcomingCondition, hours: number) => { value: string; unit: string };
   body: string;
   action: string;
 }
 
-const keep = (unit: string) => (value: string) => ({ value, unit });
+const minus = (v: string) => v.replace(/^-/, '−');
+const num = (v: string) => (/(\d+(?:[.,]\d+)?)/.exec(v)?.[1] ?? v);
 const KINDS: Record<string, Kind> = {
   gust: {
-    cat: 'wind', icon: 'wind', split: keep('byvind'), hint: 'Säkra lösa föremål på balkonger och tak',
-    body: 'SMHI:s prognos visar hårda vindbyar vid fastigheten under det kommande dygnet.',
+    kind: 'wind', value: (u) => ({ value: u.value, unit: 'byvind' }),
+    body: 'SMHI:s prognos visar hårda vindbyar vid fastigheten.',
     action: 'Säkra lösa föremål på balkonger, tak och gårdar. Kontrollera att portar och grindar är stängda.',
   },
   rain: {
-    cat: 'rain', icon: 'rain', split: keep('på 24 h'), hint: 'Rensa brunnar och hängrännor',
+    kind: 'rain', value: (u) => ({ value: u.value, unit: 'på 24 h' }),
     body: 'Summerad nederbörd det kommande dygnet ligger över tröskelvärdet för kraftig nederbörd.',
     action: 'Kontrollera att dagvattenbrunnar och hängrännor är rensade och att källare och garage är skyddade.',
   },
   'intense-rain': {
-    cat: 'rain', icon: 'rain',
-    split: (v) => { const m = /(\d+(?:[.,]\d+)?)\s*mm\s*(.*)$/.exec(v); return m ? { value: `${m[1]} mm`, unit: m[2] || 'på en timme' } : { value: v, unit: '' }; },
-    hint: 'Risk för ytvatten vid låga punkter',
+    kind: 'rain', value: (u) => ({ value: `${num(u.value)} mm`, unit: 'på en timme' }),
     body: 'Prognosen visar en timme med intensivt regn. Dagvattnet kan ha svårt att rinna undan.',
     action: 'Rensa dagvattenbrunnar och kontrollera låga punkter som källarnedgångar och garageinfarter.',
   },
   thunder: {
-    cat: 'other', icon: 'bolt', split: keep('risk för åska'), hint: null,
-    body: 'Prognosen anger förhöjd sannolikhet för åska under det kommande dygnet.',
+    kind: 'thunder', value: (u) => ({ value: u.value, unit: 'risk för åska' }),
+    body: 'Prognosen anger förhöjd sannolikhet för åska.',
     action: 'Bevaka utvecklingen. Åska kan ge lokala skyfall och strömavbrott.',
   },
   snow: {
-    cat: 'rain', icon: 'snow', split: (v) => ({ value: v.replace(/^ca\s+/, ''), unit: 'snö / 24 h' }), hint: 'Planera snöröjning',
+    kind: 'snow', value: (u) => ({ value: u.value.replace(/^ca\s+/, ''), unit: 'snö / 24 h' }),
     body: 'Prognosen visar snöfall under det kommande dygnet.',
     action: 'Säkerställ snöröjning och sandning av entréer och bevaka snölasten på tak.',
   },
   ice: {
-    cat: 'temp', icon: 'frost', split: () => ({ value: 'Halka', unit: 'risk' }), hint: 'Risk för halka vid entréer',
-    body: 'Nederbörd faller nära eller strax efter minusgrader, vilket kan ge isbildning.',
-    action: 'Sanda entréer, trappor och gångytor och kontrollera takfot och stuprör för is.',
+    kind: 'ice', value: (_u, h) => ({ value: `${Math.max(1, Math.round(h))} h`, unit: 'varaktighet' }),
+    body: 'Fukt och temperatur kring 0° ger risk för is på entréer, trappor och tak.',
+    action: 'Planera halkbekämpning: sanda entréer, trappor och gångytor och kontrollera takfot och stuprör för is.',
   },
   'freeze-thaw': {
-    cat: 'temp', icon: 'cycle', split: keep('nollgenomgångar / 48 h'), hint: 'Kan ge is och istappar på tak',
-    body: 'Temperaturen pendlar runt noll flera gånger. Smältvatten kan frysa på nytt vid takfot och stuprör.',
+    kind: 'freeze', value: (u) => ({ value: `${num(u.value)}×`, unit: 'passerar 0°' }),
+    body: 'Temperaturen passerar 0° flera gånger. Smältvatten kan frysa i stuprör, hängrännor och på entréytor.',
     action: 'Bevaka takfot och stuprör för istappar och beställ snö- och isröjning vid behov.',
   },
   frost: {
-    cat: 'temp', icon: 'frost', split: keep('lägsta temp'), hint: 'Kontrollera frysskydd',
+    kind: 'frost', value: (u) => ({ value: minus(u.value), unit: 'lägst' }),
     body: 'Prognosen visar minusgrader vid fastigheten. Skuggiga ytor kan få frost.',
     action: 'Kontrollera frysskydd på utvändiga vattenledningar och sanda skuggiga gångytor.',
   },
 };
 const PREFIXES = ['intense-rain', 'freeze-thaw', 'thunder', 'snow', 'ice', 'gust', 'rain', 'frost'];
 
-const OFFICIAL_ACTION: Record<UpcomingCat, string> = {
-  wind: KINDS.gust!.action,
-  rain: KINDS['intense-rain']!.action,
-  temp: KINDS.ice!.action,
-  water: 'Kontrollera pumpar, brunnar och källardörrar mot vatten och flytta känsligt material från källarplan.',
-  other: 'Läs varningen hos källan och följ myndigheternas råd.',
-};
-
-const OFFICIAL_ICON: Record<UpcomingCat, IconKey> = { wind: 'wind', rain: 'rain', temp: 'frost', water: 'water', other: 'alert' };
-
-function officialCat(label: string): UpcomingCat {
-  const l = label.toLowerCase();
-  if (/vind|storm|by/.test(l)) return 'wind';
-  if (/vatten|flöde|översväm|havsnivå/.test(l)) return 'water';
-  if (/regn|skyfall|åska|snö/.test(l)) return 'rain';
-  if (/halka|is\b|isbild|kyla|frost|temperatur|värme/.test(l)) return 'temp';
-  return 'other';
-}
-
+const OFFICIAL_ACTION = 'Läs varningen hos SMHI och följ myndigheternas råd. Säkra det som kan påverkas på fastigheten.';
 const SOURCE_SV: Record<string, string> = { krisinformation: 'Krisinformation', smhi_warnings: 'SMHI', smhi_forecast: 'SMHI', smhi_oceanography: 'SMHI' };
 const stripTag = (label: string) => label.replace(/\s*\((prognos)[^)]*\)\s*$/i, '').trim();
-const dayFmt = new Intl.DateTimeFormat('en-CA', { timeZone: DISPLAY_TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' });
-const dayLong = new Intl.DateTimeFormat(DISPLAY_LOCALE, { timeZone: DISPLAY_TIME_ZONE, weekday: 'long', day: 'numeric', month: 'short' });
-const dayKey = (iso: string) => dayFmt.format(new Date(iso));
+const HOUR = 3_600_000;
+const WINDOW = 48 * HOUR;
 
 export interface UpcomingEvent {
   id: string;
-  cat: UpcomingCat;
-  catLabel: string;
-  icon: string;
-  tone: Tone;
-  toneLabel: string;
-  c: string;
-  bg: string;
-  fg: string;
-  /** Warning or worse: coloured value, counted under "Riskvarningar". */
-  hot: boolean;
+  kind: UpcomingKind;
+  /** Lower = more serious: official red/VMA, orange, yellow, ice, other warnings, the rest. */
+  rank: number;
   official: boolean;
+  hot: boolean;
   name: string;
   propertyId: string | null;
-  day: string | null;
-  /** Start time (ms) when known; null for whole-period rows ("Närmaste 24 h"). */
-  at: number | null;
-  t: string;
-  title: string;
-  /** Small muted tag after the title: "prognos" or "officiell varning". */
-  tag: string;
+  label: string;
+  bar: string;
+  /** Start and end (ms); a condition without an end is drawn as one hour. */
+  start: number;
+  end: number;
   value: string;
   unit: string;
-  meta: string;
-  hint: string | null;
-  headline: string;
-  body: string;
-  action: string;
-  whenLong: string;
-  /** Lowest temperature for frost rows, used by the "Lägsta temp" tile. */
+  note: string;
+  from: string;
+  to: string;
+  src: string;
+  /** Lowest temperature for frost rows (the headline and subline use it). */
   tmin: number | null;
 }
 
 export function buildUpcomingEvents(portfolio: Portfolio, propertyIds: Set<string>): UpcomingEvent[] {
+  const ref = Date.parse(portfolio.generatedAt);
   return portfolio.upcoming
     .filter((u) => !u.propertyId || propertyIds.has(u.propertyId))
     .map((u): UpcomingEvent => {
       const prefix = PREFIXES.find((p) => u.id.startsWith(p + '-'));
-      const kind = !u.official && prefix ? KINDS[prefix]! : null;
-      const cat = kind?.cat ?? (u.official ? officialCat(u.label) : 'other');
-      const tone = TONE[u.tone];
+      const k = !u.official && prefix ? KINDS[prefix]! : null;
+      const start = u.validAt ? Date.parse(u.validAt) : ref;
+      const end = u.validTo ? Math.max(Date.parse(u.validTo), start + 15 * 60_000) : start + HOUR;
       const src = (u.sourceId && SOURCE_SV[u.sourceId]) || 'SMHI';
-      const split = kind ? kind.split(u.value) : u.official ? { value: u.value.replace(/\s*varning$/i, ''), unit: u.value.toLowerCase().includes('varning') ? 'varning' : '' } : { value: u.value, unit: '' };
+      const level = u.official ? u.value.split(' ')[0]!.toLowerCase() : '';
+      const kind: UpcomingKind = k?.kind ?? 'warning';
+      const vu = k ? k.value(u, (end - start) / HOUR) : { value: u.value.replace(/\s*varning$/i, ''), unit: /varning/i.test(u.value) ? 'varning' : '' };
       const temp = prefix === 'frost' ? Number(u.value.replace('−', '-').replace(',', '.').replace(/[^\d.-]/g, '')) : NaN;
-      const day = u.validAt ? dayKey(u.validAt) : null;
+      const rank = u.official ? (u.tone === 'critical' ? 0 : u.tone === 'warning' ? 1 : 2) : kind === 'ice' ? 3 : u.tone === 'warning' ? 4 : kind === 'frost' ? 5 : 6;
       return {
         id: u.id,
-        cat,
-        catLabel: UPCOMING_CAT_LABEL[cat],
-        icon: UPCOMING_ICON[kind?.icon ?? OFFICIAL_ICON[cat]],
-        tone: u.tone,
-        toneLabel: tone.label,
-        c: tone.c,
-        bg: tone.bg,
-        fg: tone.fg,
-        hot: u.tone === 'warning' || u.tone === 'critical',
+        kind,
+        rank,
         official: !!u.official,
+        hot: u.tone === 'warning' || u.tone === 'critical',
         name: u.where,
         propertyId: u.propertyId ?? null,
-        day,
-        at: u.validAt ? Date.parse(u.validAt) : null,
-        t: u.when === 'Närmaste 24 h' ? '24 h' : u.validAt ? formatClock(u.validAt) : u.when,
-        title: stripTag(u.label),
-        tag: u.official ? 'officiell varning' : 'prognos',
-        value: split.value,
-        unit: split.unit,
-        meta: `${src} · uppdaterad ${formatClock(u.sourceUpdatedAt ?? null)}`,
-        hint: kind ? (u.explanation ? u.explanation[0]!.toUpperCase() + u.explanation.slice(1) : kind.hint) : null,
-        headline: u.official ? `${u.value}, ${stripTag(u.label).toLowerCase()}` : stripTag(u.label),
-        body: kind ? kind.body : `${src} har utfärdat en varning som börjar gälla ${u.when}.`,
-        action: kind?.action ?? OFFICIAL_ACTION[cat],
-        whenLong: `${u.when} · ${src} ${u.official ? 'varning' : 'prognos'}`,
+        label: u.official ? `${u.value} · ${stripTag(u.label).toLowerCase()}` : stripTag(u.label),
+        bar: u.official ? LEVEL_BAR[level] ?? UPCOMING_KIND.warning.bar : UPCOMING_KIND[kind].bar,
+        start,
+        end,
+        value: vu.value,
+        unit: vu.unit,
+        note: k ? `${k.body}${u.explanation && prefix !== 'freeze-thaw' ? ` ${u.explanation[0]!.toUpperCase()}${u.explanation.slice(1)}.` : ''} ${k.action}` : `${src} har utfärdat en ${u.value.toLowerCase()} för ${stripTag(u.label).toLowerCase()}. ${OFFICIAL_ACTION}`,
+        from: formatWeekdayClock(new Date(start).toISOString()),
+        to: formatWeekdayClock(new Date(end).toISOString()),
+        src: `${src} · ${u.official ? 'varning' : 'prognos'}`,
         tmin: Number.isFinite(temp) ? temp : null,
       };
     });
 }
 
-const HOURS_48 = 48 * 3_600_000;
+/* ------------------------------------------------------------------ */
+/* Texts                                                               */
+/* ------------------------------------------------------------------ */
 
-/** "2 riskvarningar, frost ner till −3° och 1 annan händelse de kommande 48 h". */
-function summaryOf(events: UpcomingEvent[]): string {
-  if (!events.length) return 'Inget över tröskelvärdena de kommande 48 h.';
-  const hot = events.filter((e) => e.hot).length;
-  const cold = events.filter((e) => e.tmin !== null).sort((a, b) => a.tmin! - b.tmin!)[0];
-  const rest = events.length - hot - (cold && !cold.hot ? 1 : 0);
-  const parts: string[] = [];
-  if (hot) parts.push(`${hot} ${hot === 1 ? 'riskvarning' : 'riskvarningar'}`);
-  if (cold) parts.push(`frost ner till ${cold.tmin! < 0 ? '−' : ''}${Math.abs(cold.tmin!)}°`);
-  if (rest > 0) parts.push(`${rest} ${parts.length ? (rest === 1 ? 'annan händelse' : 'andra händelser') : rest === 1 ? 'händelse' : 'händelser'}`);
-  const text = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} och ${parts.at(-1)}` : parts[0]!;
-  return `${text.replace(/^./, (c) => c.toUpperCase())} de kommande 48 h`;
+const WORDS = ['noll', 'en', 'två', 'tre', 'fyra', 'fem', 'sex', 'sju', 'åtta', 'nio', 'tio'];
+const words = (n: number) => WORDS[n] ?? String(n);
+const cap = (s: string) => s.replace(/^./, (c) => c.toUpperCase());
+
+const dayFmt = new Intl.DateTimeFormat('en-CA', { timeZone: DISPLAY_TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' });
+const hourFmt = new Intl.DateTimeFormat('en-GB', { timeZone: DISPLAY_TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+const weekdayLong = new Intl.DateTimeFormat(DISPLAY_LOCALE, { timeZone: DISPLAY_TIME_ZONE, weekday: 'long' });
+const weekdayShort = new Intl.DateTimeFormat(DISPLAY_LOCALE, { timeZone: DISPLAY_TIME_ZONE, weekday: 'short' });
+const dayMonth = new Intl.DateTimeFormat(DISPLAY_LOCALE, { timeZone: DISPLAY_TIME_ZONE, day: 'numeric', month: 'short' });
+const dayNum = new Intl.DateTimeFormat(DISPLAY_LOCALE, { timeZone: DISPLAY_TIME_ZONE, day: 'numeric' });
+const dayKey = (ms: number) => dayFmt.format(new Date(ms));
+const hourOf = (ms: number) => Number(hourFmt.format(new Date(ms)).slice(0, 2));
+const clock = (ms: number) => formatClock(new Date(ms).toISOString());
+
+/** "från ikväll 18:00", "från i natt 02:00", "från imorgon 09:00", "från torsdag 09:00", "redan nu". */
+export function whenPhrase(start: number, ref: number): string {
+  if (start <= ref + 30 * 60_000) return 'redan nu';
+  const today = dayKey(ref), day = dayKey(start), h = hourOf(start);
+  const tomorrow = dayKey(ref + 24 * HOUR);
+  if (day === today) return h >= 17 ? `från ikväll ${clock(start)}` : `från idag ${clock(start)}`;
+  if (day === tomorrow && h < 6) return `från i natt ${clock(start)}`;
+  if (day === tomorrow) return `från imorgon ${clock(start)}`;
+  return `från ${weekdayLong.format(new Date(start))} ${clock(start)}`;
 }
 
-export function upcomingView(events: UpcomingEvent[], referenceIso: string) {
+const HEADLINE: Record<UpcomingKind, (e: UpcomingEvent) => string> = {
+  warning: (e) => e.label.replace(' · ', ' för '),
+  ice: () => 'Risk för halka',
+  frost: (e) => `Minusgrader ner till ${e.value}`,
+  freeze: () => 'Växlande plus- och minusgrader',
+  wind: (e) => `Byvind upp till ${e.value}`,
+  rain: (e) => (e.unit === 'på en timme' ? 'Intensivt regn' : `Kraftig nederbörd, ${e.value}`),
+  snow: () => 'Snöfall',
+  thunder: () => 'Risk för åska',
+};
+
+/** One sentence per other kind: "Minusgrader på tre platser, lägst −4° vid Körfältsvägen." */
+function sentence(kind: UpcomingKind, list: UpcomingEvent[]): string {
+  const places = [...new Set(list.map((e) => e.name))];
+  const n = places.length;
+  const where = n === 1 ? `vid ${places[0]}` : `på ${words(n)} platser`;
+  switch (kind) {
+    case 'warning': return `${cap(words(list.length))} ${list.length === 1 ? 'officiell varning' : 'officiella varningar'} ${where}.`;
+    case 'frost': {
+      const cold = [...list].sort((a, b) => (a.tmin ?? 0) - (b.tmin ?? 0))[0]!;
+      return n === 1 ? `Minusgrader vid ${cold.name}, lägst ${cold.value}.` : `Minusgrader ${where}, lägst ${cold.value} vid ${cold.name}.`;
+    }
+    case 'freeze': return n === 1 ? `${places[0]} passerar 0° flera gånger.` : `${cap(words(n))} platser passerar 0° flera gånger.`;
+    case 'ice': return `Risk för halka ${where}.`;
+    case 'wind': return `Hårda vindbyar ${where}.`;
+    case 'rain': return `Kraftig nederbörd ${where}.`;
+    case 'snow': return `Snöfall ${where}.`;
+    case 'thunder': return `Risk för åska ${where}.`;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* View                                                                */
+/* ------------------------------------------------------------------ */
+
+export type UpcomingFilter = UpcomingKind | 'all';
+
+export function upcomingView(events: UpcomingEvent[], referenceIso: string, opts: { filter?: UpcomingFilter; center?: { lat: number; lon: number } | null } = {}) {
   const ref = Date.parse(referenceIso);
-  const today = dayKey(referenceIso);
-  const tomorrow = dayKey(new Date(ref + 24 * 3_600_000).toISOString());
+  const filter = opts.filter && (opts.filter === 'all' || events.some((e) => e.kind === opts.filter)) ? opts.filter : 'all';
+  const pos = (ms: number) => Math.min(1, Math.max(0, (ms - ref) / WINDOW));
+  const byRank = (a: UpcomingEvent, b: UpcomingEvent) => a.rank - b.rank || a.start - b.start;
 
-  const dayLabel = (d: string | null) => (d === null || d <= today ? 'Idag' : d === tomorrow ? 'Imorgon' : null);
-  const days: Array<{ key: string; label: string; date: string; count: string; items: UpcomingEvent[] }> = [];
-  for (const e of events) {
-    const key = e.day === null || e.day < today ? today : e.day;
-    let g = days.find((x) => x.key === key);
-    if (!g) {
-      const long = dayLong.format(new Date(`${key}T12:00:00Z`)).replace('.', '');
-      const label = dayLabel(key) ?? long.split(' ')[0]!.replace(/^./, (c) => c.toUpperCase());
-      g = { key, label, date: long, count: '', items: [] };
-      days.push(g);
-    }
-    g.items.push(e);
-  }
-  days.sort((a, b) => a.key.localeCompare(b.key));
-  for (const g of days) {
-    // Within a day: whole-period rows first, then by start time; warnings before info at the same time.
-    g.items.sort((a, b) => (a.at ?? 0) - (b.at ?? 0) || Number(b.hot) - Number(a.hot));
-    g.count = `${g.items.length} ${g.items.length === 1 ? 'händelse' : 'händelser'}`;
+  // Headline: the most serious condition, where and from when; the subline sums up the other kinds.
+  const top = [...events].sort(byRank)[0];
+  let headline = 'Inget över tröskelvärdena de kommande 48 h';
+  let subline = '';
+  if (top) {
+    const sameKind = events.filter((e) => e.kind === top.kind && (top.kind !== 'warning' || e.label === top.label));
+    const others = [...new Set(sameKind.map((e) => e.name))].length - 1;
+    headline = `${HEADLINE[top.kind](top)} i ${top.name}${others > 0 ? ` och ${others} ${others === 1 ? 'plats' : 'platser'} till` : ''} ${whenPhrase(top.start, ref)}`;
+    // Everything the headline does not already say, one sentence per kind, the two most serious kinds.
+    const said = new Set(sameKind.map((e) => e.id));
+    subline = KIND_ORDER.map((k) => events.filter((e) => e.kind === k && !said.has(e.id)))
+      .filter((l) => l.length)
+      .slice(0, 2)
+      .map((l) => sentence(l[0]!.kind, l))
+      .join(' ');
   }
 
-  // 48 h strip: one dot per row at its start (whole-period rows sit at "Nu"), ticks at midnight.
-  const pos = (ms: number) => Math.min(1, Math.max(0, (ms - ref) / HOURS_48));
-  const dots = days.flatMap((g) => g.items).map((e) => ({ id: e.id, pos: e.at === null ? 0 : pos(e.at), c: e.c, hot: e.hot, label: `${e.title}, ${e.name}, ${e.t}` }));
-  // Midnight in Stockholm: where the local day changes (found in 15-minute steps).
-  const midnights: number[] = [];
-  let current = today;
-  for (let t = ref + 15 * 60_000; t < ref + HOURS_48; t += 15 * 60_000) {
-    const k = dayKey(new Date(t).toISOString());
+  const chips = [
+    { k: 'all' as UpcomingFilter, label: 'Alla', n: events.length, sw: null as string | null, active: filter === 'all' },
+    ...KIND_ORDER.filter((k) => events.some((e) => e.kind === k)).map((k) => ({ k: k as UpcomingFilter, label: UPCOMING_KIND[k].label, n: events.filter((e) => e.kind === k).length, sw: UPCOMING_KIND[k].bar, active: filter === k })),
+  ];
+
+  const shown = events.filter((e) => filter === 'all' || e.kind === filter);
+  const places = new Map<string, { key: string; name: string; propertyId: string | null; events: UpcomingEvent[] }>();
+  for (const e of shown) {
+    const key = e.propertyId ?? e.name;
+    if (!places.has(key)) places.set(key, { key, name: e.name, propertyId: e.propertyId, events: [] });
+    places.get(key)!.events.push(e);
+  }
+  const rows = [...places.values()]
+    .map((p) => ({ ...p, events: p.events.sort(byRank).map((e) => ({ ...e, left: pos(e.start), width: Math.max(0.012, pos(e.end) - pos(e.start)), right: pos(e.end), cross: e.kind === 'freeze' })) }))
+    .sort((a, b) => byRank(a.events[0]!, b.events[0]!))
+    .map((p) => ({ ...p, countText: p.events.length > 1 ? `${p.events.length} händelser` : '' }));
+
+  // Axis: midnights (day starts) and every six clock hours, in Stockholm time.
+  const midnights: Array<{ pos: number; day: string; date: string; short: string }> = [];
+  const ticks: Array<{ pos: number; label: string }> = [];
+  let current = dayKey(ref);
+  for (let t = Math.ceil(ref / (15 * 60_000)) * 15 * 60_000 + 15 * 60_000; t < ref + WINDOW; t += 15 * 60_000) {
+    const k = dayKey(t);
+    const d = new Date(t);
     if (k !== current) {
-      midnights.push(pos(t));
       current = k;
+      const wd = weekdayLong.format(d);
+      midnights.push({ pos: pos(t), day: cap(wd), date: dayMonth.format(d).replace(/\.$/, ''), short: `${cap(weekdayShort.format(d).replace('.', '').slice(0, 3))} ${dayNum.format(d)}` });
+      continue;
     }
+    const hm = hourFmt.format(d);
+    if (hm.endsWith(':00') && hourOf(t) % 6 === 0 && pos(t) > 0.1 && pos(t) < 0.97) ticks.push({ pos: pos(t), label: hm.slice(0, 2) });
   }
+  const firstLabel = hourOf(ref) >= 17 ? 'Ikväll' : 'Idag';
+  const night = opts.center ? darkSpans(ref, ref + WINDOW, opts.center.lat, opts.center.lon) : [];
 
-  return { summary: summaryOf(events), days, dots, midnights, empty: events.length === 0 };
+  const n = shown.length;
+  return {
+    headline,
+    subline,
+    chips,
+    filter,
+    rows,
+    axis: { now: `Nu ${String(hourOf(ref)).padStart(2, '0')}`, today: (midnights[0]?.pos ?? 1) > 0.1 ? firstLabel : null, midnights, ticks },
+    night,
+    countText: `${n} ${n === 1 ? 'händelse' : 'händelser'} · ${rows.length} ${rows.length === 1 ? 'plats' : 'platser'}`,
+    empty: events.length === 0,
+  };
 }
 export type UpcomingView = ReturnType<typeof upcomingView>;
+export type UpcomingRow = UpcomingView['rows'][number];
+export type UpcomingBar = UpcomingRow['events'][number];
+
+/** Latest source update among the rows ("SMHI · uppdaterad 16:00"), or null. */
+export function upcomingUpdated(portfolio: Portfolio): string | null {
+  const t = portfolio.upcoming.map((u) => u.sourceUpdatedAt).filter((x): x is string => !!x).sort().at(-1);
+  return t ? formatClock(t) : null;
+}
+
+/** Centre of the properties in view, for the darkness shading. */
+export function upcomingCenter(portfolio: Portfolio, propertyIds: Set<string>): { lat: number; lon: number } | null {
+  const pts = portfolio.properties.filter((s) => propertyIds.has(s.property.id)).map((s) => s.property.location);
+  if (!pts.length) return null;
+  return { lat: pts.reduce((a, p) => a + p.lat, 0) / pts.length, lon: pts.reduce((a, p) => a + p.lon, 0) / pts.length };
+}

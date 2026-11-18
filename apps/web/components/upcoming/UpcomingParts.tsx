@@ -1,183 +1,247 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import type { UpcomingEvent } from '@/lib/view-models/upcoming';
+import type { UpcomingBar, UpcomingRow } from '@/lib/view-models/upcoming';
 import type { UpcomingState } from './use-upcoming';
 import s from './Upcoming.module.css';
 
-const Svg = ({ d, size = 18, sw = 1.8 }: { d: string; size?: number; sw?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d={d} />
-  </svg>
-);
-const CHEVRON = 'm9 6 6 6-6 6';
+type Variant = 'desktop' | 'mobile';
+const pct = (f: number) => `${(f * 100).toFixed(3)}%`;
 
-export function UpcomingHeader({ live, title }: { live: boolean; title: React.ReactNode }) {
+/** Title, subtitle and the source badge ("SMHI · uppdaterad 16:00"). */
+export function UpcomingHeader({ st, variant }: { st: UpcomingState; variant: Variant }) {
+  const badge = (
+    <span className={s.badge}>
+      <span className={s.badgeDot} style={{ background: st.live ? 'oklch(0.65 0.14 155)' : 'oklch(0.72 0.12 75)' }} />
+      <span>
+        {st.live ? '' : 'Demo · '}
+        {variant === 'desktop' ? `SMHI${st.updated ? ` · uppdaterad ${st.updated}` : ''}` : `SMHI${st.updated ? ` ${st.updated}` : ''}`}
+      </span>
+    </span>
+  );
   return (
     <div className={s.head}>
-      {title}
-      <span className={s.pill} style={live ? { background: 'oklch(0.95 0.035 155)', color: 'oklch(0.45 0.11 155)' } : { background: 'oklch(0.95 0.05 80)', color: 'oklch(0.45 0.1 70)' }}>
-        <span className={s.pillDot} />
-        {live ? 'SMHI · 48 h' : 'Demo'}
-      </span>
+      <div className={s.headTop}>
+        <h2 className={s.title}>Kommande förhållanden</h2>
+        {badge}
+      </div>
+      <div className={s.sub}>Prognos och officiella varningar · nästa 48 h</div>
     </div>
   );
 }
 
-/** Coloured dot for a row: filled for a warning, a ring for plain information. */
-function Dot({ e }: { e: Pick<UpcomingEvent, 'c' | 'hot'> }) {
-  return <span className={s.dot} style={e.hot ? { background: e.c } : { boxShadow: `inset 0 0 0 2px ${e.c}` }} />;
+export function UpcomingHeadline({ st }: { st: UpcomingState }) {
+  return (
+    <div className={s.lead}>
+      <p className={s.headline}>{st.view.headline}</p>
+      {st.view.subline && <p className={s.subline}>{st.view.subline}</p>}
+    </div>
+  );
 }
 
-/** One line of what the next 48 h hold, then the strip "Nu → +48 h" with a dot per row. */
-export function UpcomingSummary({ st }: { st: UpcomingState }) {
-  const { view } = st;
+function Legend({ st }: { st: UpcomingState }) {
+  if (!st.view.night.length) return null;
   return (
-    <div className={s.summary}>
-      <p className={s.summaryText}>{view.summary}</p>
-      {!view.empty && (
-        <div className={s.strip} role="group" aria-label="Tidslinje, kommande 48 timmar">
-          <div className={s.track}>
-            {view.midnights.map((p, i) => (
-              <span key={i} className={s.midnight} style={{ left: `${p * 100}%` }}>
-                {i === 0 && <span className={s.midnightLabel}>midnatt</span>}
-              </span>
-            ))}
-            {view.dots.map((d) => (
-              <button
-                key={d.id}
-                type="button"
-                className={`${s.stripDot} ${st.hoverId === d.id ? s.on : ''}`}
-                style={{ left: `${d.pos * 100}%`, ...(d.hot ? { background: d.c } : { background: '#fff', boxShadow: `inset 0 0 0 2px ${d.c}` }) }}
-                aria-label={d.label}
-                title={d.label}
-                onMouseEnter={() => st.setHover(d.id)}
-                onMouseLeave={() => st.setHover(null)}
-                onFocus={() => st.setHover(d.id)}
-                onBlur={() => st.setHover(null)}
-                onClick={() => st.openEvent(d.id)}
-              />
-            ))}
-          </div>
-          <div className={s.stripEnds}>
-            <span>Nu</span>
-            <span>+48 h</span>
-          </div>
-        </div>
+    <span className={s.legend}>
+      <span className={s.legendNight} />
+      Mörker
+    </span>
+  );
+}
+
+/** Kind filter: "Alla 8", "Halka 1", … – the mobile row scrolls sideways. */
+export function UpcomingChips({ st, variant }: { st: UpcomingState; variant: Variant }) {
+  const chips = (
+    <div className={variant === 'desktop' ? s.chips : s.chipsScroll} role="group" aria-label="Filtrera typ av händelse">
+      {st.view.chips.map((c) => (
+        <button key={c.k} type="button" aria-pressed={c.active} className={`${s.chip} ${c.active ? s.on : ''}`} onClick={() => st.setFilter(c.k)}>
+          {c.sw && <span className={s.swatch} style={{ background: c.sw }} />}
+          <span>{c.label}</span>
+          <span className={s.chipN}>{c.n}</span>
+        </button>
+      ))}
+    </div>
+  );
+  if (variant === 'mobile') return chips;
+  return (
+    <div className={s.chipRow}>
+      {chips}
+      <div className={s.chipMeta}>
+        <Legend st={st} />
+        <span>{st.view.countText}</span>
+      </div>
+    </div>
+  );
+}
+
+/** The 48 h track behind a bar: darkness, the midnights and the bar itself. */
+function Track({ e, st, variant }: { e: UpcomingBar; st: UpcomingState; variant: Variant }) {
+  return (
+    <span className={variant === 'desktop' ? s.track : s.trackM} aria-hidden="true">
+      {st.view.night.map((n, i) => (
+        <span key={i} className={s.night} style={{ left: pct(n.start), width: pct(n.end - n.start) }} />
+      ))}
+      {st.view.axis.midnights.map((m) => (
+        <span key={m.pos} className={s.midLine} style={{ left: pct(m.pos) }} />
+      ))}
+      <span className={s.bar} style={{ left: pct(e.left), width: pct(e.width), background: e.bar }} />
+      {e.cross && (
+        <>
+          <span className={s.cross} style={{ left: pct(e.left) }} />
+          <span className={s.cross} style={{ left: pct(e.right) }} />
+        </>
+      )}
+    </span>
+  );
+}
+
+function Details({ e, st, variant }: { e: UpcomingBar; st: UpcomingState; variant: Variant }) {
+  return (
+    <div className={variant === 'desktop' ? s.details : s.detailsM}>
+      <div className={s.note}>{e.note}</div>
+      <div className={s.facts}>
+        <div><span>Från</span><span className={s.mono}>{e.from}</span></div>
+        <div><span>Till</span><span className={s.mono}>{e.to}</span></div>
+        <div className={s.factWide}><span>Källa</span><span>{e.src}</span></div>
+      </div>
+      {e.propertyId && (
+        <button type="button" className={s.propLink} onClick={() => st.openProperty(e.propertyId!)}>
+          Öppna {e.name} →
+        </button>
       )}
     </div>
   );
 }
 
-export function UpcomingRow({ e, st }: { e: UpcomingEvent; st: UpcomingState }) {
+function Value({ e, inline }: { e: UpcomingBar; inline?: boolean }) {
   return (
-    <button
-      type="button"
-      data-testid="upcoming-row"
-      className={`${s.row} ${st.hoverId === e.id ? s.on : ''}`}
-      onClick={() => st.openEvent(e.id)}
-      onMouseEnter={() => st.setHover(e.id)}
-      onMouseLeave={() => st.setHover(null)}
-      aria-label={`${e.title}, ${e.name}, ${e.t}: ${e.value} ${e.unit}. Visa detaljer`}
-    >
-      <Dot e={e} />
-      <span className={s.rowTitle}>{e.title}</span>
-      <span className={s.rowTime}>{e.t}</span>
-      {/* One cell on a desktop grid row, one flex line under the title on a phone. */}
-      <span className={s.rowSub}>
-        <span className={s.rowName}>{e.name}</span>
-        <span className={s.rowValue} style={{ color: e.hot ? e.c : undefined }}>
-          {e.value}
-          {e.unit && <span>{e.unit}</span>}
-        </span>
-      </span>
-    </button>
+    <span className={inline ? s.valueInline : s.value}>
+      <span className={s.valueNum}>{e.value}</span>
+      {e.unit && <span className={s.valueUnit}>{e.unit}</span>}
+    </span>
   );
 }
 
-export function UpcomingDays({ st }: { st: UpcomingState }) {
+function PlaceName({ r, st }: { r: UpcomingRow; st: UpcomingState }) {
+  return r.propertyId ? (
+    <button type="button" className={s.placeName} onClick={() => st.openProperty(r.propertyId!)} title={`Öppna ${r.name}`}>
+      {r.name}
+    </button>
+  ) : (
+    <span className={s.placeName}>{r.name}</span>
+  );
+}
+
+/** Desktop: PLATS | HÄNDELSE | the 48 h axis | VÄRDE, one row per property, one line per condition. */
+export function UpcomingTimeline({ st }: { st: UpcomingState }) {
   const { view } = st;
   if (view.empty) return null;
   return (
-    <div className={s.days}>
-      {view.days.map((day) => (
-        <section key={day.key} className={s.day} aria-label={`${day.label} · ${day.date}`}>
-          <div className={s.dayHead}>
-            <span className={s.dayLabel}>{day.label}</span>
-            <span className={s.dayDate}>{day.date}</span>
-          </div>
-          <div className={s.rows}>
-            {day.items.map((e) => (
-              <UpcomingRow key={e.id} e={e} st={st} />
+    <div className={s.table}>
+      <div className={s.thead}>
+        <div className={s.th}>Plats</div>
+        <div className={s.lineGrid}>
+          <div className={s.th}>Händelse</div>
+          <div className={s.axis} aria-hidden="true">
+            {view.axis.midnights.map((m) => (
+              <span key={m.pos} className={s.axisLine} style={{ left: pct(m.pos) }} />
+            ))}
+            {view.axis.today && <span className={s.axisDay} style={{ left: 0 }}>{view.axis.today}</span>}
+            {view.axis.midnights.map((m) => (
+              <span key={`d${m.pos}`} className={`${s.axisDay} ${s.afterLine}`} style={{ left: pct(m.pos) }}>{m.day} <span>{m.date}</span></span>
+            ))}
+            <span className={`${s.axisHour} ${s.nowHour}`} style={{ left: 0 }}>{view.axis.now}</span>
+            {view.axis.midnights.map((m) => (
+              <span key={`h${m.pos}`} className={`${s.axisHour} ${s.afterLine}`} style={{ left: pct(m.pos) }}>00</span>
+            ))}
+            {view.axis.ticks.map((t) => (
+              <span key={t.pos} className={`${s.axisHour} ${s.centred}`} style={{ left: pct(t.pos) }}>{t.label}</span>
             ))}
           </div>
-        </section>
+          <div className={`${s.th} ${s.right}`}>Värde</div>
+          <div />
+        </div>
+      </div>
+      {view.rows.map((r) => (
+        <div key={r.key} className={s.place}>
+          <div className={s.placeHead}>
+            <PlaceName r={r} st={st} />
+            {r.countText && <div className={s.placeCount}>{r.countText}</div>}
+          </div>
+          <div className={s.lines}>
+            {r.events.map((e) => {
+              const open = st.openId === e.id;
+              return (
+                <div key={e.id} className={s.lineWrap}>
+                  <button type="button" data-testid="upcoming-row" className={`${s.lineGrid} ${s.line}`} aria-expanded={open} onClick={() => st.toggle(e.id)} aria-label={`${e.label}, ${e.name}, ${e.from} till ${e.to}: ${e.value} ${e.unit}`}>
+                    <span className={s.label}>
+                      <span className={s.swatch} style={{ background: e.bar }} />
+                      <span>{e.label}</span>
+                    </span>
+                    <Track e={e} st={st} variant="desktop" />
+                    <Value e={e} />
+                    <span className={`${s.chev} ${open ? s.up : ''}`} />
+                  </button>
+                  {open && <Details e={e} st={st} variant="desktop" />}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       ))}
     </div>
   );
 }
 
-/** What a row means and what is good to do. Bottom sheet on mobile, centred dialog on desktop. */
-export function UpcomingDetail({ st, variant }: { st: UpcomingState; variant: 'sheet' | 'dialog' }) {
-  const e = st.open;
-  const closeRef = useRef<HTMLButtonElement>(null);
-  const onClose = st.close;
-  useEffect(() => {
-    if (!e) return;
-    const prev = document.activeElement as HTMLElement | null;
-    closeRef.current?.focus();
-    const onKey = (ev: KeyboardEvent) => {
-      if (ev.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = overflow;
-      prev?.focus?.();
-    };
-  }, [e, onClose]);
-  if (!e || typeof document === 'undefined') return null;
-
-  return createPortal(
-    <div className={s.overlay} role="dialog" aria-modal="true" aria-labelledby="upcoming-detail-name">
-      <div className={s.backdrop} onClick={onClose} />
-      <div className={variant === 'sheet' ? s.sheet : s.dialog}>
-        {variant === 'sheet' && <div className={s.grabber} />}
-        <div className={s.dHead}>
-          <span className={s.dIcon} style={{ background: e.bg, color: e.c }}>
-            <Svg d={e.icon} size={20} />
-          </span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div className={s.eyebrow} style={{ color: e.fg }}>{e.catLabel} · {e.toneLabel}</div>
-            <div id="upcoming-detail-name" className={s.dName}>{e.title}</div>
-            <div className={s.dWhen}>{e.name} · {e.whenLong}</div>
-          </div>
-          <button ref={closeRef} type="button" className={s.close} onClick={onClose} aria-label="Stäng">
-            <Svg d="M6 6l12 12M18 6 6 18" size={16} sw={2.2} />
-          </button>
-        </div>
-        <div className={s.box} style={{ background: '#F6F7F6' }}>
-          <div className={s.boxHead}>
-            <div className={s.boxTitle}>{e.headline}</div>
-            <div className={s.boxValue} style={{ color: e.hot ? e.c : '#14171A' }}>{e.value}</div>
-          </div>
-          <div className={s.boxBody}>{e.body}</div>
-        </div>
-        <div className={s.box} style={{ background: e.bg }}>
-          <div className={s.actionHead} style={{ color: e.fg }}>Bra att göra</div>
-          <div className={s.boxBody} style={{ color: '#14171A' }}>{e.action}</div>
-        </div>
-        {e.propertyId && (
-          <button type="button" className={s.propBtn} onClick={() => st.openProperty(e.propertyId!)}>
-            Öppna {e.name}
-            <Svg d={CHEVRON} size={16} sw={2} />
-          </button>
-        )}
+/** Mobile: a compact axis, then per property its conditions – label and value, the bar under. */
+export function UpcomingListMobile({ st }: { st: UpcomingState }) {
+  const { view } = st;
+  if (view.empty) return null;
+  return (
+    <div className={s.mList}>
+      <div className={s.mAxis} aria-hidden="true">
+        {view.axis.midnights.map((m) => (
+          <span key={m.pos} className={s.mAxisLine} style={{ left: pct(m.pos) }} />
+        ))}
+        {view.axis.today && <span className={s.axisDay} style={{ left: 0 }}>{view.axis.today}</span>}
+        {view.axis.midnights.map((m) => (
+          <span key={`d${m.pos}`} className={`${s.axisDay} ${s.afterLine}`} style={{ left: pct(m.pos) }}>{m.short}</span>
+        ))}
+        <span className={`${s.mAxisHour} ${s.nowHour}`} style={{ left: 0 }}>Nu</span>
+        {view.axis.midnights.map((m) => (
+          <span key={`h${m.pos}`} className={`${s.mAxisHour} ${s.afterLine}`} style={{ left: pct(m.pos) }}>00</span>
+        ))}
+        {view.axis.ticks.filter((t) => t.label === '12').map((t) => (
+          <span key={t.pos} className={`${s.mAxisHour} ${s.centred}`} style={{ left: pct(t.pos) }}>{t.label}</span>
+        ))}
       </div>
-    </div>,
-    document.body,
+      {view.rows.map((r) => (
+        <div key={r.key} className={s.mPlace}>
+          <div className={s.mPlaceHead}>
+            <PlaceName r={r} st={st} />
+            {r.countText && <div className={s.placeCount}>{r.countText}</div>}
+          </div>
+          {r.events.map((e) => {
+            const open = st.openId === e.id;
+            return (
+              <div key={e.id} className={s.lineWrap}>
+                <button type="button" data-testid="upcoming-row" className={s.mLine} aria-expanded={open} onClick={() => st.toggle(e.id)} aria-label={`${e.label}, ${e.name}, ${e.from} till ${e.to}: ${e.value} ${e.unit}`}>
+                  <span className={s.mLineTop}>
+                    <span className={s.swatch} style={{ background: e.bar }} />
+                    <span className={s.mLabel}>{e.label}</span>
+                    <Value e={e} inline />
+                  </span>
+                  <Track e={e} st={st} variant="mobile" />
+                </button>
+                {open && <Details e={e} st={st} variant="mobile" />}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+      <div className={s.mFoot}>
+        <span>{view.countText}</span>
+        <Legend st={st} />
+      </div>
+    </div>
   );
 }

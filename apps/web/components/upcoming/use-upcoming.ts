@@ -3,31 +3,26 @@
 import { useMemo, useState } from 'react';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import type { OverviewVM } from '@/lib/view-models/overview';
-import { upcomingView } from '@/lib/view-models/upcoming';
+import { upcomingView, type UpcomingFilter } from '@/lib/view-models/upcoming';
 
 /**
- * State behind "Kommande förhållanden": the open row and the row highlighted together with its
- * dot on the 48 h strip. Plain information – nothing here is acknowledged.
+ * State behind "Kommande förhållanden": the kind filter and the expanded row. Plain information –
+ * nothing here is acknowledged.
  */
 export function useUpcoming(vm: OverviewVM) {
   const ds = useDashboard();
+  const [filter, setFilter] = useState<UpcomingFilter>('all');
   const [openId, setOpenId] = useState<string | null>(null);
-  const [hoverId, setHoverId] = useState<string | null>(null);
-  const view = useMemo(() => upcomingView(vm.upcoming, vm.referenceAt), [vm.upcoming, vm.referenceAt]);
-  const open = vm.upcoming.find((e) => e.id === openId) ?? null;
+  const view = useMemo(() => upcomingView(vm.upcoming, vm.referenceAt, { filter, center: vm.upcomingCenter }), [vm.upcoming, vm.referenceAt, vm.upcomingCenter, filter]);
 
   return {
     view,
     live: ds.mode === 'live',
-    open,
-    openEvent: setOpenId,
-    close: () => setOpenId(null),
-    hoverId,
-    setHover: setHoverId,
-    openProperty: (id: string) => {
-      setOpenId(null);
-      ds.openProperty(id);
-    },
+    updated: vm.upcomingUpdated,
+    setFilter,
+    openId,
+    toggle: (id: string) => setOpenId((o) => (o === id ? null : id)),
+    openProperty: (id: string) => ds.openProperty(id),
   };
 }
 export type UpcomingState = ReturnType<typeof useUpcoming>;

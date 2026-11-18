@@ -67,24 +67,38 @@ describe('kvittering i händelseflödet', () => {
   });
 });
 
-describe('kommande förhållanden – plain information', () => {
-  it('shows a summary, the 48 h strip and rows, with nothing to acknowledge', () => {
+describe('kommande förhållanden – timeline per property (designer’s layout)', () => {
+  it('leads with a sentence, filters by kind and lists a bar per condition – nothing to acknowledge', () => {
     render(<UpcomingPanel vm={vm} />);
     const panel = screen.getByTestId('upcoming-panel');
-    expect(panel.textContent).toMatch(/de kommande 48 h/);
-    expect(within(panel).getByRole('group', { name: 'Tidslinje, kommande 48 timmar' })).toBeTruthy();
+    expect(panel.textContent).toContain('Orange varning för kraftig vind i Augustendal Brygga');
+    expect(panel.textContent).toContain('SMHI · uppdaterad');
+    expect(panel.textContent).toMatch(/\d+ händelser · \d+ platser/);
+    expect(panel.textContent).toContain('Mörker');
     expect(within(panel).getAllByTestId('upcoming-row')).toHaveLength(vm.upcoming.length);
     expect(panel.textContent).not.toMatch(/Kvitter/);
+
+    const chips = within(panel).getByRole('group', { name: 'Filtrera typ av händelse' });
+    fireEvent.click(within(chips).getByRole('button', { name: /^Halka/ }));
+    expect(within(panel).getAllByTestId('upcoming-row')).toHaveLength(1);
+    expect(within(chips).getByRole('button', { name: /^Halka/ }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(within(chips).getByRole('button', { name: /^Alla/ }));
+    expect(within(panel).getAllByTestId('upcoming-row')).toHaveLength(vm.upcoming.length);
   });
 
-  it('opens what it means and what is good to do, with a way to the property', () => {
+  it('expands a row inline: what it means, from, to, source – and a way to the property', () => {
     render(<UpcomingPanel vm={vm} />);
-    fireEvent.click(screen.getAllByTestId('upcoming-row')[0]!);
-    const dialog = screen.getByRole('dialog');
-    expect(dialog.textContent).toContain('Bra att göra');
-    expect(dialog.textContent).not.toMatch(/Kvitter/);
-    const open = within(dialog).getByRole('button', { name: /^Öppna / });
-    fireEvent.click(open);
+    const row = screen.getAllByTestId('upcoming-row')[0]!;
+    expect(row.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(row);
+    expect(row.getAttribute('aria-expanded')).toBe('true');
+    const details = row.parentElement!;
+    expect(details.textContent).toContain('Från');
+    expect(details.textContent).toContain('Till');
+    expect(details.textContent).toContain('SMHI · varning');
+    fireEvent.click(within(details).getByRole('button', { name: /^Öppna / }));
     expect(mocks.openProperty).toHaveBeenCalled();
+    fireEvent.click(row);
+    expect(row.getAttribute('aria-expanded')).toBe('false');
   });
 });

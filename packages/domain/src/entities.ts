@@ -381,6 +381,8 @@ export const UpcomingConditionSchema = z.object({
   explanation: z.string().optional(),
   sourceId: SourceIdSchema.optional(),
   validAt: IsoDateTimeSchema.optional(),
+  /** End of the condition, when known (drawn as a bar from validAt to validTo on the 48 h timeline). */
+  validTo: IsoDateTimeSchema.optional(),
   sourceUpdatedAt: IsoDateTimeSchema.nullable().optional(),
   official: z.boolean().optional(),
   origin: DataOriginSchema,

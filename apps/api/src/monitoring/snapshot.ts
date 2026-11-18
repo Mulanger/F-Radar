@@ -498,23 +498,35 @@ export function buildFeed(changes: Array<{ id: string; property_id: string; even
 export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForecastRow[], now: Date): UpcomingCondition[] {
   const out: UpcomingCondition[] = [];
   for (const s of snapshots) {
-    for (const w of s.warnings) if(w.validFrom && Date.parse(w.validFrom)>now.getTime() && Date.parse(w.validFrom)<=now.getTime()+48*3600000) out.push({id:'official-'+s.property.id+'-'+w.id,label:w.type,where:s.property.name,propertyId:s.property.id,when:formatWeekdayClock(w.validFrom),validAt:w.validFrom,sourceId:w.sourceId,sourceUpdatedAt:w.issuedAt,official:true,value:LEVEL_SV[w.level],tone:w.level==='Red'||w.level==='VMA'?'critical':w.level==='Orange'?'warning':'monitor',origin:w.origin});
+    for (const w of s.warnings) if(w.validFrom && Date.parse(w.validFrom)>now.getTime() && Date.parse(w.validFrom)<=now.getTime()+48*3600000) out.push({id:'official-'+s.property.id+'-'+w.id,label:w.type,where:s.property.name,propertyId:s.property.id,when:formatWeekdayClock(w.validFrom),validAt:w.validFrom,...(w.validTo?{validTo:w.validTo}:{}),sourceId:w.sourceId,sourceUpdatedAt:w.issuedAt,official:true,value:LEVEL_SV[w.level],tone:w.level==='Red'||w.level==='VMA'?'critical':w.level==='Orange'?'warning':'monitor',origin:w.origin});
     const row = forecasts.find(f => f.property_id === s.property.id);
     if (!row || now.getTime() - row.fetched_at.getTime() > WEATHER_WATER.forecastUsableHours * 3_600_000) continue;
-    for (const info of forecastInformation(forecastSteps(row), now)) out.push({ id: info.key + '-' + s.property.id, label: info.label, where: s.property.name, propertyId: s.property.id, when: formatWeekdayClock(info.at), validAt: info.at, sourceId: 'smhi_forecast', sourceUpdatedAt:iso(row.reference_time), value: info.value, explanation: info.explanation, tone: info.tone, origin: 'live' });
+    for (const info of forecastInformation(forecastSteps(row), now)) out.push({ id: info.key + '-' + s.property.id, label: info.label, where: s.property.name, propertyId: s.property.id, when: formatWeekdayClock(info.at), validAt: info.at, validTo: info.until, sourceId: 'smhi_forecast', sourceUpdatedAt:iso(row.reference_time), value: info.value, explanation: info.explanation, tone: info.tone, origin: 'live' });
     const steps = forecastSteps(forecasts.find((f) => f.property_id === s.property.id)).filter((x) => Date.parse(x.time) > now.getTime() && Date.parse(x.time) <= now.getTime() + 24 * 3_600_000);
     if (!steps.length) continue;
     const gust = steps.reduce<ForecastStep | null>((a, b) => ((b.windGust ?? -1) > (a?.windGust ?? -1) ? b : a), null);
     if (gust?.windGust !== null && gust && gust.windGust >= 15) {
-      out.push({ id: `gust-${s.property.id}`, label: 'Hårda vindbyar (prognos)', where: s.property.name, propertyId: s.property.id, when: formatWeekdayClock(gust.time), validAt:gust.time,sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${gust.windGust.toFixed(0)} m/s`, tone: gust.windGust >= 21 ? 'warning' : 'monitor', origin: 'live' });
+      // The bar: from the first to the last hour with gusts of 15 m/s or more.
+      const hard = steps.filter((x) => (x.windGust ?? -1) >= 15);
+      const from = hard[0]!.intervalStart ?? hard[0]!.time;
+      out.push({ id: `gust-${s.property.id}`, label: 'Hårda vindbyar (prognos)', where: s.property.name, propertyId: s.property.id, when: formatWeekdayClock(from), validAt: from, validTo: hard.at(-1)!.time, sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${gust.windGust.toFixed(0)} m/s`, tone: gust.windGust >= 21 ? 'warning' : 'monitor', origin: 'live' });
     }
     const rain = precipitationTotal(forecastSteps(forecasts.find((f) => f.property_id === s.property.id)), now, 24);
     if (rain !== null && rain >= 15) {
-      out.push({ id: `rain-${s.property.id}`, label: 'Kraftig nederbörd (prognos, 24 h)', where: s.property.name, propertyId: s.property.id, when: 'Närmaste 24 h', validAt:now.toISOString(),sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${rain.toFixed(0)} mm`, tone: rain >= 30 ? 'warning' : 'monitor', origin: 'live' });
+      out.push({ id: `rain-${s.property.id}`, label: 'Kraftig nederbörd (prognos, 24 h)', where: s.property.name, propertyId: s.property.id, when: 'Närmaste 24 h', validAt:now.toISOString(), validTo: new Date(now.getTime() + 24 * 3_600_000).toISOString(),sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${rain.toFixed(0)} mm`, tone: rain >= 30 ? 'warning' : 'monitor', origin: 'live' });
     }
     const cold = steps.find((x) => x.airTemperature !== null && x.airTemperature < 0);
     if (cold && cold.airTemperature !== null) {
-      out.push({ id: `frost-${s.property.id}`, label: 'Minusgrader (prognos)', where: s.property.name, propertyId: s.property.id, when: formatWeekdayClock(cold.time), validAt:cold.time,sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${cold.airTemperature.toFixed(0)}°`, tone: 'cold', origin: 'live' });
+      // The cold spell: consecutive hours below 0° from the first one (up to 48 h ahead); the value is its lowest temperature.
+      const all48 = forecastSteps(row).filter((x) => Date.parse(x.time) > now.getTime() && Date.parse(x.time) <= now.getTime() + 48 * 3_600_000).sort((x, y) => x.time.localeCompare(y.time));
+      const spell: ForecastStep[] = [];
+      for (const x of all48.slice(all48.indexOf(cold))) {
+        if (x.airTemperature === null || x.airTemperature >= 0 || (spell.length && x.intervalStart !== spell.at(-1)!.time)) break;
+        spell.push(x);
+      }
+      const lowest = Math.min(...spell.map((x) => x.airTemperature!));
+      const from = cold.intervalStart ?? cold.time;
+      out.push({ id: `frost-${s.property.id}`, label: 'Minusgrader (prognos)', where: s.property.name, propertyId: s.property.id, when: formatWeekdayClock(from), validAt: from, validTo: spell.at(-1)!.time, sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${lowest.toFixed(0)}°`, tone: 'cold', origin: 'live' });
     }
   }
   const rank = { critical: 0, warning: 1, monitor: 2, cold: 3 };
