@@ -27,19 +27,19 @@ export function MobileWeatherCard({ icon, label, value, sub }: { icon: React.Rea
 
 /**
  * Feed rows link to the property. With `onMap`, a row whose event has a position also gets a map
- * button; with `acks`, a row that must be acknowledged gets "Kvittera". Both sit under the link.
+ * button; with `acks`, a row that must be acknowledged gets "Kvittera" beside it, in the lower right corner.
  */
 export function MobileFeedRows({ feed, basePath, onMap, acks }: { feed: OverviewVM['feed']; basePath: string; onMap?: (row: FeedMapTarget) => void; acks?: FeedAcks }) {
   return feed.map((f) => {
     const map = onMap && f.mapEventId;
     const ack = acks && f.ackRequired;
-    return <div key={f.id} className={styles.feedItem} data-ack={ack && !acks.ackedAt(f) ? 'waiting' : undefined}>
+    return <div key={f.id} className={styles.feedItem} data-acks={ack ? '' : undefined} data-ack={ack && !acks.ackedAt(f) ? 'waiting' : undefined}>
     <Link href={`${basePath}/properties/${encodeURIComponent(f.propertyId)}`} className={styles.feedRow}>
       <span className={styles.feedIcon} style={{ background: f.bg }}><span className={styles.dot} style={{ background: f.c, width: 8, height: 8 }} /></span>
       <div className={styles.feedMain}><div className={styles.feedTitle}>{f.title}</div><div className={styles.feedMeta}><span className={styles.source}>{f.src}</span><span>{f.prop}</span></div></div>
       <time className={styles.time}>{f.t}</time>
     </Link>
-    {(map || ack) && <div className={styles.feedActions}>
+    {(map || ack) && <div className={styles.feedMap}>
       {ack && <FeedAckButton f={f} acks={acks} />}
       {map && <FeedMapButton title={f.title} ended={f.mapEnded} onClick={() => onMap(f)} />}
     </div>}

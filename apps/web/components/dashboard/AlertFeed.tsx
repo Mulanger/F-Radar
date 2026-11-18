@@ -47,9 +47,8 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
             data-ack={waiting ? 'waiting' : undefined}
             onClick={() => onOpen(f.propertyId)}
             onKeyDown={(e) => e.key === 'Enter' && onOpen(f.propertyId)}
-            style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 10px', margin: '0 -10px', borderRadius: 14, cursor: 'pointer', transition: 'background .2s', background: waiting ? `color-mix(in oklch, ${f.bg} 70%, transparent)` : undefined }}
+            style={{ display: 'flex', gap: 12, padding: '12px 10px', margin: '0 -10px', borderRadius: 14, cursor: 'pointer', transition: 'background .2s', background: waiting ? `color-mix(in oklch, ${f.bg} 70%, transparent)` : undefined }}
           >
-            <div style={{ display: 'flex', gap: 12 }}>
             <div style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 11, background: f.bg, display: 'grid', placeItems: 'center', position: 'relative' }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: f.c }} />
             </div>
@@ -60,14 +59,16 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
                 {f.prop}
               </div>
             </div>
-            <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: C.text4, whiteSpace: 'nowrap' }}>{f.t}</div>
+            {/* Time on top; the card's buttons in its lower right corner (Kvittera beside the map). */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: C.text4, whiteSpace: 'nowrap' }}>{f.t}</div>
+              {(f.ackRequired || f.mapEventId) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <FeedAckButton f={f} acks={acks} />
+                  {f.mapEventId && <FeedMapButton title={f.title} ended={f.mapEnded} onClick={() => map.open(f)} />}
+                </div>
+              )}
             </div>
-            {(f.ackRequired || f.mapEventId) && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6 }}>
-                <FeedAckButton f={f} acks={acks} />
-                {f.mapEventId && <FeedMapButton title={f.title} ended={f.mapEnded} onClick={() => map.open(f)} />}
-              </div>
-            )}
           </div>
           );
         })}
