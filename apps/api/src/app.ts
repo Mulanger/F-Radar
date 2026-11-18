@@ -13,7 +13,7 @@ import { createClerkVerifier, registerAuth, type AuthVerifier } from './auth';
 import { loggerOptions } from './logger';
 import { registerNotificationRoutes } from './routes/notifications';
 import { registerSettingsRoutes } from './routes/settings';
-import { registerUpcomingRoutes } from './routes/upcoming';
+import { registerFeedAcknowledgementRoutes } from './routes/feed-acknowledgements';
 import type { PhoneVerificationProvider } from './notifications/verification';
 
 export interface AppDeps {
@@ -70,7 +70,7 @@ export async function buildApp(env: ServerEnv, deps: AppDeps = {}): Promise<Fast
   });
   registerMonitoringRoutes(app, { env, service: monitoring, requireUser, requireOrg });
   registerNotificationRoutes(app, { env, db: deps.db ?? null, requireOrg, verification: deps.verification });
-  registerUpcomingRoutes(app, { db: deps.db ?? null, requireOrg });
+  registerFeedAcknowledgementRoutes(app, { db: deps.db ?? null, requireOrg });
   registerSettingsRoutes(app, { db: deps.db ?? null, requireOrg });
 
   return app;

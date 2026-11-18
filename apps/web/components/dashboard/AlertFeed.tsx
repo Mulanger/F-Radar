@@ -4,9 +4,11 @@ import styles from './PortfolioOverview.module.css';
 import type { OverviewVM } from '@/lib/view-models/overview';
 import { C, FONT_MONO, card, cardSub, cardTitle } from '@/lib/design/tokens';
 import { FeedMapButton, useFeedEventMap } from './FeedEventMap';
+import { FeedAckButton, FeedAckCount, useFeedAcks } from './FeedAck';
 
 export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: boolean; onOpen: (id: string) => void }) {
   const map = useFeedEventMap();
+  const acks = useFeedAcks();
   return (
     <div className={styles.feed} style={{ ...card, boxSizing: 'border-box', padding: '20px 8px 8px 20px', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 12, marginBottom: 12 }}>
@@ -14,6 +16,8 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
           <div style={cardTitle}>Händelseflöde</div>
           <div style={cardSub}>Händelser från offentliga källor i portföljen</div>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <FeedAckCount n={acks.pending(vm.feed)} />
         <span
           style={{
             display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '5px 10px', borderRadius: 12,
@@ -24,6 +28,7 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', animation: 'frBreath 2s infinite' }} />
           {isDemo ? 'Demo' : vm.avail.warnings || vm.avail.events ? 'Live' : 'Ej ansluten'}
         </span>
+        </div>
       </div>
       <div style={{ overflowY: 'auto', overflowX: 'hidden', flex: 1, paddingRight: 12, paddingLeft: 10, marginLeft: -10, display: 'flex', flexDirection: 'column' }}>
         {vm.feed.length === 0 && (
@@ -31,16 +36,20 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
             {vm.avail.warnings || vm.avail.events ? 'Inga händelser för valda fastigheter' : 'Händelsekällorna är inte anslutna. Händelser visas här när SMHI, Krisinformation och Trafikverket levererar data.'}
           </div>
         )}
-        {vm.feed.map((f) => (
+        {vm.feed.map((f) => {
+          const waiting = f.ackRequired && !acks.ackedAt(f);
+          return (
           <div
             key={f.id}
             role="button"
             tabIndex={0}
             className="fr-hover-row"
+            data-ack={waiting ? 'waiting' : undefined}
             onClick={() => onOpen(f.propertyId)}
             onKeyDown={(e) => e.key === 'Enter' && onOpen(f.propertyId)}
-            style={{ display: 'flex', gap: 12, padding: '12px 10px', margin: '0 -10px', borderRadius: 14, cursor: 'pointer', transition: 'background .2s' }}
+            style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 10px', margin: '0 -10px', borderRadius: 14, cursor: 'pointer', transition: 'background .2s', background: waiting ? `color-mix(in oklch, ${f.bg} 70%, transparent)` : undefined }}
           >
+            <div style={{ display: 'flex', gap: 12 }}>
             <div style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 11, background: f.bg, display: 'grid', placeItems: 'center', position: 'relative' }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: f.c }} />
             </div>
@@ -51,12 +60,17 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
                 {f.prop}
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
-              <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: C.text4, whiteSpace: 'nowrap' }}>{f.t}</div>
-              {f.mapEventId && <FeedMapButton title={f.title} ended={f.mapEnded} onClick={() => map.open(f)} />}
+            <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: C.text4, whiteSpace: 'nowrap' }}>{f.t}</div>
             </div>
+            {(f.ackRequired || f.mapEventId) && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6 }}>
+                <FeedAckButton f={f} acks={acks} />
+                {f.mapEventId && <FeedMapButton title={f.title} ended={f.mapEnded} onClick={() => map.open(f)} />}
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
       {map.view}
     </div>

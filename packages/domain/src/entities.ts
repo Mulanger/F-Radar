@@ -361,6 +361,10 @@ export const FeedItemSchema = z.object({
   eventId: z.string().optional(),
   /** The event has ended but its stretch is still stored: it can be shown on the map, greyed out. */
   eventEndedOnMap: z.boolean().optional(),
+  /** Someone in the organization must acknowledge this row (warnings, VMA, critical, outages). */
+  ackRequired: z.boolean().optional(),
+  /** When it was acknowledged (this row, or an earlier row of the same event at the same or a higher level). */
+  acknowledgedAt: IsoDateTimeSchema.nullable().optional(),
   origin: DataOriginSchema,
 });
 export type FeedItem = z.infer<typeof FeedItemSchema>;

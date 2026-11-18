@@ -3,6 +3,7 @@ import { C } from '@/lib/design/tokens';
 import { IconChevronRight } from '../ui/icons';
 import type { OverviewVM } from '@/lib/view-models/overview';
 import { FeedMapButton, type FeedMapTarget } from '../dashboard/FeedEventMap';
+import { FeedAckButton, type FeedAcks } from '../dashboard/FeedAck';
 import styles from './mobile.module.css';
 
 export const shortStatus = (label: string) => label === 'Ingen aktiv varning' ? 'Utan varning' : label;
@@ -24,16 +25,26 @@ export function MobileWeatherCard({ icon, label, value, sub }: { icon: React.Rea
   return <div className={styles.weatherCard}><span className={styles.weatherIcon}>{icon}</span><div><div className={styles.weatherLabel}>{label}</div><div className={styles.weatherValue}>{value}</div>{sub && <div className={styles.weatherSub} title={sub}>{sub}</div>}</div></div>;
 }
 
-/** Feed rows link to the property; with `onMap`, a row whose event has a position also gets a map button. */
-export function MobileFeedRows({ feed, basePath, onMap }: { feed: OverviewVM['feed']; basePath: string; onMap?: (row: FeedMapTarget) => void }) {
-  return feed.map((f) => <div key={f.id} className={styles.feedItem}>
+/**
+ * Feed rows link to the property. With `onMap`, a row whose event has a position also gets a map
+ * button; with `acks`, a row that must be acknowledged gets "Kvittera". Both sit under the link.
+ */
+export function MobileFeedRows({ feed, basePath, onMap, acks }: { feed: OverviewVM['feed']; basePath: string; onMap?: (row: FeedMapTarget) => void; acks?: FeedAcks }) {
+  return feed.map((f) => {
+    const map = onMap && f.mapEventId;
+    const ack = acks && f.ackRequired;
+    return <div key={f.id} className={styles.feedItem} data-ack={ack && !acks.ackedAt(f) ? 'waiting' : undefined}>
     <Link href={`${basePath}/properties/${encodeURIComponent(f.propertyId)}`} className={styles.feedRow}>
       <span className={styles.feedIcon} style={{ background: f.bg }}><span className={styles.dot} style={{ background: f.c, width: 8, height: 8 }} /></span>
       <div className={styles.feedMain}><div className={styles.feedTitle}>{f.title}</div><div className={styles.feedMeta}><span className={styles.source}>{f.src}</span><span>{f.prop}</span></div></div>
       <time className={styles.time}>{f.t}</time>
     </Link>
-    {onMap && f.mapEventId && <span className={styles.feedMap}><FeedMapButton title={f.title} ended={f.mapEnded} onClick={() => onMap(f)} /></span>}
-  </div>);
+    {(map || ack) && <div className={styles.feedActions}>
+      {ack && <FeedAckButton f={f} acks={acks} />}
+      {map && <FeedMapButton title={f.title} ended={f.mapEnded} onClick={() => onMap(f)} />}
+    </div>}
+  </div>;
+  });
 }
 
 export function MobileStatusRows({ rows, basePath }: { rows: OverviewVM['rows']; basePath: string }) {

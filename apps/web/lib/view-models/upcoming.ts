@@ -3,8 +3,9 @@ import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE, formatClock } from '@fastighetsradar
 import { SEV } from '../design/tokens';
 
 /**
- * "Kommande förhållanden" (next 48 h) as event cards: grouped per day, filterable per category,
- * each with a recommended action and an acknowledgement ("kvittering") shared by the organization.
+ * "Kommande förhållanden" (next 48 h): plain information – a one-line summary, a 48 h strip and
+ * simple rows grouped per day, each with what it means and what is good to do. Nothing here is
+ * acknowledged; acknowledgement belongs to serious events in the feed (Händelseflöde).
  *
  * The rows themselves come from the API (forecast thresholds + official warnings that start later);
  * this module only derives presentation: category, icon, short value + unit, guidance texts.
@@ -12,7 +13,6 @@ import { SEV } from '../design/tokens';
 
 export type UpcomingCat = 'wind' | 'rain' | 'temp' | 'water' | 'other';
 export const UPCOMING_CAT_LABEL: Record<UpcomingCat, string> = { wind: 'Vind', rain: 'Nederbörd', temp: 'Temperatur', water: 'Vatten', other: 'Övrigt' };
-const CAT_ORDER: UpcomingCat[] = ['wind', 'rain', 'temp', 'water', 'other'];
 
 export const UPCOMING_ICON = {
   wind: 'M17.7 7.7A2.5 2.5 0 1 1 19.5 12H2M9.6 4.6A2 2 0 1 1 11 8H2M12.6 19.4A2 2 0 1 0 14 16H2',
@@ -35,7 +35,6 @@ const TONE: Record<Tone, { c: string; bg: string; fg: string; label: string }> =
   monitor: { c: SEV.monitor.c, bg: SEV.monitor.bg, fg: 'oklch(0.45 0.11 245)', label: 'Info' },
   cold: { c: SEV.monitor.c, bg: SEV.monitor.bg, fg: 'oklch(0.45 0.11 245)', label: 'Info' },
 };
-export const UPCOMING_ACK_STYLE = { c: SEV.normal.c, bg: SEV.normal.bg, fg: 'oklch(0.43 0.1 155)' };
 
 interface Kind {
   cat: UpcomingCat;
@@ -123,8 +122,6 @@ const dayKey = (iso: string) => dayFmt.format(new Date(iso));
 
 export interface UpcomingEvent {
   id: string;
-  /** Acknowledgement key: the row id plus its day, so tomorrow's repeat of the same kind needs a fresh look. */
-  ackKey: string;
   cat: UpcomingCat;
   catLabel: string;
   icon: string;
@@ -139,6 +136,8 @@ export interface UpcomingEvent {
   name: string;
   propertyId: string | null;
   day: string | null;
+  /** Start time (ms) when known; null for whole-period rows ("Närmaste 24 h"). */
+  at: number | null;
   t: string;
   title: string;
   /** Small muted tag after the title: "prognos" or "officiell varning". */
@@ -169,7 +168,6 @@ export function buildUpcomingEvents(portfolio: Portfolio, propertyIds: Set<strin
       const day = u.validAt ? dayKey(u.validAt) : null;
       return {
         id: u.id,
-        ackKey: `${u.id}@${day ?? 'undated'}`,
         cat,
         catLabel: UPCOMING_CAT_LABEL[cat],
         icon: UPCOMING_ICON[kind?.icon ?? OFFICIAL_ICON[cat]],
@@ -183,6 +181,7 @@ export function buildUpcomingEvents(portfolio: Portfolio, propertyIds: Set<strin
         name: u.where,
         propertyId: u.propertyId ?? null,
         day,
+        at: u.validAt ? Date.parse(u.validAt) : null,
         t: u.when === 'Närmaste 24 h' ? '24 h' : u.validAt ? formatClock(u.validAt) : u.when,
         title: stripTag(u.label),
         tag: u.official ? 'officiell varning' : 'prognos',
@@ -199,18 +198,30 @@ export function buildUpcomingEvents(portfolio: Portfolio, propertyIds: Set<strin
     });
 }
 
-/** Acknowledged keys → local "HH:MM" (or ISO time) of when they were acknowledged. */
-export type UpcomingAcks = Record<string, string>;
+const HOURS_48 = 48 * 3_600_000;
 
-export function upcomingView(events: UpcomingEvent[], acks: UpcomingAcks, filter: UpcomingCat | 'all', referenceIso: string) {
+/** "2 riskvarningar, frost ner till −3° och 1 annan händelse de kommande 48 h". */
+function summaryOf(events: UpcomingEvent[]): string {
+  if (!events.length) return 'Inget över tröskelvärdena de kommande 48 h.';
+  const hot = events.filter((e) => e.hot).length;
+  const cold = events.filter((e) => e.tmin !== null).sort((a, b) => a.tmin! - b.tmin!)[0];
+  const rest = events.length - hot - (cold && !cold.hot ? 1 : 0);
+  const parts: string[] = [];
+  if (hot) parts.push(`${hot} ${hot === 1 ? 'riskvarning' : 'riskvarningar'}`);
+  if (cold) parts.push(`frost ner till ${cold.tmin! < 0 ? '−' : ''}${Math.abs(cold.tmin!)}°`);
+  if (rest > 0) parts.push(`${rest} ${parts.length ? (rest === 1 ? 'annan händelse' : 'andra händelser') : rest === 1 ? 'händelse' : 'händelser'}`);
+  const text = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} och ${parts.at(-1)}` : parts[0]!;
+  return `${text.replace(/^./, (c) => c.toUpperCase())} de kommande 48 h`;
+}
+
+export function upcomingView(events: UpcomingEvent[], referenceIso: string) {
+  const ref = Date.parse(referenceIso);
   const today = dayKey(referenceIso);
-  const tomorrow = dayKey(new Date(Date.parse(referenceIso) + 24 * 3_600_000).toISOString());
-  const visible = events.filter((e) => filter === 'all' || e.cat === filter);
-  const acked = (e: UpcomingEvent) => !!acks[e.ackKey];
+  const tomorrow = dayKey(new Date(ref + 24 * 3_600_000).toISOString());
 
   const dayLabel = (d: string | null) => (d === null || d <= today ? 'Idag' : d === tomorrow ? 'Imorgon' : null);
   const days: Array<{ key: string; label: string; date: string; count: string; items: UpcomingEvent[] }> = [];
-  for (const e of visible) {
+  for (const e of events) {
     const key = e.day === null || e.day < today ? today : e.day;
     let g = days.find((x) => x.key === key);
     if (!g) {
@@ -223,27 +234,25 @@ export function upcomingView(events: UpcomingEvent[], acks: UpcomingAcks, filter
   }
   days.sort((a, b) => a.key.localeCompare(b.key));
   for (const g of days) {
-    // Within a day: unacknowledged first, then by time.
-    g.items.sort((a, b) => Number(acked(a)) - Number(acked(b)) || a.t.localeCompare(b.t));
+    // Within a day: whole-period rows first, then by start time; warnings before info at the same time.
+    g.items.sort((a, b) => (a.at ?? 0) - (b.at ?? 0) || Number(b.hot) - Number(a.hot));
     g.count = `${g.items.length} ${g.items.length === 1 ? 'händelse' : 'händelser'}`;
   }
 
-  const hot = events.filter((e) => e.hot);
-  const hotCats = [...new Set(hot.map((e) => e.catLabel.toLowerCase()))];
-  const cold = events.filter((e) => e.tmin !== null).sort((a, b) => a.tmin! - b.tmin!)[0];
-  const ackN = events.filter(acked).length;
-  const sum = {
-    risk: hot.length,
-    riskSub: hotCats.length ? hotCats.join(', ').replace(/^./, (c) => c.toUpperCase()) : 'Inga varningar',
-    tmin: cold ? `${cold.tmin! < 0 ? '−' : ''}${Math.abs(cold.tmin!)}°` : '—',
-    tminSub: cold ? `${cold.name} · ${dayLabel(cold.day)?.toLowerCase() ?? cold.day} ${cold.t}` : 'Ingen frostrisk',
-    ack: ackN,
-    total: events.length,
-    ackW: events.length ? `${(ackN / events.length) * 100}%` : '0%',
-  };
-  const chips = (['all', ...CAT_ORDER] as const)
-    .map((k) => ({ k, label: k === 'all' ? 'Alla' : UPCOMING_CAT_LABEL[k], count: k === 'all' ? events.length : events.filter((e) => e.cat === k).length, active: filter === k }))
-    .filter((c) => c.k === 'all' || c.count > 0);
-  return { sum, chips, days, empty: visible.length === 0 };
+  // 48 h strip: one dot per row at its start (whole-period rows sit at "Nu"), ticks at midnight.
+  const pos = (ms: number) => Math.min(1, Math.max(0, (ms - ref) / HOURS_48));
+  const dots = days.flatMap((g) => g.items).map((e) => ({ id: e.id, pos: e.at === null ? 0 : pos(e.at), c: e.c, hot: e.hot, label: `${e.title}, ${e.name}, ${e.t}` }));
+  // Midnight in Stockholm: where the local day changes (found in 15-minute steps).
+  const midnights: number[] = [];
+  let current = today;
+  for (let t = ref + 15 * 60_000; t < ref + HOURS_48; t += 15 * 60_000) {
+    const k = dayKey(new Date(t).toISOString());
+    if (k !== current) {
+      midnights.push(pos(t));
+      current = k;
+    }
+  }
+
+  return { summary: summaryOf(events), days, dots, midnights, empty: events.length === 0 };
 }
 export type UpcomingView = ReturnType<typeof upcomingView>;

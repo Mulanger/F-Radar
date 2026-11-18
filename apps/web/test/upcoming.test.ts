@@ -15,7 +15,9 @@ describe('upcoming conditions view model', () => {
     expect(byId('freeze-thaw-')).toMatchObject({ title: 'Växlande plus- och minusgrader', hint: 'Kan ge is och istappar på tak' });
     const wind = events.find((e) => e.official && e.cat === 'wind')!;
     expect(wind).toMatchObject({ value: 'Orange', unit: 'varning', tag: 'officiell varning', hint: null });
-    expect(events.every((e) => e.action.length > 0 && e.ackKey.includes('@'))).toBe(true);
+    expect(events.every((e) => e.action.length > 0)).toBe(true);
+    // Plain information: nothing to acknowledge any more.
+    expect(events.some((e) => 'ackKey' in e)).toBe(false);
   });
 
   it('only keeps rows for the properties in view (property group filter)', () => {
@@ -23,20 +25,27 @@ describe('upcoming conditions view model', () => {
     expect(buildUpcomingEvents(demoPortfolio, new Set([one])).map((e) => e.name)).toEqual(['Ulvsunda Lager', 'Ulvsunda Lager']);
   });
 
-  it('groups per day, summarises and counts acknowledgements', () => {
-    const v = upcomingView(events, {}, 'all', demoPortfolio.generatedAt);
+  it('groups per day, sums up in one sentence and places each row on the 48 h strip', () => {
+    const v = upcomingView(events, demoPortfolio.generatedAt);
     expect(v.days.map((d) => d.label)).toEqual(['Idag', 'Imorgon']);
-    expect(v.sum).toMatchObject({ risk: 2, tmin: '−3°', ack: 0, total: events.length });
-    expect(v.chips[0]).toMatchObject({ k: 'all', active: true, count: events.length });
+    expect(v.summary).toMatch(/^\d+ riskvarning(ar)?, frost ner till −3° och \d+ andra? händelser? de kommande 48 h$/);
+    expect(v.dots).toHaveLength(events.length);
+    expect(v.dots.every((d) => d.pos >= 0 && d.pos <= 1)).toBe(true);
+    // Rows within a day by start time.
+    for (const d of v.days) {
+      const at = d.items.map((e) => e.at ?? 0);
+      expect([...at].sort((a, b) => a - b)).toEqual(at);
+    }
+    // 14:32 reference: midnight in Stockholm is 9 h 28 min in, the next one 24 h later.
+    expect(v.midnights).toHaveLength(2);
+    expect(v.midnights[0]!).toBeCloseTo(9.5 / 48, 2);
+    expect(upcomingView([], demoPortfolio.generatedAt)).toMatchObject({ empty: true, summary: 'Inget över tröskelvärdena de kommande 48 h.', dots: [] });
+  });
 
-    const first = v.days[0]!.items[0]!;
-    const acked = upcomingView(events, { [first.ackKey]: '2025-11-12T13:40:00Z' }, 'all', demoPortfolio.generatedAt);
-    expect(acked.sum.ack).toBe(1);
-    // Acknowledged cards move to the end of their day.
-    expect(acked.days[0]!.items.at(-1)!.id).toBe(first.id);
-
-    const temp = upcomingView(events, {}, 'temp', demoPortfolio.generatedAt);
-    expect(temp.days.flatMap((d) => d.items).every((e) => e.cat === 'temp')).toBe(true);
-    expect(upcomingView([], {}, 'all', demoPortfolio.generatedAt)).toMatchObject({ empty: true, sum: { risk: 0, tmin: '—', total: 0 } });
+  it('words the summary for a single row', () => {
+    const frost = events.filter((e) => e.tmin !== null).slice(0, 1);
+    expect(upcomingView(frost, demoPortfolio.generatedAt).summary).toBe('Frost ner till −3° de kommande 48 h');
+    const one = events.filter((e) => e.hot).slice(0, 1);
+    expect(upcomingView(one, demoPortfolio.generatedAt).summary).toBe('1 riskvarning de kommande 48 h');
   });
 });

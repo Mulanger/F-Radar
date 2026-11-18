@@ -1,4 +1,4 @@
-import { ACTIVITY, EventMapGeometrySchema, WEATHER_WATER, eventPlaceFromHeadline, stationMatchDistance, trafficMapStyle, type ActivityItem, type EventMapItem, type PropertyEventMapEvent } from '@fastighetsradar/domain';
+import { ACTIVITY, EventMapGeometrySchema, FEED_ACK_SEVERITY_RANK, WEATHER_WATER, eventPlaceFromHeadline, stationMatchDistance, trafficMapStyle, type ActivityItem, type EventMapItem, type PropertyEventMapEvent } from '@fastighetsradar/domain';
 import { applyUtilityOutageRetention } from './utility-outages';
 import { createHash } from 'node:crypto';
 import type { Queryable } from './migrations';
@@ -758,15 +758,59 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
 }
 
 export async function listRecentChangesForOrg(db: Queryable, organizationId: string, limit = 50) {
-  const { rows } = await db.query<{ id: string; property_id: string; event_id: string | null; source_id: string; change_type: string; data_class: string; severity: string; headline: string; created_at: Date; event_ended_on_map: boolean }>(
+  const { rows } = await db.query<{
+    id: string; property_id: string; event_id: string | null; source_id: string; change_type: string; data_class: string; severity: string; headline: string; created_at: Date;
+    event_ended_on_map: boolean; event_active: boolean; superseded: boolean; acknowledged_at: Date | null;
+  }>(
     `SELECT c.id::text, c.property_id, c.event_id::text AS event_id, c.source_id, c.change_type, c.data_class, c.severity, c.headline, c.created_at,
-            COALESCE(e.status <> 'active' AND e.geom IS NOT NULL AND e.source_id IN ${MAP_SOURCES_SQL}, false) AS event_ended_on_map
+            COALESCE(e.status <> 'active' AND e.geom IS NOT NULL AND e.source_id IN ${MAP_SOURCES_SQL}, false) AS event_ended_on_map,
+            COALESCE(e.status = 'active', false) AS event_active,
+            EXISTS (SELECT 1 FROM monitoring_changes l
+                     WHERE l.event_id = c.event_id AND l.property_id = c.property_id AND l.organization_id = c.organization_id
+                       AND (l.created_at, l.id) > (c.created_at, c.id)) AS superseded,
+            (SELECT max(a.acknowledged_at) FROM feed_acknowledgements a JOIN monitoring_changes p ON p.id = a.change_id
+              WHERE a.organization_id = c.organization_id
+                AND (p.id = c.id OR (p.event_id = c.event_id AND p.property_id = c.property_id AND (p.created_at, p.id) < (c.created_at, c.id)
+                                     AND ${severityRankSql('p')} >= ${severityRankSql('c')}))) AS acknowledged_at
        FROM monitoring_changes c
        LEFT JOIN source_events e ON e.id = c.event_id
       WHERE c.organization_id = $1 ORDER BY c.created_at DESC, c.id DESC LIMIT $2`,
     [organizationId, limit],
   );
   return rows;
+}
+
+const severityRankSql = (t: string) =>
+  `CASE ${t}.severity ${Object.entries(FEED_ACK_SEVERITY_RANK).map(([k, v]) => `WHEN '${k}' THEN ${v}`).join(' ')} ELSE 0 END`;
+
+/**
+ * TENANT write: acknowledge a feed row for the whole organization (only a row of its own feed).
+ * Returns the acknowledgement time, or null when the row is not the organization's.
+ */
+export async function acknowledgeFeedChange(db: Queryable, organizationId: string, changeId: string, userId: string): Promise<Date | null> {
+  const { rows } = await db.query<{ acknowledged_at: Date }>(
+    `INSERT INTO feed_acknowledgements (organization_id, change_id, acknowledged_by)
+     SELECT c.organization_id, c.id, $3 FROM monitoring_changes c WHERE c.id = $2::bigint AND c.organization_id = $1
+     ON CONFLICT (organization_id, change_id) DO UPDATE SET change_id = EXCLUDED.change_id
+     RETURNING acknowledged_at`,
+    [organizationId, changeId, userId],
+  );
+  return rows[0]?.acknowledged_at ?? null;
+}
+
+/**
+ * TENANT write: undo. Removes the acknowledgement of this row and of earlier rows of the same event
+ * for the same property (the ones that covered it), so the row asks for acknowledgement again.
+ */
+export async function unacknowledgeFeedChange(db: Queryable, organizationId: string, changeId: string): Promise<void> {
+  await db.query(
+    `DELETE FROM feed_acknowledgements a
+      USING monitoring_changes c, monitoring_changes p
+      WHERE c.id = $2::bigint AND c.organization_id = $1
+        AND a.organization_id = $1 AND p.id = a.change_id
+        AND (p.id = c.id OR (p.event_id = c.event_id AND p.property_id = c.property_id AND (p.created_at, p.id) < (c.created_at, c.id)))`,
+    [organizationId, changeId],
+  );
 }
 
 /**

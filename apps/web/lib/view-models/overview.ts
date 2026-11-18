@@ -216,6 +216,9 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
         mapEventId: ev ? ev.id : ended ? f.eventId! : null,
         /** The event has ended: the map shows where it was, greyed out. */
         mapEnded: ended,
+        /** Must be acknowledged by someone in the organization (warnings, VMA, critical, outages). */
+        ackRequired: f.ackRequired === true,
+        acknowledgedAt: f.acknowledgedAt ?? null,
       };
     });
 
