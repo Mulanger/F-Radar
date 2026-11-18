@@ -15,3 +15,4 @@ export * from './activity';
 export * from './event-map';
 export * from './organization-settings';
 export * from './feed-acknowledgement';
+export * from './night-work';

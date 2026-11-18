@@ -17,7 +17,7 @@ import type {
   WarningLevel,
   WeatherForecast,
 } from '@fastighetsradar/domain';
-import { assessPropertyRisk, feedNeedsAck, formatWeekdayClock, swedishDayWindows, forecastInformation, WEATHER_WATER, summarizeNowcast, measurementTrend, type TimedReading, classifyFlow, measuredPrecipitation } from '@fastighetsradar/domain';
+import { assessPropertyRisk, feedNeedsAck, nightWorkLabel, formatWeekdayClock, swedishDayWindows, forecastInformation, WEATHER_WATER, summarizeNowcast, measurementTrend, type TimedReading, classifyFlow, measuredPrecipitation } from '@fastighetsradar/domain';
 import type { OrgContextRow, OrgEventRow, OrgForecastRow, OrgMonitoringData, OrgObservationRow } from '@fastighetsradar/db';
 import {
   AIR_PHENOMENA,
@@ -32,7 +32,7 @@ import {
   type ForecastStep,
 } from '@fastighetsradar/integrations';
 import { propertyToSnapshot } from '../portfolio';
-import { groupDuplicates, mergedTrafficTitle, SEVERITY_RANK, type DuplicateKey } from './traffic-duplicates';
+import { groupDuplicates, mergedTrafficTitle, replacedTraffic, SEVERITY_RANK, type DuplicateKey } from './traffic-duplicates';
 import { freshnessOf, FRESHNESS_WINDOW_S } from './status';
 
 /**
@@ -305,6 +305,7 @@ function toEvent(e: OrgEventRow): GeographicEvent {
     validTo: iso(e.valid_to),
     timeLabel: null,
     sourceUrl: e.source_url,
+    ...(traffic ? { nightWork: nightWorkLabel(e.valid_from, e.valid_to, e.description) } : {}),
     origin: 'live',
   };
 }
@@ -508,15 +509,18 @@ const CHANGE_SV: Record<string, string> = { new: 'Ny', updated: 'Uppdaterad', en
 type FeedChange = {
   id: string; property_id: string; event_id?: string | null; event_ended_on_map?: boolean; outage_on_map?: boolean; event_active?: boolean; superseded?: boolean;
   acknowledged_at?: Date | null; source_id: string; change_type: string; severity: string; headline: string; created_at: Date;
-  event_type?: string | null; situation_id?: string | null; event_valid_from?: Date | null; event_valid_to?: Date | null;
+  event_type?: string | null; situation_id?: string | null; event_valid_from?: Date | null; event_valid_to?: Date | null; event_description?: string | null;
 };
 const SAME_BATCH_MS = 5 * 60_000;
 
 export function buildFeed(changes: FeedChange[], propertyIds: Set<string>): FeedItem[] {
-  const rows = changes
+  const visible = changes
     .filter((c) => propertyIds.has(c.property_id))
     // Keep the feed meaningful: minor traffic notices (info/monitor) stay in the property's event list only.
     .filter((c) => c.source_id !== 'trafikverket' || c.severity === 'warning' || c.severity === 'critical');
+  // A situation Trafikverket replaced by a new one for the same closure is not "Avslutad" + "Ny".
+  const replaced = replacedTraffic(visible);
+  const rows = visible.filter((c) => !replaced.hidden.has(c.id)).map((c) => (replaced.updated.has(c.id) ? { ...c, change_type: 'updated' } : c));
   // Trafikverket's duplicates of one closure (both directions, cause and effect) arrive together: one row.
   const groups = groupDuplicates(
     rows,
@@ -543,6 +547,7 @@ export function buildFeed(changes: FeedChange[], propertyIds: Set<string>): Feed
       ...(c.event_id ? { eventId: c.event_id } : {}),
       ...(c.event_id && c.event_ended_on_map ? { eventEndedOnMap: true } : {}),
       ...(c.event_id && c.outage_on_map ? { outageOnMap: true } : {}),
+      ...(c.source_id === 'trafikverket' && nightWorkLabel(c.event_valid_from, c.event_valid_to, c.event_description) ? { nightWork: nightWorkLabel(c.event_valid_from, c.event_valid_to, c.event_description) } : {}),
       ...(feedNeedsAck({ sourceId: c.source_id, changeType: c.change_type, severity: c.severity, eventActive: c.event_active === true, superseded: c.superseded === true })
         ? { ackRequired: true, acknowledgedAt: c.acknowledged_at ? c.acknowledged_at.toISOString() : null }
         : {}),

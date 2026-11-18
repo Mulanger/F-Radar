@@ -4,6 +4,7 @@ import { IconChevronRight } from '../ui/icons';
 import type { OverviewVM } from '@/lib/view-models/overview';
 import { FeedMapButton, type FeedMapTarget } from '../dashboard/FeedEventMap';
 import { FeedAckButton, type FeedAcks } from '../dashboard/FeedAck';
+import { NightMoon } from '../dashboard/NightMoon';
 import styles from './mobile.module.css';
 
 export const shortStatus = (label: string) => label === 'Ingen aktiv varning' ? 'Utan varning' : label;
@@ -37,7 +38,7 @@ export function MobileFeedRows({ feed, basePath, onMap, acks }: { feed: Overview
     <Link href={`${basePath}/properties/${encodeURIComponent(f.propertyId)}`} className={styles.feedRow}>
       <span className={styles.feedIcon} style={{ background: f.bg }}><span className={styles.dot} style={{ background: f.c, width: 8, height: 8 }} /></span>
       <div className={styles.feedMain}><div className={styles.feedTitle}>{f.title}</div><div className={styles.feedMeta}><span className={styles.source}>{f.src}</span><span>{f.prop}</span></div></div>
-      <time className={styles.time}>{f.t}</time>
+      <span className={styles.time} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: 5 }}>{f.nightWork && <NightMoon label={f.nightWork} />}<time>{f.t}</time></span>
     </Link>
     {(map || ack) && <div className={styles.feedMap}>
       {ack && <FeedAckButton f={f} acks={acks} />}

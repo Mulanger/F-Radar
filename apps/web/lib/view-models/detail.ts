@@ -293,6 +293,7 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
       bg: evStyle(e).bg,
       hx: sev(e.severity === 'unknown' ? 'unknown' : e.severity).hx,
       location: e.location,
+      nightWork: e.nightWork ?? null,
     })),
     noEvents: !s.events.length,
     eventsN: s.events.length,

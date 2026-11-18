@@ -40,7 +40,7 @@ describe('map geometry helpers', () => {
 describe('event map view-model', () => {
   const ev = (o: Partial<DetailVM['events'][number]> = {}): DetailVM['events'][number] => ({
     id: 'e1', category: 'Traffic', kind: 'Trafik', title: 'Vägarbete: Götgatan', src: 'Trafikverket', dist: '120 m', time: 'Sedan 08:00',
-    c: SEV.monitor.c, bg: SEV.monitor.bg, hx: SEV.monitor.hx, location: { lat: 59.3135, lon: 18.0725 }, ...o,
+    c: SEV.monitor.c, bg: SEV.monitor.bg, hx: SEV.monitor.hx, location: { lat: 59.3135, lon: 18.0725 }, nightWork: null, ...o,
   });
   const item = (o: Partial<EventMapItem> = {}): EventMapItem => ({
     eventId: 'e1', geometry: { type: 'LineString', coordinates: [[18.0725, 59.3135], [18.0731, 59.3159]] }, radiusM: null, lengthM: 267,

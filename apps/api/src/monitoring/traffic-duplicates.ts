@@ -73,3 +73,41 @@ export function mergedTrafficTitle(items: Array<{ eventType: string | null; head
 }
 
 export const SEVERITY_RANK: Record<string, number> = { critical: 4, warning: 3, monitor: 2, info: 1, unknown: 0 };
+
+/**
+ * Trafikverket sometimes ends a situation and publishes a new one for the same closure minutes later
+ * (Väg 75, 2026-11-18: ended 21:28, new 21:33, same night). In the feed that read as "Avslutad" followed
+ * by "Ny" although nothing changed. An ended row that is replaced like that is hidden; the new row is
+ * hidden too when its times are the same (±1 h), and shown as "Uppdaterad" when they changed.
+ */
+export interface ReplaceRow {
+  id: string; property_id: string; source_id: string; change_type: string; created_at: Date; headline: string;
+  event_id?: string | null; event_type?: string | null; event_valid_from?: Date | null; event_valid_to?: Date | null;
+}
+const REPLACE_WINDOW_MS = 30 * 60_000;
+
+export function replacedTraffic(rows: ReplaceRow[]): { hidden: Set<string>; updated: Set<string> } {
+  const hidden = new Set<string>();
+  const updated = new Set<string>();
+  const used = new Set<string>();
+  const t = (d: Date | null | undefined) => (d ? d.getTime() : null);
+  for (const e of rows) {
+    if (e.source_id !== 'trafikverket' || (e.change_type !== 'ended' && e.change_type !== 'cancelled')) continue;
+    const road = trafficRoad(e.headline);
+    const n = rows.find((x) =>
+      !used.has(x.id) && x.source_id === 'trafikverket' && x.change_type === 'new' && x.property_id === e.property_id && x.event_id !== e.event_id &&
+      !!road && trafficRoad(x.headline) === road && !!e.event_type && x.event_type === e.event_type &&
+      Math.abs(x.created_at.getTime() - e.created_at.getTime()) <= REPLACE_WINDOW_MS &&
+      // The same closure period: the two validities overlap (or are both open).
+      (t(x.event_valid_from) === null || t(e.event_valid_to) === null || t(x.event_valid_from)! < t(e.event_valid_to)!) &&
+      (t(e.event_valid_from) === null || t(x.event_valid_to) === null || t(e.event_valid_from)! < t(x.event_valid_to)!),
+    );
+    if (!n) continue;
+    used.add(n.id);
+    hidden.add(e.id);
+    const close = (a: number | null, b: number | null) => (a === null || b === null ? a === b : Math.abs(a - b) <= 60 * 60_000);
+    if (close(t(n.event_valid_from), t(e.event_valid_from)) && close(t(n.event_valid_to), t(e.event_valid_to))) hidden.add(n.id);
+    else updated.add(n.id);
+  }
+  return { hidden, updated };
+}

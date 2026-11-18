@@ -1,6 +1,7 @@
 'use client';
 
 import { formatTrafficRadius } from '@fastighetsradar/domain';
+import { NightMoon } from '../dashboard/NightMoon';
 import type { DetailVM } from '@/lib/view-models/detail';
 import { C, card, cardSub, cardTitle, tile } from '@/lib/design/tokens';
 import type { EventMapState } from './use-event-map';
@@ -62,7 +63,7 @@ export function LocalEventsPanel({ d, map }: { d: DetailVM; map?: EventMapState 
             <span className={s.kind} style={{ background: e.bg, color: e.c }}>{e.kind}</span>
             <span className={s.main}>
               <span className={s.title}>{e.title}</span>
-              <span className={s.meta}>{e.src} · {e.dist} · {e.time}</span>
+              <span className={s.meta}>{e.src} · {e.dist} · {e.time}{e.nightWork && <> · <NightMoon label={e.nightWork} text /></>}</span>
               {onMap && (
                 <span className={s.pill}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={MAP_ICON} /></svg>

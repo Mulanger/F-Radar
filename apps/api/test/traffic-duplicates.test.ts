@@ -47,3 +47,39 @@ describe('Trafikverket duplicates', () => {
     expect(feed.map((f) => f.propertyId)).toEqual(['p1', 'p2', 'p1']);
   });
 });
+
+describe('situations Trafikverket replaced by a new one', () => {
+  // Väg 75 at Palandergatan, 2026-11-18: the 19–20 Nov night closure ended 21:28 and came back 21:33.
+  const night = { event_valid_from: new Date('2026-11-19T21:00:00Z'), event_valid_to: new Date('2026-11-20T04:00:00Z') };
+  const v75 = (id: string, change: string, at: string, type: string, event: string, over: Record<string, unknown> = {}) => ({
+    id, property_id: 'p1', source_id: 'trafikverket', change_type: change, severity: 'warning', created_at: new Date(at), event_id: event,
+    event_type: type, headline: `${type}: Väg 75 från Trafikplats Åbyvägen till Nackatråget`, situation_id: event.slice(0, 3), ...night, ...over,
+  });
+  const rows = [
+    v75('838', 'new', '2026-11-18T20:33:34Z', 'Vägen avstängd', 'new-a'),
+    v75('839', 'new', '2026-11-18T20:33:34Z', 'Vägarbete', 'new-b'),
+    v75('836', 'ended', '2026-11-18T20:28:28Z', 'Vägen avstängd', 'old-a'),
+    v75('837', 'ended', '2026-11-18T20:28:28Z', 'Vägarbete', 'old-b'),
+  ];
+
+  it('hides "Avslutad" and "Ny" when nothing changed', async () => {
+    const { replacedTraffic } = await import('../src/monitoring/traffic-duplicates');
+    expect([...replacedTraffic(rows).hidden].sort()).toEqual(['836', '837', '838', '839']);
+    expect(buildFeed(rows, new Set(['p1']))).toEqual([]);
+  });
+
+  it('shows "Uppdaterad" when the replacement has other times, and keeps a real end', () => {
+    const moved = rows.map((r) => (r.change_type === 'new' ? { ...r, event_valid_to: new Date('2026-11-20T06:30:00Z') } : r));
+    expect(buildFeed(moved, new Set(['p1'])).map((f) => f.title)).toEqual(['Uppdaterad: Vägen avstängd, vägarbete: Väg 75 från Trafikplats Åbyvägen till Nackatråget']);
+    // An end with no new situation for the same closure stays "Avslutad".
+    expect(buildFeed(rows.filter((r) => r.change_type === 'ended'), new Set(['p1'])).map((f) => f.title)).toEqual(['Avslutad: Vägen avstängd, vägarbete: Väg 75 från Trafikplats Åbyvägen till Nackatråget']);
+    // A new closure on another night is not a replacement.
+    const otherNight = rows.map((r) => (r.change_type === 'new' ? { ...r, event_valid_from: new Date('2026-11-20T21:00:00Z'), event_valid_to: new Date('2026-11-21T04:00:00Z') } : r));
+    expect(buildFeed(otherNight, new Set(['p1'])).map((f) => f.title.split(':')[0])).toEqual(['Ny', 'Avslutad']);
+  });
+
+  it('puts the night label on the feed row', () => {
+    const [f] = buildFeed(rows.filter((r) => r.change_type === 'ended'), new Set(['p1']));
+    expect(f!.nightWork).toBe('Nattarbete 22–05');
+  });
+});

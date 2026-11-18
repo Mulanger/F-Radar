@@ -224,6 +224,8 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
         /** Must be acknowledged by someone in the organization (warnings, VMA, critical, outages). */
         ackRequired: f.ackRequired === true,
         acknowledgedAt: f.acknowledgedAt ?? null,
+        /** "Nattarbete 21–04" – a moon on the card. */
+        nightWork: f.nightWork ?? null,
       };
     });
 

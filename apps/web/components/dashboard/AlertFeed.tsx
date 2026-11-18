@@ -5,6 +5,7 @@ import type { OverviewVM } from '@/lib/view-models/overview';
 import { C, FONT_MONO, card, cardSub, cardTitle } from '@/lib/design/tokens';
 import { FeedMapButton, useFeedEventMap } from './FeedEventMap';
 import { FeedAckButton, FeedAckCount, useFeedAcks } from './FeedAck';
+import { NightMoon } from './NightMoon';
 
 export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: boolean; onOpen: (id: string) => void }) {
   const map = useFeedEventMap();
@@ -61,7 +62,10 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
             </div>
             {/* Time on top; the card's buttons in its lower right corner (Kvittera beside the map). */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
-              <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: C.text4, whiteSpace: 'nowrap' }}>{f.t}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {f.nightWork && <NightMoon label={f.nightWork} />}
+                <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: C.text4, whiteSpace: 'nowrap' }}>{f.t}</div>
+              </div>
               {(f.ackRequired || f.mapEventId) && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <FeedAckButton f={f} acks={acks} />

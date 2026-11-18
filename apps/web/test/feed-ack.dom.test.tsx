@@ -59,6 +59,12 @@ describe('kvittering i händelseflödet', () => {
     expect(window.alert).toHaveBeenCalled();
   });
 
+  it('puts a moon on night-only work', () => {
+    const night = { ...vm, feed: vm.feed.map((f, i) => (i === 1 ? { ...f, nightWork: 'Nattarbete 22–05' } : f)) };
+    render(<AlertFeed vm={night} isDemo onOpen={mocks.openProperty} />);
+    expect(screen.getAllByRole('img', { name: /^Nattarbete 22–05 – påverkar troligen inte dagtid$/ })).toHaveLength(1);
+  });
+
   it('works on the mobile Larm page too', () => {
     render(<MobileAlerts />);
     const feed = screen.getByRole('region', { name: 'Händelseflöde' });

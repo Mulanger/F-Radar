@@ -188,6 +188,8 @@ export const GeographicEventSchema = z.object({
    * both directions, cause and effect). A feed row about any of them belongs to this event.
    */
   memberIds: z.array(z.string()).optional(),
+  /** "Nattarbete 21–04" when the work only happens at night (rarely affects the property in daytime). */
+  nightWork: z.string().nullable().optional(),
   origin: DataOriginSchema,
 });
 export type GeographicEvent = z.infer<typeof GeographicEventSchema>;
@@ -368,6 +370,8 @@ export const FeedItemSchema = z.object({
   eventEndedOnMap: z.boolean().optional(),
   /** A current utility outage with a drawable area: it can be shown on the map. */
   outageOnMap: z.boolean().optional(),
+  /** "Nattarbete 21–04" when the event only happens at night – a moon on the card. */
+  nightWork: z.string().nullable().optional(),
   /** Someone in the organization must acknowledge this row (warnings, VMA, critical, outages). */
   ackRequired: z.boolean().optional(),
   /** When it was acknowledged (this row, or an earlier row of the same event at the same or a higher level). */
