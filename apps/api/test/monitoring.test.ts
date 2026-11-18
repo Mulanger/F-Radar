@@ -258,6 +258,17 @@ describe('property snapshot from stored data', () => {
     expect(up.filter((u) => !u.official).every((u) => u.tone !== 'critical')).toBe(true);
   });
 
+  it('gives a cold spell its start, its end and its lowest temperature – also when the forecast ends above 0°', () => {
+    // 2, 1, −1, −3, −2, then above zero again: the spell is hours 3–5 (regression: this crashed the portfolio, 2026-11-18).
+    const temps = [2, 1, -1, -3, -2, 1, 2, 3, 3, 3, 3, 3];
+    const warmEnd = steps.slice(0, temps.length).map((x, i) => ({ ...x, airTemperature: temps[i]! }));
+    const row = { ...data().forecasts[0]!, series: { v: 1, steps: warmEnd } };
+    const s = buildPropertySnapshot(record, 'o', data({ forecasts: [row] }), statuses, NOW);
+    const frost = buildUpcoming([s], [row], NOW).find((u) => u.id === `frost-${PID}`)!;
+    expect(frost).toMatchObject({ value: '-3°', validAt: warmEnd[2]!.intervalStart, validTo: warmEnd[4]!.time });
+    for (const u of buildUpcoming([s], [row], NOW)) if (u.validTo) expect(Date.parse(u.validTo)).toBeGreaterThan(Date.parse(u.validAt!));
+  });
+
   it('tones forecast gusts and 24 h rain at most as warning', () => {
     const s = buildPropertySnapshot(record, 'o', data(), statuses, NOW);
     const row = data().forecasts[0]!;

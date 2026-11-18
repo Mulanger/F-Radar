@@ -519,9 +519,11 @@ export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForec
     if (cold && cold.airTemperature !== null) {
       // The cold spell: consecutive hours below 0° from the first one (up to 48 h ahead); the value is its lowest temperature.
       const all48 = forecastSteps(row).filter((x) => Date.parse(x.time) > now.getTime() && Date.parse(x.time) <= now.getTime() + 48 * 3_600_000).sort((x, y) => x.time.localeCompare(y.time));
-      const spell: ForecastStep[] = [];
-      for (const x of all48.slice(all48.indexOf(cold))) {
-        if (x.airTemperature === null || x.airTemperature >= 0 || (spell.length && x.intervalStart !== spell.at(-1)!.time)) break;
+      // forecastSteps() returns fresh objects on every call: find the first cold hour by its time.
+      const first = all48.findIndex((x) => x.time === cold.time);
+      const spell: ForecastStep[] = [cold];
+      for (const x of first < 0 ? [] : all48.slice(first + 1)) {
+        if (x.airTemperature === null || x.airTemperature >= 0 || x.intervalStart !== spell.at(-1)!.time) break;
         spell.push(x);
       }
       const lowest = Math.min(...spell.map((x) => x.airTemperature!));
