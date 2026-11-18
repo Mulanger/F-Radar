@@ -761,11 +761,13 @@ export async function listRecentChangesForOrg(db: Queryable, organizationId: str
   const { rows } = await db.query<{
     id: string; property_id: string; event_id: string | null; source_id: string; change_type: string; data_class: string; severity: string; headline: string; created_at: Date;
     event_ended_on_map: boolean; outage_on_map: boolean; event_active: boolean; superseded: boolean; acknowledged_at: Date | null;
+    event_type: string | null; situation_id: string | null; event_valid_from: Date | null; event_valid_to: Date | null;
   }>(
     `SELECT c.id::text, c.property_id, c.event_id::text AS event_id, c.source_id, c.change_type, c.data_class, c.severity, c.headline, c.created_at,
             COALESCE(e.status <> 'active' AND e.geom IS NOT NULL AND e.source_id IN ${FEED_MAP_SOURCES_SQL}, false) AS event_ended_on_map,
             COALESCE(e.status = 'active' AND e.geom IS NOT NULL AND e.source_id = 'utility_outages', false) AS outage_on_map,
             COALESCE(e.status = 'active', false) AS event_active,
+            e.event_type, e.extra->>'situationId' AS situation_id, e.valid_from AS event_valid_from, e.valid_to AS event_valid_to,
             EXISTS (SELECT 1 FROM monitoring_changes l
                      WHERE l.event_id = c.event_id AND l.property_id = c.property_id AND l.organization_id = c.organization_id
                        AND (l.created_at, l.id) > (c.created_at, c.id)) AS superseded,

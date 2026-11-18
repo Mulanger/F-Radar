@@ -32,6 +32,7 @@ import {
   type ForecastStep,
 } from '@fastighetsradar/integrations';
 import { propertyToSnapshot } from '../portfolio';
+import { groupDuplicates, mergedTrafficTitle, SEVERITY_RANK, type DuplicateKey } from './traffic-duplicates';
 import { freshnessOf, FRESHNESS_WINDOW_S } from './status';
 
 /**
@@ -249,6 +250,42 @@ function toWarning(e: OrgEventRow): OfficialWarning {
   };
 }
 
+function eventKey(e: OrgEventRow): DuplicateKey {
+  const situation = e.extra?.situationId;
+  return {
+    sourceId: e.source_id,
+    situationId: typeof situation === 'string' ? situation : null,
+    eventType: e.event_type,
+    headline: e.headline,
+    validFrom: e.valid_from ? e.valid_from.getTime() : null,
+    validTo: e.valid_to ? e.valid_to.getTime() : null,
+    point: e.point_lat !== null && e.point_lon !== null ? { lat: e.point_lat, lon: e.point_lon } : null,
+  };
+}
+
+/**
+ * Public events with Trafikverket's duplicates folded into one (see traffic-duplicates.ts): the most
+ * serious, nearest message stands for the group, titled with all its kinds, valid over their union.
+ */
+function mergeTrafficDuplicates(rows: OrgEventRow[]): GeographicEvent[] {
+  return groupDuplicates(rows, eventKey).map((g) => {
+    if (g.length === 1) return toEvent(g[0]!);
+    const dist = (e: OrgEventRow) => n(e.distance_m) ?? Infinity;
+    const primary = [...g].sort((a, b) => (SEVERITY_RANK[b.severity] ?? 0) - (SEVERITY_RANK[a.severity] ?? 0) || dist(a) - dist(b))[0]!;
+    const ev = toEvent(primary);
+    const froms = g.map((e) => e.valid_from?.getTime() ?? null);
+    const tos = g.map((e) => e.valid_to?.getTime() ?? null);
+    const nearest = Math.min(...g.map(dist));
+    return {
+      ...ev,
+      title: mergedTrafficTitle(g.map((e) => ({ eventType: e.event_type, headline: e.headline }))),
+      validFrom: froms.includes(null) ? ev.validFrom : new Date(Math.min(...(froms as number[]))).toISOString(),
+      validTo: tos.includes(null) ? null : new Date(Math.max(...(tos as number[]))).toISOString(),
+      geo: ev.geo.match === 'within_radius' && Number.isFinite(nearest) ? { ...ev.geo, distanceMeters: nearest } : ev.geo,
+    };
+  });
+}
+
 function toEvent(e: OrgEventRow): GeographicEvent {
   const traffic = e.source_id === 'trafikverket' || e.source_id === 'sl_deviations';
   return {
@@ -377,7 +414,7 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
   const county = data.counties.find((c) => c.property_id === p.id) ?? null;
 
   const warnings = events.filter((e) => e.data_class === 'OFFICIAL_WARNING').map(toWarning);
-  const publicEvents = events.filter((e) => e.data_class === 'PUBLIC_EVENT').map(toEvent);
+  const publicEvents = mergeTrafficDuplicates(events.filter((e) => e.data_class === 'PUBLIC_EVENT'));
   const official = warnings.filter((w) => w.level !== 'Info');
 
   // Status: highest active official warning; "normal" only when warning sources are healthy.
@@ -467,12 +504,32 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
 const SEV_STATUS: Record<string, PropertyStatus> = { critical: 'critical', warning: 'warning', monitor: 'monitor', info: 'normal', unknown: 'unknown' };
 const CHANGE_SV: Record<string, string> = { new: 'Ny', updated: 'Uppdaterad', ended: 'Avslutad', cancelled: 'Återkallad' };
 
-export function buildFeed(changes: Array<{ id: string; property_id: string; event_id?: string | null; event_ended_on_map?: boolean; outage_on_map?: boolean; event_active?: boolean; superseded?: boolean; acknowledged_at?: Date | null; source_id: string; change_type: string; severity: string; headline: string; created_at: Date }>, propertyIds: Set<string>): FeedItem[] {
-  return changes
+type FeedChange = {
+  id: string; property_id: string; event_id?: string | null; event_ended_on_map?: boolean; outage_on_map?: boolean; event_active?: boolean; superseded?: boolean;
+  acknowledged_at?: Date | null; source_id: string; change_type: string; severity: string; headline: string; created_at: Date;
+  event_type?: string | null; situation_id?: string | null; event_valid_from?: Date | null; event_valid_to?: Date | null;
+};
+const SAME_BATCH_MS = 5 * 60_000;
+
+export function buildFeed(changes: FeedChange[], propertyIds: Set<string>): FeedItem[] {
+  const rows = changes
     .filter((c) => propertyIds.has(c.property_id))
     // Keep the feed meaningful: minor traffic notices (info/monitor) stay in the property's event list only.
-    .filter((c) => c.source_id !== 'trafikverket' || c.severity === 'warning' || c.severity === 'critical')
+    .filter((c) => c.source_id !== 'trafikverket' || c.severity === 'warning' || c.severity === 'critical');
+  // Trafikverket's duplicates of one closure (both directions, cause and effect) arrive together: one row.
+  const groups = groupDuplicates(
+    rows,
+    (c): DuplicateKey => ({ sourceId: c.source_id, situationId: c.situation_id ?? null, eventType: c.event_type ?? null, headline: c.headline, validFrom: c.event_valid_from?.getTime() ?? null, validTo: c.event_valid_to?.getTime() ?? null }),
+    (a, b) => a.property_id === b.property_id && a.change_type === b.change_type && Math.abs(a.created_at.getTime() - b.created_at.getTime()) <= SAME_BATCH_MS,
+  );
+  return groups
     .slice(0, 30)
+    .map((g) => {
+      const c = g[0]!;
+      const severity = g.map((x) => x.severity).sort((a, b) => (SEVERITY_RANK[b] ?? 0) - (SEVERITY_RANK[a] ?? 0))[0]!;
+      const headline = g.length > 1 ? mergedTrafficTitle(g.map((x) => ({ eventType: x.event_type ?? null, headline: x.headline }))) : c.headline;
+      return { ...c, severity, headline };
+    })
     .map((c) => ({
       id: `chg-${c.id}`,
       publishedAt: c.created_at.toISOString(),
