@@ -7,6 +7,7 @@ import { C } from '@/lib/design/tokens';
 import { portfolioSceneConfig } from '../three/property-scene';
 import { IconRain, IconWind } from '../ui/icons';
 import { EmptyPortfolio } from '../dashboard/EmptyPortfolio';
+import { useFeedEventMap } from '../dashboard/FeedEventMap';
 import { MobileRiskGauge } from './MobileRiskGauge';
 import { MobileFeedRows, MobileSection, MobileStatusRows, MobileWeatherCard } from './MobilePrimitives';
 import { MobilePortfolioMap } from './MobilePortfolioMap';
@@ -21,6 +22,7 @@ export function MobilePortfolioOverview({ vm }: { vm: OverviewVM }) {
   const st = vm.hero.status;
   const demo = ds.mode === 'demo';
   const hasFeed = vm.avail.warnings || vm.avail.events;
+  const map = useFeedEventMap();
   return (
     <div className={styles.page} data-screen-label="Mobil portföljöversikt">
       <div className={styles.heading}><div className={styles.date}><span className={styles.dot} style={{ color: demo ? C.demo : C.live }} />{vm.dateLine}</div><h1>Portföljöversikt</h1></div>
@@ -46,7 +48,7 @@ export function MobilePortfolioOverview({ vm }: { vm: OverviewVM }) {
       <MobileSection title="Händelseflöde" subtitle="Offentliga källor i portföljen" id="mobile-events" meta={<span className={styles.riskBadge} style={{ color: demo ? 'oklch(.45 .1 70)' : hasFeed ? 'oklch(.45 .11 155)' : C.text3, background: demo ? 'oklch(.95 .05 80)' : hasFeed ? 'oklch(.95 .035 155)' : C.chip }}><span className={styles.dot} style={{ width: 6, height: 6 }} />{demo ? 'Demo' : hasFeed ? 'Live' : 'Ej ansluten'}</span>}>
         <div className={`${styles.surface} ${styles.list}`}>
           {!vm.feed.length && <div className={styles.empty}>{hasFeed ? 'Inga händelser för valda fastigheter.' : 'Händelser visas när de offentliga datakällorna levererar data.'}</div>}
-          <MobileScrollList visible={4} count={vm.feed.length} label="Händelser"><MobileFeedRows feed={vm.feed} basePath={ds.basePath} /></MobileScrollList>
+          <MobileScrollList visible={4} count={vm.feed.length} label="Händelser"><MobileFeedRows feed={vm.feed} basePath={ds.basePath} onMap={map.open} /></MobileScrollList>
         </div>
       </MobileSection>
       <MobileSection title="Bevakningsstatus" subtitle="Sorterat efter risk" meta={<span className={styles.meta}>Risk</span>}>
@@ -58,6 +60,7 @@ export function MobilePortfolioOverview({ vm }: { vm: OverviewVM }) {
       </MobileSection>
       <MobilePortfolioMap vm={vm} />
       <MobilePortfolioAnalytics vm={vm} />
+      {map.view}
     </div>
   );
 }

@@ -199,16 +199,22 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
   const listIds = new Set(list.map((s) => s.property.id));
   const feed = portfolio.feed
     .filter((f) => listIds.has(f.propertyId))
-    .map((f) => ({
-      id: f.id,
-      t: formatClock(f.publishedAt),
-      title: f.title,
-      src: f.sourceLabel,
-      c: sev(f.severity).c,
-      bg: sev(f.severity).bg,
-      prop: byId.get(f.propertyId)?.property.name ?? '—',
-      propertyId: f.propertyId,
-    }));
+    .map((f) => {
+      // Only a current event with a position can be opened on the map (an ended one is gone).
+      const ev = f.eventId ? byId.get(f.propertyId)?.events.find((e) => e.id === f.eventId && e.location) : undefined;
+      return {
+        id: f.id,
+        t: formatClock(f.publishedAt),
+        title: f.title,
+        src: f.sourceLabel,
+        c: sev(f.severity).c,
+        bg: sev(f.severity).bg,
+        prop: byId.get(f.propertyId)?.property.name ?? '—',
+        propertyId: f.propertyId,
+        /** Event to open in the map view, or null when the row has nothing to show there. */
+        mapEventId: ev ? ev.id : null,
+      };
+    });
 
   const groups = [
     { id: 'all', label: 'Alla fastigheter' },

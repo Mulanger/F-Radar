@@ -177,16 +177,17 @@ const RAW: RawProperty[] = [
   },
 ];
 
-const RAW_FEED: Array<{ t: string; title: string; src: string; sev: PropertyStatus; slug: string }> = [
+// `ev`: index of the property's own event behind the row (opens it on the map from the dashboard).
+const RAW_FEED: Array<{ t: string; title: string; src: string; sev: PropertyStatus; slug: string; ev?: number }> = [
   { t: '14:32', title: 'Orange varning — kraftig vind, byar upp till 25 m/s', src: 'SMHI', sev: 'critical', slug: 'augustendal-brygga' },
   { t: '14:05', title: 'Vattenståndet i Saltsjön +38 cm över medel och stigande', src: 'SMHI', sev: 'warning', slug: 'sjostaden-kaj' },
   { t: '13:48', title: 'Gräns för kraftigt regn överskriden — 12 mm på 3 h', src: 'Radar', sev: 'warning', slug: 'sjostaden-kaj' },
-  { t: '13:20', title: 'VMA: industribrand, håll fönster och ventilation stängda', src: 'Krisinformation', sev: 'critical', slug: 'ulvsunda-lager' },
-  { t: '13:10', title: 'Färjetrafiken inställd vid Nacka Strand brygga', src: 'Krisinformation', sev: 'warning', slug: 'augustendal-brygga' },
-  { t: '12:57', title: 'Körfält avstängt på E4 norrgående vid Haga', src: 'Trafikverket', sev: 'monitor', slug: 'arenastaden-hus-c' },
-  { t: '11:40', title: 'Förhöjd NO₂, måttlig luftkvalitet', src: 'SLB-analys', sev: 'monitor', slug: 'strandhuset' },
+  { t: '13:20', title: 'VMA: industribrand, håll fönster och ventilation stängda', src: 'Krisinformation', sev: 'critical', slug: 'ulvsunda-lager', ev: 0 },
+  { t: '13:10', title: 'Färjetrafiken inställd vid Nacka Strand brygga', src: 'Krisinformation', sev: 'warning', slug: 'augustendal-brygga', ev: 1 },
+  { t: '12:57', title: 'Körfält avstängt på E4 norrgående vid Haga', src: 'Trafikverket', sev: 'monitor', slug: 'arenastaden-hus-c', ev: 1 },
+  { t: '11:40', title: 'Förhöjd NO₂, måttlig luftkvalitet', src: 'SLB-analys', sev: 'monitor', slug: 'strandhuset', ev: 0 },
   { t: '10:15', title: 'Fastigheten ligger i karterad översvämningszon (15 m)', src: 'Länsstyrelsen', sev: 'warning', slug: 'augustendal-brygga' },
-  { t: '09:02', title: 'Risk för frost i natt, −3 °C väntas', src: 'SMHI', sev: 'monitor', slug: 'ulvsunda-lager' },
+  { t: '09:02', title: 'Risk för frost i natt, −3 °C väntas', src: 'SMHI', sev: 'monitor', slug: 'ulvsunda-lager', ev: 2 },
   { t: '08:30', title: 'Gul varning hävd — vind', src: 'SMHI', sev: 'normal', slug: 'gotgarden' },
 ];
 
@@ -459,6 +460,7 @@ const feed: FeedItem[] = RAW_FEED.map((f, i) => ({
   sourceId: sourceFor(f.src),
   severity: f.sev,
   propertyId: demoPropertyId(f.slug),
+  ...(f.ev === undefined ? {} : { eventId: `${demoPropertyId(f.slug)}-event-${f.ev}` }),
   origin: 'demo_fixture',
 }));
 

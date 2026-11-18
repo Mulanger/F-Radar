@@ -467,7 +467,7 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
 const SEV_STATUS: Record<string, PropertyStatus> = { critical: 'critical', warning: 'warning', monitor: 'monitor', info: 'normal', unknown: 'unknown' };
 const CHANGE_SV: Record<string, string> = { new: 'Ny', updated: 'Uppdaterad', ended: 'Avslutad', cancelled: 'Återkallad' };
 
-export function buildFeed(changes: Array<{ id: string; property_id: string; source_id: string; change_type: string; severity: string; headline: string; created_at: Date }>, propertyIds: Set<string>): FeedItem[] {
+export function buildFeed(changes: Array<{ id: string; property_id: string; event_id?: string | null; source_id: string; change_type: string; severity: string; headline: string; created_at: Date }>, propertyIds: Set<string>): FeedItem[] {
   return changes
     .filter((c) => propertyIds.has(c.property_id))
     // Keep the feed meaningful: minor traffic notices (info/monitor) stay in the property's event list only.
@@ -482,6 +482,7 @@ export function buildFeed(changes: Array<{ id: string; property_id: string; sour
       sourceId: c.source_id as SourceId,
       severity: c.change_type === 'ended' || c.change_type === 'cancelled' ? 'normal' : (SEV_STATUS[c.severity] ?? 'unknown'),
       propertyId: c.property_id,
+      ...(c.event_id ? { eventId: c.event_id } : {}),
       origin: 'live',
     }));
 }

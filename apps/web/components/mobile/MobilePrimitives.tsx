@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { C } from '@/lib/design/tokens';
 import { IconChevronRight } from '../ui/icons';
 import type { OverviewVM } from '@/lib/view-models/overview';
+import { FeedMapButton, type FeedMapTarget } from '../dashboard/FeedEventMap';
 import styles from './mobile.module.css';
 
 export const shortStatus = (label: string) => label === 'Ingen aktiv varning' ? 'Utan varning' : label;
@@ -23,12 +24,16 @@ export function MobileWeatherCard({ icon, label, value, sub }: { icon: React.Rea
   return <div className={styles.weatherCard}><span className={styles.weatherIcon}>{icon}</span><div><div className={styles.weatherLabel}>{label}</div><div className={styles.weatherValue}>{value}</div>{sub && <div className={styles.weatherSub} title={sub}>{sub}</div>}</div></div>;
 }
 
-export function MobileFeedRows({ feed, basePath }: { feed: OverviewVM['feed']; basePath: string }) {
-  return feed.map((f) => <Link key={f.id} href={`${basePath}/properties/${encodeURIComponent(f.propertyId)}`} className={styles.feedRow}>
-    <span className={styles.feedIcon} style={{ background: f.bg }}><span className={styles.dot} style={{ background: f.c, width: 8, height: 8 }} /></span>
-    <div className={styles.feedMain}><div className={styles.feedTitle}>{f.title}</div><div className={styles.feedMeta}><span className={styles.source}>{f.src}</span><span>{f.prop}</span></div></div>
-    <time className={styles.time}>{f.t}</time>
-  </Link>);
+/** Feed rows link to the property; with `onMap`, a row whose event has a position also gets a map button. */
+export function MobileFeedRows({ feed, basePath, onMap }: { feed: OverviewVM['feed']; basePath: string; onMap?: (row: FeedMapTarget) => void }) {
+  return feed.map((f) => <div key={f.id} className={styles.feedItem}>
+    <Link href={`${basePath}/properties/${encodeURIComponent(f.propertyId)}`} className={styles.feedRow}>
+      <span className={styles.feedIcon} style={{ background: f.bg }}><span className={styles.dot} style={{ background: f.c, width: 8, height: 8 }} /></span>
+      <div className={styles.feedMain}><div className={styles.feedTitle}>{f.title}</div><div className={styles.feedMeta}><span className={styles.source}>{f.src}</span><span>{f.prop}</span></div></div>
+      <time className={styles.time}>{f.t}</time>
+    </Link>
+    {onMap && f.mapEventId && <span className={styles.feedMap}><FeedMapButton title={f.title} onClick={() => onMap(f)} /></span>}
+  </div>);
 }
 
 export function MobileStatusRows({ rows, basePath }: { rows: OverviewVM['rows']; basePath: string }) {

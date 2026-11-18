@@ -3,8 +3,10 @@
 import styles from './PortfolioOverview.module.css';
 import type { OverviewVM } from '@/lib/view-models/overview';
 import { C, FONT_MONO, card, cardSub, cardTitle } from '@/lib/design/tokens';
+import { FeedMapButton, useFeedEventMap } from './FeedEventMap';
 
 export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: boolean; onOpen: (id: string) => void }) {
+  const map = useFeedEventMap();
   return (
     <div className={styles.feed} style={{ ...card, boxSizing: 'border-box', padding: '20px 8px 8px 20px', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 12, marginBottom: 12 }}>
@@ -49,10 +51,14 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
                 {f.prop}
               </div>
             </div>
-            <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: C.text4, whiteSpace: 'nowrap' }}>{f.t}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: C.text4, whiteSpace: 'nowrap' }}>{f.t}</div>
+              {f.mapEventId && <FeedMapButton title={f.title} onClick={() => map.open(f)} />}
+            </div>
           </div>
         ))}
       </div>
+      {map.view}
     </div>
   );
 }

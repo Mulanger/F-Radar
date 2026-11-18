@@ -758,8 +758,8 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
 }
 
 export async function listRecentChangesForOrg(db: Queryable, organizationId: string, limit = 50) {
-  const { rows } = await db.query<{ id: string; property_id: string; source_id: string; change_type: string; data_class: string; severity: string; headline: string; created_at: Date }>(
-    `SELECT id::text, property_id, source_id, change_type, data_class, severity, headline, created_at
+  const { rows } = await db.query<{ id: string; property_id: string; event_id: string | null; source_id: string; change_type: string; data_class: string; severity: string; headline: string; created_at: Date }>(
+    `SELECT id::text, property_id, event_id::text AS event_id, source_id, change_type, data_class, severity, headline, created_at
        FROM monitoring_changes WHERE organization_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2`,
     [organizationId, limit],
   );

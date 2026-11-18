@@ -33,6 +33,15 @@ describe('overview view-model reproduces the approved design values', () => {
     expect(vm.kpi.barLabel).toBe('Ingen aktiv varning: 3 · Info: 2 · Varning: 2 · Kritisk: 1');
   });
 
+  it('marks feed rows whose current event can be shown on the map', () => {
+    const e4 = vm.feed.find((f) => f.title.startsWith('Körfält avstängt på E4'))!;
+    expect(e4.mapEventId).toBe('demo-arenastaden-hus-c-event-1');
+    // A row without an event (or with one that has ended) gets no map button.
+    expect(vm.feed.find((f) => f.title.startsWith('Gul varning hävd'))!.mapEventId).toBeNull();
+    const ended = buildOverviewVM({ ...demoPortfolio, feed: demoPortfolio.feed.map((f) => ({ ...f, eventId: f.eventId ? 'gone' : undefined })) }, ui);
+    expect(ended.feed.every((f) => f.mapEventId === null)).toBe(true);
+  });
+
   it('names the properties behind each weather pill, worst first', () => {
     for (const x of vm.kpi.wxSplit) expect(x.items).toHaveLength(x.n);
     expect(vm.kpi.wxSplit.reduce((a, x) => a + x.n, 0)).toBe(vm.kpi.wx);

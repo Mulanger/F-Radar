@@ -357,6 +357,8 @@ export const FeedItemSchema = z.object({
   sourceId: SourceIdSchema,
   severity: PropertyStatusSchema,
   propertyId: z.string(),
+  /** The source event behind the row, when there is one (lets the dashboard open it on the map). */
+  eventId: z.string().optional(),
   origin: DataOriginSchema,
 });
 export type FeedItem = z.infer<typeof FeedItemSchema>;

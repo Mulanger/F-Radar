@@ -244,6 +244,10 @@ describe('property snapshot from stored data', () => {
   it('builds feed items and forecast-derived upcoming conditions', () => {
     const feed = buildFeed([{ id: '7', property_id: PID, source_id: 'smhi_warnings', change_type: 'new', severity: 'monitor', headline: 'Snöfall', created_at: NOW }], new Set([PID]));
     expect(feed[0]).toMatchObject({ title: 'Ny: Snöfall', severity: 'monitor', origin: 'live' });
+    expect(feed[0]).not.toHaveProperty('eventId');
+    // The source event behind a row travels with it, so the dashboard can open it on the map.
+    const withEvent = buildFeed([{ id: '8', property_id: PID, event_id: 'ev-1', source_id: 'smhi_warnings', change_type: 'new', severity: 'monitor', headline: 'Snöfall', created_at: NOW }], new Set([PID]));
+    expect(withEvent[0]).toMatchObject({ id: 'chg-8', eventId: 'ev-1' });
     const s = buildPropertySnapshot(record, 'o', data(), statuses, NOW);
     const up = buildUpcoming([s], data().forecasts, NOW);
     expect(up.map((u) => u.id)).toEqual(expect.arrayContaining([`gust-${PID}`, `rain-${PID}`, `frost-${PID}`]));

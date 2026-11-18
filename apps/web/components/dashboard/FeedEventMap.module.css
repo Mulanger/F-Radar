@@ -1,0 +1,36 @@
+/* Small map button in a feed card's lower right corner (dashboard "Visa på karta"). */
+.mapButton {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(20, 23, 26, 0.08);
+  border-radius: 9px;
+  background: #ffffff;
+  color: #4a5157;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.mapButton:hover {
+  background: #14171a;
+  border-color: #14171a;
+  color: #ffffff;
+}
+.mapButton:focus-visible {
+  outline: 2px solid #4a86c5;
+  outline-offset: 2px;
+}
+.mapButton:active {
+  transform: scale(0.94);
+}
+
+@media (pointer: coarse) {
+  /* Bigger touch target without a bigger icon. */
+  .mapButton {
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+  }
+}
