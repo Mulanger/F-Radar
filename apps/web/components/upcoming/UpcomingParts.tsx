@@ -192,8 +192,8 @@ export function UpcomingTimeline({ st }: { st: UpcomingState }) {
   );
 }
 
-/** Mobile: a compact axis, then per property its conditions – label and value, the bar under. */
-export function UpcomingListMobile({ st }: { st: UpcomingState }) {
+/** Mobile: the compact 48 h axis (in the top card) with the count and the darkness legend under it. */
+export function UpcomingMobileAxis({ st }: { st: UpcomingState }) {
   const { view } = st;
   if (view.empty) return null;
   return (
@@ -214,34 +214,41 @@ export function UpcomingListMobile({ st }: { st: UpcomingState }) {
           <span key={t.pos} className={`${s.mAxisHour} ${s.centred}`} style={{ left: pct(t.pos) }}>{t.label}</span>
         ))}
       </div>
-      {view.rows.map((r) => (
-        <div key={r.key} className={s.mPlace}>
-          <div className={s.mPlaceHead}>
-            <PlaceName r={r} st={st} />
-            {r.countText && <div className={s.placeCount}>{r.countText}</div>}
-          </div>
-          {r.events.map((e) => {
-            const open = st.openId === e.id;
-            return (
-              <div key={e.id} className={s.lineWrap}>
-                <button type="button" data-testid="upcoming-row" className={s.mLine} aria-expanded={open} onClick={() => st.toggle(e.id)} aria-label={`${e.label}, ${e.name}, ${e.from} till ${e.to}: ${e.value} ${e.unit}`}>
-                  <span className={s.mLineTop}>
-                    <span className={s.swatch} style={{ background: e.bar }} />
-                    <span className={s.mLabel}>{e.label}</span>
-                    <Value e={e} inline />
-                  </span>
-                  <Track e={e} st={st} variant="mobile" />
-                </button>
-                {open && <Details e={e} st={st} variant="mobile" />}
-              </div>
-            );
-          })}
-        </div>
-      ))}
       <div className={s.mFoot}>
         <span>{view.countText}</span>
         <Legend st={st} />
       </div>
     </div>
   );
+}
+
+/**
+ * Mobile: one white card per address (its conditions – label and value, the bar under), with the
+ * page's grey between the cards so it is clear where one address ends and the next begins.
+ */
+export function UpcomingMobilePlaces({ st, cardClassName }: { st: UpcomingState; cardClassName: string }) {
+  return st.view.rows.map((r) => (
+    <section key={r.key} className={`${cardClassName} ${s.mPlaceCard}`} aria-label={r.name}>
+      <div className={s.mPlaceHead}>
+        <PlaceName r={r} st={st} />
+        {r.countText && <div className={s.placeCount}>{r.countText}</div>}
+      </div>
+      {r.events.map((e) => {
+        const open = st.openId === e.id;
+        return (
+          <div key={e.id} className={s.lineWrap}>
+            <button type="button" data-testid="upcoming-row" className={s.mLine} aria-expanded={open} onClick={() => st.toggle(e.id)} aria-label={`${e.label}, ${e.name}, ${e.from} till ${e.to}: ${e.value} ${e.unit}`}>
+              <span className={s.mLineTop}>
+                <span className={s.swatch} style={{ background: e.bar }} />
+                <span className={s.mLabel}>{e.label}</span>
+                <Value e={e} inline />
+              </span>
+              <Track e={e} st={st} variant="mobile" />
+            </button>
+            {open && <Details e={e} st={st} variant="mobile" />}
+          </div>
+        );
+      })}
+    </section>
+  ));
 }

@@ -97,19 +97,19 @@ button.placeName:hover { color: oklch(0.5 0.1 225); }
 
 /* Mobile */
 .mList { display: flex; flex-direction: column; }
-.mAxis { position: relative; height: 36px; border-bottom: 1px solid rgba(20, 23, 26, 0.07); margin-bottom: 4px; }
+.mAxis { position: relative; height: 36px; border-bottom: 1px solid rgba(20, 23, 26, 0.07); }
 .mAxis .axisDay { font-size: 11.5px; }
 .mAxis .afterLine { padding-left: 6px; }
 .mAxisLine { position: absolute; top: 0; bottom: 6px; border-left: 1px solid #dde1e0; }
 .mAxisHour { position: absolute; bottom: 7px; font: 10px var(--font-geist-mono), 'Geist Mono', monospace; color: #6b737b; white-space: nowrap; }
-.mPlace { display: flex; flex-direction: column; padding: 10px 0 6px; border-bottom: 1px solid rgba(20, 23, 26, 0.07); }
+.mPlaceCard { display: flex; flex-direction: column; padding: 14px 16px 6px; }
 .mPlaceHead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .mPlaceHead .placeName { font-size: 15px; font-weight: 600; }
 .mPlaceHead .placeCount { margin-top: 0; flex-shrink: 0; }
 .mLine { display: flex; flex-direction: column; gap: 8px; width: 100%; min-height: 44px; padding: 8px 0; background: transparent; border: none; cursor: pointer; text-align: left; font-family: inherit; color: #14171a; }
 .mLineTop { display: flex; align-items: center; gap: 10px; width: 100%; }
 .mLabel { flex: 1; min-width: 0; font-size: 13.5px; line-height: 1.3; }
-.mFoot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0 8px; font-size: 12px; color: #6b737b; }
+.mFoot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0 8px; font-size: 12px; color: #6b737b; }
 
 /* Phone card sizes (designer's 1b). */
 .mobileCard .title { font-size: 16px; }
