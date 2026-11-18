@@ -36,6 +36,18 @@ describe('overview view-model reproduces the approved design values', () => {
     expect(vm.kpi.barLabel).toBe('Ingen aktiv varning: 3 · Info: 2 · Varning: 2 · Kritisk: 1');
   });
 
+  it('finds the map for a feed row about any message of a merged closure (Palandergatan, 2026-11-18)', () => {
+    // The list kept "Vägarbete" for the group; the feed row is about "Vägen avstängd" of the same closure.
+    const snap = demoPortfolio.properties.find((s) => s.property.id === 'demo-arenastaden-hus-c')!;
+    const kept = snap.events[1]!;
+    const portfolio = {
+      ...demoPortfolio,
+      properties: demoPortfolio.properties.map((s) => (s === snap ? { ...s, events: s.events.map((e) => (e === kept ? { ...e, memberIds: [kept.id, 'closure-other-message'] } : e)) } : s)),
+      feed: [{ ...demoPortfolio.feed[0]!, id: 'chg-839', propertyId: snap.property.id, eventId: 'closure-other-message' }],
+    };
+    expect(buildOverviewVM(portfolio, ui).feed[0]).toMatchObject({ mapEventId: kept.id, mapSingle: false });
+  });
+
   it('marks feed rows whose current event can be shown on the map', () => {
     const e4 = vm.feed.find((f) => f.title.startsWith('Körfält avstängt på E4'))!;
     expect(e4.mapEventId).toBe('demo-arenastaden-hus-c-event-1');

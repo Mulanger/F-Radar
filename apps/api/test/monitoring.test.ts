@@ -258,6 +258,17 @@ describe('property snapshot from stored data', () => {
     expect(up.filter((u) => !u.official).every((u) => u.tone !== 'critical')).toBe(true);
   });
 
+  it('keeps every message id of a merged Trafikverket closure, so a feed row about any of them finds it', () => {
+    // Palandergatan 2026-11-18 21:33: "Vägen avstängd" and "Vägarbete" of one closure. The list keeps one of them.
+    const tv = (id: string, type: string) => event({ id, source_id: 'trafikverket', data_class: 'PUBLIC_EVENT', category: 'Traffic', level: null, severity: 'warning', match_method: 'within_radius', distance_m: '150',
+      event_type: type, headline: `${type}: Väg 75 från Trafikplats Åbyvägen till Nackatråget`, extra: { situationId: 'GUIDee8e92ed' }, valid_to: new Date(NOW.getTime() + 86_400_000), point_lat: 59.3, point_lon: 18.09 });
+    const s = buildPropertySnapshot(record, 'o', data({ events: [tv('vagarbete', 'Vägarbete'), tv('avstangd', 'Vägen avstängd')] as never }), statuses, NOW);
+    const traffic = s.events.filter((e) => e.sourceId === 'trafikverket');
+    expect(traffic).toHaveLength(1);
+    expect([...traffic[0]!.memberIds!].sort()).toEqual(['avstangd', 'vagarbete']);
+    expect(traffic[0]!.title).toMatch(/^(Vägarbete, vägen avstängd|Vägen avstängd, vägarbete): Väg 75/);
+  });
+
   it('gives a cold spell its start, its end and its lowest temperature – also when the forecast ends above 0°', () => {
     // 2, 1, −1, −3, −2, then above zero again: the spell is hours 3–5 (regression: this crashed the portfolio, 2026-11-18).
     const temps = [2, 1, -1, -3, -2, 1, 2, 3, 3, 3, 3, 3];

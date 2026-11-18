@@ -201,7 +201,8 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     .filter((f) => listIds.has(f.propertyId))
     .map((f) => {
       // A current event with a position opens in colour; an ended one whose stretch is still stored, greyed out.
-      const ev = f.eventId ? byId.get(f.propertyId)?.events.find((e) => e.id === f.eventId && e.location) : undefined;
+      // The feed row may be about any message of a merged closure (the feed and the list pick their own).
+      const ev = f.eventId ? byId.get(f.propertyId)?.events.find((e) => (e.id === f.eventId || e.memberIds?.includes(f.eventId!)) && e.location) : undefined;
       const ended = !ev && !!f.eventId && f.eventEndedOnMap === true;
       // Ended events and utility outages are loaded one at a time (they are not in the property's event list).
       const single = !ev && !!f.eventId && (ended || f.outageOnMap === true);

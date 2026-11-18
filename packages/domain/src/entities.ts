@@ -183,6 +183,11 @@ export const GeographicEventSchema = z.object({
   /** Pre-formatted validity label (fixtures only; live data must derive it from validFrom/validTo). */
   timeLabel: z.string().nullable(),
   sourceUrl: z.string().nullable(),
+  /**
+   * Ids of every source message folded into this event (Trafikverket's duplicates of one closure –
+   * both directions, cause and effect). A feed row about any of them belongs to this event.
+   */
+  memberIds: z.array(z.string()).optional(),
   origin: DataOriginSchema,
 });
 export type GeographicEvent = z.infer<typeof GeographicEventSchema>;

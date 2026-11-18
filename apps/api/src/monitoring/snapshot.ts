@@ -279,6 +279,7 @@ function mergeTrafficDuplicates(rows: OrgEventRow[]): GeographicEvent[] {
     return {
       ...ev,
       title: mergedTrafficTitle(g.map((e) => ({ eventType: e.event_type, headline: e.headline }))),
+      memberIds: g.map((e) => e.id),
       validFrom: froms.includes(null) ? ev.validFrom : new Date(Math.min(...(froms as number[]))).toISOString(),
       validTo: tos.includes(null) ? null : new Date(Math.max(...(tos as number[]))).toISOString(),
       geo: ev.geo.match === 'within_radius' && Number.isFinite(nearest) ? { ...ev.geo, distanceMeters: nearest } : ev.geo,
