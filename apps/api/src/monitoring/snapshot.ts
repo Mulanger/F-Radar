@@ -467,7 +467,7 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
 const SEV_STATUS: Record<string, PropertyStatus> = { critical: 'critical', warning: 'warning', monitor: 'monitor', info: 'normal', unknown: 'unknown' };
 const CHANGE_SV: Record<string, string> = { new: 'Ny', updated: 'Uppdaterad', ended: 'Avslutad', cancelled: 'Återkallad' };
 
-export function buildFeed(changes: Array<{ id: string; property_id: string; event_id?: string | null; event_ended_on_map?: boolean; event_active?: boolean; superseded?: boolean; acknowledged_at?: Date | null; source_id: string; change_type: string; severity: string; headline: string; created_at: Date }>, propertyIds: Set<string>): FeedItem[] {
+export function buildFeed(changes: Array<{ id: string; property_id: string; event_id?: string | null; event_ended_on_map?: boolean; outage_on_map?: boolean; event_active?: boolean; superseded?: boolean; acknowledged_at?: Date | null; source_id: string; change_type: string; severity: string; headline: string; created_at: Date }>, propertyIds: Set<string>): FeedItem[] {
   return changes
     .filter((c) => propertyIds.has(c.property_id))
     // Keep the feed meaningful: minor traffic notices (info/monitor) stay in the property's event list only.
@@ -484,6 +484,7 @@ export function buildFeed(changes: Array<{ id: string; property_id: string; even
       propertyId: c.property_id,
       ...(c.event_id ? { eventId: c.event_id } : {}),
       ...(c.event_id && c.event_ended_on_map ? { eventEndedOnMap: true } : {}),
+      ...(c.event_id && c.outage_on_map ? { outageOnMap: true } : {}),
       ...(feedNeedsAck({ sourceId: c.source_id, changeType: c.change_type, severity: c.severity, eventActive: c.event_active === true, superseded: c.superseded === true })
         ? { ackRequired: true, acknowledgedAt: c.acknowledged_at ? c.acknowledged_at.toISOString() : null }
         : {}),

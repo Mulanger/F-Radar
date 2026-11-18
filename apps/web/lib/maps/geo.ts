@@ -74,10 +74,25 @@ export function offsetLL(c: LL, deg: number, m: number): LL {
   return proj(c).b([Math.sin(r) * m, Math.cos(r) * m]);
 }
 
-/** The geometry's polylines in Leaflet order (a Point is one single-point run). */
+/** The geometry's polylines in Leaflet order (a Point is one single-point run, an area its outer rings). */
 export function geometryRuns(g: EventMapGeometry): LL[][] {
   const ll = (p: [number, number]): LL => [p[1], p[0]];
   if (g.type === 'Point') return [[ll(g.coordinates)]];
   if (g.type === 'LineString') return [g.coordinates.map(ll)];
-  return g.coordinates.map((line) => line.map(ll));
+  if (g.type === 'MultiLineString') return g.coordinates.map((line) => line.map(ll));
+  if (g.type === 'Polygon') return [g.coordinates[0]!.map(ll)];
+  return g.coordinates.map((poly) => poly[0]!.map(ll));
+}
+
+/** Whether `p` lies inside any of the closed rings (even–odd rule). */
+export function insideRings(rings: LL[][], p: LL): boolean {
+  return rings.some((ring) => {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [yi, xi] = ring[i]!;
+      const [yj, xj] = ring[j]!;
+      if (yi > p[0] !== yj > p[0] && p[1] < ((xj - xi) * (p[0] - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  });
 }

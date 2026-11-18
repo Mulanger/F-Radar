@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type * as Leaflet from 'leaflet';
 import { tileConfig } from '@/lib/maps/tile-config';
-import { alongRun, distM, nearestOnRuns, offsetLL, runLength, type LL } from '@/lib/maps/geo';
+import { alongRun, distM, insideRings, nearestOnRuns, offsetLL, runLength, type LL } from '@/lib/maps/geo';
 import { EVENT_MAP_ICON_PATH, type EventMapEntry } from '@/lib/view-models/event-map';
 import { addTileLayer, esc, loadLeaflet } from './leaflet-utils';
 import s from './EventMapView.module.css';
@@ -179,6 +179,14 @@ export function EventMapView({ entries, openId, onSelect, onClose, property, liv
       ends = [main[0]!, main[main.length - 1]!];
       mid = alongRun(main, 0.5);
       near = nearestOnRuns(lines, pp);
+    } else if (e.shape === 'polygon' && e.runs.some((r) => r.length > 2)) {
+      // An outage area: filled with a solid edge. The distance runs to its edge – none when the property is inside.
+      const rings = e.runs.filter((r) => r.length > 2);
+      layer.addLayer(L.polygon(rings, { color: e.hx, weight: 2, opacity: 0.9, fillColor: e.hx, fillOpacity: e.ended ? 0.12 : 0.18, interactive: false }));
+      pts = rings.flat();
+      const largest = [...rings].sort((a, b) => b.length - a.length)[0]!;
+      mid = [largest.reduce((a, p) => a + p[0], 0) / largest.length, largest.reduce((a, p) => a + p[1], 0) / largest.length];
+      near = insideRings(rings, pp) ? null : nearestOnRuns(rings.map((r) => [...r, r[0]!]), pp);
     } else if (e.shape === 'area' && e.radiusM) {
       const c = e.runs[0]![0]!;
       layer.addLayer(L.circle(c, { radius: e.radiusM, color: e.hx, weight: 1.5, dashArray: '6 6', opacity: 0.8, fillColor: e.hx, fillOpacity: 0.16, interactive: false }));
@@ -293,7 +301,7 @@ export function EventMapView({ entries, openId, onSelect, onClose, property, liv
             <div className={s.sep} />
             <button type="button" className={s.row} onClick={() => v() && fitTo(v()!.ev, true, 17)}>
               <span className={s.evTile} style={{ background: e.bg }}>
-                {e.shape === 'line' && e.exact ? <span className={s.symLine} style={{ background: e.c }} /> : e.shape === 'area' ? <span className={s.symArea} style={{ borderColor: e.c }} /> : <span className={s.symPoint} style={{ background: e.c }} />}
+                {e.shape === 'line' && e.exact ? <span className={s.symLine} style={{ background: e.c }} /> : e.shape === 'area' || e.shape === 'polygon' ? <span className={s.symArea} style={{ borderColor: e.c }} /> : <span className={s.symPoint} style={{ background: e.c }} />}
               </span>
               <span className={s.rowMain}>
                 <span className={s.rowTitle}>{e.where}</span>

@@ -37,6 +37,18 @@ describe('dashboard feed – map button', () => {
     expect(screen.getAllByRole('button', { name: /^Visa var det var på karta: / })).toHaveLength(1);
   });
 
+  it('shows a power outage as its area, with the property inside it', async () => {
+    const outage = vm.feed.find((f) => f.title.startsWith('Oplanerat strömavbrott'))!;
+    render(<AlertFeed vm={vm} isDemo onOpen={mocks.openProperty} />);
+    fireEvent.click(screen.getByRole('button', { name: `Visa på karta: ${outage.title}` }));
+    const dialog = await screen.findByRole('dialog');
+    expect(mocks.openProperty).not.toHaveBeenCalled();
+    for (const text of ['Strömavbrott', 'Ellevio', 'Inom området', 'Beräknat klart 17:00', '214 kunder', 'Område enligt nätbolaget', 'Götgården']) expect(dialog.textContent).toContain(text);
+    // A filled area, and no distance line (the property is inside it).
+    await waitFor(() => expect(dialog.querySelector('.leaflet-overlay-pane path[fill-opacity]')).not.toBeNull());
+    expect(dialog.querySelectorAll('.leaflet-overlay-pane path[stroke-dasharray="2 6"]')).toHaveLength(0);
+  });
+
   it('shows an ended event greyed out where it was', async () => {
     render(<AlertFeed vm={vm} isDemo onOpen={mocks.openProperty} />);
     fireEvent.click(screen.getByRole('button', { name: `Visa var det var på karta: ${ended.title}` }));

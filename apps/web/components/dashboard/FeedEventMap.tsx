@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PropertyEventMapEventSchema, type PropertyEventMapEvent, type PropertySnapshot } from '@fastighetsradar/domain';
-import { demoEndedEvent } from '@/lib/demo/event-map-demo';
+import { demoSingleEvent } from '@/lib/demo/event-map-demo';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { buildDetailVM } from '@/lib/view-models/detail';
 import { feedEventMapEntry } from '@/lib/view-models/event-map';
@@ -16,6 +16,8 @@ export interface FeedMapTarget {
   mapEventId: string | null;
   /** The event has ended: shown greyed out where it was. */
   mapEnded?: boolean;
+  /** Loaded on its own (ended event, utility outage) instead of from the property's event list. */
+  mapSingle?: boolean;
 }
 
 const MAP_ICON = 'M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14';
@@ -50,16 +52,16 @@ export function FeedMapButton({ title, ended = false, onClick }: { title: string
  * the dashboard, without leaving it. `open(row)` shows the row's event; `view` is the overlay to render.
  */
 export function useFeedEventMap() {
-  const [target, setTarget] = useState<{ propertyId: string; eventId: string; ended: boolean; n: number } | null>(null);
+  const [target, setTarget] = useState<{ propertyId: string; eventId: string; single: boolean; n: number } | null>(null);
   const open = useCallback((row: FeedMapTarget) => {
-    if (row.mapEventId) setTarget({ propertyId: row.propertyId, eventId: row.mapEventId, ended: row.mapEnded === true, n: Date.now() });
+    if (row.mapEventId) setTarget({ propertyId: row.propertyId, eventId: row.mapEventId, single: row.mapSingle === true || row.mapEnded === true, n: Date.now() });
   }, []);
   const close = useCallback(() => setTarget(null), []);
-  const view = target ? <FeedEventMap key={target.n} propertyId={target.propertyId} eventId={target.eventId} ended={target.ended} onClose={close} /> : null;
+  const view = target ? <FeedEventMap key={target.n} propertyId={target.propertyId} eventId={target.eventId} single={target.single} onClose={close} /> : null;
   return { open, view };
 }
 
-function FeedEventMap({ propertyId, eventId, ended, onClose }: { propertyId: string; eventId: string; ended: boolean; onClose: () => void }) {
+function FeedEventMap({ propertyId, eventId, single, onClose }: { propertyId: string; eventId: string; single: boolean; onClose: () => void }) {
   const ds = useDashboard();
   const s = ds.portfolio.properties.find((p) => p.property.id === propertyId);
   // The property can disappear on a refresh (removed, or filtered away); then there is nothing to show.
@@ -67,17 +69,17 @@ function FeedEventMap({ propertyId, eventId, ended, onClose }: { propertyId: str
     if (!s) onClose();
   }, [s, onClose]);
   if (!s) return null;
-  return ended ? <EndedEventMap s={s} eventId={eventId} onClose={onClose} /> : <PropertyEventMap s={s} eventId={eventId} onClose={onClose} />;
+  return single ? <SingleEventMap s={s} eventId={eventId} onClose={onClose} /> : <PropertyEventMap s={s} eventId={eventId} onClose={onClose} />;
 }
 
 /**
- * An ended event: its stored stretch is loaded on demand (live API, or the demo fixture) and drawn
- * grey. If it can no longer be found (removed after a week), the view simply closes.
+ * One event loaded on its own (live API, or the demo fixture): an ended event's stored stretch, drawn
+ * grey, or a utility outage's area. If it can no longer be found (removed), the view simply closes.
  */
-function EndedEventMap({ s, eventId, onClose }: { s: PropertySnapshot; eventId: string; onClose: () => void }) {
+function SingleEventMap({ s, eventId, onClose }: { s: PropertySnapshot; eventId: string; onClose: () => void }) {
   const ds = useDashboard();
   const live = s.property.origin === 'live';
-  const [data, setData] = useState<PropertyEventMapEvent | null>(() => (live ? null : demoEndedEvent(s.property.id, eventId)));
+  const [data, setData] = useState<PropertyEventMapEvent | null>(() => (live ? null : demoSingleEvent(s.property.id, eventId)));
 
   useEffect(() => {
     if (!live) {

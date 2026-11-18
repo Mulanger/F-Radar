@@ -6,7 +6,7 @@ import { z } from 'zod';
  * the map shows exactly where the source says the event is – nothing is geocoded from text.
  */
 
-export const EVENT_MAP_ICONS = ['roadwork', 'closed', 'lanes', 'accident', 'obstacle', 'animal', 'queue', 'speed', 'signal', 'ferry', 'transit', 'water', 'crowd', 'fire', 'frost', 'air', 'info'] as const;
+export const EVENT_MAP_ICONS = ['roadwork', 'closed', 'lanes', 'accident', 'obstacle', 'animal', 'queue', 'speed', 'signal', 'ferry', 'transit', 'water', 'crowd', 'fire', 'frost', 'air', 'info', 'power', 'heat'] as const;
 export const EventMapIconSchema = z.enum(EVENT_MAP_ICONS);
 export type EventMapIcon = z.infer<typeof EventMapIconSchema>;
 
@@ -20,6 +20,9 @@ export const EventMapGeometrySchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('Point'), coordinates: Position }),
   z.object({ type: z.literal('LineString'), coordinates: z.array(Position).min(2) }),
   z.object({ type: z.literal('MultiLineString'), coordinates: z.array(z.array(Position).min(2)).min(1) }),
+  // Areas: a grid operator's outage area or postal area (outer ring first, holes are ignored when drawing).
+  z.object({ type: z.literal('Polygon'), coordinates: z.array(z.array(Position).min(4)).min(1) }),
+  z.object({ type: z.literal('MultiPolygon'), coordinates: z.array(z.array(z.array(Position).min(4)).min(1)).min(1) }),
 ]);
 export type EventMapGeometry = z.infer<typeof EventMapGeometrySchema>;
 
@@ -42,6 +45,8 @@ export const EventMapItemSchema = z.object({
   description: z.string().nullable(),
   validFrom: z.iso.datetime().nullable(),
   validTo: z.iso.datetime().nullable(),
+  /** How exact the area is, e.g. "Område enligt nätbolaget" or "Postnummerområde (ungefärligt)". */
+  extent: z.string().nullable().optional(),
 });
 export type EventMapItem = z.infer<typeof EventMapItemSchema>;
 
@@ -57,6 +62,8 @@ export const PropertyEventMapEventSchema = z.object({
   item: EventMapItemSchema,
   title: z.string(),
   sourceId: z.string(),
+  /** Who published it when it is not the source itself, e.g. the grid operator "Ellevio". */
+  sourceLabel: z.string().nullable().optional(),
   active: z.boolean(),
   endedAt: z.string().nullable(),
   /** Shortest distance from the property to the stretch/point, metres. */

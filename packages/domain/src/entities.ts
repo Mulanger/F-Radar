@@ -361,6 +361,8 @@ export const FeedItemSchema = z.object({
   eventId: z.string().optional(),
   /** The event has ended but its stretch is still stored: it can be shown on the map, greyed out. */
   eventEndedOnMap: z.boolean().optional(),
+  /** A current utility outage with a drawable area: it can be shown on the map. */
+  outageOnMap: z.boolean().optional(),
   /** Someone in the organization must acknowledge this row (warnings, VMA, critical, outages). */
   ackRequired: z.boolean().optional(),
   /** When it was acknowledged (this row, or an earlier row of the same event at the same or a higher level). */

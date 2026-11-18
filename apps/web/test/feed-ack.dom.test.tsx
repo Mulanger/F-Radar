@@ -22,11 +22,11 @@ const vm = buildOverviewVM(demoPortfolio, ui);
 const vma = vm.feed.find((f) => f.title.startsWith('VMA'))!;
 
 describe('kvittering i händelseflödet', () => {
-  it('asks to acknowledge warnings and VMA only, and counts what is left', () => {
-    expect(vm.feed.filter((f) => f.ackRequired).map((f) => f.src)).toEqual(['SMHI', 'Krisinformation']);
+  it('asks to acknowledge warnings, VMA and outages only, and counts what is left', () => {
+    expect(vm.feed.filter((f) => f.ackRequired).map((f) => f.src)).toEqual(['SMHI', 'Krisinformation', 'Ellevio']);
     render(<AlertFeed vm={vm} isDemo onOpen={mocks.openProperty} />);
-    expect(screen.getAllByRole('button', { name: /^Kvittera: / })).toHaveLength(2);
-    expect(screen.getByRole('status').textContent).toBe('2 att kvittera');
+    expect(screen.getAllByRole('button', { name: /^Kvittera: / })).toHaveLength(3);
+    expect(screen.getByRole('status').textContent).toBe('3 att kvittera');
   });
 
   it('acknowledges without opening the property, and can be undone', () => {
@@ -35,9 +35,9 @@ describe('kvittering i händelseflödet', () => {
     expect(mocks.openProperty).not.toHaveBeenCalled();
     const done = screen.getByRole('button', { name: new RegExp(`^Kvitterad \\d\\d:\\d\\d: ${vma.title.slice(0, 20)}`) });
     expect(done.getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByRole('status').textContent).toBe('1 att kvittera');
-    fireEvent.click(done);
     expect(screen.getByRole('status').textContent).toBe('2 att kvittera');
+    fireEvent.click(done);
+    expect(screen.getByRole('status').textContent).toBe('3 att kvittera');
   });
 
   it('saves for the organization in live mode and restores on failure', async () => {
@@ -62,7 +62,7 @@ describe('kvittering i händelseflödet', () => {
   it('works on the mobile Larm page too', () => {
     render(<MobileAlerts />);
     const feed = screen.getByRole('region', { name: 'Händelseflöde' });
-    expect(within(feed).getAllByRole('button', { name: /^Kvittera: / })).toHaveLength(2);
+    expect(within(feed).getAllByRole('button', { name: /^Kvittera: / })).toHaveLength(3);
     for (const b of within(feed).getAllByRole('button', { name: /^Kvittera: / })) expect(b.closest('a')).toBeNull();
   });
 });

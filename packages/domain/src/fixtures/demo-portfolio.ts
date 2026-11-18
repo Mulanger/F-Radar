@@ -180,12 +180,14 @@ const RAW: RawProperty[] = [
 // `ev`: index of the property's own event behind the row (opens it on the map from the dashboard).
 // `ended`: id of an ended demo event (its stretch is in the web demo fixture, shown greyed out).
 // `ack`: an official warning / VMA that must be acknowledged in the feed.
-const RAW_FEED: Array<{ t: string; title: string; src: string; sev: PropertyStatus; slug: string; ev?: number; ended?: string; ack?: boolean }> = [
+// `outage`: id of a demo power outage (its area is in the web demo fixture).
+const RAW_FEED: Array<{ t: string; title: string; src: string; sev: PropertyStatus; slug: string; ev?: number; ended?: string; outage?: string; ack?: boolean }> = [
   { t: '14:32', title: 'Orange varning — kraftig vind, byar upp till 25 m/s', src: 'SMHI', sev: 'critical', slug: 'augustendal-brygga', ack: true },
   { t: '14:05', title: 'Vattenståndet i Saltsjön +38 cm över medel och stigande', src: 'SMHI', sev: 'warning', slug: 'sjostaden-kaj' },
   { t: '13:48', title: 'Gräns för kraftigt regn överskriden — 12 mm på 3 h', src: 'Radar', sev: 'warning', slug: 'sjostaden-kaj' },
   { t: '13:20', title: 'VMA: industribrand, håll fönster och ventilation stängda', src: 'Krisinformation', sev: 'critical', slug: 'ulvsunda-lager', ev: 0, ack: true },
   { t: '13:10', title: 'Färjetrafiken inställd vid Nacka Strand brygga', src: 'Krisinformation', sev: 'warning', slug: 'augustendal-brygga', ev: 1 },
+  { t: '12:20', title: 'Oplanerat strömavbrott – Ellevio – berör fastigheten', src: 'Ellevio', sev: 'warning', slug: 'gotgarden', outage: 'demo-gotgarden-outage-0', ack: true },
   { t: '12:57', title: 'Körfält avstängt på E4 norrgående vid Haga', src: 'Trafikverket', sev: 'monitor', slug: 'arenastaden-hus-c', ev: 1 },
   { t: '11:40', title: 'Förhöjd NO₂, måttlig luftkvalitet', src: 'SLB-analys', sev: 'monitor', slug: 'strandhuset', ev: 0 },
   { t: '10:15', title: 'Fastigheten ligger i karterad översvämningszon (15 m)', src: 'Länsstyrelsen', sev: 'warning', slug: 'augustendal-brygga' },
@@ -465,6 +467,7 @@ const feed: FeedItem[] = RAW_FEED.map((f, i) => ({
   propertyId: demoPropertyId(f.slug),
   ...(f.ev === undefined ? {} : { eventId: `${demoPropertyId(f.slug)}-event-${f.ev}` }),
   ...(f.ended ? { eventId: f.ended, eventEndedOnMap: true } : {}),
+  ...(f.outage ? { eventId: f.outage, outageOnMap: true } : {}),
   ...(f.ack ? { ackRequired: true, acknowledgedAt: null } : {}),
   origin: 'demo_fixture',
 }));

@@ -20,8 +20,8 @@ export interface EventMapEntry {
   impact: string;
   where: string;
   description: string | null;
-  shape: 'line' | 'point' | 'area';
-  /** Polylines for a stretch; one single-point run for a point or area centre. */
+  shape: 'line' | 'point' | 'area' | 'polygon';
+  /** Polylines for a stretch; one single-point run for a point or area centre; outer rings for a polygon. */
   runs: LL[][];
   radiusM: number | null;
   lengthM: number | null;
@@ -105,8 +105,9 @@ export function eventMapEntries(events: DetailVM['events'], items: EventMapItem[
 /** Shape, stretch and labels of a mapped event (shared by current and ended events). */
 function placeOf(x: EventMapItem) {
   const runs = geometryRuns(x.geometry);
-  const line = x.geometry.type !== 'Point';
-  const shape: EventMapEntry['shape'] = line ? 'line' : x.radiusM ? 'area' : 'point';
+  const polygon = x.geometry.type === 'Polygon' || x.geometry.type === 'MultiPolygon';
+  const line = !polygon && x.geometry.type !== 'Point';
+  const shape: EventMapEntry['shape'] = polygon ? 'polygon' : line ? 'line' : x.radiusM ? 'area' : 'point';
   const lengthM = line ? x.lengthM ?? runs.reduce((s, r) => s + runLength(r), 0) : null;
   return {
     label: x.label,
@@ -118,7 +119,7 @@ function placeOf(x: EventMapItem) {
     runs,
     radiusM: x.radiusM,
     lengthM,
-    extent: shape === 'line' ? `Påverkad sträcka ≈ ${formatStretch(lengthM ?? 0)}` : shape === 'area' ? `Påverkat område · radie ${formatDistance(x.radiusM)}` : 'Exakt plats',
+    extent: x.extent ?? (shape === 'line' ? `Påverkad sträcka ≈ ${formatStretch(lengthM ?? 0)}` : shape === 'area' ? `Påverkat område · radie ${formatDistance(x.radiusM)}` : shape === 'polygon' ? 'Påverkat område' : 'Exakt plats'),
     exact: true,
   };
 }
@@ -133,18 +134,26 @@ export function endedLabel(endedAt: string | null, nowIso: string): string {
   return `Avslutad ${day}${formatClock(endedAt)}`;
 }
 
-const SOURCE_SV: Record<string, string> = { trafikverket: 'Trafikverket', sl_deviations: 'SL Trafikinfo' };
+const SOURCE_SV: Record<string, string> = { trafikverket: 'Trafikverket', sl_deviations: 'SL Trafikinfo', utility_outages: 'Nätbolaget' };
 
 /** One feed event on the map (dashboard). An ended one is drawn grey and marked "Avslutad". */
 export function feedEventMapEntry(x: PropertyEventMapEvent, nowIso: string): EventMapEntry {
   const ended = !x.active;
+  const outage = x.sourceId === 'utility_outages';
+  const area = x.item.geometry.type === 'Polygon' || x.item.geometry.type === 'MultiPolygon';
+  const restore = (iso: string) => (swedishDateKey(iso) === swedishDateKey(nowIso) ? formatClock(iso) : `${formatShortDate(iso).replace(/\.$/, '')} ${formatClock(iso)}`);
   return {
     id: x.item.eventId,
     title: x.title,
-    src: SOURCE_SV[x.sourceId] ?? x.sourceId,
-    dist: x.distanceM === null ? '—' : formatDistance(x.distanceM),
+    src: x.sourceLabel ?? SOURCE_SV[x.sourceId] ?? x.sourceId,
+    // An area the property lies in is 0 m away.
+    dist: x.distanceM === null ? '—' : area && x.distanceM === 0 ? 'Inom området' : formatDistance(x.distanceM),
     ...placeOf(x.item),
-    time: ended ? endedLabel(x.endedAt, nowIso) : x.item.validTo ? untilLabel(x.item.validTo, nowIso) : '—',
+    time: ended
+      ? endedLabel(x.endedAt, nowIso)
+      : outage
+        ? x.item.validTo ? `Beräknat klart ${restore(x.item.validTo)}` : 'Okänd sluttid'
+        : x.item.validTo ? untilLabel(x.item.validTo, nowIso) : '—',
     ...(ended ? ENDED_HUE : HUE[x.item.hue]),
     ended,
   };
@@ -169,4 +178,6 @@ export const EVENT_MAP_ICON_PATH: Record<EventMapIcon, string> = {
   frost: 'M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7M9 3.5l3 2 3-2M9 20.5l3-2 3 2',
   air: 'M17.7 7.7A2.5 2.5 0 1 1 19.5 12H2M9.6 4.6A2 2 0 1 1 11 8H2M12.6 19.4A2 2 0 1 0 14 16H2',
   info: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 11v5M12 8h.01',
+  power: 'M13 2 3 14h9l-1 8 10-12h-9l1-8z',
+  heat: 'M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0zM12 9v7',
 };

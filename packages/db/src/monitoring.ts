@@ -760,10 +760,11 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
 export async function listRecentChangesForOrg(db: Queryable, organizationId: string, limit = 50) {
   const { rows } = await db.query<{
     id: string; property_id: string; event_id: string | null; source_id: string; change_type: string; data_class: string; severity: string; headline: string; created_at: Date;
-    event_ended_on_map: boolean; event_active: boolean; superseded: boolean; acknowledged_at: Date | null;
+    event_ended_on_map: boolean; outage_on_map: boolean; event_active: boolean; superseded: boolean; acknowledged_at: Date | null;
   }>(
     `SELECT c.id::text, c.property_id, c.event_id::text AS event_id, c.source_id, c.change_type, c.data_class, c.severity, c.headline, c.created_at,
-            COALESCE(e.status <> 'active' AND e.geom IS NOT NULL AND e.source_id IN ${MAP_SOURCES_SQL}, false) AS event_ended_on_map,
+            COALESCE(e.status <> 'active' AND e.geom IS NOT NULL AND e.source_id IN ${FEED_MAP_SOURCES_SQL}, false) AS event_ended_on_map,
+            COALESCE(e.status = 'active' AND e.geom IS NOT NULL AND e.source_id = 'utility_outages', false) AS outage_on_map,
             COALESCE(e.status = 'active', false) AS event_active,
             EXISTS (SELECT 1 FROM monitoring_changes l
                      WHERE l.event_id = c.event_id AND l.property_id = c.property_id AND l.organization_id = c.organization_id
@@ -853,12 +854,16 @@ export const EVENT_MAP_LIMIT = 40;
  * Published geometry of the property's matched traffic events for "Visa på karta" (organization
  * scoped through the property). Lines are simplified to ~1 m and rounded to 6 decimals.
  */
-/** Sources whose published geometry is drawn in "Visa på karta". */
+/** Sources whose published geometry is drawn in the property's "Visa på karta" (traffic). */
 const MAP_SOURCES_SQL = `('trafikverket', 'sl_deviations')`;
+/** …and from the dashboard feed, one event at a time: also utility outage areas. */
+const FEED_MAP_SOURCES_SQL = `('trafikverket', 'sl_deviations', 'utility_outages')`;
 
-/** Geometry SQL shared by the map reads: one drawable Point/LineString per event, simplified. */
+/** Geometry SQL shared by the map reads: one drawable Point/LineString/area per event, simplified. */
 const MAP_GEOMETRY_SQL = `ST_AsGeoJSON(CASE WHEN GeometryType(e.geom) = 'MULTIPOINT' THEN ST_GeometryN(e.geom, 1)
                               WHEN GeometryType(e.geom) = 'MULTILINESTRING' THEN ST_LineMerge(ST_SimplifyPreserveTopology(e.geom, 0.00001))
+                              WHEN GeometryType(e.geom) = 'GEOMETRYCOLLECTION' THEN ST_SimplifyPreserveTopology(ST_CollectionExtract(e.geom, 3), 0.00005)
+                              WHEN GeometryType(e.geom) IN ('POLYGON', 'MULTIPOLYGON') THEN ST_SimplifyPreserveTopology(e.geom, 0.00005)
                               ELSE ST_SimplifyPreserveTopology(e.geom, 0.00001) END, 6)::json AS geometry,
             CASE WHEN GeometryType(e.geom) IN ('LINESTRING', 'MULTILINESTRING') THEN round(ST_Length(e.geom::geography))::int END AS length_m`;
 
@@ -890,30 +895,72 @@ function mapItemOf(r: MapEventRow): EventMapItem | null {
   };
 }
 
+interface OutageMapRow {
+  utility: string | null; outage_kind: string | null; outage_state: string | null; outage_precision: string | null; affected_customers: number | null;
+  actual_start: Date | null; planned_start: Date | null; planned_end: Date | null; estimated_restore: Date | null; restored_at: Date | null;
+  place_label: string | null; cause: string | null;
+}
+
+const OUTAGE_EXTENT: Record<string, string> = {
+  polygon: 'Område enligt nätbolaget',
+  area: 'Ungefärligt område enligt nätbolaget',
+  postal_area: 'Postnummerområde (ungefärligt)',
+  point: 'Punkt enligt nätbolaget',
+};
+const UTILITY_LABEL: Record<string, string> = { electricity: 'strömavbrott', district_heating: 'fjärrvärmeavbrott', water: 'vattenavbrott' };
+
+/** A utility outage on the map: its area, operator, customers and expected restoration. */
+function outageItemOf(r: MapEventRow & OutageMapRow): EventMapItem | null {
+  const g = EventMapGeometrySchema.safeParse(r.geometry);
+  if (!g.success) return null;
+  const noun = UTILITY_LABEL[r.utility ?? ''] ?? 'avbrott';
+  const planned = r.outage_kind === 'planned';
+  const iso = (d: Date | null) => (d ? d.toISOString() : null);
+  return {
+    eventId: r.event_id,
+    geometry: g.data,
+    radiusM: null,
+    lengthM: null,
+    label: planned ? `Planerat ${noun}` : noun[0]!.toUpperCase() + noun.slice(1),
+    icon: r.utility === 'district_heating' ? 'heat' : r.utility === 'water' ? 'water' : 'power',
+    hue: planned || r.outage_state === 'upcoming' ? 'orange' : 'red',
+    impact: r.affected_customers ? `${r.affected_customers.toLocaleString('sv-SE')} kunder` : null,
+    where: r.place_label?.trim() || (typeof r.extra?.operatorName === 'string' ? r.extra.operatorName : null),
+    description: r.cause?.trim() || null,
+    validFrom: iso(r.actual_start ?? r.planned_start ?? r.valid_from),
+    validTo: iso(r.estimated_restore ?? r.planned_end ?? r.restored_at ?? r.valid_to),
+    extent: OUTAGE_EXTENT[r.outage_precision ?? ''] ?? 'Område enligt nätbolaget',
+  };
+}
+
 /**
  * TENANT read: one event from the organization's feed for this property, on the map – active or
  * ended (an ended event keeps its stretch until retention). The feed row is the proof of access:
  * matches of an ended event are gone, so the event must appear in this property's monitoring changes.
  */
 export async function getPropertyEventMapEvent(db: Queryable, organizationId: string, propertyId: string, eventId: string): Promise<PropertyEventMapEvent | null> {
-  const { rows } = await db.query<MapEventRow & { status: string; ended_at: Date | null; distance_m: number | null }>(
+  const { rows } = await db.query<MapEventRow & { status: string; ended_at: Date | null; distance_m: number | null } & OutageMapRow>(
     `SELECT e.id::text AS event_id, e.source_id, e.event_type, e.headline, e.description, e.area_label, e.valid_from, e.valid_to, e.extra,
             e.status, e.ended_at, round(ST_Distance(e.geom::geography, p.location))::int AS distance_m,
+            u.utility, u.kind AS outage_kind, u.state AS outage_state, u.precision AS outage_precision, u.affected_customers,
+            u.actual_start, u.planned_start, u.planned_end, u.estimated_restore, u.restored_at, u.place_label, u.cause,
             ${MAP_GEOMETRY_SQL}
        FROM source_events e
        JOIN properties p ON p.id = $2 AND p.organization_id = $1
-      WHERE e.id = $3 AND e.geom IS NOT NULL AND e.source_id IN ${MAP_SOURCES_SQL}
+       LEFT JOIN utility_outages u ON u.event_id = e.id
+      WHERE e.id = $3 AND e.geom IS NOT NULL AND e.source_id IN ${FEED_MAP_SOURCES_SQL}
         AND EXISTS (SELECT 1 FROM monitoring_changes c WHERE c.organization_id = $1 AND c.property_id = $2 AND c.event_id = e.id)`,
     [organizationId, propertyId, eventId],
   );
   const r = rows[0];
-  const item = r ? mapItemOf(r) : null;
+  const item = r ? (r.source_id === 'utility_outages' ? outageItemOf(r) : mapItemOf(r)) : null;
   if (!r || !item) return null;
   return {
     propertyId,
     item,
     title: r.headline,
     sourceId: r.source_id,
+    sourceLabel: r.source_id === 'utility_outages' ? (typeof r.extra?.operatorName === 'string' ? r.extra.operatorName : null) : null,
     active: r.status === 'active',
     endedAt: r.status === 'active' ? null : (r.ended_at ?? r.valid_to)?.toISOString() ?? null,
     distanceM: r.distance_m === null ? null : Number(r.distance_m),
