@@ -83,3 +83,23 @@ describe('situations Trafikverket replaced by a new one', () => {
     expect(f!.nightWork).toBe('Nattarbete 22–05');
   });
 });
+
+describe('planned ends of night work', () => {
+  // Södra Länken påfart, 17→18 Nov 22:00–05:00 (Stockholm), ended 05:06 – then a new closure for the next night.
+  const night = { event_valid_from: new Date('2026-11-17T21:00:00Z'), event_valid_to: new Date('2026-11-18T04:00:00Z') };
+  const row = (id: string, change: string, at: string, over: Record<string, unknown> = {}) => ({
+    id, property_id: 'p1', source_id: 'trafikverket', change_type: change, severity: 'warning', created_at: new Date(at), event_id: `e${id}`,
+    event_type: 'Påfart', headline: 'Påfart: Södra Länken Infart Murartunneln', situation_id: `s${id}`, ...night, ...over,
+  });
+
+  it('hides "Avslutad" when a night closure ends as planned, keeps its "Ny"', () => {
+    const feed = buildFeed([row('823', 'ended', '2026-11-18T04:06:00Z'), row('818', 'new', '2026-11-17T21:00:00Z')], new Set(['p1']));
+    expect(feed.map((f) => f.title.split(':')[0])).toEqual(['Ny']);
+  });
+
+  it('still shows a night closure that is called off early, and ordinary ends', () => {
+    expect(buildFeed([row('900', 'ended', '2026-11-17T22:00:00Z')], new Set(['p1'])).map((f) => f.title.split(':')[0])).toEqual(['Avslutad']);
+    const day = { event_valid_from: new Date('2026-11-18T06:00:00Z'), event_valid_to: new Date('2026-11-18T15:00:00Z') };
+    expect(buildFeed([row('901', 'ended', '2026-11-18T15:05:00Z', day)], new Set(['p1'])).map((f) => f.title.split(':')[0])).toEqual(['Avslutad']);
+  });
+});

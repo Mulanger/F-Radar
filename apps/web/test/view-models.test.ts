@@ -6,7 +6,7 @@ const authMock = vi.fn();
 vi.mock('@clerk/nextjs/server', () => ({ auth: () => authMock() }));
 import { assessPropertyRisk, type Portfolio, type PropertySnapshot } from '@fastighetsradar/domain';
 import { demoPortfolio } from '@fastighetsradar/domain/fixtures';
-import { buildOverviewVM } from '@/lib/view-models/overview';
+import { buildOverviewVM, feedTime } from '@/lib/view-models/overview';
 import { endedLabel, feedEventMapEntry } from '@/lib/view-models/event-map';
 import { SEV } from '@/lib/design/tokens';
 import { demoSingleEvent } from '@/lib/demo/event-map-demo';
@@ -46,6 +46,15 @@ describe('overview view-model reproduces the approved design values', () => {
       feed: [{ ...demoPortfolio.feed[0]!, id: 'chg-839', propertyId: snap.property.id, eventId: 'closure-other-message' }],
     };
     expect(buildOverviewVM(portfolio, ui).feed[0]).toMatchObject({ mapEventId: kept.id, mapSingle: false });
+  });
+
+  it('gives older feed rows their day, so yesterday’s 22:00 is not read as tonight', () => {
+    const now = '2026-11-18T22:10:00+01:00';
+    expect(feedTime('2026-11-18T22:00:00+01:00', now)).toBe('22:00');
+    expect(feedTime('2026-11-17T22:00:00+01:00', now)).toBe('igår 22:00');
+    expect(feedTime('2026-11-16T07:30:00+01:00', now)).toBe('16 nov 07:30');
+    // Midnight in Stockholm, not UTC: 00:30 local on the 18th is today at 22:10 local.
+    expect(feedTime('2026-11-17T23:30:00Z', now)).toBe('00:30');
   });
 
   it('marks feed rows whose current event can be shown on the map', () => {

@@ -1,6 +1,6 @@
 import { nowcastVM } from './nowcast';
 import type { Portfolio, PropertySnapshot, PropertyStatus } from '@fastighetsradar/domain';
-import { formatClock, formatLongDate, formatNumber, type RiskFactorKey } from '@fastighetsradar/domain';
+import { formatClock, formatLongDate, formatNumber, formatShortDate, swedishDateKey, type RiskFactorKey } from '@fastighetsradar/domain';
 import { C, EXPOSURE_SV, SEV, STATUS_ORDER, WL, riskStyle } from '../design/tokens';
 import { smooth } from './chart';
 import { buildUpcomingEvents, upcomingCenter, upcomingUpdated } from './upcoming';
@@ -58,6 +58,17 @@ export interface WxSplit {
 
 export function filterByGroup(p: Portfolio, group: string) {
   return group === 'all' ? p.properties : p.properties.filter((s) => s.property.segment === group);
+}
+
+/**
+ * Feed time: "22:00" today, "igår 22:00" yesterday, otherwise "17 nov 22:00" – a recurring night
+ * closure must not make yesterday's "Ny 22:00" look like tonight's.
+ */
+export function feedTime(iso: string, nowIso: string): string {
+  const day = swedishDateKey(iso);
+  if (day === swedishDateKey(nowIso)) return formatClock(iso);
+  const yesterday = swedishDateKey(new Date(Date.parse(nowIso) - 86_400_000));
+  return `${day === yesterday ? 'igår' : formatShortDate(iso).replace(/\.$/, '')} ${formatClock(iso)}`;
 }
 
 export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
@@ -208,7 +219,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
       const single = !ev && !!f.eventId && (ended || f.outageOnMap === true);
       return {
         id: f.id,
-        t: formatClock(f.publishedAt),
+        t: feedTime(f.publishedAt, portfolio.generatedAt),
         title: f.title,
         src: f.sourceLabel,
         c: sev(f.severity).c,

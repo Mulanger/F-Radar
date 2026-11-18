@@ -513,6 +513,17 @@ type FeedChange = {
 };
 const SAME_BATCH_MS = 5 * 60_000;
 
+/**
+ * A night closure that ends as planned (05:00 after a 22:00 start) says nothing new – tonight's closure
+ * comes as its own "Ny". Only an end within an hour of the planned end is hidden: a night closure
+ * cancelled early is still shown as "Avslutad".
+ */
+function plannedNightEnd(c: FeedChange): boolean {
+  if (c.source_id !== 'trafikverket' || (c.change_type !== 'ended' && c.change_type !== 'cancelled')) return false;
+  if (!c.event_valid_to || !nightWorkLabel(c.event_valid_from, c.event_valid_to, c.event_description)) return false;
+  return c.created_at.getTime() >= c.event_valid_to.getTime() - 60 * 60_000;
+}
+
 export function buildFeed(changes: FeedChange[], propertyIds: Set<string>): FeedItem[] {
   const visible = changes
     .filter((c) => propertyIds.has(c.property_id))
@@ -520,7 +531,9 @@ export function buildFeed(changes: FeedChange[], propertyIds: Set<string>): Feed
     .filter((c) => c.source_id !== 'trafikverket' || c.severity === 'warning' || c.severity === 'critical');
   // A situation Trafikverket replaced by a new one for the same closure is not "Avslutad" + "Ny".
   const replaced = replacedTraffic(visible);
-  const rows = visible.filter((c) => !replaced.hidden.has(c.id)).map((c) => (replaced.updated.has(c.id) ? { ...c, change_type: 'updated' } : c));
+  const rows = visible
+    .filter((c) => !replaced.hidden.has(c.id) && !plannedNightEnd(c))
+    .map((c) => (replaced.updated.has(c.id) ? { ...c, change_type: 'updated' } : c));
   // Trafikverket's duplicates of one closure (both directions, cause and effect) arrive together: one row.
   const groups = groupDuplicates(
     rows,
