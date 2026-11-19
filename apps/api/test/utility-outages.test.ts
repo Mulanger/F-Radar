@@ -114,7 +114,7 @@ describe('collector jobs and health', () => {
     expect(off.every((j) => !j.enabled)).toBe(true);
     const on = buildUtilityOutageJobs(loadServerEnv({ SOURCE_UTILITY_OUTAGES_ENABLED: 'true', UTILITY_OUTAGE_OPERATORS: 'vattenfall,digpro:fev' }));
     expect(on.filter((j) => j.enabled).map((j) => j.jobId).sort()).toEqual(['utility_concessions:digpro:fev', 'utility_concessions:ei', 'utility_outages:digpro:fev', 'utility_outages:vattenfall']);
-    expect(on.every((j) => j.intervalSeconds === 300 || j.jobId.startsWith('utility_concessions:'))).toBe(true);
+    expect(on.every((j) => j.intervalSeconds === 300 || j.jobId === 'utility_outages:solor' && j.intervalSeconds === 900 || j.jobId.startsWith('utility_concessions:'))).toBe(true);
   });
   it('poll interval cannot go below 120 s', () => {
     expect(() => loadServerEnv({ UTILITY_OUTAGE_POLL_SECONDS: '60' })).toThrow();

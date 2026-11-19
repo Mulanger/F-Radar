@@ -1,0 +1,43 @@
+[
+  {
+    "operator": "stockholm_exergi",
+    "valid": true,
+    "count": 19,
+    "skipped": 0,
+    "ignored": 0,
+    "utilities": [
+      "district_heating"
+    ]
+  },
+  {
+    "operator": "vattenfall_heat",
+    "valid": true,
+    "count": 8,
+    "skipped": 0,
+    "ignored": 0,
+    "utilities": [
+      "district_heating"
+    ]
+  },
+  {
+    "operator": "solor",
+    "valid": true,
+    "count": 2,
+    "skipped": 0,
+    "ignored": 1,
+    "utilities": [
+      "district_heating"
+    ]
+  },
+  {
+    "operator": "umea_heat",
+    "valid": true,
+    "count": 34,
+    "skipped": 0,
+    "ignored": 97,
+    "utilities": [
+      "district_heating",
+      "district_cooling"
+    ]
+  }
+]

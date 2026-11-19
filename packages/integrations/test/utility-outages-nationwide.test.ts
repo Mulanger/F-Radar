@@ -37,7 +37,7 @@ describe('nationwide electricity additions: actual pod response contracts', () =
   });
   it('Umeå reads only published utilities, explicit states and polygons; swapped axes are rejected', () => {
     const data = fx('umea-public');
-    const r = parseUmea(data, operatorById('umea')!, now)!;
+    const r = parseUmea(data, { ...operatorById('umea')!, utilities: ['electricity'] }, now)!;
     expect(r.skipped).toBe(0);
     expect(r.outages.every((o) => o.utility === 'electricity')).toBe(true);
     // No active electricity outage was present in the captured public response.

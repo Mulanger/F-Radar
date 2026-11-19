@@ -98,7 +98,8 @@ export function parseServiceAlert(raw: unknown, op: UtilityOperator, utilities: 
   let skipped = 0;
   let ignored = 0;
   for (const profile of p.data.profileSettingsAndMessages) {
-    const prof = serviceAlertProfile(profile.profileTitle);
+    const mapped = op.platform === 'servicealert' ? op.profileUtilities?.[profile.profileTitle ?? ''] : undefined;
+    const prof = mapped ? { utility: mapped, kind: 'unknown' as const } : serviceAlertProfile(profile.profileTitle);
     const utility = prof?.utility;
     for (const rawMsg of profile.webMessages ?? []) {
       if (!prof || !utility || !utilities.includes(utility)) {

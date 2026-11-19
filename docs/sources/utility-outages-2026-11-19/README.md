@@ -149,3 +149,25 @@ Fortsatt öppet (Fas 2 är därför delvis):
   verifieras bättre innan det kopplas in. Vi har inte behandlat dessa nollor som bevis för berörda kunder.
 - Övriga saknade elnät är inte färdiginventerade. Rangordningen i `electricity.json` kvarstår;
   arbetet har inte styrts av testportföljen.
+
+### Fas 4: verifierade värmekällor
+
+- Stockholm Exergi: Digpro `fpdh_fov`, podd HTTP 200, fulla svaret 19 poster/0 skipped.
+  Ingen publicerad koncessionskarta vid `/bios/site/concession.kml` (404); inga påhittade nätområden.
+- Vattenfall Värme: officiell sida länkar `https://heatoutagemap.vattenfall.se/NisOutageMap/`.
+  GetApplicationData, StaticObjects och GetObjectsByTiles svarar 200 från podden.
+  Scope `h`, åtta avbrott/0 skipped. Stationskoppling ger driftområdesprecision, aldrig SMS.
+  Bara värmelagret är verifierat; ingen separat kyladapter antas från texter som nämner kyla.
+- Solör Bioenergi: officiell driftinformationssida bäddar in ServiceAlert med kund-id
+  `8db0da40-30d0-46f1-9edf-3ce22a771f48,eea230aa-0ed3-4d19-8681-d46b1f32c4d7`.
+  Podd 200, två värmemeddelanden/0 skipped. Endast exakt observerade regionala profiltitlar mappas;
+  VA Solna/Järfälla/Danderyd räknas inte som värme. Okänd avbrottstyp och starttid förblir okända.
+- Umeå: samma redan verifierade blob, domän 2 värme/3 kyla; fulla svaret 34 poster/0 skipped.
+- Mälarenergi: scope h har två meddelanden men StaticObjects har endast elområden (`p`).
+  Att låna elnätets geometri skulle ge felaktig precision; värmeadaptern byggs därför inte.
+- Öresundskrafts verifierade Trimble-flöde innehåller endast scope p (el). Den publika sidan visar
+  värmetabeller, men ännu ingen verifierad koppling till kundernas avbrottsområden.
+- Övriga värmebolag återstår att verifiera. Norrenergi-sidan kunde inte läsas med webbsökverktyget;
+  det är inte bevis för att den saknar användbart flöde.
+
+Fullparse-metadata: `phase4-pod-parsing.json`. Fixtures är riktiga poddsvar med kontaktuppgifter borttagna.

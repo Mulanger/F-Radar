@@ -63,6 +63,8 @@ interface OperatorBase {
   enableFlag?: keyof ServerEnv;
   utilityFlags?: Partial<Record<UtilityKind, keyof ServerEnv>>;
   pollSeconds?: number;
+  /** New sources never infer restoration from disappearance. */
+  reportsRestored?: boolean;
   /** Stable id used in job ids, external ids and UTILITY_OUTAGE_OPERATORS. */
   id: string;
   /** Display name shown to customers. */
@@ -85,4 +87,4 @@ export type UtilityOperator =
   | (OperatorBase & { platform: 'trimble'; base: string; scope: string })
   | (OperatorBase & { platform: 'eon'; base: string })
   /** ServiceAlert (sms-service.dk / servicealert.se) driftstatus map. */
-  | (OperatorBase & { platform: 'servicealert'; apiBase: string; customerIds: string });
+  | (OperatorBase & { platform: 'servicealert'; apiBase: string; customerIds: string; profileUtilities?: Record<string, UtilityKind> });

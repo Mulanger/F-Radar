@@ -98,3 +98,10 @@ Efter aktivering måste varje jobb ha en komplett lyckad hämtning innan adresse
 - Ritad ServiceAlert-yta kan visas som information. Rena adresspunkter utan ritad yta är ännu inte
   tillräckliga för en exakt avbrottsyta och gör svaret partial. Det gäller bland annat aktuella VA-poster
   hos Eskilstuna och Göteborg. Ingen "Bevakas" från ett sådant partial-svar.
+
+Fas 4 tillför `SOURCE_UTILITY_EXERGI_ENABLED`, `SOURCE_UTILITY_VATTENFALL_HEAT_ENABLED`,
+`SOURCE_UTILITY_SOLOR_ENABLED` och `SOURCE_UTILITY_UMEA_HEAT_ENABLED`, alla false.
+Umeås värme/kyla kräver dessutom `SOURCE_UTILITY_UMEA_ENABLED` och global insamling.
+Övriga tre är separata operatörer (id stockholm_exergi, vattenfall_heat, solor) som också måste ingå
+om UTILITY_OUTAGE_OPERATORS begränsar urvalet. Ingen ny migrering. Exergi/Vattenfall/Solör får
+aldrig påstå återställning när en post försvinner. Okänd nätutbredning räknas inte som bevakad.

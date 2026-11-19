@@ -24,6 +24,25 @@ const digpro = (name: string, host: string, cust: string, concession: boolean, e
 
 export const UTILITY_OPERATORS: UtilityOperator[] = [
   {
+    id: 'stockholm_exergi', name: 'Stockholm Exergi', platform: 'digpro',
+    host: 'avbrott.stockholmexergi.com', cust: 'fov', concessionUrl: null,
+    utilities: ['district_heating'], eiNames: [], reportsRestored: true,
+    mapUrl: 'https://www.stockholmexergi.se/driftinformation/', enableFlag: 'SOURCE_UTILITY_EXERGI_ENABLED',
+  },
+  {
+    id: 'vattenfall_heat', name: 'Vattenfall Värme', platform: 'trimble', scope: 'h',
+    base: 'https://heatoutagemap.vattenfall.se/NisOutageMap', utilities: ['district_heating'],
+    mapUrl: 'https://www.vattenfall.se/fjarrvarme/avbrott/', eiNames: [], reportsRestored: true,
+    enableFlag: 'SOURCE_UTILITY_VATTENFALL_HEAT_ENABLED',
+  },
+  {
+    id: 'solor', name: 'Solör Bioenergi', platform: 'servicealert', apiBase: 'https://se.sms-service.dk/api',
+    customerIds: '8db0da40-30d0-46f1-9edf-3ce22a771f48,eea230aa-0ed3-4d19-8681-d46b1f32c4d7',
+    utilities: ['district_heating'], eiNames: [], pollSeconds: 900,
+    mapUrl: 'https://solorbioenergi.se/driftinformation/', enableFlag: 'SOURCE_UTILITY_SOLOR_ENABLED',
+    profileUtilities: Object.fromEntries(['Region Syd', 'Region Stockholm – Sandudden', 'Region Väst - Driftområde Falköping', 'Region Stockholm', 'Region Mellan', 'Region Nordväst', 'Region Norr', 'Region Öst', 'Region Småland', 'Region Väst - Driftområde Härryda', 'Region Väst - Driftområde Örebro', 'Region Väst - Driftområde Svenljunga'].map((p) => [p, 'district_heating' as const])),
+  },
+  {
     id: 'oresundskraft', name: 'Öresundskraft Elnät', platform: 'trimble', scope: 'p',
     base: 'https://driftinformation.oresundskraft.se/OutageMap', utilities: ['electricity'],
     mapUrl: 'https://www.oresundskraft.se/avbrottsinformation/', eiNames: ['Öresundskraft Elnät AB'],
@@ -37,7 +56,8 @@ export const UTILITY_OPERATORS: UtilityOperator[] = [
     eiNames: ['Kraftringen Nät AB'], enableFlag: 'SOURCE_UTILITY_KRAFTRINGEN_ENABLED',
   },
   {
-    id: 'umea', name: 'Umeå Energi Elnät', platform: 'umea', utilities: ['electricity'],
+    id: 'umea', name: 'Umeå Energi', platform: 'umea', utilities: ['electricity', 'district_heating', 'district_cooling'],
+    utilityFlags: { district_heating: 'SOURCE_UTILITY_UMEA_HEAT_ENABLED', district_cooling: 'SOURCE_UTILITY_UMEA_HEAT_ENABLED' },
     dataUrl: 'https://uewebstorage.blob.core.windows.net/disturbance-data-prod/disturbances.json',
     mapUrl: 'https://driftinfo.umeaenergi.se/', eiNames: ['Umeå Energi Elnät AB'], enableFlag: 'SOURCE_UTILITY_UMEA_ENABLED',
   },

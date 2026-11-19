@@ -59,3 +59,8 @@ Kommande-listan prioriterar kommande officiella perioder före härledda rader, 
   vatten-/gasflaggor. Kokningsklassificering/vatten-SMS följer i Fas 5. Utility-avgränsad debounce.
   64 filer, 492 godkända/6 överhoppade; typer/lint gröna; PostGIS 34/34.
   Koordinatlistor utan yta ger partial; ingen påhittad polygon eller falsk tomgång.
+
+2026-11-19 Fas 4: Exergi, Vattenfall Värme, Solör och Umeå värme/kyla bakom avstängda flaggor.
+Fulla poddsvar normaliseras utan skipped. Mälarenergi/Öresundskraft saknar ännu säker värmegeometri.
+65 Vitest-filer, 496 godkända och 6 överhoppade; typer/lint gröna; PostGIS 34/34.
+Ingen aktivering/deploy. Ny värme får inte antagen återställning.

@@ -1,0 +1,264 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 45,
+    "defaultMapCenterCoords": {
+      "lat": 56.392921447753906,
+      "lng": 17.384719848632812
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": false,
+    "showPolygons": false,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": true,
+    "showArchiveDays": null,
+    "showClusterMarkers": false,
+    "id": 561
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 7236,
+      "profileName": null,
+      "profileTitle": "Region Syd",
+      "cssColor": "Red",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/SolörBioenergi/Symbol_fjärrvärme.png",
+      "sortOrder": 2,
+      "webMessages": []
+    },
+    {
+      "id": 7106,
+      "profileName": null,
+      "profileTitle": "Region Stockholm – Sandudden",
+      "cssColor": "Red",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/SolörBioenergi/Symbol_fjärrvärme.png",
+      "sortOrder": 3,
+      "webMessages": []
+    },
+    {
+      "id": 7416,
+      "profileName": null,
+      "profileTitle": "Region Väst - Driftområde Falköping",
+      "cssColor": "Yellow",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/SolörBioenergi/Symbol_fjärrvärme.png",
+      "sortOrder": 2,
+      "webMessages": []
+    },
+    {
+      "id": 7671,
+      "profileName": null,
+      "profileTitle": "VA Solna",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/water-drop-2.png",
+      "sortOrder": 1,
+      "webMessages": []
+    },
+    {
+      "id": 7773,
+      "profileName": null,
+      "profileTitle": "Region Stockholm",
+      "cssColor": "Black",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/SolörBioenergi/Symbol_fjärrvärme.png",
+      "sortOrder": 1,
+      "webMessages": [
+        {
+          "id": 234827,
+          "smsGroupId": 3403092,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{  \"type\": \"Feature\",  \"properties\": {    \"radius\": 1945.75488198526  },  \"geometry\": {    \"type\": \"Point\",    \"coordinates\": [      17.795251374816495,      59.277101806600875    ]  }}]",
+          "title": "Ingen värme och varmvatten på grund av strömavbrott i (Ekerö)",
+          "text": "<p>Hej!</p><br /><p>Just nu är värmeleveransen påverkad av strömavbrott på Ekerö. Leverans av varmvatten och värme är påverkad.</p><br /><br /><p>Avbrottet beror på omständigheter utanför vår kontroll och vi har tyvärr ingen prognos för när strömmen är tillbaka. Ellevio har provisoriskt kopplat om men aviserat att de kommer slå av strömmen under dagen</p><br /><p>Vi följer situationen och uppdaterar så snart vi har ny information.</p><br /><p>Tack för din förståelse!</p><br /><p>Vänliga hälsningar,</p><p>Solör Bioenergi Fjärrvärme</p>",
+          "profileId": 7773,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-20T07:00:00Z",
+          "dateDelayUtc": "2026-11-19T08:00:00Z",
+          "affectedAddressesCoordinates": null
+        }
+      ]
+    },
+    {
+      "id": 7672,
+      "profileName": null,
+      "profileTitle": "VA Järfälla",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/water-drop-2.png",
+      "sortOrder": 1,
+      "webMessages": []
+    },
+    {
+      "id": 7476,
+      "profileName": null,
+      "profileTitle": "Region Mellan",
+      "cssColor": "White",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/SolörBioenergi/Symbol_fjärrvärme.png",
+      "sortOrder": 1,
+      "webMessages": []
+    },
+    {
+      "id": 7522,
+      "profileName": null,
+      "profileTitle": "Region Nordväst",
+      "cssColor": "Green",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/SolörBioenergi/Symbol_fjärrvärme.png",
+      "sortOrder": 2,
+      "webMessages": []
+    },
+    {
+      "id": 7419,
+      "profileName": null,
+      "profileTitle": "Region Norr",
+      "cssColor": "Green",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/SolörBioenergi/Symbol_fjärrvärme.png",
+      "sortOrder": 3,
+      "webMessages": []
+    },
+    {
+      "id": 7412,
+      "profileName": null,
+      "profileTitle": "Region Öst",
+      "cssColor": "Red",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/SolörBioenergi/Symbol_fjärrvärme.png",
+      "sortOrder": 4,
+      "webMessages": []
+    },
+    {
+      "id": 7411,
+      "profileName": null,
+      "profileTitle": "Region Småland",
+      "cssColor": "White",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/SolörBioenergi/Symbol_fjärrvärme.png",
+      "sortOrder": 5,
+      "webMessages": [
+        {
+          "id": 234214,
+          "smsGroupId": 3391226,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{  \"type\": \"Feature\",  \"properties\": {    \"radius\": 500  },  \"geometry\": {    \"type\": \"Point\",    \"coordinates\": [      12.049884755575832,      57.894251647046794    ]  }}]",
+          "title": "Planerat avbrott i fjärrvärmen i Nödinge",
+          "text": "<p>Vi kommer att genomföra en inkoppling på en fastighet i Nödinge, vilket påverkar fastigheter på följande adresser:</p><p>Ale Torg, Södra Klöverstigen, Vitklövergatan, Norra Klöverstigen, Rödklövergatan, Nödinge</p><br /><p>För att kunna genomföra arbetet behöver vi stänga av fjärrvärmen måndag 23 november 08:00-14:00.</p><br /><p>Kallvattnet påverkas inte&nbsp;– det fungerar som vanligt under hela avbrottet.</p><br /><p>Har du frågor, välkommen att kontakta kundsupport på [telefon borttagen] 00.</p>",
+          "profileId": 7411,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-23T15:00:00Z",
+          "dateDelayUtc": "2026-11-16T13:00:00Z",
+          "affectedAddressesCoordinates": null
+        }
+      ]
+    },
+    {
+      "id": 7414,
+      "profileName": null,
+      "profileTitle": "Region Väst - Driftområde Härryda",
+      "cssColor": "Yellow",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/SolörBioenergi/Symbol_fjärrvärme.png",
+      "sortOrder": 6,
+      "webMessages": []
+    },
+    {
+      "id": 7413,
+      "profileName": null,
+      "profileTitle": "Region Väst - Driftområde Örebro",
+      "cssColor": "Yellow",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/SolörBioenergi/Symbol_fjärrvärme.png",
+      "sortOrder": 7,
+      "webMessages": []
+    },
+    {
+      "id": 7415,
+      "profileName": null,
+      "profileTitle": "Region Väst - Driftområde Svenljunga",
+      "cssColor": "Yellow",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/SolörBioenergi/Symbol_fjärrvärme.png",
+      "sortOrder": 8,
+      "webMessages": []
+    },
+    {
+      "id": 4874,
+      "profileName": "Veolia, på uppdrag av Danderyd VA",
+      "profileTitle": "Veolia, på uppdrag av Danderyd VA",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/water-drop-2.png",
+      "sortOrder": null,
+      "webMessages": [
+        {
+          "id": 218596,
+          "smsGroupId": 3100937,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[18.019638,59.414335],[18.019171,59.414021],[18.021317,59.413418],[18.022149,59.412869],[18.022503,59.413036],[18.022267,59.412777],[18.023061,59.412556],[18.023415,59.412638],[18.023688,59.413175],[18.021226,59.413936],[18.019638,59.414335]]]}}]",
+          "title": "VA Arbete Sätraängsvägen",
+          "text": "<p><strong style=\"background-color: transparent; color: rgb(51, 51, 51);\">Börjar: 2026/08/17 kl 08:00</strong></p><p><strong style=\"background-color: transparent; color: rgb(51, 51, 51);\">Beräknad klart: V48</strong></p><p><strong style=\"background-color: transparent; color: rgb(51, 51, 51);\">Berörda områden: Sätraängsvägen mellan Danarövägen och Örtvägen</strong></p><p><strong style=\"background-color: transparent; color: rgb(51, 51, 51);\">Uppdaterad: 2026-10-02 kl 10:20</strong></p><p><span style=\"background-color: transparent; color: rgb(51, 51, 51);\">En underhållsåtgärd på det kommunala VA-nätet är planerad vid Sätraängsvägen mellan Danarövägen och Örtvägen mellan vecka 34 och 48. Arbetet kommer pågå i olika etapper:</span></p><p>Etapp 1: Relining spillvattenledning och dagvattenledning.</p><p>Etapp 2: Rensning av sly vid bullerplank, start av schaktning av huvudvattenledning samt serviser.</p><p>Etapp 3: Slipplining huvudvattenledning och omkoppling vattenserviser, tillfälliga kortare vattenavstängningar kommer ske och meddelas separat.</p><p>Etapp 4: Återställning av schakt, beräknat klart vecka 48</p><br /><p><span style=\"background-color: transparent; color: rgb(51, 51, 51);\">Följ utvecklingen på </span><u style=\"background-color: transparent; color: rgb(51, 51, 51);\"><a href=\"https://www.danderyd.se/driftinfo.va\" rel=\"noopener noreferrer\" target=\"_blank\">https://www.danderyd.se/driftinfo.va</a></u></p>",
+          "profileId": 4874,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-12-06T07:00:00Z",
+          "dateDelayUtc": "2026-08-14T07:50:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 59.41307487350207,
+              "lng": 18.02223101908027
+            },
+            {
+              "lat": 59.41326333475769,
+              "lng": 18.022054713924703
+            },
+            {
+              "lat": 59.413460761563776,
+              "lng": 18.021843207295372
+            },
+            {
+              "lat": 59.4136042867678,
+              "lng": 18.02150844162476
+            },
+            {
+              "lat": 59.41372088056197,
+              "lng": 18.021120870257015
+            },
+            {
+              "lat": 59.41384645738861,
+              "lng": 18.020786156602416
+            },
+            {
+              "lat": 59.41395405158935,
+              "lng": 18.020363365389308
+            },
+            {
+              "lat": 59.414052678353066,
+              "lng": 18.019975807323828
+            },
+            {
+              "lat": 59.41414234045969,
+              "lng": 18.019605906565562
+            },
+            {
+              "lat": 59.41269809491129,
+              "lng": 18.0230943088722
+            },
+            {
+              "lat": 59.41289544805802,
+              "lng": 18.022601023966693
+            },
+            {
+              "lat": 59.41285970543184,
+              "lng": 18.023217422960233
+            },
+            {
+              "lat": 59.41310194056288,
+              "lng": 18.022706472901888
+            },
+            {
+              "lat": 59.413012322905224,
+              "lng": 18.02328771287411
+            },
+            {
+              "lat": 59.41338014135985,
+              "lng": 18.022477263911245
+            },
+            {
+              "lat": 59.41315597333617,
+              "lng": 18.023393237447177
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

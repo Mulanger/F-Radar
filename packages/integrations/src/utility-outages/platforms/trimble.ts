@@ -174,7 +174,7 @@ export function parseTrimble(appData: unknown, districts: TrimbleDistrict[], sta
     const planned = kind === 'planned';
     outages.push({
       operatorId: op.id,
-      utility: 'electricity',
+      utility: op.utilities[0]!,
       externalId: `${op.id}:${o.id}`,
       kind,
       state,

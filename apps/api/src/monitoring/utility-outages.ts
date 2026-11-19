@@ -62,7 +62,7 @@ async function runOperator(op: UtilityOperator, ctx: JobContext): Promise<JobRes
     d.outages.map((o) => ({ ...o, operatorName: op.name, attribution: attribution(op) })),
     d.skipped === 0,
     new Date(),
-    { reportsRestored: PLATFORMS_REPORTING_RESTORED.includes(op.platform), utilities: op.utilities },
+    { reportsRestored: op.reportsRestored ?? PLATFORMS_REPORTING_RESTORED.includes(op.platform), utilities: op.utilities },
   );
   const changes = await rematchUtilityOutages(ctx.db);
   return {
