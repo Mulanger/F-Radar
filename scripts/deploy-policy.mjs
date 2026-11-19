@@ -51,5 +51,6 @@ export function deploymentEnvironment(current, local) {
     'servicealert:emmaboda',
     'servicealert:ljusdal',
   ].join(',');
+  vars.SOURCE_UTILITY_GAS_ENABLED = 'true';
   return vars;
 }
