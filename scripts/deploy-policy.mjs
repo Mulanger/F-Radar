@@ -47,6 +47,7 @@ export function deploymentEnvironment(current, local) {
     'svoa',
     'tekniskaverken',
     'servicealert:soderhamn',
+    'servicealert:oxelo',
   ].join(',');
   return vars;
 }
