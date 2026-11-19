@@ -22,6 +22,10 @@ export interface FeedMapTarget {
 
 const MAP_ICON = 'M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14';
 
+export function FeedUpdatedBadge() {
+  return <span className={styles.updated}>Uppdaterad</span>;
+}
+
 /**
  * The small map button in a feed card's lower right corner. It never navigates: clicks and keys stop
  * here, so the card around it can still open the property.

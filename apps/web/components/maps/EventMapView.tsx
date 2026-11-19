@@ -269,7 +269,7 @@ export function EventMapView({ entries, openId, onSelect, onClose, property, liv
                 <div className={s.title}>{e.title}</div>
               </div>
             </div>
-            {e.description && <div className={s.desc}>{e.description}</div>}
+            {e.description && <div key={e.id} className={s.desc} role="region" aria-label="Beskrivning" tabIndex={0}>{e.description}</div>}
             <div className={s.facts}>
               <div><div className={s.factLabel}>Tid</div><div className={s.factValue}>{e.time}</div></div>
               <div><div className={s.factLabel}>Avstånd</div><div className={s.factValue}>{e.dist}</div></div>

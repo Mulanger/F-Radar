@@ -63,6 +63,15 @@ describe('<EventMapView />', () => {
     unmount();
     expect(document.body.style.overflow).toBe('auto');
   });
+
+  it('renders the entire source description in a focusable region', () => {
+    const description = `${'Lång trafikuppdatering.\n'.repeat(55)}Bärgaren har lämnat platsen.`;
+    render(<EventMapView entries={[{ ...road, description }]} openId={road.id} onSelect={() => {}} onClose={() => {}} property={property} live />);
+    const body = screen.getByRole('region', { name: 'Beskrivning' });
+    expect(body.textContent).toBe(description);
+    body.focus();
+    expect(document.activeElement).toBe(body);
+  });
 });
 
 describe('"Visa på karta" in the event list', () => {

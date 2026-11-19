@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { C } from '@/lib/design/tokens';
 import { IconChevronRight } from '../ui/icons';
 import type { OverviewVM } from '@/lib/view-models/overview';
-import { FeedMapButton, type FeedMapTarget } from '../dashboard/FeedEventMap';
+import { FeedMapButton, FeedUpdatedBadge, type FeedMapTarget } from '../dashboard/FeedEventMap';
 import { FeedAckButton, type FeedAcks } from '../dashboard/FeedAck';
 import { NightMoon } from '../dashboard/NightMoon';
 import styles from './mobile.module.css';
@@ -34,12 +34,18 @@ export function MobileFeedRows({ feed, basePath, onMap, acks }: { feed: Overview
   return feed.map((f) => {
     const map = onMap && f.mapEventId;
     const ack = acks && f.ackRequired;
-    return <div key={f.id} className={styles.feedItem} data-acks={ack ? '' : undefined} data-ack={ack && !acks.ackedAt(f) ? 'waiting' : undefined}>
-    <Link href={`${basePath}/properties/${encodeURIComponent(f.propertyId)}`} className={styles.feedRow}>
+    const content = <>
       <span className={styles.feedIcon} style={{ background: f.bg }}><span className={styles.dot} style={{ background: f.c, width: 8, height: 8 }} /></span>
-      <div className={styles.feedMain}><div className={styles.feedTitle}>{f.title}</div><div className={styles.feedMeta}><span className={styles.source}>{f.src}</span><span>{f.prop}</span></div></div>
-      <span className={styles.time} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: 5 }}>{f.nightWork && <NightMoon label={f.nightWork} />}<time>{f.t}</time></span>
-    </Link>
+      <span className={styles.feedMain}><span className={styles.feedTitle}>{f.title}</span><span className={styles.feedMeta}><span className={styles.source}>{f.src}</span><span>{f.prop}</span></span></span>
+      <span className={styles.feedTime}>
+        {f.updated && <FeedUpdatedBadge />}
+        <span className={styles.time} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: 5 }}>{f.nightWork && <NightMoon label={f.nightWork} />}<time>{f.t}</time></span>
+      </span>
+    </>;
+    return <div key={f.rowKey} className={styles.feedItem} data-acks={ack ? '' : undefined} data-ack={ack && !acks.ackedAt(f) ? 'waiting' : undefined}>
+    {map && f.opensTrafficDetails
+      ? <button type="button" className={styles.feedRow} onClick={() => onMap(f)}>{content}</button>
+      : <Link href={`${basePath}/properties/${encodeURIComponent(f.propertyId)}`} className={styles.feedRow}>{content}</Link>}
     {(map || ack) && <div className={styles.feedMap}>
       {ack && <FeedAckButton f={f} acks={acks} />}
       {map && <FeedMapButton title={f.title} ended={f.mapEnded} onClick={() => onMap(f)} />}

@@ -43,8 +43,30 @@ describe('Trafikverket duplicates', () => {
       event_type: k.eventType, situation_id: k.situationId, event_valid_from: new Date(FROM), event_valid_to: new Date(TO), ...over,
     });
     const feed = buildFeed([...bergius.map((k, i) => row(String(i + 1), k)), row('9', bergius[0]!, { property_id: 'p2' }), row('10', bergius[0]!, { created_at: new Date(at.getTime() + 3_600_000) })], new Set(['p1', 'p2']));
-    expect(feed.map((f) => f.title)).toEqual([`Ny: Vägarbete, vägen avstängd: ${NEAR}`, `Ny: Vägarbete: ${NEAR}`, `Ny: Vägarbete: ${NEAR}`]);
-    expect(feed.map((f) => f.propertyId)).toEqual(['p1', 'p2', 'p1']);
+    expect(feed.map((f) => f.title)).toEqual([`Ny: Vägarbete: ${NEAR}`, `Ny: Vägarbete, vägen avstängd: ${NEAR}`, `Ny: Vägarbete: ${NEAR}`]);
+    expect(feed.map((f) => f.propertyId)).toEqual(['p1', 'p1', 'p2']);
+  });
+
+  it('keeps the first visible traffic card across later versions and its end', () => {
+    const row = (id: string, minute: number, change_type: string, severity: string, headline = 'Olycka: E14 vid Odenskog') => ({
+      id, property_id: 'p1', event_id: 'accident', source_id: 'trafikverket', change_type, severity, headline,
+      created_at: new Date(Date.UTC(2026, 10, 19, 15, minute)),
+    });
+    const initial = row('1', 30, 'new', 'info');
+    const first = row('2', 36, 'updated', 'warning');
+    const latest = row('3', 41, 'updated', 'info', 'Olycka: Påfarten vid Odenskog avstängd');
+    const ended = { ...row('4', 57, 'ended', 'info'), event_ended_on_map: true };
+    const otherProperty = { ...first, id: '5', property_id: 'p2' };
+    const propertyIds = new Set(['p1', 'p2']);
+    expect(buildFeed([initial], propertyIds)).toEqual([]);
+    expect(buildFeed([first, initial], propertyIds)[0]).toMatchObject({ title: `Ny: ${first.headline}`, publishedAt: first.created_at.toISOString() });
+    const [active] = buildFeed([latest, first, initial], propertyIds);
+    expect(active).toMatchObject({ id: 'chg-3', title: `Ny: ${first.headline}`, publishedAt: first.created_at.toISOString(), updatedAt: latest.created_at.toISOString() });
+    const feed = buildFeed([ended, latest, first, otherProperty, initial], propertyIds);
+    expect(feed).toHaveLength(2);
+    const closed = feed.find((item) => item.propertyId === 'p1');
+    expect(closed).toMatchObject({ id: 'chg-4', title: `Avslutad: ${first.headline}`, publishedAt: first.created_at.toISOString(), updatedAt: latest.created_at.toISOString(), eventEndedOnMap: true });
+    expect(feed.find((item) => item.propertyId === 'p2')?.updatedAt).toBeUndefined();
   });
 });
 

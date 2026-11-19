@@ -215,11 +215,14 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
       // The feed row may be about any message of a merged closure (the feed and the list pick their own).
       const ev = f.eventId ? byId.get(f.propertyId)?.events.find((e) => (e.id === f.eventId || e.memberIds?.includes(f.eventId!)) && e.location) : undefined;
       const ended = !ev && !!f.eventId && f.eventEndedOnMap === true;
-      // Ended events and utility outages are loaded one at a time (they are not in the property's event list).
-      const single = !ev && !!f.eventId && (ended || f.outageOnMap === true);
+      // Fetch the exact traffic event on open, including updates to its source text.
+      const opensTrafficDetails = f.origin === 'live' && f.sourceId === 'trafikverket' && !!f.eventId;
+      const single = opensTrafficDetails || !ev && !!f.eventId && (ended || f.outageOnMap === true);
       return {
         id: f.id,
+        rowKey: opensTrafficDetails ? `${f.propertyId}:${f.eventId}` : f.id,
         t: feedTime(f.publishedAt, portfolio.generatedAt),
+        updated: !!f.updatedAt,
         title: f.title,
         src: f.sourceLabel,
         c: sev(f.severity).c,
@@ -227,11 +230,12 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
         prop: byId.get(f.propertyId)?.property.name ?? '—',
         propertyId: f.propertyId,
         /** Event to open in the map view, or null when the row has nothing to show there. */
-        mapEventId: ev ? ev.id : single ? f.eventId! : null,
+        mapEventId: single ? f.eventId! : ev?.id ?? null,
         /** The event has ended: the map shows where it was, greyed out. */
         mapEnded: ended,
         /** Load this one event for the map (ended event or utility outage) instead of the property's list. */
         mapSingle: single,
+        opensTrafficDetails,
         /** Must be acknowledged by someone in the organization (warnings, VMA, critical, outages). */
         ackRequired: f.ackRequired === true,
         acknowledgedAt: f.acknowledgedAt ?? null,

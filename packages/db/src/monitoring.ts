@@ -757,13 +757,40 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
   return { history:history.rows, hydrologyReferences:hydrologyReferences.rows, nowcasts: nowcasts.rows, forecasts: forecasts.rows, events: events.rows, contexts: contexts.rows, observations: observations.rows, counties: counties.rows, airHistory: airHistory.rows };
 }
 
-export async function listRecentChangesForOrg(db: Queryable, organizationId: string, limit = 50) {
+export async function listRecentChangesForOrg(db: Queryable, organizationId: string, limit = 50, forPortfolio = false) {
+  const changeKey = `CASE WHEN c.source_id = 'trafikverket' AND c.event_id IS NOT NULL
+    THEN c.property_id || ':' || c.event_id ELSE c.id::text END`;
+  // Limit the feed by event before fetching the rows needed for each traffic event's lifecycle.
+  // Keep the first visible row even when it predates the recent window.
+  const portfolioRows = `WITH recent AS (
+    SELECT * FROM (
+      SELECT DISTINCT ON (${changeKey}) c.*
+      FROM monitoring_changes c WHERE c.organization_id = $1
+        AND (c.source_id <> 'trafikverket' OR c.severity IN ('warning', 'critical'))
+      ORDER BY ${changeKey}, c.created_at DESC, c.id DESC
+    ) latest ORDER BY created_at DESC, id DESC LIMIT $2
+  ), feed_changes AS (
+    SELECT * FROM recent
+    UNION
+    SELECT related.* FROM recent r CROSS JOIN LATERAL (
+      WITH versions AS (
+        SELECT c.* FROM monitoring_changes c
+        WHERE r.source_id = 'trafikverket' AND c.organization_id = r.organization_id
+          AND c.source_id = r.source_id AND c.event_id = r.event_id AND c.property_id = r.property_id
+      )
+      (SELECT * FROM versions WHERE severity IN ('warning', 'critical') AND change_type IN ('new', 'updated')
+       ORDER BY created_at, id LIMIT 1)
+      UNION
+      (SELECT DISTINCT ON (change_type) * FROM versions ORDER BY change_type, created_at DESC, id DESC)
+    ) related
+  )`;
   const { rows } = await db.query<{
     id: string; property_id: string; event_id: string | null; source_id: string; change_type: string; data_class: string; severity: string; headline: string; created_at: Date;
     event_ended_on_map: boolean; outage_on_map: boolean; event_active: boolean; superseded: boolean; acknowledged_at: Date | null;
     event_type: string | null; situation_id: string | null; event_valid_from: Date | null; event_valid_to: Date | null; event_description: string | null;
   }>(
-    `SELECT c.id::text, c.property_id, c.event_id::text AS event_id, c.source_id, c.change_type, c.data_class, c.severity, c.headline, c.created_at,
+    `${forPortfolio ? portfolioRows : ''}
+     SELECT c.id::text, c.property_id, c.event_id::text AS event_id, c.source_id, c.change_type, c.data_class, c.severity, c.headline, c.created_at,
             COALESCE(e.status <> 'active' AND e.geom IS NOT NULL AND e.source_id IN ${FEED_MAP_SOURCES_SQL}, false) AS event_ended_on_map,
             COALESCE(e.status = 'active' AND e.geom IS NOT NULL AND e.source_id = 'utility_outages', false) AS outage_on_map,
             COALESCE(e.status = 'active', false) AS event_active,
@@ -775,9 +802,9 @@ export async function listRecentChangesForOrg(db: Queryable, organizationId: str
               WHERE a.organization_id = c.organization_id
                 AND (p.id = c.id OR (p.event_id = c.event_id AND p.property_id = c.property_id AND (p.created_at, p.id) < (c.created_at, c.id)
                                      AND ${severityRankSql('p')} >= ${severityRankSql('c')}))) AS acknowledged_at
-       FROM monitoring_changes c
+       FROM ${forPortfolio ? 'feed_changes' : 'monitoring_changes'} c
        LEFT JOIN source_events e ON e.id = c.event_id
-      WHERE c.organization_id = $1 ORDER BY c.created_at DESC, c.id DESC LIMIT $2`,
+      WHERE c.organization_id = $1 ORDER BY c.created_at DESC, c.id DESC ${forPortfolio ? '' : 'LIMIT $2'}`,
     [organizationId, limit],
   );
   return rows;

@@ -3,23 +3,50 @@ import type { AnchorHTMLAttributes } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { demoPortfolio } from '@fastighetsradar/domain/fixtures';
-import type { PropertySnapshot } from '@fastighetsradar/domain';
+import type { Portfolio, PropertySnapshot } from '@fastighetsradar/domain';
 import { buildOverviewVM } from '@/lib/view-models/overview';
 import { AlertFeed } from '@/components/dashboard/AlertFeed';
 import { UpcomingPanel } from '@/components/upcoming/UpcomingPanel';
 import { MobileAlerts } from '@/components/mobile/MobileAlerts';
 
 const mocks = vi.hoisted(() => ({ openProperty: vi.fn(), refresh: vi.fn(), mode: 'demo' as 'demo' | 'live' }));
+let activePortfolio = demoPortfolio;
 vi.mock('next/link', () => ({ default: ({ href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) => <a href={href} {...props} /> }));
 vi.mock('@/lib/state/dashboard-state', () => ({ useDashboard: () => ({
-  portfolio: demoPortfolio, mode: mocks.mode, ready: true, metric: 'temp', basePath: '/demo', openProperty: mocks.openProperty, refresh: mocks.refresh,
+  portfolio: activePortfolio, mode: mocks.mode, ready: true, metric: 'temp', basePath: '/demo', openProperty: mocks.openProperty, refresh: mocks.refresh,
   isSmsOn: (s: PropertySnapshot) => s.sms.enabled, isRuleOn: (_id: string, fallback: boolean) => fallback,
 }) }));
-afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals(); mocks.mode = 'demo'; });
+afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals(); mocks.mode = 'demo'; activePortfolio = demoPortfolio; });
 
 const ui = { ready: true, group: 'all', isSmsOn: (s: PropertySnapshot) => s.sms.enabled, isRuleOn: (_id: string, fallback: boolean) => fallback };
 const vm = buildOverviewVM(demoPortfolio, ui);
 const vma = vm.feed.find((f) => f.title.startsWith('VMA'))!;
+
+describe('traffic updates in the feed', () => {
+  it.each(['desktop', 'mobile'])('marks the original row and fetches the exact latest event when opened on %s', async (device) => {
+    const existing = demoPortfolio.properties[0]!;
+    const propertyId = existing.property.id;
+    const eventId = 'trafikverket-e14';
+    const description = `${'Trafikmeddelande med fler uppgifter. '.repeat(20)}Bärgare på plats.`;
+    activePortfolio = {
+      ...demoPortfolio,
+      properties: [{ ...existing, property: { ...existing.property, origin: 'live' } }],
+      feed: [{ id: 'chg-3', propertyId, eventId, title: 'Ny: Olycka på E14', sourceId: 'trafikverket', sourceLabel: 'Trafikverket', severity: 'warning',
+        origin: 'live', publishedAt: demoPortfolio.generatedAt, updatedAt: demoPortfolio.generatedAt }],
+    } satisfies Portfolio;
+    const fetchEvent = vi.fn().mockResolvedValue(Response.json({ propertyId, title: 'Olycka på E14', sourceId: 'trafikverket',
+      active: true, endedAt: null, distanceM: 400, item: { eventId, label: 'Olycka', icon: 'accident', hue: 'orange',
+        where: 'E14', description, validFrom: null, validTo: null, impact: null, geometry: { type: 'Point', coordinates: [18, 59] }, radiusM: null, lengthM: null } }));
+    vi.stubGlobal('fetch', fetchEvent);
+    mocks.mode = 'live';
+    render(device === 'mobile' ? <MobileAlerts /> : <AlertFeed vm={buildOverviewVM(activePortfolio, ui)} isDemo={false} onOpen={mocks.openProperty} />);
+    expect(screen.getAllByText('Uppdaterad')).toHaveLength(1);
+    expect(fetchEvent).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Ny: Olycka på E14'));
+    expect(fetchEvent).toHaveBeenCalledWith(`/api/app/properties/${propertyId}/event-map/${eventId}`, expect.objectContaining({ cache: 'no-store' }));
+    expect((await screen.findByRole('region', { name: 'Beskrivning' })).textContent).toBe(description);
+  });
+});
 
 describe('kvittering i händelseflödet', () => {
   it('asks to acknowledge warnings, VMA and outages only, and counts what is left', () => {

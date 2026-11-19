@@ -3,7 +3,7 @@
 import styles from './PortfolioOverview.module.css';
 import type { OverviewVM } from '@/lib/view-models/overview';
 import { C, FONT_MONO, card, cardSub, cardTitle } from '@/lib/design/tokens';
-import { FeedMapButton, useFeedEventMap } from './FeedEventMap';
+import { FeedMapButton, FeedUpdatedBadge, useFeedEventMap } from './FeedEventMap';
 import { FeedAckButton, FeedAckCount, useFeedAcks } from './FeedAck';
 import { NightMoon } from './NightMoon';
 
@@ -39,15 +39,20 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
         )}
         {vm.feed.map((f) => {
           const waiting = f.ackRequired && !acks.ackedAt(f);
+          const open = () => f.opensTrafficDetails ? map.open(f) : onOpen(f.propertyId);
           return (
           <div
-            key={f.id}
+            key={f.rowKey}
             role="button"
             tabIndex={0}
             className="fr-hover-row"
             data-ack={waiting ? 'waiting' : undefined}
-            onClick={() => onOpen(f.propertyId)}
-            onKeyDown={(e) => e.key === 'Enter' && onOpen(f.propertyId)}
+            onClick={open}
+            onKeyDown={(e) => {
+              if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
+              e.preventDefault();
+              open();
+            }}
             style={{ display: 'flex', gap: 12, padding: '12px 10px', margin: '0 -10px', borderRadius: 14, cursor: 'pointer', transition: 'background .2s', background: waiting ? `color-mix(in oklch, ${f.bg} 70%, transparent)` : undefined }}
           >
             <div style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 11, background: f.bg, display: 'grid', placeItems: 'center', position: 'relative' }}>
@@ -62,9 +67,12 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
             </div>
             {/* Time on top; the card's buttons in its lower right corner (Kvittera beside the map). */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {f.nightWork && <NightMoon label={f.nightWork} />}
-                <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: C.text4, whiteSpace: 'nowrap' }}>{f.t}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+                {f.updated && <FeedUpdatedBadge />}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {f.nightWork && <NightMoon label={f.nightWork} />}
+                  <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: C.text4, whiteSpace: 'nowrap' }}>{f.t}</div>
+                </div>
               </div>
               {(f.ackRequired || f.mapEventId) && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

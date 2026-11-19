@@ -510,6 +510,7 @@ type FeedChange = {
   id: string; property_id: string; event_id?: string | null; event_ended_on_map?: boolean; outage_on_map?: boolean; event_active?: boolean; superseded?: boolean;
   acknowledged_at?: Date | null; source_id: string; change_type: string; severity: string; headline: string; created_at: Date;
   event_type?: string | null; situation_id?: string | null; event_valid_from?: Date | null; event_valid_to?: Date | null; event_description?: string | null;
+  updated_at?: Date;
 };
 const SAME_BATCH_MS = 5 * 60_000;
 
@@ -524,19 +525,52 @@ function plannedNightEnd(c: FeedChange): boolean {
   return c.created_at.getTime() >= c.event_valid_to.getTime() - 60 * 60_000;
 }
 
+const significantTraffic = (row: FeedChange) => row.severity === 'warning' || row.severity === 'critical';
+
+/** A traffic event keeps its first visible headline and timestamp for this property. */
+function collapseTrafficChanges(rows: FeedChange[], replacements: ReadonlySet<string>): FeedChange[] {
+  const byEvent = new Map<string, FeedChange[]>();
+  const otherRows: FeedChange[] = [];
+  for (const row of rows) {
+    if (row.source_id !== 'trafikverket' || !row.event_id) {
+      if (row.source_id !== 'trafikverket' || significantTraffic(row)) otherRows.push(row);
+      continue;
+    }
+    const key = `${row.property_id}:${row.event_id}`;
+    const versions = byEvent.get(key) ?? [];
+    versions.push(row);
+    byEvent.set(key, versions);
+  }
+  for (const versions of byEvent.values()) {
+    const latest = versions[0]!;
+    const firstIndex = versions.findLastIndex(significantTraffic);
+    if (firstIndex < 0) continue;
+    const first = versions[firstIndex]!;
+    const revision = versions.find((row, i) => row.change_type === 'updated' && (i < firstIndex || replacements.has(row.id)));
+    const ended = latest.change_type === 'ended' || latest.change_type === 'cancelled';
+    otherRows.push({
+      ...latest,
+      created_at: first.created_at,
+      headline: first.headline,
+      change_type: ended || replacements.has(first.id) ? latest.change_type : 'new',
+      updated_at: revision?.created_at,
+    });
+  }
+  return otherRows.sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
+}
+
 export function buildFeed(changes: FeedChange[], propertyIds: Set<string>): FeedItem[] {
-  const visible = changes
+  const ordered = changes
     .filter((c) => propertyIds.has(c.property_id))
-    // Keep the feed meaningful: minor traffic notices (info/monitor) stay in the property's event list only.
-    .filter((c) => c.source_id !== 'trafikverket' || c.severity === 'warning' || c.severity === 'critical');
+    .sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
   // A situation Trafikverket replaced by a new one for the same closure is not "Avslutad" + "Ny".
-  const replaced = replacedTraffic(visible);
-  const rows = visible
+  const replaced = replacedTraffic(ordered.filter((c) => c.source_id === 'trafikverket' && significantTraffic(c)));
+  const rows = ordered
     .filter((c) => !replaced.hidden.has(c.id) && !plannedNightEnd(c))
     .map((c) => (replaced.updated.has(c.id) ? { ...c, change_type: 'updated' } : c));
   // Trafikverket's duplicates of one closure (both directions, cause and effect) arrive together: one row.
   const groups = groupDuplicates(
-    rows,
+    collapseTrafficChanges(rows, replaced.updated),
     (c): DuplicateKey => ({ sourceId: c.source_id, situationId: c.situation_id ?? null, eventType: c.event_type ?? null, headline: c.headline, validFrom: c.event_valid_from?.getTime() ?? null, validTo: c.event_valid_to?.getTime() ?? null }),
     (a, b) => a.property_id === b.property_id && a.change_type === b.change_type && Math.abs(a.created_at.getTime() - b.created_at.getTime()) <= SAME_BATCH_MS,
   );
@@ -546,11 +580,14 @@ export function buildFeed(changes: FeedChange[], propertyIds: Set<string>): Feed
       const c = g[0]!;
       const severity = g.map((x) => x.severity).sort((a, b) => (SEVERITY_RANK[b] ?? 0) - (SEVERITY_RANK[a] ?? 0))[0]!;
       const headline = g.length > 1 ? mergedTrafficTitle(g.map((x) => ({ eventType: x.event_type ?? null, headline: x.headline }))) : c.headline;
-      return { ...c, severity, headline };
+      const updatedAt = g.reduce<Date | undefined>((latest, row) =>
+        row.updated_at && (!latest || row.updated_at > latest) ? row.updated_at : latest, undefined);
+      return { ...c, severity, headline, updated_at: updatedAt };
     })
     .map((c) => ({
       id: `chg-${c.id}`,
       publishedAt: c.created_at.toISOString(),
+      ...(c.updated_at ? { updatedAt: c.updated_at.toISOString() } : {}),
       // Outage rows already carry a complete, state-specific title ("Strömmen är tillbaka …").
       title: c.source_id === 'utility_outages' ? c.headline : `${CHANGE_SV[c.change_type] ?? c.change_type}: ${c.headline}`,
       sourceLabel: SOURCE_LABEL[c.source_id as SourceId] ?? c.source_id,

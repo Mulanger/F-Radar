@@ -360,6 +360,7 @@ export type PropertySnapshot = z.infer<typeof PropertySnapshotSchema>;
 export const FeedItemSchema = z.object({
   id: z.string(),
   publishedAt: IsoDateTimeSchema,
+  updatedAt: IsoDateTimeSchema.optional(),
   title: z.string(),
   sourceLabel: z.string(),
   sourceId: SourceIdSchema,
