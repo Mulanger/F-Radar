@@ -39,5 +39,6 @@ export function deploymentEnvironment(current, local) {
   vars.SOURCE_UTILITY_EXERGI_ENABLED = 'true';
   vars.SOURCE_UTILITY_VATTENFALL_HEAT_ENABLED = 'true';
   vars.SOURCE_UTILITY_SOLOR_ENABLED = 'true';
+  vars.SOURCE_UTILITY_MALAR_HEAT_ENABLED = 'true';
   return vars;
 }
