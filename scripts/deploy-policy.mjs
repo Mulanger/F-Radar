@@ -46,6 +46,7 @@ export function deploymentEnvironment(current, local) {
   vars.UTILITY_OUTAGE_WATER_OPERATORS = [
     'svoa',
     'tekniskaverken',
+    'servicealert:soderhamn',
   ].join(',');
   return vars;
 }
