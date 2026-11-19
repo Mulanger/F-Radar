@@ -12,13 +12,28 @@ const current = {
 };
 
 const GRID = Object.fromEntries(GRID_OPERATORS_ENABLED.map((k) => [k, 'true']));
+const EXERGI = { SOURCE_UTILITY_EXERGI_ENABLED: 'true' };
+const DEFERRED_FLAGS = [
+  'SOURCE_UTILITY_VATTENFALL_HEAT_ENABLED', 'SOURCE_UTILITY_SOLOR_ENABLED',
+  'SOURCE_UTILITY_UMEA_HEAT_ENABLED', 'SOURCE_UTILITY_MALAR_HEAT_ENABLED',
+  'SOURCE_UTILITY_WATER_ENABLED', 'SOURCE_UTILITY_SVOA_ENABLED', 'SOURCE_UTILITY_GAS_ENABLED',
+  'SMS_WATER_OUTAGE_ENABLED', 'SMS_HEATING_OUTAGE_ENABLED', 'SMS_GAS_OUTAGE_ENABLED',
+  'UTILITY_OUTAGE_UPCOMING_ENABLED',
+];
 
 describe('pod deployment policy', () => {
-  it('turns on exactly the four approved grid operators – no heating, water, gas or SMS categories', () => {
-    const vars = deploymentEnvironment(current, {});
+  it('enables Stockholm Exergi alongside the four approved grid operators and leaves deferred flags off', () => {
+    const local = Object.fromEntries(DEFERRED_FLAGS.map((k) => [k, 'true']));
+    const vars = deploymentEnvironment(current, local);
     assert.deepEqual(GRID_OPERATORS_ENABLED, ['SOURCE_UTILITY_ORESUND_ENABLED', 'SOURCE_UTILITY_KRAFTRINGEN_ENABLED', 'SOURCE_UTILITY_UMEA_ENABLED', 'SOURCE_UTILITY_SKEKRAFT_ENABLED']);
     for (const k of GRID_OPERATORS_ENABLED) assert.equal(vars[k], 'true');
-    for (const k of ['SOURCE_UTILITY_UMEA_HEAT_ENABLED', 'SOURCE_UTILITY_EXERGI_ENABLED', 'SOURCE_UTILITY_WATER_ENABLED', 'SOURCE_UTILITY_GAS_ENABLED', 'SMS_WATER_OUTAGE_ENABLED', 'SMS_HEATING_OUTAGE_ENABLED', 'SMS_GAS_OUTAGE_ENABLED', 'UTILITY_OUTAGE_UPCOMING_ENABLED']) assert.equal(vars[k], undefined);
+    assert.equal(vars.SOURCE_UTILITY_EXERGI_ENABLED, 'true');
+    for (const k of DEFERRED_FLAGS) assert.equal(vars[k], undefined, k);
+
+    const disabled = Object.fromEntries(DEFERRED_FLAGS.map((k) => [k, 'false']));
+    const before = { ...current, ...GRID, ...disabled, SOURCE_SL_DEVIATIONS_ENABLED: 'false',
+      SOURCE_UTILITY_OUTAGES_ENABLED: 'true', SOURCE_UTILITY_EXERGI_ENABLED: 'false' };
+    assert.deepEqual(deploymentEnvironment(before, local), { ...before, ...EXERGI });
   });
 
   it('allows the verified merge release branch and the existing deployment paths', () => {
@@ -34,13 +49,13 @@ describe('pod deployment policy', () => {
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'local-key', SOURCE_SMHI_OCEANOGRAPHY_ENABLED: 'false',
       SOURCE_SMHI_HYDROLOGY_ENABLED: 'false', TRAFIKVERKET_ENABLED: 'false',
       SMS_PROVIDER: '46elks', SMS_MONTHLY_LIMIT_PER_ORG: '100' });
-    assert.deepEqual(vars, { ...current, SOURCE_SL_DEVIATIONS_ENABLED: 'false', SOURCE_UTILITY_OUTAGES_ENABLED: 'true', ...GRID });
+    assert.deepEqual(vars, { ...current, SOURCE_SL_DEVIATIONS_ENABLED: 'false', SOURCE_UTILITY_OUTAGES_ENABLED: 'true', ...GRID, ...EXERGI });
   });
   it('changes only the selected new sources and keeps SL off', () => {
     const overrides = { MET_NORWAY_CONTACT: 'https://github.com/Mulanger/F-Radar/issues',
       SOURCE_MET_NOWCAST_ENABLED: 'true', SOURCE_SGU_OBSERVED_ENABLED: 'true' };
     const vars = deploymentEnvironment(current, { ...overrides, SOURCE_SL_DEVIATIONS_ENABLED: 'true' });
-    assert.deepEqual(vars, { ...current, ...overrides, SOURCE_SL_DEVIATIONS_ENABLED: 'false', SOURCE_UTILITY_OUTAGES_ENABLED: 'true', ...GRID });
+    assert.deepEqual(vars, { ...current, ...overrides, SOURCE_SL_DEVIATIONS_ENABLED: 'false', SOURCE_UTILITY_OUTAGES_ENABLED: 'true', ...GRID, ...EXERGI });
   });
   it('retains unrecognised runtime options and leaves its inputs untouched', () => {
     const before = { ...current, FUTURE_SOURCE_ENABLED: 'true' };

@@ -34,7 +34,8 @@ export function deploymentEnvironment(current, local) {
   // Strömavbrott (docs/plans/stromavbrott.md): grid operators' outage maps, enabled by the product owner 2026-11-14.
   vars.SOURCE_UTILITY_OUTAGES_ENABLED = 'true';
   // Avbrott i hela landet, Fas 2 (docs/plans/fler-avbrott.md): four more grid operators (electricity only),
-  // enabled by the product owner 2026-11-19. Heating, water, gas and the new SMS categories stay off.
+  // enabled by the product owner 2026-11-19.
   for (const key of GRID_OPERATORS_ENABLED) vars[key] = 'true';
+  vars.SOURCE_UTILITY_EXERGI_ENABLED = 'true';
   return vars;
 }
