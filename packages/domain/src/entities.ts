@@ -363,6 +363,8 @@ export const FeedItemSchema = z.object({
   updatedAt: IsoDateTimeSchema.optional(),
   /** The newest traffic revision, present only until this viewer opens it. */
   unreadUpdateId: z.string().optional(),
+  /** The start or escalation of an active alarm that this viewer has yet to see. */
+  unreadAlarmId: z.string().optional(),
   /** A merged traffic card opens the member containing the most recent revision. */
   updatedEventId: z.string().optional(),
   title: z.string(),
@@ -420,6 +422,7 @@ export const PortfolioSchema = z.object({
   segments: z.array(z.object({ id: z.string(), label: z.string() })),
   properties: z.array(PropertySnapshotSchema),
   feed: z.array(FeedItemSchema),
+  activeAlarms: z.array(FeedItemSchema).optional(),
   upcoming: z.array(UpcomingConditionSchema),
   sources: z.array(DataSourceStatusSchema),
   /** Free-text narrative shown on the hero card (demo copy from the approved design). */

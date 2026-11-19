@@ -11,7 +11,10 @@ export function MobileAlerts() {
   const ds = useDashboard();
   const acks = useFeedAcks();
   const map = useFeedEventMap();
-  const vm = buildOverviewVM(ds.portfolio, { ready: ds.ready, group: 'all', isSmsOn: ds.isSmsOn, isRuleOn: ds.isRuleOn });
+  const alarms = ds.portfolio.activeAlarms ?? [];
+  const active = new Set(alarms.map((alarm) => `${alarm.propertyId}:${alarm.eventId}`));
+  const feed = [...alarms, ...ds.portfolio.feed.filter((item) => !active.has(`${item.propertyId}:${item.eventId}`))];
+  const vm = buildOverviewVM({ ...ds.portfolio, feed }, { ready: ds.ready, group: 'all', isSmsOn: ds.isSmsOn, isRuleOn: ds.isRuleOn });
   return <div className={styles.page}>
     <div className={styles.heading}><div className={styles.date}>{ds.mode === 'demo' ? 'Demodata · ' : ''}Händelser från offentliga källor</div><h1>Larm och händelser</h1></div>
     <MobileSection title="Händelseflöde" subtitle={`${vm.feed.length} händelser i portföljen`} meta={<FeedAckCount n={acks.pending(vm.feed)} />}><div className={`${styles.surface} ${styles.list}`}><MobileFeedRows feed={vm.feed} basePath={ds.basePath} onMap={map.open} isUnread={map.isUnread} acks={acks} />{!vm.feed.length && <div className={styles.empty}>Inga händelser att visa just nu.</div>}</div></MobileSection>

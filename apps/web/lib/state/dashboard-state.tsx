@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { Portfolio, PropertySnapshot } from '@fastighetsradar/domain';
 
@@ -23,6 +23,7 @@ interface DashboardState {
   /** Re-fetches server data after a mutation. */
   refresh: () => void;
   portfolio: Portfolio;
+  unseenAlarmCount: number;
   /** Becomes true shortly after mount so bars/gauges animate in (prototype `ready`). */
   ready: boolean;
   group: string;
@@ -64,6 +65,42 @@ export function DashboardStateProvider({
   const [smsOff, setSmsOff] = useState<Record<string, boolean>>({});
   const [rules, setRules] = useState<Record<string, boolean>>({});
   const [lastId, setLastId] = useState(portfolio.properties[0]?.property.id ?? '');
+  const [seenAlarms, setSeenAlarms] = useState(() => new Set<string>());
+  const viewedAlertsPage = useRef(false);
+  const alarmIds = useMemo(() => mode === 'demo'
+    ? portfolio.feed.filter((item) => item.ackRequired).map((item) => item.id)
+    : (portfolio.activeAlarms ?? []).flatMap((item) => item.unreadAlarmId ? [item.unreadAlarmId] : []),
+  [mode, portfolio.activeAlarms, portfolio.feed]);
+
+  useEffect(() => {
+    if (pathname !== `${basePath}/alerts`) {
+      viewedAlertsPage.current = false;
+      return;
+    }
+    const markDisplayedAlarms = () => {
+      if (document.visibilityState === 'hidden' || viewedAlertsPage.current || (mode === 'live' && !portfolio.activeAlarms)) return;
+      viewedAlertsPage.current = true;
+      if (!alarmIds.length) return;
+      setSeenAlarms((seen) => new Set([...seen, ...alarmIds]));
+      if (mode !== 'live') return;
+
+      // A visit clears only the revisions already rendered on that visit. Later data keeps its badge.
+      const batches = Array.from({ length: Math.ceil(alarmIds.length / 500) }, (_, i) => alarmIds.slice(i * 500, (i + 1) * 500));
+      void Promise.allSettled(batches.map(async (changeIds) => {
+        const response = await fetch('/api/app/feed/alarm-reads', {
+          method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ changeIds }),
+        });
+        if (!response.ok) throw new Error('Alarm reads could not be saved');
+      })).then((results) => {
+        const failed = new Set(batches.flatMap((batch, i) => results[i]?.status === 'rejected' ? batch : []));
+        if (failed.size) setSeenAlarms((seen) => new Set([...seen].filter((id) => !failed.has(id))));
+        router.refresh();
+      });
+    };
+    markDisplayedAlarms();
+    document.addEventListener('visibilitychange', markDisplayedAlarms);
+    return () => document.removeEventListener('visibilitychange', markDisplayedAlarms);
+  }, [alarmIds, basePath, mode, pathname, portfolio.activeAlarms, router]);
 
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 120);
@@ -104,6 +141,7 @@ export function DashboardStateProvider({
     smsInteractive,
     refresh: () => router.refresh(),
     portfolio,
+    unseenAlarmCount: alarmIds.filter((id) => !seenAlarms.has(id)).length,
     ready,
     group,
     setGroup,

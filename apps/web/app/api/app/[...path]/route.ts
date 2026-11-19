@@ -20,7 +20,7 @@ const ROUTES: Array<{ pattern: RegExp; methods: string[] }> = [
   { pattern: new RegExp(`^notifications/rules/${UUID}/(preview|test)$`), methods: ['POST'] },
   { pattern: new RegExp(`^notifications/recipients/${UUID}/verification(/complete)?$`), methods: ['POST'] },
   { pattern: new RegExp(`^notifications/properties/${UUID}$`), methods: ['PATCH'] },
-  { pattern: /^feed\/(acknowledgements|reads)$/, methods: ['POST'] },
+  { pattern: /^feed\/(acknowledgements|reads|alarm-reads)$/, methods: ['POST'] },
   { pattern: /^settings$/, methods: ['GET', 'PATCH'] },
   { pattern: /^me$/, methods: ['GET'] },
   { pattern: /^portfolio$/, methods: ['GET'] },

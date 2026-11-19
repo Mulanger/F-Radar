@@ -9,6 +9,7 @@ import {
   listOrgUtilityOutages,
   listProperties,
   listRecentChangesForOrg,
+  listActiveAlarmChangesForOrg,
   listPropertyActivity,
   listPropertyEventMap,
   getPropertyEventMapEvent,
@@ -24,7 +25,7 @@ import { isWaterOutageEnabled, operatorById, resolveSourceStatuses } from '@fast
 import { buildLivePortfolio } from '../portfolio';
 import type { MonitoringBus } from './bus';
 import { PER_PROPERTY_JOBS } from './jobs';
-import { buildFeed, buildPropertySnapshot, buildUpcoming } from './snapshot';
+import { buildActiveAlarmFeed, buildFeed, buildPropertySnapshot, buildUpcoming } from './snapshot';
 import { resolveRuntimeStatuses } from './status';
 import { notificationSnapshots } from '../notifications/snapshots';
 import { propertyUtilityStatus, resolveOperatorStatuses, withUtilityOutages, type OperatorStatus, type UtilityInputs } from './utility-outages';
@@ -110,11 +111,12 @@ export class MonitoringService {
   }
 
   async portfolio(t: TenantContext, now = new Date()): Promise<Portfolio> {
-    const [properties, data, statuses, changes, utility, settings] = await Promise.all([
+    const [properties, data, statuses, changes, activeAlarms, utility, settings] = await Promise.all([
       listProperties(this.db, t),
       loadOrgMonitoring(this.db, t.organizationId),
       this.statuses(now),
       listRecentChangesForOrg(this.db, t.organizationId, 60, t.userId),
+      listActiveAlarmChangesForOrg(this.db, t.organizationId, t.userId),
       this.utilityInputs(t.organizationId, now),
       getOrganizationSettings(this.db, t.organizationId),
     ]);
@@ -129,6 +131,7 @@ export class MonitoringService {
       properties: snapshots,
       utilityCoverage: this.coverageReports(properties, utility),
       feed: buildFeed(changes, new Set(properties.map((p) => p.id))),
+      activeAlarms: buildActiveAlarmFeed(activeAlarms, snapshots),
       upcoming: buildUpcoming(snapshots, data.forecasts, now, this.env.UTILITY_OUTAGE_UPCOMING_ENABLED),
       settings: { trafficRadiusM: settings.trafficRadiusM },
     };

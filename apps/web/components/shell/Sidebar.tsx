@@ -41,7 +41,7 @@ function PendingLink({ icon, label, badge }: { icon: React.ReactNode; label: str
 
 export function Sidebar() {
   const pathname = usePathname() ?? '';
-  const { portfolio, selectedId, mode, basePath, openProperty, goOverview } = useDashboard();
+  const { portfolio, selectedId, mode, basePath, openProperty, goOverview, unseenAlarmCount } = useDashboard();
   // Below 900 px the sidebar becomes a slide-in drawer (see `.fr-sidebar` in globals.css);
   // on desktop this state has no visual effect.
   const [menuOpen, setMenuOpen] = useState(false);
@@ -82,7 +82,6 @@ export function Sidebar() {
   const isAlerts = pathname === `${basePath}/alerts`;
   const isProperties = pathname.startsWith(`${basePath}/properties`);
   const isOverview = !isSms && !isSettings && !isAlerts && !isProperties;
-  const totalAlerts = portfolio.properties.reduce((a, s) => a + s.activeAlertCount, 0);
   const isDemo = mode === 'demo';
   // Health is judged over ENABLED monitoring sources only; deliberately disabled / not-yet-implemented
   // sources (Lantmäteriet, Boverket, oceanography) are listed as such, never as failures.
@@ -102,7 +101,7 @@ export function Sidebar() {
       <div className={`fr-mobilebar${pathname.startsWith(`${basePath}/properties/`) ? ' fr-mobilebar-detail' : ''}`}>
         <Link href={`${basePath}/overview`} className="fr-mobile-brand" aria-label="FastighetsRadar – översikt"><span>FastighetsRadar</span></Link>
         <div className="fr-mobilebar-actions">
-        <Link href={`${basePath}/alerts`} className="fr-mobilebar-bell" aria-label="Aviseringar"><IconBell size={19} />{totalAlerts > 0 && <span className="fr-mobilebar-bell-dot" />}</Link>
+        <Link href={`${basePath}/alerts`} className="fr-mobilebar-bell" aria-label={unseenAlarmCount > 0 ? `Aviseringar, ${unseenAlarmCount} olästa larm` : 'Aviseringar'}><IconBell size={19} />{unseenAlarmCount > 0 && <span className="fr-mobilebar-bell-dot" />}</Link>
         {isDemo ? <button
           type="button"
           onClick={() => setMenuOpen(true)}
@@ -151,7 +150,7 @@ export function Sidebar() {
             Fastigheter
             <span style={{ marginLeft: 'auto', fontSize: 12, color: C.text4 }}>{portfolio.properties.length}</span>
           </Link>
-          <Link href={`${basePath}/alerts`} onClick={() => setMenuOpen(false)} aria-current={isAlerts ? 'page' : undefined} style={{ ...navItem, ...(isAlerts ? navOn : navOff) }}><IconAlert />Larm{totalAlerts > 0 && <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: '#fff', background: 'oklch(0.6 0.18 28)', borderRadius: 20, padding: '2px 7px' }}>{totalAlerts}</span>}</Link>
+          <Link href={`${basePath}/alerts`} onClick={() => setMenuOpen(false)} aria-current={isAlerts ? 'page' : undefined} style={{ ...navItem, ...(isAlerts ? navOn : navOff) }}><IconAlert />Larm{unseenAlarmCount > 0 && <span aria-label={`${unseenAlarmCount} olästa larm`} style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: '#fff', background: 'oklch(0.6 0.18 28)', borderRadius: 20, padding: '2px 7px' }}>{unseenAlarmCount}</span>}</Link>
           <PendingLink icon={<IconMap />} label="Kartvy" />
           <PendingLink icon={<IconAnalytics />} label="Analys" />
           <div style={{ ...sectionLabel, padding: '22px 12px 8px' }}>Konfiguration</div>

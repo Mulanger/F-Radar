@@ -17,7 +17,9 @@ function fakeDb() {
       calls.push(sql);
       const [org, id, by] = params as string[];
       if (sql.includes('INSERT INTO feed_update_reads')) {
-        if (changes.get(id!) === org) reads.add(`${org}:${id}:${by}`);
+        for (const changeId of Array.isArray(id) ? id as string[] : [id!]) {
+          if (changes.get(changeId) === org) reads.add(`${org}:${changeId}:${by}`);
+        }
         return { rows: [] as R[] };
       }
       if (sql.trimStart().startsWith('INSERT')) {
@@ -46,6 +48,18 @@ async function app(db: Queryable, org = 'org-a', userId = 'user_a') {
 }
 
 describe('feed acknowledgements (kvittering i händelseflödet)', () => {
+  it('saves only the displayed alarm ids for the authenticated viewer, with no acknowledgements', async () => {
+    const { db, reads, acks } = fakeDb();
+    const a = await app(db);
+    const request = { method: 'POST' as const, url: '/v1/feed/alarm-reads', payload: { changeIds: ['chg-7', 'chg-8'] } };
+    expect((await a.inject(request)).statusCode).toBe(204);
+    expect((await a.inject(request)).statusCode).toBe(204);
+    expect([...reads]).toEqual(['org-a:7:user_a']);
+    expect(acks.size).toBe(0);
+    expect((await a.inject({ ...request, payload: { changeIds: [] } })).statusCode).toBe(400);
+    expect((await a.inject({ ...request, payload: { changeIds: ['invalid'] } })).statusCode).toBe(400);
+  });
+
   it('records each read for the authenticated person and leaves the organization acknowledgement alone', async () => {
     const { db, reads, acks, calls } = fakeDb();
     const a = await app(db);

@@ -826,6 +826,72 @@ export async function markFeedUpdateRead(db: Queryable, organizationId: string, 
 const severityRankSql = (t: string) =>
   `CASE ${t}.severity ${Object.entries(FEED_ACK_SEVERITY_RANK).map(([k, v]) => `WHEN '${k}' THEN ${v}`).join(' ')} ELSE 0 END`;
 
+/** Current alarms are independent of the history feed limit. Only a start or escalation creates a new unread id. */
+export async function listActiveAlarmChangesForOrg(db: Queryable, organizationId: string, viewerId: string) {
+  const { rows } = await db.query<{
+    id: string; event_id: string; property_id: string; source_id: string; change_type: string;
+    severity: string; headline: string; created_at: Date; event_active: boolean; outage_on_map: boolean;
+    acknowledged_at: Date | null; unread_alarm_id: string | null;
+  }>(
+    `SELECT COALESCE(latest.id::text, 'alarm-' || m.property_id || ':' || e.id) AS id,
+            e.id::text AS event_id, m.property_id, e.source_id,
+            COALESCE(latest.change_type, 'active') AS change_type,
+            COALESCE(m.effective_severity, e.severity) AS severity, COALESCE(latest.headline, e.headline) AS headline,
+            COALESCE(latest.created_at, m.first_matched_at) AS created_at, true AS event_active,
+            e.source_id = 'utility_outages' AND e.geom IS NOT NULL AS outage_on_map,
+            CASE WHEN seen.change_id IS NULL THEN notification.id::text END AS unread_alarm_id,
+            (SELECT max(a.acknowledged_at)
+             FROM feed_acknowledgements a JOIN monitoring_changes p ON a.change_id = p.id
+             WHERE a.organization_id = m.organization_id AND p.organization_id = a.organization_id
+               AND p.property_id = m.property_id AND p.event_id = m.event_id
+               AND (p.created_at, p.id) <= (latest.created_at, latest.id)
+               AND p.created_at >= m.first_matched_at AND ${severityRankSql('p')} >= ${severityRankSql('latest')}) AS acknowledged_at
+       FROM property_event_matches m
+       JOIN source_events e ON e.id = m.event_id AND e.status = 'active'
+       JOIN properties p ON p.id = m.property_id AND p.organization_id = m.organization_id AND p.status <> 'paused'
+       LEFT JOIN LATERAL (
+         SELECT c.id, c.created_at, c.change_type, c.severity, c.headline FROM monitoring_changes c
+         WHERE c.organization_id = m.organization_id AND c.event_id = m.event_id AND c.property_id = m.property_id
+           AND c.created_at >= m.first_matched_at
+         ORDER BY c.created_at DESC, c.id DESC LIMIT 1
+       ) latest ON true
+       LEFT JOIN LATERAL (
+         SELECT ranked.id FROM (
+           SELECT c.id, c.created_at, c.change_type, ${severityRankSql('c')} AS rank,
+                  lag(CASE WHEN c.change_type IN ('ended', 'cancelled') THEN 0 ELSE ${severityRankSql('c')} END)
+                    OVER (ORDER BY c.created_at, c.id) AS previous_rank
+           FROM monitoring_changes c
+           WHERE c.organization_id = m.organization_id AND c.event_id = m.event_id AND c.property_id = m.property_id
+             AND c.created_at >= m.first_matched_at
+         ) ranked
+         WHERE ranked.rank >= CASE WHEN e.source_id = 'utility_outages' THEN 2 ELSE 1 END
+           AND (ranked.change_type = 'new' OR (ranked.change_type = 'updated' AND ranked.rank > ranked.previous_rank))
+         ORDER BY ranked.created_at DESC, ranked.id DESC LIMIT 1
+       ) notification ON true
+       LEFT JOIN feed_update_reads seen ON seen.organization_id = m.organization_id AND seen.viewer_id = $2 AND seen.change_id = notification.id
+      WHERE m.organization_id = $1 AND (
+        (e.data_class = 'OFFICIAL_WARNING' AND e.level IS NOT NULL AND e.level <> 'Info')
+        OR (e.source_id = 'utility_outages' AND m.effective_severity IN ('warning', 'critical'))
+      )
+      ORDER BY COALESCE(latest.created_at, m.first_matched_at) DESC, m.property_id, m.event_id`,
+    [organizationId, viewerId],
+  );
+  return rows;
+}
+
+/** Mark the alarm revisions rendered for this viewer. A later revision has a different id. */
+export async function markAlarmChangesRead(db: Queryable, organizationId: string, changeIds: string[], viewerId: string): Promise<void> {
+  await db.query(
+    `INSERT INTO feed_update_reads (organization_id, change_id, viewer_id)
+     SELECT c.organization_id, c.id, $3 FROM monitoring_changes c
+     WHERE c.organization_id = $1 AND c.id = ANY($2::bigint[])
+       AND c.change_type IN ('new', 'updated')
+       AND (c.data_class = 'OFFICIAL_WARNING' OR c.source_id = 'utility_outages')
+     ON CONFLICT DO NOTHING`,
+    [organizationId, changeIds, viewerId],
+  );
+}
+
 /**
  * TENANT write: acknowledge a feed row for the whole organization (only a row of its own feed).
  * Returns the acknowledgement time, or null when the row is not the organization's.

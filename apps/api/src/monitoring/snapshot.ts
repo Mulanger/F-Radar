@@ -585,14 +585,18 @@ export function buildFeed(changes: FeedChange[], propertyIds: Set<string>): Feed
         row.revision && (!latest || row.revision.at > latest.at) ? row.revision : latest, undefined);
       return { ...c, severity, headline, revision };
     })
-    .map((c) => ({
-      id: `chg-${c.id}`,
+    .map(toFeedItem);
+}
+
+function toFeedItem(c: FeedChange): FeedItem {
+  return {
+      id: c.id.startsWith('alarm-') ? c.id : `chg-${c.id}`,
       publishedAt: c.created_at.toISOString(),
       ...(c.revision ? { updatedAt: c.revision.at.toISOString() } : {}),
       ...(c.revision && !c.revision.read ? { unreadUpdateId: `chg-${c.revision.id}` } : {}),
       ...(c.revision?.eventId && c.revision.eventId !== c.event_id ? { updatedEventId: c.revision.eventId } : {}),
       // Outage rows already carry a complete, state-specific title ("Strömmen är tillbaka …").
-      title: c.source_id === 'utility_outages' ? c.headline : `${CHANGE_SV[c.change_type] ?? c.change_type}: ${c.headline}`,
+      title: c.source_id === 'utility_outages' || c.change_type === 'active' ? c.headline : `${CHANGE_SV[c.change_type] ?? c.change_type}: ${c.headline}`,
       sourceLabel: SOURCE_LABEL[c.source_id as SourceId] ?? c.source_id,
       sourceId: c.source_id as SourceId,
       severity: c.change_type === 'ended' || c.change_type === 'cancelled' ? 'normal' : c.source_id === 'utility_outages' && c.severity === 'info' ? 'monitor' : (SEV_STATUS[c.severity] ?? 'unknown'),
@@ -605,7 +609,26 @@ export function buildFeed(changes: FeedChange[], propertyIds: Set<string>): Feed
         ? { ackRequired: true, acknowledgedAt: c.acknowledged_at ? c.acknowledged_at.toISOString() : null }
         : {}),
       origin: 'live',
-    }));
+  };
+}
+
+/** Use the same active alarms and source settings as the property snapshots. */
+export function buildActiveAlarmFeed(changes: Array<FeedChange & { unread_alarm_id: string | null }>, snapshots: PropertySnapshot[]): FeedItem[] {
+  const active = new Set<string>();
+  for (const snapshot of snapshots) {
+    for (const warning of snapshot.warnings) {
+      if (warning.level !== 'Info') active.add(`${snapshot.property.id}:${warning.id}`);
+    }
+    for (const section of snapshot.utilityOutages ?? []) {
+      for (const outage of section.current) {
+        if (outage.severity === 'warning' || outage.severity === 'critical') active.add(`${snapshot.property.id}:${outage.id}`);
+      }
+    }
+  }
+  return changes.filter((c) => active.has(`${c.property_id}:${c.event_id}`)).map((c) => ({
+    ...toFeedItem(c),
+    ...(c.unread_alarm_id ? { unreadAlarmId: `chg-${c.unread_alarm_id}` } : {}),
+  }));
 }
 
 /**
