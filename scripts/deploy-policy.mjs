@@ -38,5 +38,6 @@ export function deploymentEnvironment(current, local) {
   for (const key of GRID_OPERATORS_ENABLED) vars[key] = 'true';
   vars.SOURCE_UTILITY_EXERGI_ENABLED = 'true';
   vars.SOURCE_UTILITY_VATTENFALL_HEAT_ENABLED = 'true';
+  vars.SOURCE_UTILITY_SOLOR_ENABLED = 'true';
   return vars;
 }
