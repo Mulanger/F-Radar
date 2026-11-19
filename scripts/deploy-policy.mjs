@@ -37,5 +37,6 @@ export function deploymentEnvironment(current, local) {
   // enabled by the product owner 2026-11-19.
   for (const key of GRID_OPERATORS_ENABLED) vars[key] = 'true';
   vars.SOURCE_UTILITY_EXERGI_ENABLED = 'true';
+  vars.SOURCE_UTILITY_VATTENFALL_HEAT_ENABLED = 'true';
   return vars;
 }
