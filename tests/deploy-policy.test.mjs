@@ -13,6 +13,7 @@ const current = {
 
 const GRID = Object.fromEntries(GRID_OPERATORS_ENABLED.map((k) => [k, 'true']));
 const ROLLOUT_FLAGS = [
+  'UTILITY_OUTAGE_UPCOMING_ENABLED',
   'SOURCE_UTILITY_GAS_ENABLED',
   'SOURCE_UTILITY_UMEA_HEAT_ENABLED',
   'SOURCE_UTILITY_MALAR_HEAT_ENABLED',
@@ -33,7 +34,6 @@ const WATER_OPERATORS = [
 const ROLLOUT = { ...Object.fromEntries(ROLLOUT_FLAGS.map((k) => [k, 'true'])), UTILITY_OUTAGE_WATER_OPERATORS: WATER_OPERATORS.join(',') };
 const DEFERRED_FLAGS = [
   'SMS_WATER_OUTAGE_ENABLED', 'SMS_HEATING_OUTAGE_ENABLED', 'SMS_GAS_OUTAGE_ENABLED',
-  'UTILITY_OUTAGE_UPCOMING_ENABLED',
 ];
 
 describe('pod deployment policy', () => {

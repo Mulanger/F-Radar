@@ -52,5 +52,6 @@ export function deploymentEnvironment(current, local) {
     'servicealert:ljusdal',
   ].join(',');
   vars.SOURCE_UTILITY_GAS_ENABLED = 'true';
+  vars.UTILITY_OUTAGE_UPCOMING_ENABLED = 'true';
   return vars;
 }
