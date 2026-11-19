@@ -1,12 +1,29 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { loadServerEnv } from '@fastighetsradar/config';
-import { fetchOperatorOutages, operatorById, parseSvoa, parseTekniskaVerken, parseServiceAlert, waterNoticeHeading, type AdapterContext } from '../src';
+import { enabledOperators, fetchOperatorOutages, operatorById, parseSvoa, parseTekniskaVerken, parseServiceAlert, waterNoticeHeading, type AdapterContext } from '../src';
 const fx = (id: string) => JSON.parse(readFileSync(new URL(`./fixtures/utility-outages/${id}-2026-11-19.json`, import.meta.url), 'utf8'));
 const now = new Date('2026-11-19T09:00:00Z');
 const env = loadServerEnv({ SOURCE_UTILITY_WATER_ENABLED: 'true' });
 const context = (f: typeof fetch): AdapterContext => ({ env, fetch: f, now: () => now, logger: { debug() {}, info() {}, warn() {}, error() {} } });
 describe('verified national water feeds', () => {
+  it('can roll out water by operator while preserving other utilities on shared jobs', () => {
+    const flags = loadServerEnv({
+      SOURCE_UTILITY_SVOA_ENABLED: 'true', SOURCE_UTILITY_WATER_ENABLED: 'true',
+      UTILITY_OUTAGE_WATER_OPERATORS: 'svoa, servicealert:ljusdal',
+    });
+    const jobs = (settings = flags) => new Map(enabledOperators(undefined, undefined, settings).map((op) => [op.id, op.utilities]));
+    const allowed = jobs();
+    expect(allowed.get('svoa')).toEqual(['water']);
+    expect(allowed.get('servicealert:ljusdal')).toContain('water');
+    expect(allowed.get('servicealert:eem')).toEqual(['electricity', 'district_heating', 'district_cooling']);
+    expect(allowed.get('tekniskaverken')).toEqual(['electricity', 'district_heating', 'district_cooling']);
+    expect(jobs({ ...flags, SOURCE_UTILITY_SVOA_ENABLED: false }).has('svoa')).toBe(false);
+    expect(jobs({ ...flags, SOURCE_UTILITY_WATER_ENABLED: false }).has('svoa')).toBe(false);
+    expect(jobs({ ...flags, UTILITY_OUTAGE_WATER_OPERATORS: 'none' }).get('servicealert:ljusdal')).not.toContain('water');
+    expect(jobs({ ...flags, UTILITY_OUTAGE_WATER_OPERATORS: undefined }).get('servicealert:eem')).toContain('water');
+  });
+
   it('reads all SVOA pages and filters unrelated projects without inventing restoration times', async () => {
     const fetcher = vi.fn(async (input) => new Response(JSON.stringify(fx(String(input).includes('skip=0') ? 'svoa-search' : 'svoa-search-next'))));
     const r = await fetchOperatorOutages(operatorById('svoa')!, context(fetcher as typeof fetch));

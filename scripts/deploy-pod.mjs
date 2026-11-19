@@ -79,6 +79,10 @@ const beforeRelease = (await exec('cat /home/instapod/app/RELEASE')).trim();
 const previousCommit = beforeRelease.split(/\r?\n/)[1];
 if (!/^[a-f0-9]{7,40}$/.test(previousCommit ?? '')) throw new Error('Running release has no commit id.');
 git('merge-base', '--is-ancestor', previousCommit, 'HEAD');
+if (args.has('--env-only') && vars.SOURCE_UTILITY_WATER_ENABLED === 'true' && vars.UTILITY_OUTAGE_WATER_OPERATORS
+    && !git('show', `${previousCommit}:packages/config/src/env.ts`).includes('UTILITY_OUTAGE_WATER_OPERATORS:')) {
+  throw new Error('A full application deploy is required to apply the water operator allowlist.');
+}
 const previousPid = (await exec('systemctl show app --property=MainPID --value')).trim();
 const stamp = new Date().toISOString().replace(/[^0-9TZ]/g, '');
 const commit = git('rev-parse', '--short', 'HEAD');

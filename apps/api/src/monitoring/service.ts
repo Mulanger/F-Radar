@@ -20,7 +20,7 @@ import {
   type OrgContext,
   type Queryable,
 } from '@fastighetsradar/db';
-import { operatorById, resolveSourceStatuses } from '@fastighetsradar/integrations';
+import { isWaterOutageEnabled, operatorById, resolveSourceStatuses } from '@fastighetsradar/integrations';
 import { buildLivePortfolio } from '../portfolio';
 import type { MonitoringBus } from './bus';
 import { PER_PROPERTY_JOBS } from './jobs';
@@ -101,7 +101,7 @@ export class MonitoringService {
       ]);
       return { outages: outages.filter((o) => {
         const op = operatorById(o.operator_id);
-        return (o.utility !== 'water' || this.env.SOURCE_UTILITY_WATER_ENABLED) && (o.utility !== 'gas' || this.env.SOURCE_UTILITY_GAS_ENABLED)
+        return (o.utility !== 'water' || isWaterOutageEnabled(o.operator_id, this.env)) && (o.utility !== 'gas' || this.env.SOURCE_UTILITY_GAS_ENABLED)
           && (!op?.enableFlag || this.env[op.enableFlag] === true) && (!op?.utilityFlags?.[o.utility] || this.env[op.utilityFlags[o.utility]!] === true);
       }), concessions, operators, municipalities: municipalities.rows };
     } catch {

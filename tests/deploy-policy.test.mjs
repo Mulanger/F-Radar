@@ -18,11 +18,14 @@ const ROLLOUT_FLAGS = [
   'SOURCE_UTILITY_SOLOR_ENABLED',
   'SOURCE_UTILITY_EXERGI_ENABLED',
   'SOURCE_UTILITY_VATTENFALL_HEAT_ENABLED',
-];
-const ROLLOUT = Object.fromEntries(ROLLOUT_FLAGS.map((k) => [k, 'true']));
-const DEFERRED_FLAGS = [
   'SOURCE_UTILITY_WATER_ENABLED',
   'SOURCE_UTILITY_SVOA_ENABLED',
+];
+const WATER_OPERATORS = [
+  'svoa',
+];
+const ROLLOUT = { ...Object.fromEntries(ROLLOUT_FLAGS.map((k) => [k, 'true'])), UTILITY_OUTAGE_WATER_OPERATORS: WATER_OPERATORS.join(',') };
+const DEFERRED_FLAGS = [
   'SOURCE_UTILITY_GAS_ENABLED',
   'SMS_WATER_OUTAGE_ENABLED', 'SMS_HEATING_OUTAGE_ENABLED', 'SMS_GAS_OUTAGE_ENABLED',
   'UTILITY_OUTAGE_UPCOMING_ENABLED',
@@ -40,6 +43,12 @@ describe('pod deployment policy', () => {
     const before = { ...current, ...GRID, ...disabled, SOURCE_SL_DEVIATIONS_ENABLED: 'false',
       SOURCE_UTILITY_OUTAGES_ENABLED: 'true' };
     assert.deepEqual(deploymentEnvironment(before, local), { ...before, ...ROLLOUT });
+  });
+
+  it('limits the water rollout to the verified sources even if the runtime or local file has a different list', () => {
+    const vars = deploymentEnvironment({ ...current, UTILITY_OUTAGE_WATER_OPERATORS: 'servicealert:eem' }, { UTILITY_OUTAGE_WATER_OPERATORS: 'tekniskaverken' });
+    assert.deepEqual(vars.UTILITY_OUTAGE_WATER_OPERATORS.split(','), WATER_OPERATORS);
+    assert.ok(!vars.UTILITY_OUTAGE_WATER_OPERATORS.split(',').includes('servicealert:eem'));
   });
 
   it('allows the verified merge release branch and the existing deployment paths', () => {

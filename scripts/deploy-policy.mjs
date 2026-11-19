@@ -41,5 +41,10 @@ export function deploymentEnvironment(current, local) {
   vars.SOURCE_UTILITY_SOLOR_ENABLED = 'true';
   vars.SOURCE_UTILITY_MALAR_HEAT_ENABLED = 'true';
   vars.SOURCE_UTILITY_UMEA_HEAT_ENABLED = 'true';
+  vars.SOURCE_UTILITY_WATER_ENABLED = 'true';
+  vars.SOURCE_UTILITY_SVOA_ENABLED = 'true';
+  vars.UTILITY_OUTAGE_WATER_OPERATORS = [
+    'svoa',
+  ].join(',');
   return vars;
 }

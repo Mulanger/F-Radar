@@ -193,11 +193,18 @@ export const UTILITY_OPERATORS: UtilityOperator[] = [
   })),
 ];
 
-/** Operators enabled by UTILITY_OUTAGE_OPERATORS ("" = all, "none" = none, else comma list of ids). */
-export function operatorWithEnabledUtilities(op: UtilityOperator, flags?: Partial<ServerEnv>): UtilityOperator {
-  return { ...op, utilities: op.utilities.filter((u) => !op.utilityFlags?.[u] || flags?.[op.utilityFlags[u]!] === true) };
+export function isWaterOutageEnabled(operatorId: string, flags?: Partial<ServerEnv>): boolean {
+  const setting = flags?.UTILITY_OUTAGE_WATER_OPERATORS?.trim();
+  return flags?.SOURCE_UTILITY_WATER_ENABLED === true
+    && (!setting || setting.split(',').some((id) => id.trim() === operatorId));
 }
 
+export function operatorWithEnabledUtilities(op: UtilityOperator, flags?: Partial<ServerEnv>): UtilityOperator {
+  return { ...op, utilities: op.utilities.filter((u) =>
+    (u !== 'water' || isWaterOutageEnabled(op.id, flags)) && (!op.utilityFlags?.[u] || flags?.[op.utilityFlags[u]!] === true)) };
+}
+
+/** Operators enabled by UTILITY_OUTAGE_OPERATORS ("" = all, "none" = none, else comma list of ids). */
 export function enabledOperators(setting: string | undefined, all: UtilityOperator[] = UTILITY_OPERATORS, flags?: Partial<ServerEnv>): UtilityOperator[] {
   all = all.filter((o) => !o.enableFlag || flags?.[o.enableFlag] === true);
   all = all.map((o) => operatorWithEnabledUtilities(o, flags)).filter((o) => o.utilities.length > 0);
