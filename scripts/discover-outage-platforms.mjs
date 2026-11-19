@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /**
  * Finds grid operators whose public outage pages use a platform we already support
- * (docs/plans/stromavbrott.md, Fas 3). Read-only and polite: one request per page, 4 in parallel,
+ * (docs/plans/stromavbrott.md, Fas 3). Read-only and polite: sequential requests,
  * plus at most 3 follow-up links per operator that look like outage pages.
  *
  *   node scripts/discover-outage-platforms.mjs > outage-platforms.json
+ *   node scripts/discover-outage-platforms.mjs --catalog docs/sources/utility-outage-candidates.json
  *
  * Source list: Elsamverkan's operator directory (name, homepage, "Störningssida").
  * Signatures:
@@ -14,8 +15,9 @@
  * The output lists candidates only. Verify each endpoint before adding it to
  * packages/integrations/src/utility-outages/operators.ts.
  */
+import { readFileSync } from 'node:fs';
 const DIRECTORY = 'https://elsamverkan.se/umbraco/surface/OrganizationList/GetOrganizationList';
-const UA = 'FastighetsRadar-avbrottsbevakning/1.0 (platform discovery)';
+const UA = 'FastighetsRadar-avbrottsbevakning/1.0';
 
 const decode = (s) => s.replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16))).replace(/&amp;/g, '&').trim();
 const fixUrl = (u) => {
@@ -55,9 +57,12 @@ export function detect(html, base) {
 }
 
 async function main() {
-  const dir = await get(DIRECTORY);
-  if (!dir) throw new Error('directory unavailable');
-  const companies = dir.text
+  const catalogIndex = process.argv.indexOf('--catalog');
+  const catalog = catalogIndex >= 0 ? JSON.parse(readFileSync(process.argv[catalogIndex + 1], 'utf8')) : null;
+  if (catalog && (!Array.isArray(catalog) || catalog.some((c) => !c.name || !fixUrl(c.page)))) throw new Error('invalid catalog');
+  const dir = catalog ? null : await get(DIRECTORY);
+  if (!catalog && !dir) throw new Error('directory unavailable; use --catalog with verified public pages');
+  const companies = catalog ?? dir.text
     .split('class="company-item"')
     .slice(1)
     .map((b) => ({
@@ -69,7 +74,7 @@ async function main() {
   const results = [];
   const queue = [...companies];
   await Promise.all(
-    Array.from({ length: 4 }, async () => {
+    Array.from({ length: 1 }, async () => {
       while (queue.length) {
         const c = queue.shift();
         const found = [];
@@ -94,7 +99,7 @@ async function main() {
           }
         }
         const unique = [...new Map(found.map((f) => [JSON.stringify(f), f])).values()];
-        results.push({ name: c.name, page: c.page ?? c.home, reachable: !!first, platforms: unique });
+        results.push({ name: c.name, utility: c.utility ?? 'electricity', customers: c.customers ?? null, page: c.page ?? c.home, reachable: !!first, platforms: unique });
       }
     }),
   );

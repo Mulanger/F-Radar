@@ -1,0 +1,72 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 100,
+    "defaultMapCenterCoords": {
+      "lat": 59.567718505859375,
+      "lng": 13.767930030822754
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": true,
+    "showPolygons": true,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": true,
+    "showArchiveDays": null,
+    "showClusterMarkers": false,
+    "id": 160
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 5135,
+      "profileName": "Energitjänster",
+      "profileTitle": "Fjärrvärme",
+      "cssColor": "Red",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/KarlstadEnergi/ikon_värme_cirkel_korall.png",
+      "sortOrder": 2,
+      "webMessages": [
+        {
+          "id": 234256,
+          "smsGroupId": 3391565,
+          "smsGroupSendMethod": "ByExcel",
+          "smsGroupGeoObjects": "[{  \"type\": \"Feature\",  \"properties\": {    \"radius\": 500  },  \"geometry\": {    \"type\": \"Point\",    \"coordinates\": [      13.49416572260171,      59.38338943472915    ]  }}]",
+          "title": "Ny fjärrvärmeledning - Malmtorgsgatan och Våxnäsgatan torsdag 19 november",
+          "text": "<p>Vi ska koppla in en ny fjärrvärmeledning i korsningen vid Malmtorgsgatan och Våxnäsgatan. På torsdag 19 november mellan 09:00 och 19:00 behöver vi tillfälligt stoppa värmeleveransen till fastigheter i området. Under stoppet kommer berörda kunder sakna tillgång till värme och varmvatten. Funderar du på något är du välkommen att kontakta kundservice på [telefon borttagen] 00.</p>",
+          "profileId": 5135,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-19T19:00:00Z",
+          "dateDelayUtc": "2026-11-16T14:20:00Z",
+          "affectedAddressesCoordinates": null
+        }
+      ]
+    },
+    {
+      "id": 5137,
+      "profileName": "Återvinningstjänster",
+      "profileTitle": "Återvinning",
+      "cssColor": "Green",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/KarlstadEnergi/ikon_återvinning_cirkel_grön-gul.png",
+      "sortOrder": 2,
+      "webMessages": []
+    },
+    {
+      "id": 7082,
+      "profileName": null,
+      "profileTitle": "Elnät",
+      "cssColor": "Yellow",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/KarlstadEnergi/ikon_el_cirkel_gul.png",
+      "sortOrder": 1,
+      "webMessages": []
+    },
+    {
+      "id": 7083,
+      "profileName": null,
+      "profileTitle": "Stadsnät",
+      "cssColor": "Black",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/KarlstadEnergi/Fiber.png",
+      "sortOrder": 3,
+      "webMessages": []
+    }
+  ]
+}

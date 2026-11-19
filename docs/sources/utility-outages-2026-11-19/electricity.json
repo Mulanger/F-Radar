@@ -1,0 +1,996 @@
+[
+  {
+    "reportingUnit": "REL03028",
+    "name": "E.ON Energidistribution AB",
+    "customers2025": 1041984,
+    "operatorId": "eon",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL03035",
+    "name": "Ellevio AB",
+    "customers2025": 970602,
+    "operatorId": "ellevio",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL03030",
+    "name": "Vattenfall Eldistribution AB",
+    "customers2025": 907179,
+    "operatorId": "vattenfall",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL00062",
+    "name": "Göteborg Energi Nät AB",
+    "customers2025": 270348,
+    "operatorId": "goteborg_energi",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL00267",
+    "name": "Mälarenergi Elnät AB",
+    "customers2025": 106991,
+    "operatorId": "trimble:malarenergi",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL03045",
+    "name": "Öresundskraft Elnät AB",
+    "customers2025": 104127,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00886",
+    "name": "Kraftringen Nät AB",
+    "customers2025": 96063,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00111",
+    "name": "Tekniska verken Linköping Nät AB",
+    "customers2025": 78325,
+    "operatorId": "tekniskaverken",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL00584",
+    "name": "Umeå Energi Elnät AB",
+    "customers2025": 68210,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00824",
+    "name": "Skellefteå Kraft Elnät AB",
+    "customers2025": 67110,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00085",
+    "name": "Jämtkraft Elnät AB",
+    "customers2025": 62868,
+    "operatorId": "trimble:jamtkraft",
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03076",
+    "name": "Gävle Energi Elnät AB",
+    "customers2025": 56993,
+    "operatorId": "trimble:gavle",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL00086",
+    "name": "Jönköping Energinät AB",
+    "customers2025": 55535,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03068",
+    "name": "Telge Elnät AB",
+    "customers2025": 55099,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00035",
+    "name": "Eskilstuna Energi och Miljö Elnät AB",
+    "customers2025": 46931,
+    "operatorId": "servicealert:eem",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL00019",
+    "name": "Nätkraft Borås Infra AB",
+    "customers2025": 44245,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00945",
+    "name": "Gotlands Elnät AB",
+    "customers2025": 42925,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00118",
+    "name": "Luleå Energi Elnät AB",
+    "customers2025": 42371,
+    "operatorId": "digpro:lul",
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00033",
+    "name": "Halmstads Energi och Miljö Nät AB",
+    "customers2025": 41733,
+    "operatorId": "digpro:hsd",
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00243",
+    "name": "Växjö Energi Elnät AB",
+    "customers2025": 38176,
+    "operatorId": "digpro:vax",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL03009",
+    "name": "Dala Energi Elnät AB",
+    "customers2025": 34573,
+    "operatorId": "digpro:lre",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL03015",
+    "name": "Falu Elnät AB",
+    "customers2025": 34381,
+    "operatorId": "digpro:fev",
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00092",
+    "name": "Karlstads Elnät AB",
+    "customers2025": 32637,
+    "operatorId": "servicealert:karlstad",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL00018",
+    "name": "AB Borlänge Energi Elnät",
+    "customers2025": 30272,
+    "operatorId": "digpro:bee",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL03067",
+    "name": "Sollentuna Elnät AB",
+    "customers2025": 29989,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00023",
+    "name": "C4 Elnät AB",
+    "customers2025": 28547,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00178",
+    "name": "Sundsvall Elnät AB",
+    "customers2025": 28223,
+    "operatorId": "trimble:sundsvall",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL00576",
+    "name": "Härjeåns Nät AB",
+    "customers2025": 28176,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00130",
+    "name": "Nacka Energi AB",
+    "customers2025": 28173,
+    "operatorId": "digpro:nac",
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00570",
+    "name": "Västerbergslagens Elnät AB",
+    "customers2025": 26973,
+    "operatorId": "digpro:vbe",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL00195",
+    "name": "Uddevalla Energi Elnät AB",
+    "customers2025": 26782,
+    "operatorId": "digpro:udd",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL00204",
+    "name": "Varberg Energi Elnät AB",
+    "customers2025": 25622,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00191",
+    "name": "Trollhättan Energi Elnät AB",
+    "customers2025": 24927,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00100",
+    "name": "Kungälv Energi AB",
+    "customers2025": 24528,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03038",
+    "name": "Lidköping Elnät AB",
+    "customers2025": 23478,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03046",
+    "name": "PiteEnergi Elnät AB",
+    "customers2025": 23472,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00128",
+    "name": "Mölndal Energi Nät AB",
+    "customers2025": 22844,
+    "operatorId": "servicealert:molndal",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL00087",
+    "name": "Kalmar Energi Elnät AB",
+    "customers2025": 22736,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00184",
+    "name": "Södra Hallands Kraft ek. för.",
+    "customers2025": 21576,
+    "operatorId": "digpro:shk",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL01010",
+    "name": "Sandviken Energi Elnät AB",
+    "customers2025": 21565,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00170",
+    "name": "Skövde Energi Elnät AB",
+    "customers2025": 21288,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00169",
+    "name": "Skånska Energi Nät AB",
+    "customers2025": 19709,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00091",
+    "name": "Affärsverken Elnät i Karlskrona AB",
+    "customers2025": 19683,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00103",
+    "name": "Landskrona Energi AB",
+    "customers2025": 19517,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00160",
+    "name": "SEVAB Nät AB",
+    "customers2025": 18249,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00093",
+    "name": "Tekniska verken Katrineholm Nät AB",
+    "customers2025": 18214,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00133",
+    "name": "Norrtälje Energi AB",
+    "customers2025": 18086,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00106",
+    "name": "Lerum Nät AB",
+    "customers2025": 18029,
+    "operatorId": "digpro:lme",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL00123",
+    "name": "Malung-Sälens Elnät AB",
+    "customers2025": 17568,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00037",
+    "name": "Falbygdens Energi Nät AB",
+    "customers2025": 17427,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00015",
+    "name": "Bodens Energi Nät AB",
+    "customers2025": 17343,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03019",
+    "name": "Trelleborgs Elnät AB",
+    "customers2025": 17066,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03049",
+    "name": "Alingsås Energi Elnät AB",
+    "customers2025": 16558,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00080",
+    "name": "Höganäs Energi Elnät AB",
+    "customers2025": 16153,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00148",
+    "name": "Partille Energi Nät AB",
+    "customers2025": 15823,
+    "operatorId": "digpro:pen",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL00090",
+    "name": "Karlskoga Elnät AB",
+    "customers2025": 15722,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00038",
+    "name": "Falkenberg Energi Elnät AB",
+    "customers2025": 15557,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00594",
+    "name": "VänerEnergi AB",
+    "customers2025": 15071,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00078",
+    "name": "Härryda Energi AB",
+    "customers2025": 14964,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00016",
+    "name": "Boo Energi ek. för.",
+    "customers2025": 14847,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03048",
+    "name": "Bjäre Kraft Elnät AB",
+    "customers2025": 14441,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03056",
+    "name": "Ystad Energi Elnät AB",
+    "customers2025": 14328,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00077",
+    "name": "Härnösand Elnät AB",
+    "customers2025": 13899,
+    "operatorId": "digpro:hem",
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00157",
+    "name": "Sala-Heby Energi Elnät AB",
+    "customers2025": 13898,
+    "operatorId": "digpro:she",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL00143",
+    "name": "Olofströms Kraft Nät AB",
+    "customers2025": 13829,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00012",
+    "name": "Upplands Energi ek. för.",
+    "customers2025": 13763,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03070",
+    "name": "Ale El Elnät AB",
+    "customers2025": 13716,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00239",
+    "name": "Västerviks Kraft-Elnät AB",
+    "customers2025": 13457,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00127",
+    "name": "Mjölby Kraftnät AB",
+    "customers2025": 12610,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00146",
+    "name": "Oskarshamn Energi Nät AB",
+    "customers2025": 12216,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03069",
+    "name": "Varbergsortens Elnät AB",
+    "customers2025": 12013,
+    "operatorId": "digpro:vbo",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL03072",
+    "name": "Ronneby Miljöteknik Elnät AB",
+    "customers2025": 11981,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00944",
+    "name": "Linde Energi Elnät AB",
+    "customers2025": 11821,
+    "operatorId": "digpro:lie",
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00937",
+    "name": "Tranås Energi Elnät AB",
+    "customers2025": 10424,
+    "operatorId": "servicealert:tranas",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL00121",
+    "name": "LEVA Nät AB",
+    "customers2025": 10422,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00235",
+    "name": "Värnamo Elnät AB",
+    "customers2025": 10421,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00098",
+    "name": "Kristinehamns Elnät AB",
+    "customers2025": 10389,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00005",
+    "name": "Arvika Elnät AB",
+    "customers2025": 9896,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00141",
+    "name": "Nässjö Affärsverk Elnät AB",
+    "customers2025": 9854,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00938",
+    "name": "Hedemora Elnät AB",
+    "customers2025": 9250,
+    "operatorId": "digpro:hed",
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00183",
+    "name": "Söderhamn Elnät AB",
+    "customers2025": 9212,
+    "operatorId": "servicealert:soderhamn",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL00257",
+    "name": "Övik Energi Nät AB",
+    "customers2025": 9180,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03044",
+    "name": "Ulricehamns Energi Elnät AB",
+    "customers2025": 9133,
+    "operatorId": "servicealert:ulricehamn",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL00936",
+    "name": "Njudung Vetlanda Elnät AB",
+    "customers2025": 9023,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00008",
+    "name": "Bergs Tingslags Elektriska AB",
+    "customers2025": 9016,
+    "operatorId": "digpro:bte",
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00137",
+    "name": "Nybro Energi Elnät AB",
+    "customers2025": 8925,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00112",
+    "name": "Ljungby Energinät AB",
+    "customers2025": 8813,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00364",
+    "name": "Österlens Kraft Elnät AB",
+    "customers2025": 8183,
+    "operatorId": "servicealert:osterlen",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL03047",
+    "name": "Karlshamn Elnät AB",
+    "customers2025": 8144,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00164",
+    "name": "Sjöbo Elnät AB",
+    "customers2025": 7979,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00175",
+    "name": "Staffanstorps Energi AB",
+    "customers2025": 7879,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00585",
+    "name": "Götene Elförening ek. för.",
+    "customers2025": 7553,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03042",
+    "name": "Skara Elnät AB",
+    "customers2025": 7432,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00113",
+    "name": "Ljusdal Elnät AB",
+    "customers2025": 7061,
+    "operatorId": "servicealert:ljusdal",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL00332",
+    "name": "Tidaholms Elnät AB",
+    "customers2025": 6647,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00030",
+    "name": "Eksjö Elnät AB",
+    "customers2025": 6606,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00147",
+    "name": "Oxelö Energi AB",
+    "customers2025": 6423,
+    "operatorId": "servicealert:oxelo",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL03074",
+    "name": "Sölvesborgs Elnät AB",
+    "customers2025": 5805,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00242",
+    "name": "Västra Orusts Energitjänst ek. för.",
+    "customers2025": 5744,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03073",
+    "name": "Herrljunga Elnät AB                             ",
+    "customers2025": 5393,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00187",
+    "name": "Tibro Elnät AB",
+    "customers2025": 5364,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00064",
+    "name": "Habo Energi Kraft AB",
+    "customers2025": 5137,
+    "operatorId": "servicealert:habo",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL00958",
+    "name": "Vimmerby Energi Nät AB",
+    "customers2025": 5126,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00011",
+    "name": "Bjärke Energi ek. för.",
+    "customers2025": 5010,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00017",
+    "name": "Borgholm Energi Elnät AB",
+    "customers2025": 4638,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00203",
+    "name": "Vara Energi ek. för.",
+    "customers2025": 4600,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03054",
+    "name": "Degerfors Elnät AB",
+    "customers2025": 4545,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL01012",
+    "name": "Brittedals Elnät ek. för.",
+    "customers2025": 4544,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00043",
+    "name": "Gislaved Energi Elnät AB",
+    "customers2025": 4533,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00167",
+    "name": "Skurups Elverk AB",
+    "customers2025": 4449,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03016",
+    "name": "Vaggeryds Elverk AB",
+    "customers2025": 4353,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00049",
+    "name": "Grästorps Energi ek. för.",
+    "customers2025": 4208,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00021",
+    "name": "Bromölla Energi och Vatten AB",
+    "customers2025": 4190,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00156",
+    "name": "Rödeby Elverk ek. för.",
+    "customers2025": 4190,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03043",
+    "name": "Karlsborgs Elnät AB",
+    "customers2025": 4079,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00899",
+    "name": "Kvänumsbygdens Energi ek. för.",
+    "customers2025": 3976,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03061",
+    "name": "Sandhult-Sandareds Elnät AB",
+    "customers2025": 3757,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03041",
+    "name": "Hjo Elnät AB",
+    "customers2025": 3648,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00171",
+    "name": "Smedjebacken Energi Nät AB",
+    "customers2025": 3627,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03060",
+    "name": "Njudung Sävsjö Elnät AB",
+    "customers2025": 3541,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00029",
+    "name": "Övertorneå Energi AB",
+    "customers2025": 3525,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00246",
+    "name": "Ålem Energi Elnät AB",
+    "customers2025": 3325,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00040",
+    "name": "Filipstad Energinät AB",
+    "customers2025": 3107,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00031",
+    "name": "Emmaboda Elnät AB",
+    "customers2025": 3100,
+    "operatorId": "servicealert:emmaboda",
+    "working": true
+  },
+  {
+    "reportingUnit": "REL03077",
+    "name": "Näckåns Elnät AB",
+    "customers2025": 2908,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03062",
+    "name": "Östra Kinds Elnät AB",
+    "customers2025": 2850,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00163",
+    "name": "Sjogerstads Elektriska Distributionsförening ek. för.",
+    "customers2025": 2809,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00201",
+    "name": "Vallebygdens Energi ek. för.",
+    "customers2025": 2690,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00135",
+    "name": "Nossebroortens Energi ek. för.",
+    "customers2025": 2600,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00126",
+    "name": "Mellersta Skånes Kraft ek. för.",
+    "customers2025": 2425,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00007",
+    "name": "Bengtsfors Energi Nät AB",
+    "customers2025": 2331,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00074",
+    "name": "Hjärtums Elförening ek för",
+    "customers2025": 2045,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00067",
+    "name": "Hallstaviks Elverk ek. för.",
+    "customers2025": 1826,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00959",
+    "name": "Åsele Elnät AB",
+    "customers2025": 1811,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00144",
+    "name": "Olseröds Elektriska Distributionsförening u.p.a.",
+    "customers2025": 1807,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00014",
+    "name": "Blåsjön Nät AB",
+    "customers2025": 1540,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00249",
+    "name": "Årsunda Kraft & Belysningsförening ek. för.",
+    "customers2025": 1516,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00193",
+    "name": "Töre Energi ek. för.",
+    "customers2025": 943,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00590",
+    "name": "LKAB Nät AB",
+    "customers2025": 911,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL03059",
+    "name": "Fågelås Elnät AB",
+    "customers2025": 318,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00024",
+    "name": "Carlfors Bruk E Björklund & Co KB",
+    "customers2025": 20,
+    "operatorId": null,
+    "working": false
+  },
+  {
+    "reportingUnit": "REL00965",
+    "name": "Sörbylunds Elnät HB",
+    "customers2025": 7,
+    "operatorId": null,
+    "working": false
+  }
+]

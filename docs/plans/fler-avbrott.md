@@ -1,8 +1,8 @@
 # Avbrott i hela landet – full elbevakning, vatten, fjärrvärme, gas och bredband – implementationsplan
 
 **Status:** Utkast 2026-11-18, utökat 2026-11-19 med luckorna i elbevakningen och nationell prioritering.
-Skrivet på produktägarens begäran. **Inte påbörjat.** Genomförs senare, en fas i taget, på
-produktägarens uttryckliga begäran.
+Skrivet på produktägarens begäran. **Påbörjat 2026-11-19 på `codex/avbrott-hela-landet`.**
+Produktägaren har beställt Fas 0–8 i ordning; Fas 7 begränsas till kartläggning enligt senare beslut.
 **Bygger på:** [`stromavbrott.md`](stromavbrott.md) – elavbrotten (Fas 1–5, live sedan 2026-11-14). Allt
 som står där om regler, precision, livscykel och ärlighet gäller även här om inte annat sägs.
 **Underlag:** Luckorna i elbevakningen (avsnitt 4.1) är uppmätta i produktion 2026-11-19. Alla övriga
@@ -213,6 +213,15 @@ också lista adresser med ungefärlig position.
 4. Notera: format, geometrityp, fält för typ (planerat/oplanerat), tider, antal berörda, adresser,
    uppdateringstakt, om det fungerar från podden.
 
+### 4.8 Kartläggning 2026-11-19
+
+Nationella rangordningar, exakta URL:er, plattformar, profiltitlar, poddprov och begränsningar:
+[`../sources/utility-outages-2026-11-19/README.md`](../sources/utility-outages-2026-11-19/README.md).
+Elbaslinje: 3 859 845 av 5 612 871 abonnemang, **68,7677 %** hos implementerade bolag
+med lyckat jobb. Nio aldrig lyckade jobb bekräftade med SELECT och curl.
+`bte` avser Bergs Tingslags Elektriska, `hsd` Halmstad och `hem` Härnösand;
+namnen i §4.1 a är förväxlade. Borlänge (`bee`) fungerar.
+
 ---
 
 ## 5. Arkitektur
@@ -401,4 +410,4 @@ leverantörerna.
 
 | Fas | Datum | Commit | Vad som gjordes | Inte verifierat / avvikelser |
 |---|---|---|---|---|
-| – | – | – | – | – |
+| 0 | 2026-11-19 | fascommit: `docs(outages): record national baseline and pod evidence` | Ei 2025 el/värme/gas, SCB 290 kommuner, nationella rangordningar, nio fel reproducerade, ServiceAlert-profiler, Exergi/SVOA/Göteborg VA/gas verifierade från podden; fixtures och utökad katalogigenkänning | Kartläggningen är delvis: flera stora bolags exakta flöden och värmens fungerande kundandel återstår. Svensk utgång ej provad; tom gas-KML utan aktiv post. 57 testfiler, 466 godkända/6 överhoppade; typer/lint gröna, PostGIS 32/32. |

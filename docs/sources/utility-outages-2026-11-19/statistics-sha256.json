@@ -1,0 +1,18 @@
+[
+  {
+    "id": "electricity",
+    "sha256": "1b0fe7f059fe786f498783795df848325491b9f380f5fce572740589cd1ffe70"
+  },
+  {
+    "id": "heating",
+    "sha256": "4b6f3eaa5b44cf869fb4abc8db8a9628248f3f1cbb62fff779ae720e8af56c2b"
+  },
+  {
+    "id": "heatingCustomers",
+    "sha256": "00049082feb37b50207e3532c073953b9590b55c3547b65df60c429c16e1ca9d"
+  },
+  {
+    "id": "gas",
+    "sha256": "703ba3bcd98693902a8bbdf21fb17e9cbe61241b5fdb7a694a400692e9054259"
+  }
+]

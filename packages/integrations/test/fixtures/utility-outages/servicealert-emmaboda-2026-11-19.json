@@ -1,0 +1,81 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 116,
+    "defaultMapCenterCoords": {
+      "lat": 56.62849044799805,
+      "lng": 15.570090293884277
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": true,
+    "showPolygons": true,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": false,
+    "showArchiveDays": null,
+    "showClusterMarkers": false,
+    "id": 504
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 7120,
+      "profileName": null,
+      "profileTitle": "VA",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/water-drop-2.png",
+      "sortOrder": 1,
+      "webMessages": []
+    },
+    {
+      "id": 7121,
+      "profileName": null,
+      "profileTitle": "Avfall",
+      "cssColor": "Green",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/waste_dark.png",
+      "sortOrder": 1,
+      "webMessages": [
+        {
+          "id": 234259,
+          "smsGroupId": 3391544,
+          "smsGroupSendMethod": "ByExcel",
+          "smsGroupGeoObjects": null,
+          "title": "Nu ställer vi ut fyrfackskärlen!",
+          "text": "<p>Från och med måndag den 23 november börjar vi ställa ut de nya fyrfackskärlen i Emmaboda kommun.</p><br /><p>Vår entreprenör utgår i möjligaste mån från den tidigare hämtningsrutten. Eftersom utställningen tar lite längre tid än en vanlig tömning kommer vi inte att hinna med i samma tempo som vanligt.</p><br /><p><strong>Vi ber dig därför att låta dina gamla mat- och restavfallskärl stå kvar ute och väl synliga tills vi har hämtat dem.</strong> Genom att låta kärlen stå tillgängliga hjälps vi alla åt att genomföra omställningen så smidigt som möjligt.</p><br /><p>Kärlen behöver inte vara tomma när vi hämtar dem.</p><br /><p>I de nya kärlen finns informationsbroschyr som hjälper dig att komma igång med närsorterat. Du kan redan nu hitta svar på de flesta frågor på vår hemsida under rubriken <em>Avfall/Närsorterat</em>.</p><br /><p>De nya körturerna kan komma att ändras under inkörningsperioden. Se därför till att hålla dig uppdaterad via <a href=\"https://emmabodaenergi.kalmarenergi.se/\" rel=\"noopener noreferrer\" target=\"_blank\">Mina sidor</a> och vår <a href=\"https://www.emmabodaenergi.se/kundservice/fa-ett-sms-nar-vi-har-driftstorningar.html\" rel=\"noopener noreferrer\" target=\"_blank\">SMS-tjänst</a>.</p><br /><p>Har du frågor ber vi dig i första hand att mejla dem till <a href=\"mailto:[e-post borttagen]\" rel=\"noopener noreferrer\" target=\"_blank\">[e-post borttagen]</a>. Vi hanterar inkomna ärenden i tur och ordning.</p><br /><p><strong>Tack för ditt tålamod och för att du hjälper oss att genomföra övergången till det nya insamlingssystemet!</strong></p><br /><p>Emmaboda Energi</p>",
+          "profileId": 7121,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-12-31T07:00:00Z",
+          "dateDelayUtc": "2026-11-17T07:00:00Z",
+          "affectedAddressesCoordinates": []
+        }
+      ]
+    },
+    {
+      "id": 7117,
+      "profileName": null,
+      "profileTitle": "Elnät",
+      "cssColor": "Yellow",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/power-plug-2.png",
+      "sortOrder": 2,
+      "webMessages": []
+    },
+    {
+      "id": 7118,
+      "profileName": null,
+      "profileTitle": "Fibernät",
+      "cssColor": "Black",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/cloud_signal.png",
+      "sortOrder": 3,
+      "webMessages": []
+    },
+    {
+      "id": 7119,
+      "profileName": null,
+      "profileTitle": "Fjärrvärme",
+      "cssColor": "Red",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/segment-icons/factory_red.png",
+      "sortOrder": 4,
+      "webMessages": []
+    }
+  ]
+}

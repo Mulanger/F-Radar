@@ -1,0 +1,67 @@
+[
+  {
+    "name": "C4 Elnät AB",
+    "utility": "electricity",
+    "page": "https://www.c4energi.se/driftinformation/driftkarta-elnat/"
+  },
+  {
+    "name": "Gotlands Elnät AB",
+    "utility": "electricity",
+    "page": "https://www.gotlandsenergi.se"
+  },
+  {
+    "name": "Kraftringen Nät AB",
+    "utility": "electricity",
+    "page": "https://www.kraftringen.se/Om-Kraftringen/Aktuellt/Avbrottsinformation/"
+  },
+  {
+    "name": "Nätkraft Borås AB",
+    "utility": "electricity",
+    "page": "https://natkraftboras.se/kundservice/service/driftinformation/"
+  },
+  {
+    "name": "Skellefteå Kraft Elnät AB",
+    "utility": "electricity",
+    "page": "https://driftinfo.skekraft.se"
+  },
+  {
+    "name": "Telge Nät AB",
+    "utility": "electricity",
+    "page": "https://www.telge.se/kundservice/driftstatus"
+  },
+  {
+    "name": "Umeå Energi Elnät AB",
+    "utility": "electricity",
+    "page": "https://www.umeaenergi.se/kundservice/driftinformation"
+  },
+  {
+    "name": "Öresundskraft AB",
+    "utility": "electricity",
+    "page": "https://www.oresundskraft.se/privat/kundservice/avbrottsinformation/"
+  },
+  {
+    "name": "Stockholm Exergi",
+    "utility": "district_heating",
+    "page": "https://www.stockholmexergi.se/driftinformation/"
+  },
+  {
+    "name": "Stockholm Vatten och Avfall",
+    "utility": "water",
+    "page": "https://www.stockholmvattenochavfall.se/driftinfo"
+  },
+  {
+    "name": "Kretslopp och vatten, Göteborg",
+    "utility": "water",
+    "page": "https://goteborg.se/wps/portal/start/bygga-bo-och-leva-hallbart/vatten-och-avlopp/vattenavstangningar-och-andra-storningar/vattenavstangningar"
+  },
+  {
+    "name": "Telia",
+    "utility": "mobile",
+    "page": "https://www.telia.se/support/driftinformation-mobilt"
+  },
+  {
+    "name": "Telenor",
+    "utility": "mobile",
+    "page": "https://www.telenor.se/support/driftinformation/"
+  }
+]

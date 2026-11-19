@@ -33,3 +33,13 @@ SMHI HydroObs parameter 2, m³/s, alla 15-minutersvärden från latest-hour. Sta
 Migration 0005 omfattar nowcast_points, hydrology_references/checks och observation_history, inklusive källkatalogens nya poster. Historik 35 dygn, hav nedsamplat till exakta 10 min; bara stationer nära aktiva fastigheter lagras. MetObs parameter 14 och alla värden i latest-hour samlas varje 15 min. Täckningskontrollerade summor 1/24/72 h och 6/24 h-trender visas utan ändrat riskindex. Se ADR 0004 för volym och avgränsningar.
 
 Kommande-listan prioriterar kommande officiella perioder före härledda rader, därefter ton och tid. Nya rader visar källans uppdateringstid och förklaringen för växlande grader; långa värden radbryts på mobil.
+# Fler avbrott i hela landet – 2026-11-19
+
+- Egen gren `codex/avbrott-hela-landet`, egen worktree från `codex/landing-parity-live` / `e9945d5`.
+- Fas 0 delvis: nationella kundunderlag/rangordningar, poddprov och fixtures sparade;
+  [underlag](sources/utility-outages-2026-11-19/README.md). Fortsatt källutredning i respektive fas.
+- Baslinje: 57 testfiler, 466 godkända och 6 överhoppade tester; alla workspace-typer och lint gröna.
+  PostGIS: 32/32 via godkänt skript mot `fastighetsradar_test`, 0 anslutningar före körning.
+- Produktägaren tillåter endast testskriptets testskrivningar i podden; inga produktionsändringar.
+- Beslut: proxy-stöd utan serverinköp; behåll "El och värme"; kokningsrekommendationer enligt §2.3;
+  kommande avstängningar enligt §5.6 bakom avstängd flagga; ingen Fas 7-implementation.

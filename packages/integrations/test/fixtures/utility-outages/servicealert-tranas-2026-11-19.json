@@ -1,0 +1,241 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 120,
+    "defaultMapCenterCoords": {
+      "lat": 58.04010009765625,
+      "lng": 14.95580005645752
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": false,
+    "showPolygons": false,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": false,
+    "showArchiveDays": null,
+    "showClusterMarkers": false,
+    "id": 30
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 677,
+      "profileName": "Elnät",
+      "profileTitle": "Elnät",
+      "cssColor": "Yellow",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/electricity.png",
+      "sortOrder": null,
+      "webMessages": []
+    },
+    {
+      "id": 678,
+      "profileName": "Fibernät",
+      "profileTitle": "Fibernät",
+      "cssColor": "Red",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/cloud_signal.png",
+      "sortOrder": null,
+      "webMessages": [
+        {
+          "id": 233969,
+          "smsGroupId": 3387585,
+          "smsGroupSendMethod": "ByExcel",
+          "smsGroupGeoObjects": null,
+          "title": "Planerat arbete Torsdagen den 19/11.",
+          "text": "<p>Torsdagen den 19/11 har vi ett planerat arbete som påverkar TRAMAN-anslutningar i Romanäs, Romanäsvägen, Berghällavägen, Berners väg, Bryggvägen, Hyggesvägen, Stugvägen och Skiftesvägen. Arbetet pågår från kl 07:00 till ca kl 16:00.</p><br /><p>Starta om din utrustning (även TV-box) om du fortfarande upplever problem efter vårat arbete. Om detta inte hjälper gör du en felanmälan till din tjänsteleverantör.</p><br /><p>Se www.tranasenergi.se/privat/driftinformation/driftstatus för ev. uppdaterad information och redigering av dina aviseringsinställningar. </p>",
+          "profileId": 678,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-20T07:00:00Z",
+          "dateDelayUtc": "2026-11-13T14:40:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 58.071082413407524,
+              "lng": 15.007518541259177
+            },
+            {
+              "lat": 58.07237063980496,
+              "lng": 15.01035363612581
+            },
+            {
+              "lat": 58.071269015950094,
+              "lng": 15.007922755842367
+            },
+            {
+              "lat": 58.071123060238094,
+              "lng": 15.008989767205371
+            },
+            {
+              "lat": 58.07076719960698,
+              "lng": 15.008798162058577
+            },
+            {
+              "lat": 58.07050926546471,
+              "lng": 15.008918028155957
+            },
+            {
+              "lat": 58.0717077568504,
+              "lng": 15.007013154884048
+            },
+            {
+              "lat": 58.07260780411032,
+              "lng": 15.006645655830635
+            },
+            {
+              "lat": 58.07287393608462,
+              "lng": 15.00569095219611
+            },
+            {
+              "lat": 58.073145953496,
+              "lng": 15.00655397541133
+            },
+            {
+              "lat": 58.07363888392287,
+              "lng": 15.007512636630414
+            },
+            {
+              "lat": 58.073536422322384,
+              "lng": 15.005840562635116
+            },
+            {
+              "lat": 58.073797900138324,
+              "lng": 15.006712246890478
+            },
+            {
+              "lat": 58.07389756574114,
+              "lng": 15.006140617951008
+            },
+            {
+              "lat": 58.07420165547008,
+              "lng": 15.00620587109385
+            },
+            {
+              "lat": 58.06995500445069,
+              "lng": 15.024064849275959
+            },
+            {
+              "lat": 58.068099828797976,
+              "lng": 15.021699377233233
+            },
+            {
+              "lat": 58.06745132988415,
+              "lng": 15.018460451212233
+            },
+            {
+              "lat": 58.06770502852808,
+              "lng": 15.021741936123954
+            },
+            {
+              "lat": 58.070906610607715,
+              "lng": 15.024044029038333
+            },
+            {
+              "lat": 58.071543180831576,
+              "lng": 15.023894553380257
+            },
+            {
+              "lat": 58.06821225603805,
+              "lng": 15.021002220697515
+            },
+            {
+              "lat": 58.071585279250904,
+              "lng": 14.9989803224755
+            },
+            {
+              "lat": 58.07149788731074,
+              "lng": 14.999358482145912
+            },
+            {
+              "lat": 58.07078852108388,
+              "lng": 15.00262390923154
+            },
+            {
+              "lat": 58.07063273453098,
+              "lng": 15.003827774141838
+            },
+            {
+              "lat": 58.069915960214175,
+              "lng": 15.004782608888227
+            },
+            {
+              "lat": 58.070353695842606,
+              "lng": 15.00585726529034
+            },
+            {
+              "lat": 58.07021229387678,
+              "lng": 15.006216281915622
+            },
+            {
+              "lat": 58.069804264047384,
+              "lng": 15.005581503863052
+            },
+            {
+              "lat": 58.06972111582771,
+              "lng": 15.005210590483044
+            },
+            {
+              "lat": 58.07073900212939,
+              "lng": 15.006448504276053
+            },
+            {
+              "lat": 58.07202020672731,
+              "lng": 15.008158485652443
+            },
+            {
+              "lat": 58.07231738970019,
+              "lng": 15.009734600449612
+            },
+            {
+              "lat": 58.06935009248343,
+              "lng": 15.020604464326679
+            },
+            {
+              "lat": 58.07262565196713,
+              "lng": 15.003771841809398
+            },
+            {
+              "lat": 58.072220495061565,
+              "lng": 15.004307312203778
+            },
+            {
+              "lat": 58.07221446487612,
+              "lng": 15.007635612251395
+            },
+            {
+              "lat": 58.07279636033967,
+              "lng": 15.00793441825391
+            },
+            {
+              "lat": 58.07236513926119,
+              "lng": 15.008038950656502
+            },
+            {
+              "lat": 58.07293310715418,
+              "lng": 15.008407553934608
+            },
+            {
+              "lat": 58.07249373976161,
+              "lng": 15.00850167049749
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 679,
+      "profileName": "Fjärrvärme",
+      "profileTitle": "Fjärrvärme",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/radiator.png",
+      "sortOrder": null,
+      "webMessages": []
+    },
+    {
+      "id": 680,
+      "profileName": "Gatljus",
+      "profileTitle": "Gatljus",
+      "cssColor": "White",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/street_light.png",
+      "sortOrder": null,
+      "webMessages": []
+    }
+  ]
+}

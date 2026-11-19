@@ -1,0 +1,293 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 106,
+    "defaultMapCenterCoords": {
+      "lat": 57.654380798339844,
+      "lng": 11.957380294799805
+    },
+    "hasSearchInput": true,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": false,
+    "showPolygons": true,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": false,
+    "showArchiveDays": null,
+    "showClusterMarkers": false,
+    "id": 225
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 5331,
+      "profileName": "Drift",
+      "profileTitle": "VA",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/waste_water_dark_blue.png",
+      "sortOrder": null,
+      "webMessages": [
+        {
+          "id": 234732,
+          "smsGroupId": 3401627,
+          "smsGroupSendMethod": "ByAddress",
+          "smsGroupGeoObjects": null,
+          "title": "Högsbo",
+          "text": "<p>Vi kommer att utföra ett akut arbete på vattenledningarna på A Odhners gata under torsdag 19 november mellan klockan 08:30 och 13:00 och i samband med detta så stänger vi av vattnet för markerade fastigheter. Vi arbetar för att få tillbaka vattnet så fort som möjligt.&nbsp;</p><br /><p>Gör inga arbeten på dina egna ledningar under tiden vårt arbete pågår eftersom vattnet kan stängas av senare och sättas på tidigare än planerat.&nbsp;</p><p>Observera att tidsangivelserna är ungefärliga och kan komma att ändras utan att vi särskilt meddelar detta. Det innebär att vattnet kan stängas tidigare eller senare än angivet klockslag</p><br /><p>Tappa upp vatten för behov i förväg.</p>",
+          "profileId": 5331,
+          "criticalStatus": true,
+          "dateExpireUtc": "2026-11-21T07:00:00Z",
+          "dateDelayUtc": "2026-11-18T13:20:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 57.65347156970791,
+              "lng": 11.950769608928235
+            },
+            {
+              "lat": 57.65355806109357,
+              "lng": 11.951473078230325
+            },
+            {
+              "lat": 57.65275548177963,
+              "lng": 11.950869593378458
+            },
+            {
+              "lat": 57.653537153976494,
+              "lng": 11.951625077153688
+            },
+            {
+              "lat": 57.65053043473967,
+              "lng": 11.952054269345682
+            },
+            {
+              "lat": 57.65045453155704,
+              "lng": 11.952163860284552
+            },
+            {
+              "lat": 57.65031233476682,
+              "lng": 11.953022421033884
+            },
+            {
+              "lat": 57.65193585132351,
+              "lng": 11.947063014851908
+            },
+            {
+              "lat": 57.65196293277996,
+              "lng": 11.949125892969478
+            },
+            {
+              "lat": 57.6520199306826,
+              "lng": 11.950166618539631
+            },
+            {
+              "lat": 57.652421157147295,
+              "lng": 11.950106003949447
+            },
+            {
+              "lat": 57.65320424319309,
+              "lng": 11.951608485884387
+            },
+            {
+              "lat": 57.65320808520425,
+              "lng": 11.952261998651524
+            },
+            {
+              "lat": 57.65247716927193,
+              "lng": 11.952574950820317
+            }
+          ]
+        },
+        {
+          "id": 234725,
+          "smsGroupId": 3401509,
+          "smsGroupSendMethod": "ByAddress",
+          "smsGroupGeoObjects": null,
+          "title": "Slottskogen",
+          "text": "<p>Vi kommer att utföra ett arbete på vattenledningarna på&nbsp;SLOTTSSKOGEN onsdag 25 november klockan09:00 till 14:00.&nbsp;I samband med detta kan trycket i din vattenkran verka sämre, eventuellt kan ditt dricksvatten försvinna helt under denna tid. Vi arbetar för att få tillbaka vattnet så fort som möjligt.</p><br /><p>Gör inga arbeten på dina egna ledningar under tiden vårt arbete pågår eftersom vattnet kan stängas av senare och sättas på tidigare än planerat.&nbsp;</p>",
+          "profileId": 5331,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-27T07:00:00Z",
+          "dateDelayUtc": "2026-11-18T13:00:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 57.693256081060966,
+              "lng": 11.944166411931658
+            },
+            {
+              "lat": 57.69433701299671,
+              "lng": 11.941543520447844
+            },
+            {
+              "lat": 57.694323039386994,
+              "lng": 11.941349619240233
+            },
+            {
+              "lat": 57.69386119423543,
+              "lng": 11.940770357818883
+            },
+            {
+              "lat": 57.69426608432551,
+              "lng": 11.941707251229937
+            },
+            {
+              "lat": 57.694205481081106,
+              "lng": 11.941531181300581
+            },
+            {
+              "lat": 57.69412434399748,
+              "lng": 11.941525871713543
+            },
+            {
+              "lat": 57.69404005490633,
+              "lng": 11.941520676911695
+            },
+            {
+              "lat": 57.69394554187358,
+              "lng": 11.94151454837801
+            },
+            {
+              "lat": 57.69385598161253,
+              "lng": 11.941508807848967
+            },
+            {
+              "lat": 57.69377871566928,
+              "lng": 11.941503759332274
+            },
+            {
+              "lat": 57.69374216430492,
+              "lng": 11.941490493292573
+            },
+            {
+              "lat": 57.69374427001722,
+              "lng": 11.941376495835366
+            },
+            {
+              "lat": 57.693760077675755,
+              "lng": 11.941068313747753
+            },
+            {
+              "lat": 57.6937731258028,
+              "lng": 11.94092811475597
+            },
+            {
+              "lat": 57.69382560462492,
+              "lng": 11.940931375563286
+            },
+            {
+              "lat": 57.69389056526431,
+              "lng": 11.941010342141942
+            },
+            {
+              "lat": 57.69396297831042,
+              "lng": 11.941100144691562
+            },
+            {
+              "lat": 57.69404230017363,
+              "lng": 11.941198747808448
+            },
+            {
+              "lat": 57.694114486013824,
+              "lng": 11.94128845276008
+            },
+            {
+              "lat": 57.69418637342043,
+              "lng": 11.941377713242682
+            },
+            {
+              "lat": 57.694238626578304,
+              "lng": 11.941447463713368
+            },
+            {
+              "lat": 57.694242175948276,
+              "lng": 11.9415574440743
+            },
+            {
+              "lat": 57.692775751462534,
+              "lng": 11.940926441025988
+            },
+            {
+              "lat": 57.69285646563001,
+              "lng": 11.940908689093575
+            },
+            {
+              "lat": 57.69293846361754,
+              "lng": 11.940891248401597
+            },
+            {
+              "lat": 57.69302671172703,
+              "lng": 11.940871350158332
+            },
+            {
+              "lat": 57.69319620354185,
+              "lng": 11.940834040901823
+            },
+            {
+              "lat": 57.6932922958217,
+              "lng": 11.940812188220146
+            },
+            {
+              "lat": 57.69339468464583,
+              "lng": 11.940790912067497
+            },
+            {
+              "lat": 57.693429573974456,
+              "lng": 11.940961391270463
+            },
+            {
+              "lat": 57.69351687194511,
+              "lng": 11.941038590408423
+            },
+            {
+              "lat": 57.69277232568327,
+              "lng": 11.941412847509234
+            },
+            {
+              "lat": 57.693417268130545,
+              "lng": 11.941373107037965
+            },
+            {
+              "lat": 57.69340637472103,
+              "lng": 11.941481634160905
+            },
+            {
+              "lat": 57.69334808406469,
+              "lng": 11.941478140976203
+            },
+            {
+              "lat": 57.69327819762469,
+              "lng": 11.941473108018986
+            },
+            {
+              "lat": 57.6931943528418,
+              "lng": 11.941468446607596
+            },
+            {
+              "lat": 57.69311254018482,
+              "lng": 11.941463076713832
+            },
+            {
+              "lat": 57.69303359852209,
+              "lng": 11.941458236807907
+            },
+            {
+              "lat": 57.692944148779844,
+              "lng": 11.9414522353936
+            },
+            {
+              "lat": 57.69285492067451,
+              "lng": 11.941447222391494
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5334,
+      "profileName": "Kundservice",
+      "profileTitle": "VA",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/waste_water_dark_blue.png",
+      "sortOrder": null,
+      "webMessages": []
+    }
+  ]
+}

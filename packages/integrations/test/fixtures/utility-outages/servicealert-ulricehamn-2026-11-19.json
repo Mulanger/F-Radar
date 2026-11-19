@@ -1,0 +1,167 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 110,
+    "defaultMapCenterCoords": {
+      "lat": 57.85280990600586,
+      "lng": 13.4514799118042
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": true,
+    "showPolygons": false,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": false,
+    "showArchiveDays": null,
+    "showClusterMarkers": false,
+    "id": 292
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 693,
+      "profileName": null,
+      "profileTitle": "Avfall",
+      "cssColor": "Green",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/waste_dark.png",
+      "sortOrder": null,
+      "webMessages": []
+    },
+    {
+      "id": 689,
+      "profileName": null,
+      "profileTitle": "Elnät",
+      "cssColor": "Yellow",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/electricity.png",
+      "sortOrder": null,
+      "webMessages": []
+    },
+    {
+      "id": 690,
+      "profileName": null,
+      "profileTitle": "Fibernät",
+      "cssColor": "White",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/cloud_signal.png",
+      "sortOrder": null,
+      "webMessages": []
+    },
+    {
+      "id": 691,
+      "profileName": null,
+      "profileTitle": "Fjärrvärme",
+      "cssColor": "Red",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/radiator.png",
+      "sortOrder": null,
+      "webMessages": []
+    },
+    {
+      "id": 4289,
+      "profileName": null,
+      "profileTitle": "Fordonsgas",
+      "cssColor": "Red",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/exclamation_v2_blue.png",
+      "sortOrder": null,
+      "webMessages": []
+    },
+    {
+      "id": 692,
+      "profileName": null,
+      "profileTitle": "Väg",
+      "cssColor": "Black",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/road.png",
+      "sortOrder": null,
+      "webMessages": [
+        {
+          "id": 233483,
+          "smsGroupId": 0,
+          "smsGroupSendMethod": null,
+          "smsGroupGeoObjects": null,
+          "title": "Korsningen Ryttarevägen/Skansörvägen Ulricehamn avstängde från v 46",
+          "text": "<p>Pga omkopplingsarbetet i VA-nätet kommer korsningen Ryttarevägen/Skansörvägen att vara helt avstängd för biltrafik under ett par veckor framöver.</p><p>Tack för visad hänsyn.</p>",
+          "profileId": 692,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-12-04T07:00:00Z",
+          "dateDelayUtc": "2026-11-11T13:40:00Z",
+          "affectedAddressesCoordinates": null
+        },
+        {
+          "id": 226428,
+          "smsGroupId": 0,
+          "smsGroupSendMethod": null,
+          "smsGroupGeoObjects": null,
+          "title": "Parkering Sturegatan, Ulricehamn",
+          "text": "<p>Ulricehamns kommun kommer att genomföra en upprustning av parkeringen på Sturegatan.</p><p><strong>Arbetena planeras att påbörjas fredagen vecka 41 och pågå till cirka vecka 48.</strong></p><p>Under byggtiden kommer Sturegatan att regleras med enkelriktad trafik förbi arbetsområdet. Skyltning och trafikanordningar kommer att finnas på plats för att vägleda trafikanter. </p><p>Vi ber samtliga trafikanter att följa aktuell skyltning och visa hänsyn till pågående arbeten.</p>",
+          "profileId": 692,
+          "criticalStatus": true,
+          "dateExpireUtc": "2026-11-29T07:00:00Z",
+          "dateDelayUtc": "2026-10-01T08:10:00Z",
+          "affectedAddressesCoordinates": null
+        }
+      ]
+    },
+    {
+      "id": 694,
+      "profileName": null,
+      "profileTitle": "Vatten & Avlopp",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/water-drop-2.png",
+      "sortOrder": null,
+      "webMessages": [
+        {
+          "id": 233479,
+          "smsGroupId": 3378927,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[13.432975,57.8014],[13.432267,57.801191],[13.432041,57.801266],[13.43158,57.800917],[13.431848,57.800654],[13.432041,57.800417],[13.432428,57.800448],[13.43261,57.800136],[13.433661,57.800282],[13.433361,57.800968],[13.432975,57.8014]]]}}]",
+          "title": "Omkopplingsarbetet Ryttarevägen Ulricehamn från v 46",
+          "text": "<p>Pga omkopplingsarbetet i VA-nätet kommer korsningen Ryttarevägen/Skansörvägen att vara helt avstängd för biltrafik under ett par veckor framöver.</p><p>Tack för visad hänsyn.</p>",
+          "profileId": 694,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-12-04T07:00:00Z",
+          "dateDelayUtc": "2026-11-11T13:40:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 57.80078132445259,
+              "lng": 13.431886749387472
+            },
+            {
+              "lat": 57.80054876740721,
+              "lng": 13.432178576282018
+            },
+            {
+              "lat": 57.800688045417445,
+              "lng": 13.433140988523466
+            },
+            {
+              "lat": 57.801082300024305,
+              "lng": 13.432011018021997
+            },
+            {
+              "lat": 57.8009055949277,
+              "lng": 13.432407478925416
+            },
+            {
+              "lat": 57.80121493638727,
+              "lng": 13.432738349875772
+            },
+            {
+              "lat": 57.80061927099386,
+              "lng": 13.432586116843694
+            },
+            {
+              "lat": 57.80102151389639,
+              "lng": 13.432961370579342
+            },
+            {
+              "lat": 57.8003247247539,
+              "lng": 13.43268538209548
+            },
+            {
+              "lat": 57.80035765467632,
+              "lng": 13.433244714437407
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

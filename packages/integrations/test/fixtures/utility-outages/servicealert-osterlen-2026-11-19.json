@@ -1,0 +1,40 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 120,
+    "defaultMapCenterCoords": {
+      "lat": 55.554080963134766,
+      "lng": 14.266300201416016
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": false,
+    "showPolygons": false,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": false,
+    "showArchiveDays": null,
+    "showClusterMarkers": false,
+    "id": 58
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 3668,
+      "profileName": "Elnät",
+      "profileTitle": "Elnät",
+      "cssColor": "Yellow",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/electricity.png",
+      "sortOrder": null,
+      "webMessages": []
+    },
+    {
+      "id": 3669,
+      "profileName": "Fiber",
+      "profileTitle": "Fiber",
+      "cssColor": "Yellow",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/cloud_signal.png",
+      "sortOrder": null,
+      "webMessages": []
+    }
+  ]
+}

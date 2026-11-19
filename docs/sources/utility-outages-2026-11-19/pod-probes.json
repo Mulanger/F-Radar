@@ -1,0 +1,568 @@
+[
+  {
+    "id": "digpro-bte",
+    "url": "https://dpweb.btea.se/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=fpp_bte",
+    "apiStatus": 200,
+    "exit": 28,
+    "http": "000",
+    "bytes": 67
+  },
+  {
+    "id": "digpro-fev",
+    "url": "https://webmap.fev.se/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=fpp_fev",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "500",
+    "bytes": 39168
+  },
+  {
+    "id": "digpro-hed",
+    "url": "https://webmap.hedemoraenergi.se/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=fpp_hed",
+    "apiStatus": 200,
+    "exit": 60,
+    "http": "000",
+    "bytes": 349
+  },
+  {
+    "id": "digpro-hem",
+    "url": "https://dpwebmap.hemab.se/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=fpp_hem",
+    "apiStatus": 200,
+    "exit": 28,
+    "http": "000",
+    "bytes": 67
+  },
+  {
+    "id": "digpro-hsd",
+    "url": "https://dpwebmap.hem.se/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=fpp_hsd",
+    "apiStatus": 200,
+    "exit": 28,
+    "http": "000",
+    "bytes": 67
+  },
+  {
+    "id": "digpro-lie",
+    "url": "https://webmap.lindeenergi.se/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=fpp_lie",
+    "apiStatus": 200,
+    "exit": 60,
+    "http": "000",
+    "bytes": 349
+  },
+  {
+    "id": "digpro-lul",
+    "url": "https://webmap.luleaenergi.se/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=fpp_lul",
+    "apiStatus": 200,
+    "exit": 28,
+    "http": "000",
+    "bytes": 67
+  },
+  {
+    "id": "digpro-nac",
+    "url": "https://dp-prod.nackaenergi.se/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=fpp_nac",
+    "apiStatus": 200,
+    "exit": 28,
+    "http": "000",
+    "bytes": 67
+  },
+  {
+    "id": "electric-CElntAB",
+    "url": "https://www.c4energi.se/driftinformation/driftkarta-elnat/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 93985
+  },
+  {
+    "id": "electric-GotlandsElntAB",
+    "url": "https://www.gotlandsenergi.se",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 241016
+  },
+  {
+    "id": "electric-KraftringenNtAB",
+    "url": "https://www.kraftringen.se/Om-Kraftringen/Aktuellt/Avbrottsinformation/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 248044
+  },
+  {
+    "id": "electric-NtkraftBorsAB",
+    "url": "https://natkraftboras.se/kundservice/service/driftinformation/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 135385
+  },
+  {
+    "id": "electric-resundskraftAB",
+    "url": "https://www.oresundskraft.se/privat/kundservice/avbrottsinformation/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 195744
+  },
+  {
+    "id": "electric-SkellefteKraftElntAB",
+    "url": "https://driftinfo.skekraft.se",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 3045
+  },
+  {
+    "id": "electric-TelgeNtAB",
+    "url": "https://www.telge.se/kundservice/driftstatus",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 8728
+  },
+  {
+    "id": "electric-UmeEnergiElntAB",
+    "url": "https://www.umeaenergi.se/kundservice/driftinformation",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 142945
+  },
+  {
+    "id": "exergi-kml",
+    "url": "https://avbrott.stockholmexergi.com/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=fpdh_fov",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 112257
+  },
+  {
+    "id": "exergi",
+    "url": "https://www.stockholmexergi.se/driftinformation/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 338860
+  },
+  {
+    "id": "gasnatet",
+    "url": "https://www.gasnatetstockholm.se/driftinformation/",
+    "apiStatus": 200,
+    "exit": 28,
+    "http": "000",
+    "bytes": 88
+  },
+  {
+    "id": "goteborg-gas",
+    "url": "https://www.goteborgenergi.se/GoteborgEnergi/Outages/FilteredOutagesKml.ashx?type=36857929&active=1",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 334
+  },
+  {
+    "id": "goteborg-va-api",
+    "url": "https://se.sms-service.dk/api/WebMessage/GetDriftstatusWebMessagesMapModel",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 49685
+  },
+  {
+    "id": "goteborg-va",
+    "url": "https://goteborg.se/wps/portal/start/bygga-bo-och-leva-hallbart/vatten-och-avlopp/driftinformation",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "404",
+    "bytes": 5506
+  },
+  {
+    "id": "servicealert-eem",
+    "url": "https://se.sms-service.dk/api/WebMessage/GetDriftstatusWebMessagesMapModel",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 27605,
+    "profiles": [
+      {
+        "title": "Elnät",
+        "messages": 0
+      },
+      {
+        "title": "Fjärrvärme",
+        "messages": 1
+      },
+      {
+        "title": "Vatten",
+        "messages": 2
+      },
+      {
+        "title": "Stadsnät",
+        "messages": 0
+      },
+      {
+        "title": "Återvinning",
+        "messages": 0
+      }
+    ]
+  },
+  {
+    "id": "servicealert-emmaboda",
+    "url": "https://se.sms-service.dk/api/WebMessage/GetDriftstatusWebMessagesMapModel",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 3935,
+    "profiles": [
+      {
+        "title": "VA",
+        "messages": 0
+      },
+      {
+        "title": "Avfall",
+        "messages": 1
+      },
+      {
+        "title": "Elnät",
+        "messages": 0
+      },
+      {
+        "title": "Fibernät",
+        "messages": 0
+      },
+      {
+        "title": "Fjärrvärme",
+        "messages": 0
+      }
+    ]
+  },
+  {
+    "id": "servicealert-habo",
+    "url": "https://se.sms-service.dk/api/WebMessage/GetDriftstatusWebMessagesMapModel",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 1275,
+    "profiles": [
+      {
+        "title": "Elnät",
+        "messages": 0
+      },
+      {
+        "title": "Fiber",
+        "messages": 0
+      },
+      {
+        "title": "Fjärrvärme",
+        "messages": 0
+      }
+    ]
+  },
+  {
+    "id": "servicealert-karlstad",
+    "url": "https://se.sms-service.dk/api/WebMessage/GetDriftstatusWebMessagesMapModel",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 2743,
+    "profiles": [
+      {
+        "title": "Fjärrvärme",
+        "messages": 1
+      },
+      {
+        "title": "Återvinning",
+        "messages": 0
+      },
+      {
+        "title": "Elnät",
+        "messages": 0
+      },
+      {
+        "title": "Stadsnät",
+        "messages": 0
+      }
+    ]
+  },
+  {
+    "id": "servicealert-ljusdal",
+    "url": "https://servicealert.se/api/WebMessage/GetDriftstatusWebMessagesMapModel",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 5989,
+    "profiles": [
+      {
+        "title": "Elnät",
+        "messages": 2
+      },
+      {
+        "title": "Fjärrvärme",
+        "messages": 0
+      },
+      {
+        "title": "Renhållning",
+        "messages": 1
+      },
+      {
+        "title": "Stadsnät",
+        "messages": 0
+      },
+      {
+        "title": "Vatten och avlopp",
+        "messages": 0
+      }
+    ]
+  },
+  {
+    "id": "servicealert-molndal",
+    "url": "https://se.sms-service.dk/api/WebMessage/GetDriftstatusWebMessagesMapModel",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 5519,
+    "profiles": [
+      {
+        "title": "Elnät - Planerade avbrott",
+        "messages": 2
+      },
+      {
+        "title": "Fjärrvärme",
+        "messages": 3
+      },
+      {
+        "title": "Elnät - Akuta avbrott",
+        "messages": 0
+      }
+    ]
+  },
+  {
+    "id": "servicealert-osterlen",
+    "url": "https://se.sms-service.dk/api/WebMessage/GetDriftstatusWebMessagesMapModel",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 1045,
+    "profiles": [
+      {
+        "title": "Elnät",
+        "messages": 0
+      },
+      {
+        "title": "Fiber",
+        "messages": 0
+      }
+    ]
+  },
+  {
+    "id": "servicealert-oxelo",
+    "url": "https://se.sms-service.dk/api/WebMessage/GetDriftstatusWebMessagesMapModel",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 3521,
+    "profiles": [
+      {
+        "title": "El",
+        "messages": 0
+      },
+      {
+        "title": "Fjärrvärme",
+        "messages": 1
+      },
+      {
+        "title": "Stadsnät",
+        "messages": 1
+      },
+      {
+        "title": "Vatten och Avlopp",
+        "messages": 0
+      },
+      {
+        "title": "Avfall & Återvinning",
+        "messages": 0
+      }
+    ]
+  },
+  {
+    "id": "servicealert-soderhamn",
+    "url": "https://servicealert.se/api/WebMessage/GetDriftstatusWebMessagesMapModel",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 4413,
+    "profiles": [
+      {
+        "title": "Elnät",
+        "messages": 2
+      },
+      {
+        "title": "Fjärrvärme",
+        "messages": 0
+      },
+      {
+        "title": "Renhållning",
+        "messages": 0
+      },
+      {
+        "title": "Vatten",
+        "messages": 0
+      },
+      {
+        "title": "Bredband",
+        "messages": 0
+      },
+      {
+        "title": "Söderhamn Nära",
+        "messages": 0
+      },
+      {
+        "title": "Kabel-TV",
+        "messages": 0
+      }
+    ]
+  },
+  {
+    "id": "servicealert-tranas",
+    "url": "https://se.sms-service.dk/api/WebMessage/GetDriftstatusWebMessagesMapModel",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 7365,
+    "profiles": [
+      {
+        "title": "Elnät",
+        "messages": 0
+      },
+      {
+        "title": "Fibernät",
+        "messages": 1
+      },
+      {
+        "title": "Fjärrvärme",
+        "messages": 0
+      },
+      {
+        "title": "Gatljus",
+        "messages": 0
+      }
+    ]
+  },
+  {
+    "id": "servicealert-ulricehamn",
+    "url": "https://se.sms-service.dk/api/WebMessage/GetDriftstatusWebMessagesMapModel",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 7017,
+    "profiles": [
+      {
+        "title": "Avfall",
+        "messages": 0
+      },
+      {
+        "title": "Elnät",
+        "messages": 0
+      },
+      {
+        "title": "Fibernät",
+        "messages": 0
+      },
+      {
+        "title": "Fjärrvärme",
+        "messages": 0
+      },
+      {
+        "title": "Fordonsgas",
+        "messages": 0
+      },
+      {
+        "title": "Väg",
+        "messages": 3
+      },
+      {
+        "title": "Vatten & Avlopp",
+        "messages": 1
+      }
+    ]
+  },
+  {
+    "id": "svoa-corrected",
+    "url": "https://www.stockholmvattenochavfall.se/driftinfo",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 159541
+  },
+  {
+    "id": "svoa-search",
+    "url": "https://www.stockholmvattenochavfall.se/driftinfo/Search?skip=0&query=&useCurrentLocation=false&latitude=undefined&longitude=undefined",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 60896
+  },
+  {
+    "id": "svoa",
+    "url": "https://www.stockholmvattenochavfall.se/driftinformation/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "404",
+    "bytes": 152372
+  },
+  {
+    "id": "tele2",
+    "url": "https://www.tele2.se/support/driftinformation",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "404",
+    "bytes": 188654
+  },
+  {
+    "id": "telenor",
+    "url": "https://www.telenor.se/support/driftinformation/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 45766
+  },
+  {
+    "id": "telia",
+    "url": "https://www.telia.se/privat/support/driftinformation",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 129787
+  },
+  {
+    "id": "tre",
+    "url": "https://www.tre.se/support/driftinformation",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "404",
+    "bytes": 42532
+  },
+  {
+    "id": "trimble-jamtkraft",
+    "url": "https://avbrottskarta.jamtkraft.se/geoserver-api/GetApplicationData",
+    "apiStatus": 200,
+    "exit": 28,
+    "http": "000",
+    "bytes": 67
+  },
+  {
+    "id": "vasyd",
+    "url": "https://www.vasyd.se/Driftinformation",
+    "apiStatus": 200,
+    "exit": 28,
+    "http": "000",
+    "bytes": 67
+  },
+  {
+    "id": "weum",
+    "url": "https://www.weum.se/driftinformation/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "404",
+    "bytes": 45782
+  }
+]

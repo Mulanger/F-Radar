@@ -1,0 +1,1456 @@
+{
+  "period": "2025",
+  "unit": "invånare (proxy för VA-prioritering, inte anslutna VA-kunder)",
+  "rows": [
+    {
+      "code": "0180",
+      "name": "Stockholm",
+      "population": 999239
+    },
+    {
+      "code": "1480",
+      "name": "Göteborg",
+      "population": 613278
+    },
+    {
+      "code": "1280",
+      "name": "Malmö",
+      "population": 367924
+    },
+    {
+      "code": "0380",
+      "name": "Uppsala",
+      "population": 249726
+    },
+    {
+      "code": "0580",
+      "name": "Linköping",
+      "population": 168714
+    },
+    {
+      "code": "1980",
+      "name": "Västerås",
+      "population": 161240
+    },
+    {
+      "code": "1880",
+      "name": "Örebro",
+      "population": 160687
+    },
+    {
+      "code": "1283",
+      "name": "Helsingborg",
+      "population": 152776
+    },
+    {
+      "code": "0680",
+      "name": "Jönköping",
+      "population": 148152
+    },
+    {
+      "code": "0581",
+      "name": "Norrköping",
+      "population": 144904
+    },
+    {
+      "code": "2480",
+      "name": "Umeå",
+      "population": 135273
+    },
+    {
+      "code": "1281",
+      "name": "Lund",
+      "population": 132333
+    },
+    {
+      "code": "1490",
+      "name": "Borås",
+      "population": 115238
+    },
+    {
+      "code": "0126",
+      "name": "Huddinge",
+      "population": 114686
+    },
+    {
+      "code": "0182",
+      "name": "Nacka",
+      "population": 113730
+    },
+    {
+      "code": "0484",
+      "name": "Eskilstuna",
+      "population": 106789
+    },
+    {
+      "code": "1380",
+      "name": "Halmstad",
+      "population": 106315
+    },
+    {
+      "code": "2180",
+      "name": "Gävle",
+      "population": 104108
+    },
+    {
+      "code": "0181",
+      "name": "Södertälje",
+      "population": 102772
+    },
+    {
+      "code": "0136",
+      "name": "Haninge",
+      "population": 101408
+    },
+    {
+      "code": "1780",
+      "name": "Karlstad",
+      "population": 99007
+    },
+    {
+      "code": "2281",
+      "name": "Sundsvall",
+      "population": 98962
+    },
+    {
+      "code": "0780",
+      "name": "Växjö",
+      "population": 98940
+    },
+    {
+      "code": "0127",
+      "name": "Botkyrka",
+      "population": 96750
+    },
+    {
+      "code": "0123",
+      "name": "Järfälla",
+      "population": 90180
+    },
+    {
+      "code": "0184",
+      "name": "Solna",
+      "population": 86435
+    },
+    {
+      "code": "1384",
+      "name": "Kungsbacka",
+      "population": 86332
+    },
+    {
+      "code": "1290",
+      "name": "Kristianstad",
+      "population": 85908
+    },
+    {
+      "code": "2580",
+      "name": "Luleå",
+      "population": 80304
+    },
+    {
+      "code": "0160",
+      "name": "Täby",
+      "population": 78514
+    },
+    {
+      "code": "0163",
+      "name": "Sollentuna",
+      "population": 78033
+    },
+    {
+      "code": "2482",
+      "name": "Skellefteå",
+      "population": 75405
+    },
+    {
+      "code": "0880",
+      "name": "Kalmar",
+      "population": 73068
+    },
+    {
+      "code": "1481",
+      "name": "Mölndal",
+      "population": 72128
+    },
+    {
+      "code": "1383",
+      "name": "Varberg",
+      "population": 69460
+    },
+    {
+      "code": "0188",
+      "name": "Norrtälje",
+      "population": 66832
+    },
+    {
+      "code": "1080",
+      "name": "Karlskrona",
+      "population": 66021
+    },
+    {
+      "code": "2380",
+      "name": "Östersund",
+      "population": 64963
+    },
+    {
+      "code": "0980",
+      "name": "Gotland",
+      "population": 60852
+    },
+    {
+      "code": "2080",
+      "name": "Falun",
+      "population": 59974
+    },
+    {
+      "code": "1488",
+      "name": "Trollhättan",
+      "population": 59265
+    },
+    {
+      "code": "0480",
+      "name": "Nyköping",
+      "population": 58310
+    },
+    {
+      "code": "1496",
+      "name": "Skövde",
+      "population": 58272
+    },
+    {
+      "code": "0183",
+      "name": "Sundbyberg",
+      "population": 57000
+    },
+    {
+      "code": "1485",
+      "name": "Uddevalla",
+      "population": 56744
+    },
+    {
+      "code": "2284",
+      "name": "Örnsköldsvik",
+      "population": 55338
+    },
+    {
+      "code": "0191",
+      "name": "Sigtuna",
+      "population": 53365
+    },
+    {
+      "code": "1293",
+      "name": "Hässleholm",
+      "population": 51915
+    },
+    {
+      "code": "2081",
+      "name": "Borlänge",
+      "population": 51354
+    },
+    {
+      "code": "1482",
+      "name": "Kungälv",
+      "population": 50496
+    },
+    {
+      "code": "0114",
+      "name": "Upplands Väsby",
+      "population": 50495
+    },
+    {
+      "code": "0117",
+      "name": "Österåker",
+      "population": 49943
+    },
+    {
+      "code": "0138",
+      "name": "Tyresö",
+      "population": 49645
+    },
+    {
+      "code": "0381",
+      "name": "Enköping",
+      "population": 48804
+    },
+    {
+      "code": "0186",
+      "name": "Lidingö",
+      "population": 48369
+    },
+    {
+      "code": "1282",
+      "name": "Landskrona",
+      "population": 47571
+    },
+    {
+      "code": "1287",
+      "name": "Trelleborg",
+      "population": 47405
+    },
+    {
+      "code": "1382",
+      "name": "Falkenberg",
+      "population": 47321
+    },
+    {
+      "code": "0120",
+      "name": "Värmdö",
+      "population": 46601
+    },
+    {
+      "code": "1292",
+      "name": "Ängelholm",
+      "population": 45159
+    },
+    {
+      "code": "1441",
+      "name": "Lerum",
+      "population": 43752
+    },
+    {
+      "code": "0583",
+      "name": "Motala",
+      "population": 43131
+    },
+    {
+      "code": "1489",
+      "name": "Alingsås",
+      "population": 42861
+    },
+    {
+      "code": "2581",
+      "name": "Piteå",
+      "population": 42184
+    },
+    {
+      "code": "1402",
+      "name": "Partille",
+      "population": 41164
+    },
+    {
+      "code": "1494",
+      "name": "Lidköping",
+      "population": 40359
+    },
+    {
+      "code": "1487",
+      "name": "Vänersborg",
+      "population": 40078
+    },
+    {
+      "code": "1401",
+      "name": "Härryda",
+      "population": 40011
+    },
+    {
+      "code": "0486",
+      "name": "Strängnäs",
+      "population": 39387
+    },
+    {
+      "code": "2181",
+      "name": "Sandviken",
+      "population": 38033
+    },
+    {
+      "code": "1233",
+      "name": "Vellinge",
+      "population": 37833
+    },
+    {
+      "code": "2184",
+      "name": "Hudiksvall",
+      "population": 37341
+    },
+    {
+      "code": "0883",
+      "name": "Västervik",
+      "population": 36269
+    },
+    {
+      "code": "0115",
+      "name": "Vallentuna",
+      "population": 35361
+    },
+    {
+      "code": "1463",
+      "name": "Mark",
+      "population": 35134
+    },
+    {
+      "code": "1285",
+      "name": "Eslöv",
+      "population": 35126
+    },
+    {
+      "code": "0683",
+      "name": "Värnamo",
+      "population": 34534
+    },
+    {
+      "code": "0483",
+      "name": "Katrineholm",
+      "population": 33984
+    },
+    {
+      "code": "0139",
+      "name": "Upplands-Bro",
+      "population": 33333
+    },
+    {
+      "code": "1499",
+      "name": "Falköping",
+      "population": 32794
+    },
+    {
+      "code": "1261",
+      "name": "Kävlinge",
+      "population": 32655
+    },
+    {
+      "code": "1440",
+      "name": "Ale",
+      "population": 32620
+    },
+    {
+      "code": "0162",
+      "name": "Danderyd",
+      "population": 32500
+    },
+    {
+      "code": "1286",
+      "name": "Ystad",
+      "population": 32188
+    },
+    {
+      "code": "1082",
+      "name": "Karlshamn",
+      "population": 31642
+    },
+    {
+      "code": "0682",
+      "name": "Nässjö",
+      "population": 31474
+    },
+    {
+      "code": "0192",
+      "name": "Nynäshamn",
+      "population": 30610
+    },
+    {
+      "code": "1883",
+      "name": "Karlskoga",
+      "population": 30128
+    },
+    {
+      "code": "0125",
+      "name": "Ekerö",
+      "population": 29062
+    },
+    {
+      "code": "0586",
+      "name": "Mjölby",
+      "population": 28823
+    },
+    {
+      "code": "1081",
+      "name": "Ronneby",
+      "population": 28708
+    },
+    {
+      "code": "0662",
+      "name": "Gislaved",
+      "population": 28641
+    },
+    {
+      "code": "2582",
+      "name": "Boden",
+      "population": 28624
+    },
+    {
+      "code": "1284",
+      "name": "Höganäs",
+      "population": 28489
+    },
+    {
+      "code": "0781",
+      "name": "Ljungby",
+      "population": 28132
+    },
+    {
+      "code": "1415",
+      "name": "Stenungsund",
+      "population": 27854
+    },
+    {
+      "code": "1230",
+      "name": "Staffanstorp",
+      "population": 27482
+    },
+    {
+      "code": "0685",
+      "name": "Vetlanda",
+      "population": 27313
+    },
+    {
+      "code": "2085",
+      "name": "Ludvika",
+      "population": 26812
+    },
+    {
+      "code": "0882",
+      "name": "Oskarshamn",
+      "population": 26762
+    },
+    {
+      "code": "1381",
+      "name": "Laholm",
+      "population": 26565
+    },
+    {
+      "code": "2183",
+      "name": "Bollnäs",
+      "population": 26018
+    },
+    {
+      "code": "1983",
+      "name": "Köping",
+      "population": 25610
+    },
+    {
+      "code": "1784",
+      "name": "Arvika",
+      "population": 25408
+    },
+    {
+      "code": "1491",
+      "name": "Ulricehamn",
+      "population": 24954
+    },
+    {
+      "code": "1262",
+      "name": "Lomma",
+      "population": 24677
+    },
+    {
+      "code": "1493",
+      "name": "Mariestad",
+      "population": 24421
+    },
+    {
+      "code": "2280",
+      "name": "Härnösand",
+      "population": 24348
+    },
+    {
+      "code": "2182",
+      "name": "Söderhamn",
+      "population": 24163
+    },
+    {
+      "code": "1263",
+      "name": "Svedala",
+      "population": 23714
+    },
+    {
+      "code": "1781",
+      "name": "Kristinehamn",
+      "population": 23590
+    },
+    {
+      "code": "0305",
+      "name": "Håbo",
+      "population": 23252
+    },
+    {
+      "code": "1885",
+      "name": "Lindesberg",
+      "population": 23014
+    },
+    {
+      "code": "1881",
+      "name": "Kumla",
+      "population": 22665
+    },
+    {
+      "code": "1981",
+      "name": "Sala",
+      "population": 22600
+    },
+    {
+      "code": "2584",
+      "name": "Kiruna",
+      "population": 22402
+    },
+    {
+      "code": "2084",
+      "name": "Avesta",
+      "population": 22366
+    },
+    {
+      "code": "0382",
+      "name": "Östhammar",
+      "population": 22181
+    },
+    {
+      "code": "0330",
+      "name": "Knivsta",
+      "population": 21733
+    },
+    {
+      "code": "0562",
+      "name": "Finspång",
+      "population": 21502
+    },
+    {
+      "code": "0360",
+      "name": "Tierp",
+      "population": 21028
+    },
+    {
+      "code": "1231",
+      "name": "Burlöv",
+      "population": 20444
+    },
+    {
+      "code": "2062",
+      "name": "Mora",
+      "population": 20419
+    },
+    {
+      "code": "0881",
+      "name": "Nybro",
+      "population": 19803
+    },
+    {
+      "code": "0764",
+      "name": "Alvesta",
+      "population": 19687
+    },
+    {
+      "code": "1265",
+      "name": "Sjöbo",
+      "population": 19397
+    },
+    {
+      "code": "1291",
+      "name": "Simrishamn",
+      "population": 18779
+    },
+    {
+      "code": "1495",
+      "name": "Skara",
+      "population": 18753
+    },
+    {
+      "code": "0687",
+      "name": "Tranås",
+      "population": 18555
+    },
+    {
+      "code": "2161",
+      "name": "Ljusdal",
+      "population": 18377
+    },
+    {
+      "code": "2283",
+      "name": "Sollefteå",
+      "population": 18138
+    },
+    {
+      "code": "1276",
+      "name": "Klippan",
+      "population": 17713
+    },
+    {
+      "code": "1267",
+      "name": "Höör",
+      "population": 17680
+    },
+    {
+      "code": "0686",
+      "name": "Eksjö",
+      "population": 17660
+    },
+    {
+      "code": "0765",
+      "name": "Älmhult",
+      "population": 17579
+    },
+    {
+      "code": "2262",
+      "name": "Timrå",
+      "population": 17465
+    },
+    {
+      "code": "1083",
+      "name": "Sölvesborg",
+      "population": 17405
+    },
+    {
+      "code": "2282",
+      "name": "Kramfors",
+      "population": 17390
+    },
+    {
+      "code": "0128",
+      "name": "Salem",
+      "population": 17370
+    },
+    {
+      "code": "1264",
+      "name": "Skurup",
+      "population": 17139
+    },
+    {
+      "code": "2523",
+      "name": "Gällivare",
+      "population": 17135
+    },
+    {
+      "code": "1761",
+      "name": "Hammarö",
+      "population": 16932
+    },
+    {
+      "code": "1961",
+      "name": "Hallstahammar",
+      "population": 16600
+    },
+    {
+      "code": "1277",
+      "name": "Åstorp",
+      "population": 16491
+    },
+    {
+      "code": "0840",
+      "name": "Mörbylånga",
+      "population": 16306
+    },
+    {
+      "code": "2029",
+      "name": "Leksand",
+      "population": 16167
+    },
+    {
+      "code": "1861",
+      "name": "Hallsberg",
+      "population": 16082
+    },
+    {
+      "code": "1260",
+      "name": "Bjuv",
+      "population": 16052
+    },
+    {
+      "code": "1278",
+      "name": "Båstad",
+      "population": 16046
+    },
+    {
+      "code": "1470",
+      "name": "Vara",
+      "population": 16011
+    },
+    {
+      "code": "1419",
+      "name": "Tjörn",
+      "population": 16003
+    },
+    {
+      "code": "2309",
+      "name": "Krokom",
+      "population": 15795
+    },
+    {
+      "code": "1266",
+      "name": "Hörby",
+      "population": 15559
+    },
+    {
+      "code": "1421",
+      "name": "Orust",
+      "population": 15363
+    },
+    {
+      "code": "0884",
+      "name": "Vimmerby",
+      "population": 15327
+    },
+    {
+      "code": "2514",
+      "name": "Kalix",
+      "population": 15252
+    },
+    {
+      "code": "0482",
+      "name": "Flen",
+      "population": 15095
+    },
+    {
+      "code": "2083",
+      "name": "Hedemora",
+      "population": 15025
+    },
+    {
+      "code": "0665",
+      "name": "Vaggeryd",
+      "population": 14943
+    },
+    {
+      "code": "0488",
+      "name": "Trosa",
+      "population": 14900
+    },
+    {
+      "code": "1785",
+      "name": "Säffle",
+      "population": 14756
+    },
+    {
+      "code": "0582",
+      "name": "Söderköping",
+      "population": 14741
+    },
+    {
+      "code": "1214",
+      "name": "Svalöv",
+      "population": 14474
+    },
+    {
+      "code": "1462",
+      "name": "Lilla Edet",
+      "population": 14398
+    },
+    {
+      "code": "0331",
+      "name": "Heby",
+      "population": 14275
+    },
+    {
+      "code": "1984",
+      "name": "Arboga",
+      "population": 13929
+    },
+    {
+      "code": "1484",
+      "name": "Lysekil",
+      "population": 13796
+    },
+    {
+      "code": "1256",
+      "name": "Östra Göinge",
+      "population": 13718
+    },
+    {
+      "code": "1270",
+      "name": "Tomelilla",
+      "population": 13669
+    },
+    {
+      "code": "1486",
+      "name": "Strömstad",
+      "population": 13557
+    },
+    {
+      "code": "0643",
+      "name": "Habo",
+      "population": 13511
+    },
+    {
+      "code": "0860",
+      "name": "Hultsfred",
+      "population": 13484
+    },
+    {
+      "code": "1766",
+      "name": "Sunne",
+      "population": 13354
+    },
+    {
+      "code": "1471",
+      "name": "Götene",
+      "population": 13223
+    },
+    {
+      "code": "0861",
+      "name": "Mönsterås",
+      "population": 12978
+    },
+    {
+      "code": "1982",
+      "name": "Fagersta",
+      "population": 12915
+    },
+    {
+      "code": "1407",
+      "name": "Öckerö",
+      "population": 12863
+    },
+    {
+      "code": "1273",
+      "name": "Osby",
+      "population": 12861
+    },
+    {
+      "code": "1060",
+      "name": "Olofström",
+      "population": 12844
+    },
+    {
+      "code": "2321",
+      "name": "Åre",
+      "population": 12770
+    },
+    {
+      "code": "1498",
+      "name": "Tidaholm",
+      "population": 12736
+    },
+    {
+      "code": "1435",
+      "name": "Tanum",
+      "population": 12677
+    },
+    {
+      "code": "1272",
+      "name": "Bromölla",
+      "population": 12497
+    },
+    {
+      "code": "1442",
+      "name": "Vårgårda",
+      "population": 12472
+    },
+    {
+      "code": "0140",
+      "name": "Nykvarn",
+      "population": 12384
+    },
+    {
+      "code": "2481",
+      "name": "Lycksele",
+      "population": 12159
+    },
+    {
+      "code": "1715",
+      "name": "Kil",
+      "population": 12024
+    },
+    {
+      "code": "0481",
+      "name": "Oxelösund",
+      "population": 11962
+    },
+    {
+      "code": "0763",
+      "name": "Tingsryd",
+      "population": 11896
+    },
+    {
+      "code": "1452",
+      "name": "Tranemo",
+      "population": 11873
+    },
+    {
+      "code": "1492",
+      "name": "Åmål",
+      "population": 11679
+    },
+    {
+      "code": "0187",
+      "name": "Vaxholm",
+      "population": 11636
+    },
+    {
+      "code": "0684",
+      "name": "Sävsjö",
+      "population": 11531
+    },
+    {
+      "code": "0561",
+      "name": "Åtvidaberg",
+      "population": 11490
+    },
+    {
+      "code": "1763",
+      "name": "Forshaga",
+      "population": 11439
+    },
+    {
+      "code": "1882",
+      "name": "Askersund",
+      "population": 11382
+    },
+    {
+      "code": "0461",
+      "name": "Gnesta",
+      "population": 11343
+    },
+    {
+      "code": "1472",
+      "name": "Tibro",
+      "population": 11326
+    },
+    {
+      "code": "1783",
+      "name": "Hagfors",
+      "population": 11324
+    },
+    {
+      "code": "1737",
+      "name": "Torsby",
+      "population": 11278
+    },
+    {
+      "code": "2121",
+      "name": "Ovanåker",
+      "population": 11272
+    },
+    {
+      "code": "2082",
+      "name": "Säter",
+      "population": 11222
+    },
+    {
+      "code": "2031",
+      "name": "Rättvik",
+      "population": 10978
+    },
+    {
+      "code": "2313",
+      "name": "Strömsund",
+      "population": 10904
+    },
+    {
+      "code": "2061",
+      "name": "Smedjebacken",
+      "population": 10758
+    },
+    {
+      "code": "0885",
+      "name": "Borgholm",
+      "population": 10626
+    },
+    {
+      "code": "1465",
+      "name": "Svenljunga",
+      "population": 10616
+    },
+    {
+      "code": "1884",
+      "name": "Nora",
+      "population": 10603
+    },
+    {
+      "code": "2026",
+      "name": "Gagnef",
+      "population": 10307
+    },
+    {
+      "code": "1257",
+      "name": "Örkelljunga",
+      "population": 10293
+    },
+    {
+      "code": "1430",
+      "name": "Munkedal",
+      "population": 10272
+    },
+    {
+      "code": "2023",
+      "name": "Malung-Sälen",
+      "population": 10192
+    },
+    {
+      "code": "2361",
+      "name": "Härjedalen",
+      "population": 10117
+    },
+    {
+      "code": "1315",
+      "name": "Hylte",
+      "population": 10094
+    },
+    {
+      "code": "0513",
+      "name": "Kinda",
+      "population": 9924
+    },
+    {
+      "code": "0767",
+      "name": "Markaryd",
+      "population": 9862
+    },
+    {
+      "code": "1443",
+      "name": "Bollebygd",
+      "population": 9784
+    },
+    {
+      "code": "1765",
+      "name": "Årjäng",
+      "population": 9734
+    },
+    {
+      "code": "1907",
+      "name": "Surahammar",
+      "population": 9733
+    },
+    {
+      "code": "1782",
+      "name": "Filipstad",
+      "population": 9625
+    },
+    {
+      "code": "0319",
+      "name": "Älvkarleby",
+      "population": 9573
+    },
+    {
+      "code": "1466",
+      "name": "Herrljunga",
+      "population": 9509
+    },
+    {
+      "code": "1497",
+      "name": "Hjo",
+      "population": 9322
+    },
+    {
+      "code": "2132",
+      "name": "Nordanstig",
+      "population": 9284
+    },
+    {
+      "code": "1862",
+      "name": "Degerfors",
+      "population": 9237
+    },
+    {
+      "code": "2460",
+      "name": "Vännäs",
+      "population": 9225
+    },
+    {
+      "code": "2104",
+      "name": "Hofors",
+      "population": 9138
+    },
+    {
+      "code": "1473",
+      "name": "Töreboda",
+      "population": 9093
+    },
+    {
+      "code": "1461",
+      "name": "Mellerud",
+      "population": 9038
+    },
+    {
+      "code": "1427",
+      "name": "Sotenäs",
+      "population": 9036
+    },
+    {
+      "code": "2583",
+      "name": "Haparanda",
+      "population": 9027
+    },
+    {
+      "code": "0617",
+      "name": "Gnosjö",
+      "population": 9010
+    },
+    {
+      "code": "2260",
+      "name": "Ånge",
+      "population": 9000
+    },
+    {
+      "code": "1460",
+      "name": "Bengtsfors",
+      "population": 8955
+    },
+    {
+      "code": "0760",
+      "name": "Uppvidinge",
+      "population": 8911
+    },
+    {
+      "code": "1764",
+      "name": "Grums",
+      "population": 8854
+    },
+    {
+      "code": "0862",
+      "name": "Emmaboda",
+      "population": 8807
+    },
+    {
+      "code": "0428",
+      "name": "Vingåker",
+      "population": 8666
+    },
+    {
+      "code": "1814",
+      "name": "Lekeberg",
+      "population": 8608
+    },
+    {
+      "code": "1960",
+      "name": "Kungsör",
+      "population": 8550
+    },
+    {
+      "code": "1730",
+      "name": "Eda",
+      "population": 8289
+    },
+    {
+      "code": "0761",
+      "name": "Lessebo",
+      "population": 8115
+    },
+    {
+      "code": "2560",
+      "name": "Älvsbyn",
+      "population": 7815
+    },
+    {
+      "code": "0642",
+      "name": "Mullsjö",
+      "population": 7546
+    },
+    {
+      "code": "0563",
+      "name": "Valdemarsvik",
+      "population": 7526
+    },
+    {
+      "code": "0584",
+      "name": "Vadstena",
+      "population": 7484
+    },
+    {
+      "code": "1275",
+      "name": "Perstorp",
+      "population": 7115
+    },
+    {
+      "code": "2326",
+      "name": "Berg",
+      "population": 7085
+    },
+    {
+      "code": "1446",
+      "name": "Karlsborg",
+      "population": 7047
+    },
+    {
+      "code": "0834",
+      "name": "Torsås",
+      "population": 6919
+    },
+    {
+      "code": "2401",
+      "name": "Nordmaling",
+      "population": 6905
+    },
+    {
+      "code": "2034",
+      "name": "Orsa",
+      "population": 6902
+    },
+    {
+      "code": "0604",
+      "name": "Aneby",
+      "population": 6851
+    },
+    {
+      "code": "2039",
+      "name": "Älvdalen",
+      "population": 6831
+    },
+    {
+      "code": "2021",
+      "name": "Vansbro",
+      "population": 6741
+    },
+    {
+      "code": "2409",
+      "name": "Robertsfors",
+      "population": 6595
+    },
+    {
+      "code": "1439",
+      "name": "Färgelanda",
+      "population": 6288
+    },
+    {
+      "code": "1863",
+      "name": "Hällefors",
+      "population": 6269
+    },
+    {
+      "code": "2462",
+      "name": "Vilhelmina",
+      "population": 6172
+    },
+    {
+      "code": "2505",
+      "name": "Arvidsjaur",
+      "population": 6026
+    },
+    {
+      "code": "2305",
+      "name": "Bräcke",
+      "population": 5950
+    },
+    {
+      "code": "2101",
+      "name": "Ockelbo",
+      "population": 5715
+    },
+    {
+      "code": "2521",
+      "name": "Pajala",
+      "population": 5706
+    },
+    {
+      "code": "1444",
+      "name": "Grästorp",
+      "population": 5602
+    },
+    {
+      "code": "1445",
+      "name": "Essunga",
+      "population": 5559
+    },
+    {
+      "code": "2421",
+      "name": "Storuman",
+      "population": 5543
+    },
+    {
+      "code": "0560",
+      "name": "Boxholm",
+      "population": 5451
+    },
+    {
+      "code": "2404",
+      "name": "Vindeln",
+      "population": 5421
+    },
+    {
+      "code": "1860",
+      "name": "Laxå",
+      "population": 5397
+    },
+    {
+      "code": "1962",
+      "name": "Norberg",
+      "population": 5351
+    },
+    {
+      "code": "0509",
+      "name": "Ödeshög",
+      "population": 5221
+    },
+    {
+      "code": "2303",
+      "name": "Ragunda",
+      "population": 5152
+    },
+    {
+      "code": "0821",
+      "name": "Högsby",
+      "population": 5134
+    },
+    {
+      "code": "1447",
+      "name": "Gullspång",
+      "population": 4949
+    },
+    {
+      "code": "2510",
+      "name": "Jokkmokk",
+      "population": 4695
+    },
+    {
+      "code": "1438",
+      "name": "Dals-Ed",
+      "population": 4571
+    },
+    {
+      "code": "1864",
+      "name": "Ljusnarsberg",
+      "population": 4290
+    },
+    {
+      "code": "1904",
+      "name": "Skinnskatteberg",
+      "population": 4234
+    },
+    {
+      "code": "2518",
+      "name": "Övertorneå",
+      "population": 3995
+    },
+    {
+      "code": "2417",
+      "name": "Norsjö",
+      "population": 3811
+    },
+    {
+      "code": "1760",
+      "name": "Storfors",
+      "population": 3777
+    },
+    {
+      "code": "1762",
+      "name": "Munkfors",
+      "population": 3637
+    },
+    {
+      "code": "0512",
+      "name": "Ydre",
+      "population": 3619
+    },
+    {
+      "code": "2513",
+      "name": "Överkalix",
+      "population": 3183
+    },
+    {
+      "code": "2418",
+      "name": "Malå",
+      "population": 2902
+    },
+    {
+      "code": "2463",
+      "name": "Åsele",
+      "population": 2683
+    },
+    {
+      "code": "2506",
+      "name": "Arjeplog",
+      "population": 2570
+    },
+    {
+      "code": "2422",
+      "name": "Sorsele",
+      "population": 2362
+    },
+    {
+      "code": "2403",
+      "name": "Bjurholm",
+      "population": 2327
+    },
+    {
+      "code": "2425",
+      "name": "Dorotea",
+      "population": 2241
+    }
+  ]
+}

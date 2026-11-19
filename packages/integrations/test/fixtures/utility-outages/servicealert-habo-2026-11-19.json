@@ -1,0 +1,49 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 122,
+    "defaultMapCenterCoords": {
+      "lat": 57.9122314453125,
+      "lng": 14.088970184326172
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": true,
+    "showPolygons": true,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": true,
+    "showArchiveDays": null,
+    "showClusterMarkers": false,
+    "id": 438
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 6735,
+      "profileName": null,
+      "profileTitle": "Elnät",
+      "cssColor": "Red",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/power-plug.png",
+      "sortOrder": 1,
+      "webMessages": []
+    },
+    {
+      "id": 6737,
+      "profileName": null,
+      "profileTitle": "Fiber",
+      "cssColor": "Yellow",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/cloud_signal.png",
+      "sortOrder": 2,
+      "webMessages": []
+    },
+    {
+      "id": 6736,
+      "profileName": null,
+      "profileTitle": "Fjärrvärme",
+      "cssColor": "Green",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/warming_radiator.png",
+      "sortOrder": 3,
+      "webMessages": []
+    }
+  ]
+}

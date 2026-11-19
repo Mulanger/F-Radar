@@ -10,6 +10,10 @@ shows the data with attribution, and no alerts/SMS are sent.
 
 ## Provider completion matrix
 
+Nationell avbrottskartläggning 2026-11-19: [underlag, kundmått och poddprov](sources/utility-outages-2026-11-19/README.md).
+El: 68,7677 % av 2025 års uttagsabonnemang hos implementerade bolag med lyckat jobb
+(inte SMS-precision). VA/gas saknar ännu anslutna källor. Värmens kundandel är inte fullt verifierad.
+
 | Provider | Source id | Data class | Status | Evidence |
 |---|---|---|---|---|
 | SMHI SNOW1gv1 point forecast | `smhi_forecast` | FORECAST | **Working and live-tested** | fixture tests, live smoke test, running on f-radar (every 15 min tick, 60 min per point) |

@@ -1,0 +1,2726 @@
+[
+  {
+    "name": "Tekniska verken i Linköping AB",
+    "customers2025": 14932,
+    "networks": [
+      {
+        "name": "Linköping-Linghem-Sturefors",
+        "customers2025": 13147
+      },
+      {
+        "name": "Åtvidaberg",
+        "customers2025": 77
+      },
+      {
+        "name": "Borensberg",
+        "customers2025": 249
+      },
+      {
+        "name": "Kisa",
+        "customers2025": 133
+      },
+      {
+        "name": "Skärblacka-Kimstad",
+        "customers2025": 349
+      },
+      {
+        "name": "Katrineholm",
+        "customers2025": 977
+      }
+    ]
+  },
+  {
+    "name": "Mälarenergi AB",
+    "customers2025": 14703,
+    "networks": [
+      {
+        "name": "Västerås-Hallstahammar",
+        "customers2025": 13845
+      },
+      {
+        "name": "Kungsör",
+        "customers2025": 323
+      },
+      {
+        "name": "Surahammar",
+        "customers2025": 535
+      }
+    ]
+  },
+  {
+    "name": "Göteborg Energi AB",
+    "customers2025": 14205,
+    "networks": [
+      {
+        "name": "Göteborg",
+        "customers2025": 14205
+      }
+    ]
+  },
+  {
+    "name": "Vattenfall AB",
+    "customers2025": 13847,
+    "networks": [
+      {
+        "name": "Motala",
+        "customers2025": 378
+      },
+      {
+        "name": "Askersund",
+        "customers2025": 39
+      },
+      {
+        "name": "Vänersborg",
+        "customers2025": 514
+      },
+      {
+        "name": "Tyresö/Haninge/Älta",
+        "customers2025": 980
+      },
+      {
+        "name": "Gustavsberg",
+        "customers2025": 327
+      },
+      {
+        "name": "Nyköping",
+        "customers2025": 1933
+      },
+      {
+        "name": "Uppsala",
+        "customers2025": 8522
+      },
+      {
+        "name": "Knivsta",
+        "customers2025": 803
+      },
+      {
+        "name": "Storvreta",
+        "customers2025": 351
+      }
+    ]
+  },
+  {
+    "name": "Öresundskraft Kraft & Värme AB",
+    "customers2025": 13411,
+    "networks": [
+      {
+        "name": "Helsingborg",
+        "customers2025": 10903
+      },
+      {
+        "name": "Ängelholm-Söndrebalj",
+        "customers2025": 2508
+      }
+    ]
+  },
+  {
+    "name": "Solör Bioenergi Fjärrvärme AB",
+    "customers2025": 11410,
+    "networks": [
+      {
+        "name": "Ale",
+        "customers2025": 739
+      },
+      {
+        "name": "Alfta nätet",
+        "customers2025": 112
+      },
+      {
+        "name": "Alsike",
+        "customers2025": 170
+      },
+      {
+        "name": "Bjärnum",
+        "customers2025": 67
+      },
+      {
+        "name": "Bollebygd",
+        "customers2025": 12
+      },
+      {
+        "name": "Broby",
+        "customers2025": 43
+      },
+      {
+        "name": "Byavärme",
+        "customers2025": 121
+      },
+      {
+        "name": "Charlottenberg",
+        "customers2025": 57
+      },
+      {
+        "name": "Dorotea",
+        "customers2025": 46
+      },
+      {
+        "name": "Ed",
+        "customers2025": 32
+      },
+      {
+        "name": "Edsby nätet",
+        "customers2025": 260
+      },
+      {
+        "name": "Falköping",
+        "customers2025": 716
+      },
+      {
+        "name": "Flen",
+        "customers2025": 137
+      },
+      {
+        "name": "Fliseryd",
+        "customers2025": 13
+      },
+      {
+        "name": "Floby",
+        "customers2025": 84
+      },
+      {
+        "name": "Gimmersta",
+        "customers2025": 16
+      },
+      {
+        "name": "Glimåkra",
+        "customers2025": 18
+      },
+      {
+        "name": "Gnesta",
+        "customers2025": 50
+      },
+      {
+        "name": "Hanaskog",
+        "customers2025": 20
+      },
+      {
+        "name": "Horndal",
+        "customers2025": 23
+      },
+      {
+        "name": "Horred",
+        "customers2025": 96
+      },
+      {
+        "name": "Hästveda",
+        "customers2025": 19
+      },
+      {
+        "name": "Hörby",
+        "customers2025": 218
+      },
+      {
+        "name": "Höör",
+        "customers2025": 101
+      },
+      {
+        "name": "Kalix",
+        "customers2025": 464
+      },
+      {
+        "name": "Knislinge",
+        "customers2025": 24
+      },
+      {
+        "name": "Kvänum",
+        "customers2025": 79
+      },
+      {
+        "name": "Lagan",
+        "customers2025": 252
+      },
+      {
+        "name": "Lammhult",
+        "customers2025": 143
+      },
+      {
+        "name": "Landvetter",
+        "customers2025": 259
+      },
+      {
+        "name": "Lidhult",
+        "customers2025": 68
+      },
+      {
+        "name": "Malmköping",
+        "customers2025": 197
+      },
+      {
+        "name": "Markaryd",
+        "customers2025": 126
+      },
+      {
+        "name": "Mölnlycke",
+        "customers2025": 568
+      },
+      {
+        "name": "Mönsterås",
+        "customers2025": 1202
+      },
+      {
+        "name": "Nora",
+        "customers2025": 94
+      },
+      {
+        "name": "Nordmaling",
+        "customers2025": 39
+      },
+      {
+        "name": "Nät Färjestaden",
+        "customers2025": 135
+      },
+      {
+        "name": "Nät Mörbylånga",
+        "customers2025": 117
+      },
+      {
+        "name": "Odensbacken",
+        "customers2025": 38
+      },
+      {
+        "name": "Rundvik",
+        "customers2025": 11
+      },
+      {
+        "name": "Ryd",
+        "customers2025": 183
+      },
+      {
+        "name": "Rydsgård",
+        "customers2025": 13
+      },
+      {
+        "name": "Sandudden",
+        "customers2025": 355
+      },
+      {
+        "name": "Sjöbo",
+        "customers2025": 268
+      },
+      {
+        "name": "Skinnskatteberg",
+        "customers2025": 21
+      },
+      {
+        "name": "Skivarp",
+        "customers2025": 3
+      },
+      {
+        "name": "Skurup",
+        "customers2025": 141
+      },
+      {
+        "name": "Stenstorp",
+        "customers2025": 19
+      },
+      {
+        "name": "Strömnäsbruk",
+        "customers2025": 30
+      },
+      {
+        "name": "Sunne",
+        "customers2025": 232
+      },
+      {
+        "name": "Svalöv",
+        "customers2025": 92
+      },
+      {
+        "name": "Sveg",
+        "customers2025": 222
+      },
+      {
+        "name": "Svenljunga",
+        "customers2025": 308
+      },
+      {
+        "name": "Tomelilla",
+        "customers2025": 283
+      },
+      {
+        "name": "Töckfors tätort",
+        "customers2025": 19
+      },
+      {
+        "name": "Vadstena",
+        "customers2025": 279
+      },
+      {
+        "name": "Vilhelmina",
+        "customers2025": 248
+      },
+      {
+        "name": "Vingåker",
+        "customers2025": 122
+      },
+      {
+        "name": "Vretstorp",
+        "customers2025": 38
+      },
+      {
+        "name": "Vårgårda",
+        "customers2025": 78
+      },
+      {
+        "name": "Vännäs",
+        "customers2025": 579
+      },
+      {
+        "name": "Västerdala",
+        "customers2025": 95
+      },
+      {
+        "name": "Åseda",
+        "customers2025": 45
+      },
+      {
+        "name": "Älvdalen",
+        "customers2025": 14
+      },
+      {
+        "name": "Ödeshög",
+        "customers2025": 73
+      },
+      {
+        "name": "Svedala",
+        "customers2025": 88
+      },
+      {
+        "name": "Munka-Ljungby",
+        "customers2025": 27
+      },
+      {
+        "name": "Bjäre",
+        "customers2025": 22
+      },
+      {
+        "name": "Vallentuna",
+        "customers2025": 252
+      },
+      {
+        "name": "Mullsjö",
+        "customers2025": 172
+      },
+      {
+        "name": "Åkersberga",
+        "customers2025": 103
+      }
+    ]
+  },
+  {
+    "name": "Stockholm Exergi AB",
+    "customers2025": 11112,
+    "networks": [
+      {
+        "name": "Stockholm",
+        "customers2025": 11112
+      }
+    ]
+  },
+  {
+    "name": "Luleå Energi AB",
+    "customers2025": 11022,
+    "networks": [
+      {
+        "name": "Luleå fjärrvärme",
+        "customers2025": 10570
+      },
+      {
+        "name": "Råneå fjärrvärme",
+        "customers2025": 452
+      }
+    ]
+  },
+  {
+    "name": "E.ON Energiinfrastruktur AB",
+    "customers2025": 10826,
+    "networks": [
+      {
+        "name": "Malmö-Burlöv",
+        "customers2025": 10468
+      },
+      {
+        "name": "Järfälla-Vallentuna",
+        "customers2025": 358
+      }
+    ]
+  },
+  {
+    "name": "Navirum Energi AB",
+    "customers2025": 10241,
+    "networks": [
+      {
+        "name": "Norrköping-Söderköping",
+        "customers2025": 5421
+      },
+      {
+        "name": "Hallsberg-Örebro-Kumla",
+        "customers2025": 4820
+      }
+    ]
+  },
+  {
+    "name": "Kraftringen Energi AB (publ)",
+    "customers2025": 9552,
+    "networks": [
+      {
+        "name": "Lund – Lomma – Eslöv – Klippan",
+        "customers2025": 9552
+      }
+    ]
+  },
+  {
+    "name": "Växjö Energi AB",
+    "customers2025": 8793,
+    "networks": [
+      {
+        "name": "Växjö-Ingelstad-Rottne-Braås",
+        "customers2025": 8793
+      }
+    ]
+  },
+  {
+    "name": "Umeå Energi AB",
+    "customers2025": 7802,
+    "networks": [
+      {
+        "name": "Umeå-Holmsund",
+        "customers2025": 7531
+      },
+      {
+        "name": "Sävar",
+        "customers2025": 105
+      },
+      {
+        "name": "Hörnefors",
+        "customers2025": 86
+      },
+      {
+        "name": "Bjurholm",
+        "customers2025": 80
+      }
+    ]
+  },
+  {
+    "name": "Skellefteå Kraft AB",
+    "customers2025": 7759,
+    "networks": [
+      {
+        "name": "Skellefteå, Malå, Ske-hamn, Lycksele",
+        "customers2025": 6354
+      },
+      {
+        "name": "Övriga",
+        "customers2025": 1405
+      }
+    ]
+  },
+  {
+    "name": "Adven Sverige AB",
+    "customers2025": 7574,
+    "networks": [
+      {
+        "name": "Bara-Staffanstorp",
+        "customers2025": 701
+      },
+      {
+        "name": "Vaxholm",
+        "customers2025": 172
+      },
+      {
+        "name": "Sollefteå",
+        "customers2025": 164
+      },
+      {
+        "name": "Mora-Orsa",
+        "customers2025": 960
+      },
+      {
+        "name": "Boxholm-Älmhult",
+        "customers2025": 741
+      },
+      {
+        "name": "Östrand-Söråker-Bergenfors",
+        "customers2025": 790
+      },
+      {
+        "name": "Friggesund",
+        "customers2025": 7
+      },
+      {
+        "name": "Funäsdalen",
+        "customers2025": 24
+      },
+      {
+        "name": "Bollstabruk",
+        "customers2025": 6
+      },
+      {
+        "name": "Långsele",
+        "customers2025": 12
+      },
+      {
+        "name": "Nasåker",
+        "customers2025": 8
+      },
+      {
+        "name": "Ramsele",
+        "customers2025": 32
+      },
+      {
+        "name": "Hede",
+        "customers2025": 88
+      },
+      {
+        "name": "Lenhovda",
+        "customers2025": 160
+      },
+      {
+        "name": "Bräcke Kälarne",
+        "customers2025": 34
+      },
+      {
+        "name": "Sösdala",
+        "customers2025": 51
+      },
+      {
+        "name": "Sticklinge",
+        "customers2025": 5
+      },
+      {
+        "name": "Hällefors",
+        "customers2025": 255
+      },
+      {
+        "name": "Avesta",
+        "customers2025": 1304
+      },
+      {
+        "name": "Hudiksvall",
+        "customers2025": 592
+      },
+      {
+        "name": "Iggesund",
+        "customers2025": 10
+      },
+      {
+        "name": "Ljusnarberg",
+        "customers2025": 34
+      },
+      {
+        "name": "Grums",
+        "customers2025": 302
+      },
+      {
+        "name": "Torsby",
+        "customers2025": 224
+      },
+      {
+        "name": "Nynäshamn-Ösmo-Stora Vika",
+        "customers2025": 98
+      },
+      {
+        "name": "Säffle",
+        "customers2025": 164
+      },
+      {
+        "name": "Kungsör",
+        "customers2025": 322
+      },
+      {
+        "name": "Simrishamn",
+        "customers2025": 314
+      }
+    ]
+  },
+  {
+    "name": "AB Borlänge Energi",
+    "customers2025": 6774,
+    "networks": [
+      {
+        "name": "Borlänge Fjärrvärme",
+        "customers2025": 6536
+      },
+      {
+        "name": "Torsång Närvärme",
+        "customers2025": 196
+      },
+      {
+        "name": "Ornäs Närvärme",
+        "customers2025": 42
+      }
+    ]
+  },
+  {
+    "name": "Jönköping Energi AB",
+    "customers2025": 5768,
+    "networks": [
+      {
+        "name": "Prisområde 1",
+        "customers2025": 5768
+      }
+    ]
+  },
+  {
+    "name": "Jämtkraft AB",
+    "customers2025": 5580,
+    "networks": [
+      {
+        "name": "Östersund",
+        "customers2025": 5068
+      },
+      {
+        "name": "Duved",
+        "customers2025": 77
+      },
+      {
+        "name": "Åre",
+        "customers2025": 158
+      },
+      {
+        "name": "Järpen",
+        "customers2025": 61
+      },
+      {
+        "name": "Kall",
+        "customers2025": 16
+      },
+      {
+        "name": "Mörsil",
+        "customers2025": 49
+      },
+      {
+        "name": "Hallen",
+        "customers2025": 3
+      },
+      {
+        "name": "Krokom",
+        "customers2025": 115
+      },
+      {
+        "name": "Föllinge",
+        "customers2025": 5
+      },
+      {
+        "name": "Nälden",
+        "customers2025": 23
+      },
+      {
+        "name": "Höglekardalen",
+        "customers2025": 1
+      },
+      {
+        "name": "Björnen",
+        "customers2025": 4
+      }
+    ]
+  },
+  {
+    "name": "Eskilstuna Energi och Miljö AB",
+    "customers2025": 5399,
+    "networks": [
+      {
+        "name": "Eskilstuna Energi & Miljö",
+        "customers2025": 5399
+      }
+    ]
+  },
+  {
+    "name": "Borås Energi och Miljö AB",
+    "customers2025": 5116,
+    "networks": [
+      {
+        "name": "Centrala nätet",
+        "customers2025": 5116
+      }
+    ]
+  },
+  {
+    "name": "Karlstads Energi AB",
+    "customers2025": 4967,
+    "networks": [
+      {
+        "name": "Karlstad",
+        "customers2025": 4967
+      }
+    ]
+  },
+  {
+    "name": "Gävle Energi AB",
+    "customers2025": 4873,
+    "networks": [
+      {
+        "name": "Gävle",
+        "customers2025": 4873
+      }
+    ]
+  },
+  {
+    "name": "Södertörns Fjärrvärme AB",
+    "customers2025": 4108,
+    "networks": [
+      {
+        "name": "Fittjanätet-Skogåsnätet",
+        "customers2025": 4108
+      }
+    ]
+  },
+  {
+    "name": "Halmstads Energi och Miljö AB",
+    "customers2025": 4074,
+    "networks": [
+      {
+        "name": "Halmstad",
+        "customers2025": 4074
+      }
+    ]
+  },
+  {
+    "name": "Kalmar Energi Värme AB",
+    "customers2025": 4063,
+    "networks": [
+      {
+        "name": "Prisområde 1",
+        "customers2025": 4063
+      }
+    ]
+  },
+  {
+    "name": "Bodens Energi AB",
+    "customers2025": 3937,
+    "networks": [
+      {
+        "name": "Boden",
+        "customers2025": 3937
+      }
+    ]
+  },
+  {
+    "name": "Lidköping Energi AB",
+    "customers2025": 3815,
+    "networks": [
+      {
+        "name": "Lidköping tätort",
+        "customers2025": 3815
+      }
+    ]
+  },
+  {
+    "name": "AB PiteEnergi",
+    "customers2025": 3649,
+    "networks": [
+      {
+        "name": "Piteå",
+        "customers2025": 3552
+      },
+      {
+        "name": "Rosvik",
+        "customers2025": 5
+      },
+      {
+        "name": "Sjulnäs",
+        "customers2025": 12
+      },
+      {
+        "name": "Norrfjärden",
+        "customers2025": 78
+      },
+      {
+        "name": "Haraholmen",
+        "customers2025": 2
+      }
+    ]
+  },
+  {
+    "name": "Övik Energi AB",
+    "customers2025": 3525,
+    "networks": [
+      {
+        "name": "Centrum",
+        "customers2025": 3304
+      },
+      {
+        "name": "Bjästa",
+        "customers2025": 71
+      },
+      {
+        "name": "Bredbyn",
+        "customers2025": 88
+      },
+      {
+        "name": "Husum",
+        "customers2025": 55
+      },
+      {
+        "name": "Moliden",
+        "customers2025": 7
+      }
+    ]
+  },
+  {
+    "name": "C4 Energi AB",
+    "customers2025": 3382,
+    "networks": [
+      {
+        "name": "Prisområde 1",
+        "customers2025": 3382
+      }
+    ]
+  },
+  {
+    "name": "Sundsvall Energi AB",
+    "customers2025": 3256,
+    "networks": [
+      {
+        "name": "Sundsvall",
+        "customers2025": 2908
+      },
+      {
+        "name": "Kvisselbynätet",
+        "customers2025": 185
+      },
+      {
+        "name": "Matforsnätet",
+        "customers2025": 82
+      },
+      {
+        "name": "Lucksta",
+        "customers2025": 29
+      },
+      {
+        "name": "Indal",
+        "customers2025": 35
+      },
+      {
+        "name": "Liden",
+        "customers2025": 17
+      }
+    ]
+  },
+  {
+    "name": "Västervik Miljö & Energi AB",
+    "customers2025": 2961,
+    "networks": [
+      {
+        "name": "Västervik",
+        "customers2025": 2390
+      },
+      {
+        "name": "Gamleby",
+        "customers2025": 414
+      },
+      {
+        "name": "Ankarsrum",
+        "customers2025": 157
+      }
+    ]
+  },
+  {
+    "name": "Landskrona Energi AB",
+    "customers2025": 2952,
+    "networks": [
+      {
+        "name": "Prisområde 1",
+        "customers2025": 2952
+      }
+    ]
+  },
+  {
+    "name": "Falu Energi & Vatten AB",
+    "customers2025": 2950,
+    "networks": [
+      {
+        "name": "Prisområde 1",
+        "customers2025": 2873
+      },
+      {
+        "name": "Prisområde 2",
+        "customers2025": 77
+      }
+    ]
+  },
+  {
+    "name": "Hässleholm Miljö AB",
+    "customers2025": 2648,
+    "networks": [
+      {
+        "name": "Hässleholm",
+        "customers2025": 2403
+      },
+      {
+        "name": "Tyringe",
+        "customers2025": 245
+      }
+    ]
+  },
+  {
+    "name": "Partille Energi AB",
+    "customers2025": 2359,
+    "networks": [
+      {
+        "name": "Partille",
+        "customers2025": 2359
+      }
+    ]
+  },
+  {
+    "name": "Mjölby-Svartådalen Energi AB",
+    "customers2025": 2357,
+    "networks": [
+      {
+        "name": "Prisområde 1",
+        "customers2025": 2357
+      }
+    ]
+  },
+  {
+    "name": "Sandviken Energi AB",
+    "customers2025": 2344,
+    "networks": [
+      {
+        "name": "Sandviken",
+        "customers2025": 2145
+      },
+      {
+        "name": "Storvik",
+        "customers2025": 185
+      },
+      {
+        "name": "Järbo",
+        "customers2025": 14
+      }
+    ]
+  },
+  {
+    "name": "Västra Mälardalens Energi och Miljö AB",
+    "customers2025": 2276,
+    "networks": [
+      {
+        "name": "Arboga-Köping-Kolsva",
+        "customers2025": 2276
+      }
+    ]
+  },
+  {
+    "name": "Norrenergi AB",
+    "customers2025": 2227,
+    "networks": [
+      {
+        "name": "Norrenergi Nät",
+        "customers2025": 2227
+      }
+    ]
+  },
+  {
+    "name": "Eksjö Energi AB",
+    "customers2025": 2159,
+    "networks": [
+      {
+        "name": "Eksjö tätort",
+        "customers2025": 1810
+      },
+      {
+        "name": "Ingatorp",
+        "customers2025": 83
+      },
+      {
+        "name": "Mariannelund",
+        "customers2025": 266
+      }
+    ]
+  },
+  {
+    "name": "Mölndal Energi AB",
+    "customers2025": 2096,
+    "networks": [
+      {
+        "name": "Mölndal",
+        "customers2025": 2096
+      }
+    ]
+  },
+  {
+    "name": "Skövde Energi AB",
+    "customers2025": 2079,
+    "networks": [
+      {
+        "name": "Skövde",
+        "customers2025": 2079
+      }
+    ]
+  },
+  {
+    "name": "Sollentuna Energi och Miljö AB",
+    "customers2025": 2049,
+    "networks": [
+      {
+        "name": "Sollentuna Energi",
+        "customers2025": 2049
+      }
+    ]
+  },
+  {
+    "name": "Telge Nät AB",
+    "customers2025": 2002,
+    "networks": [
+      {
+        "name": "Telge Nät",
+        "customers2025": 2002
+      }
+    ]
+  },
+  {
+    "name": "Ystad Energi AB",
+    "customers2025": 1990,
+    "networks": [
+      {
+        "name": "Pc Anoden-Pc Lotta",
+        "customers2025": 1990
+      }
+    ]
+  },
+  {
+    "name": "Vimmerby Energi & Miljö AB",
+    "customers2025": 1931,
+    "networks": [
+      {
+        "name": "Fjärrvärme (tätort)",
+        "customers2025": 1410
+      },
+      {
+        "name": "Närvärme (kransorter)",
+        "customers2025": 521
+      }
+    ]
+  },
+  {
+    "name": "Härnösand Energi & Miljö AB",
+    "customers2025": 1920,
+    "networks": [
+      {
+        "name": "Härnösand",
+        "customers2025": 1920
+      }
+    ]
+  },
+  {
+    "name": "Gällivare Energi AB",
+    "customers2025": 1904,
+    "networks": [
+      {
+        "name": "Gällivare-Malmberget-Koskullskulle",
+        "customers2025": 1904
+      }
+    ]
+  },
+  {
+    "name": "ENA Energi AB",
+    "customers2025": 1890,
+    "networks": [
+      {
+        "name": "ENA Energi",
+        "customers2025": 1890
+      }
+    ]
+  },
+  {
+    "name": "Varberg Energi Infra AB",
+    "customers2025": 1795,
+    "networks": [
+      {
+        "name": "Centrala nätet",
+        "customers2025": 1732
+      },
+      {
+        "name": "Närvärmenätet",
+        "customers2025": 63
+      }
+    ]
+  },
+  {
+    "name": "Nässjö Affärsverk AB",
+    "customers2025": 1780,
+    "networks": [
+      {
+        "name": "Nässjö",
+        "customers2025": 1558
+      },
+      {
+        "name": "Bodafors",
+        "customers2025": 210
+      },
+      {
+        "name": "Anneberg",
+        "customers2025": 12
+      }
+    ]
+  },
+  {
+    "name": "Kiruna Kraft AB",
+    "customers2025": 1779,
+    "networks": [
+      {
+        "name": "Kiruna och Vittangi",
+        "customers2025": 1779
+      }
+    ]
+  },
+  {
+    "name": "Värnamo Energi AB",
+    "customers2025": 1757,
+    "networks": [
+      {
+        "name": "Värnamo",
+        "customers2025": 1572
+      },
+      {
+        "name": "Rydaholm",
+        "customers2025": 185
+      }
+    ]
+  },
+  {
+    "name": "Alvesta Energi AB",
+    "customers2025": 1610,
+    "networks": [
+      {
+        "name": "Alvesta",
+        "customers2025": 988
+      },
+      {
+        "name": "Vislanda",
+        "customers2025": 316
+      },
+      {
+        "name": "Moheda",
+        "customers2025": 306
+      }
+    ]
+  },
+  {
+    "name": "Karlskoga Kraftvärmeverk AB",
+    "customers2025": 1550,
+    "networks": [
+      {
+        "name": "Karlskoga",
+        "customers2025": 1550
+      }
+    ]
+  },
+  {
+    "name": "Bollnäs Energi AB",
+    "customers2025": 1519,
+    "networks": [
+      {
+        "name": "Bollnäs",
+        "customers2025": 1152
+      },
+      {
+        "name": "Arbrå",
+        "customers2025": 207
+      },
+      {
+        "name": "Kilafors",
+        "customers2025": 130
+      },
+      {
+        "name": "Rengsjö",
+        "customers2025": 30
+      }
+    ]
+  },
+  {
+    "name": "Uddevalla Energi Värme AB",
+    "customers2025": 1478,
+    "networks": [
+      {
+        "name": "Ljungskile",
+        "customers2025": 23
+      },
+      {
+        "name": "Munkedal",
+        "customers2025": 13
+      },
+      {
+        "name": "Uddevalla",
+        "customers2025": 1442
+      }
+    ]
+  },
+  {
+    "name": "VänerEnergi AB",
+    "customers2025": 1454,
+    "networks": [
+      {
+        "name": "Fjärrvärme Mariestad",
+        "customers2025": 1338
+      },
+      {
+        "name": "Fjärrvärme Töreboda",
+        "customers2025": 88
+      },
+      {
+        "name": "Fjärrvärme Lyrestad",
+        "customers2025": 28
+      }
+    ]
+  },
+  {
+    "name": "Karlshamn Energi AB",
+    "customers2025": 1378,
+    "networks": [
+      {
+        "name": "Karlshamn nät 1",
+        "customers2025": 1378
+      }
+    ]
+  },
+  {
+    "name": "Sala-Heby Energi AB",
+    "customers2025": 1364,
+    "networks": [
+      {
+        "name": "Sala Heby",
+        "customers2025": 1364
+      }
+    ]
+  },
+  {
+    "name": "Oxelö Energi AB",
+    "customers2025": 1360,
+    "networks": [
+      {
+        "name": "Oxelö",
+        "customers2025": 1360
+      }
+    ]
+  },
+  {
+    "name": "Stenungsunds Energi & Miljö AB",
+    "customers2025": 1351,
+    "networks": [
+      {
+        "name": "Fjärrvärmecentral",
+        "customers2025": 1349
+      },
+      {
+        "name": "Närvärmecentral",
+        "customers2025": 2
+      }
+    ]
+  },
+  {
+    "name": "Njudung Energi Vetlanda AB",
+    "customers2025": 1278,
+    "networks": [
+      {
+        "name": "Vetlanda",
+        "customers2025": 1239
+      },
+      {
+        "name": "Holsby",
+        "customers2025": 39
+      }
+    ]
+  },
+  {
+    "name": "Hammarö Energi AB",
+    "customers2025": 1254,
+    "networks": [
+      {
+        "name": "Centrala nätet",
+        "customers2025": 1252
+      },
+      {
+        "name": "Lilla nätet",
+        "customers2025": 2
+      }
+    ]
+  },
+  {
+    "name": "Ronneby Miljö och Teknik AB",
+    "customers2025": 1154,
+    "networks": [
+      {
+        "name": "Ronneby-Kallinge",
+        "customers2025": 867
+      },
+      {
+        "name": "Bräkne-Hoby",
+        "customers2025": 287
+      }
+    ]
+  },
+  {
+    "name": "Solör Bioenergi Strängnäs AB",
+    "customers2025": 1153,
+    "networks": [
+      {
+        "name": "Strängnäs",
+        "customers2025": 1153
+      }
+    ]
+  },
+  {
+    "name": "Söderhamn Nära AB",
+    "customers2025": 1140,
+    "networks": [
+      {
+        "name": "Söderhamn",
+        "customers2025": 1070
+      },
+      {
+        "name": "Ljusne",
+        "customers2025": 64
+      },
+      {
+        "name": "Sandarne",
+        "customers2025": 6
+      }
+    ]
+  },
+  {
+    "name": "Nybro Energi AB",
+    "customers2025": 1137,
+    "networks": [
+      {
+        "name": "Nybro-Orrefors-Alsterbro",
+        "customers2025": 1137
+      }
+    ]
+  },
+  {
+    "name": "Gotlands Energi AB",
+    "customers2025": 1131,
+    "networks": [
+      {
+        "name": "Visby+Slite+Hemse+Klimtehamn",
+        "customers2025": 1131
+      }
+    ]
+  },
+  {
+    "name": "Kungälv Närenergi AB",
+    "customers2025": 1131,
+    "networks": [
+      {
+        "name": "Stamnät Kungälv",
+        "customers2025": 1112
+      },
+      {
+        "name": "Närvärmenät Kärna",
+        "customers2025": 10
+      },
+      {
+        "name": "Närvärmenät Kode",
+        "customers2025": 9
+      }
+    ]
+  },
+  {
+    "name": "Tranås Energi AB",
+    "customers2025": 1131,
+    "networks": [
+      {
+        "name": "Tranås",
+        "customers2025": 1131
+      }
+    ]
+  },
+  {
+    "name": "Trollhättan Energi AB",
+    "customers2025": 1089,
+    "networks": [
+      {
+        "name": "Trollhättan",
+        "customers2025": 1083
+      },
+      {
+        "name": "Sjuntorp",
+        "customers2025": 6
+      }
+    ]
+  },
+  {
+    "name": "Hedemora Energi AB",
+    "customers2025": 1086,
+    "networks": [
+      {
+        "name": "Fjärrvärme centrala Hedemora",
+        "customers2025": 699
+      },
+      {
+        "name": "Fjärrvärme Långshyttan",
+        "customers2025": 19
+      },
+      {
+        "name": "Fjärrvärme Säter",
+        "customers2025": 368
+      }
+    ]
+  },
+  {
+    "name": "Alingsås Energi AB",
+    "customers2025": 1058,
+    "networks": [
+      {
+        "name": "Alingsås",
+        "customers2025": 1058
+      }
+    ]
+  },
+  {
+    "name": "Älvsbyns Energi AB",
+    "customers2025": 1022,
+    "networks": [
+      {
+        "name": "Älvsbyn",
+        "customers2025": 1022
+      }
+    ]
+  },
+  {
+    "name": "Nevel AB",
+    "customers2025": 1002,
+    "networks": [
+      {
+        "name": "Bjuv",
+        "customers2025": 148
+      },
+      {
+        "name": "Hultsfred",
+        "customers2025": 125
+      },
+      {
+        "name": "Kramfors",
+        "customers2025": 206
+      },
+      {
+        "name": "Tanumshede",
+        "customers2025": 25
+      },
+      {
+        "name": "Tibro",
+        "customers2025": 51
+      },
+      {
+        "name": "Valdemarsvik",
+        "customers2025": 33
+      },
+      {
+        "name": "Årjäng",
+        "customers2025": 36
+      },
+      {
+        "name": "Östhammar",
+        "customers2025": 49
+      },
+      {
+        "name": "Åstorp",
+        "customers2025": 0
+      },
+      {
+        "name": "Smålandsstenar",
+        "customers2025": 32
+      },
+      {
+        "name": "Gnosjö",
+        "customers2025": 33
+      },
+      {
+        "name": "Hjärnarp/Vejbystrand",
+        "customers2025": 221
+      },
+      {
+        "name": "Henån",
+        "customers2025": 16
+      },
+      {
+        "name": "Ellös",
+        "customers2025": 27
+      }
+    ]
+  },
+  {
+    "name": "Perstorps Fjärrvärme AB",
+    "customers2025": 955,
+    "networks": [
+      {
+        "name": "Perstorp",
+        "customers2025": 955
+      }
+    ]
+  },
+  {
+    "name": "Linde Energi Värme AB",
+    "customers2025": 951,
+    "networks": [
+      {
+        "name": "Lindesberg",
+        "customers2025": 681
+      },
+      {
+        "name": "Vedevåg",
+        "customers2025": 7
+      },
+      {
+        "name": "Frövi",
+        "customers2025": 258
+      },
+      {
+        "name": "Guldsmedhyttan",
+        "customers2025": 5
+      }
+    ]
+  },
+  {
+    "name": "Emmaboda Energi & Miljö AB",
+    "customers2025": 876,
+    "networks": [
+      {
+        "name": "Emmaboda",
+        "customers2025": 876
+      }
+    ]
+  },
+  {
+    "name": "Skara Energi AB",
+    "customers2025": 855,
+    "networks": [
+      {
+        "name": "Skara",
+        "customers2025": 855
+      }
+    ]
+  },
+  {
+    "name": "Finspångs Tekniska Verk AB",
+    "customers2025": 847,
+    "networks": [
+      {
+        "name": "Finspång",
+        "customers2025": 847
+      }
+    ]
+  },
+  {
+    "name": "Marks Energi AB",
+    "customers2025": 836,
+    "networks": [
+      {
+        "name": "Assberg + Fritsla",
+        "customers2025": 833
+      },
+      {
+        "name": "Hyssna",
+        "customers2025": 3
+      }
+    ]
+  },
+  {
+    "name": "Adven Siljan AB",
+    "customers2025": 829,
+    "networks": [
+      {
+        "name": "Rättvik",
+        "customers2025": 468
+      },
+      {
+        "name": "Vikarbyn",
+        "customers2025": 40
+      },
+      {
+        "name": "Boda",
+        "customers2025": 4
+      },
+      {
+        "name": "Leksand",
+        "customers2025": 293
+      },
+      {
+        "name": "Insjön",
+        "customers2025": 24
+      }
+    ]
+  },
+  {
+    "name": "Lessebo Fjärrvärme AB",
+    "customers2025": 781,
+    "networks": [
+      {
+        "name": "Lessebo",
+        "customers2025": 215
+      },
+      {
+        "name": "Hovmantorp",
+        "customers2025": 374
+      },
+      {
+        "name": "Kosta",
+        "customers2025": 149
+      },
+      {
+        "name": "Skruv",
+        "customers2025": 43
+      }
+    ]
+  },
+  {
+    "name": "Ljusdal Energi AB",
+    "customers2025": 779,
+    "networks": [
+      {
+        "name": "Ljusdal",
+        "customers2025": 598
+      },
+      {
+        "name": "Färila",
+        "customers2025": 88
+      },
+      {
+        "name": "Järvsö",
+        "customers2025": 93
+      }
+    ]
+  },
+  {
+    "name": "Norrtälje Energi Försäljnings AB",
+    "customers2025": 756,
+    "networks": [
+      {
+        "name": "Norrtälje",
+        "customers2025": 615
+      },
+      {
+        "name": "Rimbo",
+        "customers2025": 94
+      },
+      {
+        "name": "Hallstavik",
+        "customers2025": 47
+      }
+    ]
+  },
+  {
+    "name": "Affärsverken Karlskrona AB",
+    "customers2025": 743,
+    "networks": [
+      {
+        "name": "Karlskrona",
+        "customers2025": 706
+      },
+      {
+        "name": "Sturkö",
+        "customers2025": 2
+      },
+      {
+        "name": "Jämjö",
+        "customers2025": 34
+      },
+      {
+        "name": "Fridlevstad",
+        "customers2025": 1
+      }
+    ]
+  },
+  {
+    "name": "Vaggeryds Energi AB",
+    "customers2025": 727,
+    "networks": [
+      {
+        "name": "Stigamo Fjärrvärmenät",
+        "customers2025": 18
+      },
+      {
+        "name": "Centralort",
+        "customers2025": 709
+      }
+    ]
+  },
+  {
+    "name": "Trelleborgs Energi AB",
+    "customers2025": 714,
+    "networks": [
+      {
+        "name": "Maglar nät",
+        "customers2025": 131
+      },
+      {
+        "name": "Serresjö nät",
+        "customers2025": 73
+      },
+      {
+        "name": "Trelleborg stadsnät",
+        "customers2025": 510
+      }
+    ]
+  },
+  {
+    "name": "Kils Energi AB",
+    "customers2025": 709,
+    "networks": [
+      {
+        "name": "Kil",
+        "customers2025": 709
+      }
+    ]
+  },
+  {
+    "name": "Sölvesborgs Fjärrvärme AB",
+    "customers2025": 704,
+    "networks": [
+      {
+        "name": "Sölvesborg",
+        "customers2025": 704
+      }
+    ]
+  },
+  {
+    "name": "Hjo Energi AB",
+    "customers2025": 699,
+    "networks": [
+      {
+        "name": "Hjo",
+        "customers2025": 699
+      }
+    ]
+  },
+  {
+    "name": "Falkenberg Energi AB",
+    "customers2025": 696,
+    "networks": [
+      {
+        "name": "Centrala nätet",
+        "customers2025": 655
+      },
+      {
+        "name": "Närvärme Ullared",
+        "customers2025": 21
+      },
+      {
+        "name": "Närvärme Vessigebro",
+        "customers2025": 20
+      }
+    ]
+  },
+  {
+    "name": "Tranemo kommun",
+    "customers2025": 620,
+    "networks": [
+      {
+        "name": "Tranemo kommun",
+        "customers2025": 620
+      }
+    ]
+  },
+  {
+    "name": "Götene Vatten & Värme AB",
+    "customers2025": 600,
+    "networks": [
+      {
+        "name": "Götene",
+        "customers2025": 559
+      },
+      {
+        "name": "Hällekis",
+        "customers2025": 41
+      }
+    ]
+  },
+  {
+    "name": "Munkfors Energi AB",
+    "customers2025": 595,
+    "networks": [
+      {
+        "name": "Munkfors",
+        "customers2025": 595
+      }
+    ]
+  },
+  {
+    "name": "Västerbergslagens Energi AB",
+    "customers2025": 589,
+    "networks": [
+      {
+        "name": "Fjärrvärmenät Ludvika",
+        "customers2025": 236
+      },
+      {
+        "name": "Fjärrvärmenät Fagersta",
+        "customers2025": 277
+      },
+      {
+        "name": "Fjärrvärmenät Grängesberg",
+        "customers2025": 26
+      },
+      {
+        "name": "Fjärrvärmenät Norberg",
+        "customers2025": 50
+      }
+    ]
+  },
+  {
+    "name": "Arvidsjaurs Energi AB",
+    "customers2025": 555,
+    "networks": [
+      {
+        "name": "Arvidsjaur",
+        "customers2025": 555
+      }
+    ]
+  },
+  {
+    "name": "Oskarshamn Energi AB",
+    "customers2025": 550,
+    "networks": [
+      {
+        "name": "Oskarshamn",
+        "customers2025": 550
+      }
+    ]
+  },
+  {
+    "name": "Arvika Energi och Miljö AB ",
+    "customers2025": 542,
+    "networks": [
+      {
+        "name": "Arvika",
+        "customers2025": 542
+      }
+    ]
+  },
+  {
+    "name": "Borgholm Energi AB",
+    "customers2025": 529,
+    "networks": [
+      {
+        "name": "Borgholm+Löttorp",
+        "customers2025": 529
+      }
+    ]
+  },
+  {
+    "name": "Strömsunds Energi AB",
+    "customers2025": 526,
+    "networks": [
+      {
+        "name": "Hammerdal",
+        "customers2025": 76
+      },
+      {
+        "name": "Strömsund",
+        "customers2025": 369
+      },
+      {
+        "name": "Backe",
+        "customers2025": 18
+      },
+      {
+        "name": "Rossön",
+        "customers2025": 8
+      },
+      {
+        "name": "Hoting",
+        "customers2025": 27
+      },
+      {
+        "name": "Kyrktåsjö",
+        "customers2025": 12
+      },
+      {
+        "name": "Gäddede",
+        "customers2025": 16
+      }
+    ]
+  },
+  {
+    "name": "Eksta Bostads AB",
+    "customers2025": 481,
+    "networks": [
+      {
+        "name": "Eksta",
+        "customers2025": 481
+      }
+    ]
+  },
+  {
+    "name": "Tingsryds Energi AB",
+    "customers2025": 478,
+    "networks": [
+      {
+        "name": "Väckelsång",
+        "customers2025": 38
+      },
+      {
+        "name": "Linneryd",
+        "customers2025": 99
+      },
+      {
+        "name": "Tingsryd-Urshult",
+        "customers2025": 341
+      }
+    ]
+  },
+  {
+    "name": "Njudung Energi Sävsjö AB",
+    "customers2025": 475,
+    "networks": [
+      {
+        "name": "Sävsjö",
+        "customers2025": 409
+      },
+      {
+        "name": "Rörvik",
+        "customers2025": 66
+      }
+    ]
+  },
+  {
+    "name": "Lerum Fjärrvärme AB",
+    "customers2025": 469,
+    "networks": [
+      {
+        "name": "Lerum-Gråbo-Stenkullen-Floda",
+        "customers2025": 469
+      }
+    ]
+  },
+  {
+    "name": "Örkelljunga Fjärrvärmeverk AB",
+    "customers2025": 466,
+    "networks": [
+      {
+        "name": "Örkelljunga",
+        "customers2025": 466
+      }
+    ]
+  },
+  {
+    "name": "Tibro kommun",
+    "customers2025": 447,
+    "networks": [
+      {
+        "name": "Tibro kommun",
+        "customers2025": 447
+      }
+    ]
+  },
+  {
+    "name": "Jokkmokks Värmeverk AB",
+    "customers2025": 441,
+    "networks": [
+      {
+        "name": "Jokkmokk",
+        "customers2025": 441
+      }
+    ]
+  },
+  {
+    "name": "TEMAB Fjärrvärme AB",
+    "customers2025": 436,
+    "networks": [
+      {
+        "name": "Tierp",
+        "customers2025": 416
+      },
+      {
+        "name": "Örbyhus",
+        "customers2025": 17
+      },
+      {
+        "name": "Karlholm",
+        "customers2025": 3
+      }
+    ]
+  },
+  {
+    "name": "Bionär Närvärme AB",
+    "customers2025": 421,
+    "networks": [
+      {
+        "name": "Ockelbo",
+        "customers2025": 139
+      },
+      {
+        "name": "Forsbacka",
+        "customers2025": 0
+      },
+      {
+        "name": "Hedesunda",
+        "customers2025": 11
+      },
+      {
+        "name": "Bergby",
+        "customers2025": 8
+      },
+      {
+        "name": "Norrsundet",
+        "customers2025": 7
+      },
+      {
+        "name": "Söderfors",
+        "customers2025": 9
+      },
+      {
+        "name": "Älvkarleby",
+        "customers2025": 12
+      },
+      {
+        "name": "Skutskär",
+        "customers2025": 204
+      },
+      {
+        "name": "Torsåker",
+        "customers2025": 19
+      },
+      {
+        "name": "Storvik",
+        "customers2025": 1
+      },
+      {
+        "name": "Skärplinge",
+        "customers2025": 5
+      },
+      {
+        "name": "Månkarbo",
+        "customers2025": 3
+      },
+      {
+        "name": "Kyrkbyn",
+        "customers2025": 3
+      }
+    ]
+  },
+  {
+    "name": "Fjärrvärme i Osby AB",
+    "customers2025": 418,
+    "networks": [
+      {
+        "name": "Osby",
+        "customers2025": 418
+      }
+    ]
+  },
+  {
+    "name": "Vara Energi Värme AB",
+    "customers2025": 398,
+    "networks": [
+      {
+        "name": "Vara",
+        "customers2025": 398
+      }
+    ]
+  },
+  {
+    "name": "Kristinehamns Värme AB",
+    "customers2025": 387,
+    "networks": [
+      {
+        "name": "Kristinehamn",
+        "customers2025": 387
+      }
+    ]
+  },
+  {
+    "name": "Åsele Energiverk AB",
+    "customers2025": 383,
+    "networks": [
+      {
+        "name": "Åsele",
+        "customers2025": 383
+      }
+    ]
+  },
+  {
+    "name": "Smedjebacken Energi AB",
+    "customers2025": 374,
+    "networks": [
+      {
+        "name": "Smedjebacken-Söderbärke",
+        "customers2025": 374
+      }
+    ]
+  },
+  {
+    "name": "Pajala Värmeverk AB",
+    "customers2025": 373,
+    "networks": [
+      {
+        "name": "Pajala",
+        "customers2025": 373
+      }
+    ]
+  },
+  {
+    "name": "Haparanda Värmeverk AB",
+    "customers2025": 368,
+    "networks": [
+      {
+        "name": "Haparanda",
+        "customers2025": 368
+      }
+    ]
+  },
+  {
+    "name": "Ulricehamns Energi AB",
+    "customers2025": 358,
+    "networks": [
+      {
+        "name": "Ulricehamn",
+        "customers2025": 336
+      },
+      {
+        "name": "Gällstad",
+        "customers2025": 19
+      },
+      {
+        "name": "Timmele",
+        "customers2025": 3
+      }
+    ]
+  },
+  {
+    "name": "Degerfors Fjärrvärme AB",
+    "customers2025": 354,
+    "networks": [
+      {
+        "name": "Centrum",
+        "customers2025": 350
+      },
+      {
+        "name": "Svartå",
+        "customers2025": 4
+      }
+    ]
+  },
+  {
+    "name": "Hagfors Energi AB",
+    "customers2025": 346,
+    "networks": [
+      {
+        "name": "Hagfors värmeverk",
+        "customers2025": 98
+      },
+      {
+        "name": "Ekshärads värmeverk",
+        "customers2025": 248
+      }
+    ]
+  },
+  {
+    "name": "Habo Energi AB",
+    "customers2025": 334,
+    "networks": [
+      {
+        "name": "Habo",
+        "customers2025": 334
+      }
+    ]
+  },
+  {
+    "name": "Bromölla Fjärrvärme AB",
+    "customers2025": 332,
+    "networks": [
+      {
+        "name": "Bromölla",
+        "customers2025": 332
+      }
+    ]
+  },
+  {
+    "name": "Överkalix Värmeverk AB",
+    "customers2025": 321,
+    "networks": [
+      {
+        "name": "Fjärrvärmenät Överkalix",
+        "customers2025": 321
+      }
+    ]
+  },
+  {
+    "name": "E.ON Mälarkraft Värme AB",
+    "customers2025": 306,
+    "networks": [
+      {
+        "name": "Bro-Bålsta-Kungsängen",
+        "customers2025": 306
+      }
+    ]
+  },
+  {
+    "name": "Olofströms Kraft AB",
+    "customers2025": 304,
+    "networks": [
+      {
+        "name": "Olofström",
+        "customers2025": 304
+      }
+    ]
+  },
+  {
+    "name": "Molkom Biovärme AB",
+    "customers2025": 298,
+    "networks": [
+      {
+        "name": "Molkom",
+        "customers2025": 298
+      }
+    ]
+  },
+  {
+    "name": "Höganäs Energi AB",
+    "customers2025": 289,
+    "networks": [
+      {
+        "name": "Höganäs",
+        "customers2025": 289
+      }
+    ]
+  },
+  {
+    "name": "Torsnet AB",
+    "customers2025": 279,
+    "networks": [
+      {
+        "name": "Torsås",
+        "customers2025": 279
+      }
+    ]
+  },
+  {
+    "name": "Övertorneå Energi Försäljning AB",
+    "customers2025": 276,
+    "networks": [
+      {
+        "name": "Övertorneå",
+        "customers2025": 276
+      }
+    ]
+  },
+  {
+    "name": "Sorsele Värmeverk AB",
+    "customers2025": 249,
+    "networks": [
+      {
+        "name": "Sorsele",
+        "customers2025": 249
+      }
+    ]
+  },
+  {
+    "name": "Herrljunga Elektriska AB",
+    "customers2025": 242,
+    "networks": [
+      {
+        "name": "Herrljunga",
+        "customers2025": 189
+      },
+      {
+        "name": "Mörlanda",
+        "customers2025": 53
+      }
+    ]
+  },
+  {
+    "name": "Adven Hofors AB",
+    "customers2025": 208,
+    "networks": [
+      {
+        "name": "Hofors",
+        "customers2025": 208
+      }
+    ]
+  },
+  {
+    "name": "Aneby Miljö & Vatten AB",
+    "customers2025": 208,
+    "networks": [
+      {
+        "name": "Aneby",
+        "customers2025": 208
+      }
+    ]
+  },
+  {
+    "name": "Bostadsstiftelsen Hyltebostäder",
+    "customers2025": 207,
+    "networks": [
+      {
+        "name": "Fjärrvärme Hyltebruk",
+        "customers2025": 194
+      },
+      {
+        "name": "Fjärrvärme Landeryd",
+        "customers2025": 3
+      },
+      {
+        "name": "Fjärrvärme Unnaryd",
+        "customers2025": 10
+      }
+    ]
+  },
+  {
+    "name": "Högsby Energi AB",
+    "customers2025": 202,
+    "networks": [
+      {
+        "name": "",
+        "customers2025": 202
+      }
+    ]
+  },
+  {
+    "name": "Bengtsfors Energi AB",
+    "customers2025": 201,
+    "networks": [
+      {
+        "name": "PC Buma",
+        "customers2025": 19
+      },
+      {
+        "name": "PC Bengtsgården",
+        "customers2025": 54
+      },
+      {
+        "name": "PC Billingsfors",
+        "customers2025": 83
+      },
+      {
+        "name": "PC Ängbäcksgården",
+        "customers2025": 17
+      },
+      {
+        "name": "PC Bäckefors",
+        "customers2025": 25
+      },
+      {
+        "name": "Dingelvik",
+        "customers2025": 3
+      }
+    ]
+  },
+  {
+    "name": "LEVA Nät AB",
+    "customers2025": 194,
+    "networks": [
+      {
+        "name": "Lysekil",
+        "customers2025": 194
+      }
+    ]
+  },
+  {
+    "name": "Ånge Energi AB",
+    "customers2025": 186,
+    "networks": [
+      {
+        "name": "Ånge",
+        "customers2025": 133
+      },
+      {
+        "name": "Fränsta",
+        "customers2025": 49
+      },
+      {
+        "name": "Ljungaverk 2",
+        "customers2025": 4
+      }
+    ]
+  },
+  {
+    "name": "Tidaholms Energi AB",
+    "customers2025": 183,
+    "networks": [
+      {
+        "name": "Tidaholm",
+        "customers2025": 183
+      }
+    ]
+  },
+  {
+    "name": "Mullsjö Energi & Miljö AB",
+    "customers2025": 171,
+    "networks": [
+      {
+        "name": "Mullsjö",
+        "customers2025": 171
+      }
+    ]
+  },
+  {
+    "name": "Laxåvärme AB",
+    "customers2025": 155,
+    "networks": [
+      {
+        "name": "Laxå",
+        "customers2025": 155
+      }
+    ]
+  },
+  {
+    "name": "Pålsboda Bioenergi AB",
+    "customers2025": 153,
+    "networks": [
+      {
+        "name": "Pålsboda",
+        "customers2025": 153
+      }
+    ]
+  },
+  {
+    "name": "Forshaga Energi AB",
+    "customers2025": 145,
+    "networks": [
+      {
+        "name": "Forshaga",
+        "customers2025": 145
+      }
+    ]
+  },
+  {
+    "name": "Gislaved Energi AB",
+    "customers2025": 139,
+    "networks": [
+      {
+        "name": "Hestra",
+        "customers2025": 16
+      },
+      {
+        "name": "Burseryd",
+        "customers2025": 1
+      },
+      {
+        "name": "Reftele",
+        "customers2025": 6
+      },
+      {
+        "name": "Broaryd",
+        "customers2025": 4
+      },
+      {
+        "name": "Gislaved",
+        "customers2025": 112
+      }
+    ]
+  },
+  {
+    "name": "Täby Miljövärme AB",
+    "customers2025": 133,
+    "networks": [
+      {
+        "name": "Täby",
+        "customers2025": 133
+      }
+    ]
+  },
+  {
+    "name": "Karlsborgs Värme AB",
+    "customers2025": 122,
+    "networks": [
+      {
+        "name": "Karlsborg",
+        "customers2025": 122
+      }
+    ]
+  },
+  {
+    "name": "Grästorps Fjärrvärme AB",
+    "customers2025": 121,
+    "networks": [
+      {
+        "name": "Grästorp",
+        "customers2025": 121
+      }
+    ]
+  },
+  {
+    "name": "Filipstads Värme AB",
+    "customers2025": 119,
+    "networks": [
+      {
+        "name": "Filipstad",
+        "customers2025": 119
+      }
+    ]
+  },
+  {
+    "name": "Eda Energi AB",
+    "customers2025": 115,
+    "networks": [
+      {
+        "name": "Åmotfors fjärrvärmenät",
+        "customers2025": 115
+      }
+    ]
+  },
+  {
+    "name": "Lilla Edets Fjärrvärme AB",
+    "customers2025": 58,
+    "networks": [
+      {
+        "name": "Lilla Edet",
+        "customers2025": 58
+      }
+    ]
+  },
+  {
+    "name": "Arjeplogs kommun",
+    "customers2025": 50,
+    "networks": [
+      {
+        "name": "Arjeplog",
+        "customers2025": 50
+      }
+    ]
+  },
+  {
+    "name": "BTEA Energi AB",
+    "customers2025": 48,
+    "networks": [
+      {
+        "name": "Bergsviken 4:114 i Svenstavik",
+        "customers2025": 44
+      },
+      {
+        "name": "Rätansbyn 14:4 i Rätan",
+        "customers2025": 4
+      }
+    ]
+  },
+  {
+    "name": "Malung-Sälens kommun",
+    "customers2025": 44,
+    "networks": [
+      {
+        "name": "Malung",
+        "customers2025": 44
+      }
+    ]
+  },
+  {
+    "name": "Nossebro Energi Försäljnings AB",
+    "customers2025": 43,
+    "networks": [
+      {
+        "name": "Stallaholm",
+        "customers2025": 43
+      }
+    ]
+  },
+  {
+    "name": "Solör Bioenergi Värme AB",
+    "customers2025": 43,
+    "networks": [
+      {
+        "name": "Näsviken",
+        "customers2025": 5
+      },
+      {
+        "name": "Bångbro",
+        "customers2025": 7
+      },
+      {
+        "name": "Björklinge",
+        "customers2025": 5
+      },
+      {
+        "name": "Vänge",
+        "customers2025": 14
+      },
+      {
+        "name": "Bälinge",
+        "customers2025": 4
+      },
+      {
+        "name": "Gåvsta",
+        "customers2025": 2
+      },
+      {
+        "name": "Vattholma",
+        "customers2025": 3
+      },
+      {
+        "name": "Krokek",
+        "customers2025": 3
+      }
+    ]
+  },
+  {
+    "name": "Nordanstigs Fjärrvärme AB",
+    "customers2025": 38,
+    "networks": [
+      {
+        "name": "Bergsjö",
+        "customers2025": 25
+      },
+      {
+        "name": "Harmånger",
+        "customers2025": 3
+      },
+      {
+        "name": "Strömsbruk",
+        "customers2025": 10
+      }
+    ]
+  },
+  {
+    "name": "Ekerö Solör Bioenergi AB",
+    "customers2025": 18,
+    "networks": [
+      {
+        "name": "Ekerö",
+        "customers2025": 18
+      }
+    ]
+  },
+  {
+    "name": "Ydre kommun",
+    "customers2025": 18,
+    "networks": [
+      {
+        "name": "Ydre",
+        "customers2025": 18
+      }
+    ]
+  },
+  {
+    "name": "Agrovärme Enköping AB",
+    "customers2025": 10,
+    "networks": [
+      {
+        "name": "Agrovärme Enköping",
+        "customers2025": 10
+      }
+    ]
+  },
+  {
+    "name": "Ragunda Energi & Teknik AB",
+    "customers2025": 7,
+    "networks": [
+      {
+        "name": "Ragunda",
+        "customers2025": 7
+      }
+    ]
+  },
+  {
+    "name": "Skagerns Energi AB",
+    "customers2025": 5,
+    "networks": [
+      {
+        "name": "Gullspång",
+        "customers2025": 5
+      }
+    ]
+  },
+  {
+    "name": "Ljungby Energinät AB",
+    "customers2025": 0,
+    "networks": [
+      {
+        "name": "Ljungby energinät",
+        "customers2025": 0
+      }
+    ]
+  }
+]

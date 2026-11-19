@@ -1,0 +1,32 @@
+[
+  {
+    "reportingUnit": "REN00954",
+    "name": "Driva Gasnät AB",
+    "customers2025": 47747
+  },
+  {
+    "reportingUnit": "REN00598",
+    "name": "Weum Gas AB",
+    "customers2025": 17634
+  },
+  {
+    "reportingUnit": "REN00606",
+    "name": "Göteborg Energi Gasnät AB",
+    "customers2025": 7005
+  },
+  {
+    "reportingUnit": "REN00887",
+    "name": "Kraftringen Nät AB",
+    "customers2025": 1391
+  },
+  {
+    "reportingUnit": "REN10005",
+    "name": "Öresundskraft Gasnät AB",
+    "customers2025": 1327
+  },
+  {
+    "reportingUnit": "REN10006",
+    "name": "Varberg Energi Infra AB",
+    "customers2025": 174
+  }
+]
