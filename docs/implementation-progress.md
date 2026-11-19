@@ -73,3 +73,7 @@ Inga antagna återställningar skickas. Nationell VA-utbyggnad och aktiva koknin
 2026-11-19 Fas 6: gasens gemensamma pipeline verifierad med PostGIS och SMS-enhetstester.
 Driva/Weum har inget tillräckligt verifierat avbrottsflöde; endast Göteborg, bakom avstängda flaggor.
 67 filer/505 godkända/6 överhoppade; typer/lint gröna, PostGIS 36/36 efter ledighetskontroll.
+
+2026-11-19 Fas 7: ingen implementation enligt uttryckligt ägarbeslut. Kartläggning i Fas 0;
+rekommenderar leverantörsval och ytterligare verifiering om ett separat telekomprojekt beställs.
+Programkod och senaste gröna testresultat från Fas 6 är oförändrade.
