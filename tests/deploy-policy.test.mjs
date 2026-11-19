@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { assertDeploymentBranch, deploymentEnvironment } from '../scripts/deploy-policy.mjs';
+import { assertDeploymentBranch, deploymentEnvironment, GRID_OPERATORS_ENABLED } from '../scripts/deploy-policy.mjs';
 
 const current = {
   APP_URL: 'https://example.org', CLERK_AUTHORIZED_PARTIES: 'https://example.org',
@@ -11,7 +11,16 @@ const current = {
   TRAFIKVERKET_ENABLED: 'true', TRAFIKVERKET_API_KEY: 'existing-traffic-key',
 };
 
+const GRID = Object.fromEntries(GRID_OPERATORS_ENABLED.map((k) => [k, 'true']));
+
 describe('pod deployment policy', () => {
+  it('turns on exactly the four approved grid operators – no heating, water, gas or SMS categories', () => {
+    const vars = deploymentEnvironment(current, {});
+    assert.deepEqual(GRID_OPERATORS_ENABLED, ['SOURCE_UTILITY_ORESUND_ENABLED', 'SOURCE_UTILITY_KRAFTRINGEN_ENABLED', 'SOURCE_UTILITY_UMEA_ENABLED', 'SOURCE_UTILITY_SKEKRAFT_ENABLED']);
+    for (const k of GRID_OPERATORS_ENABLED) assert.equal(vars[k], 'true');
+    for (const k of ['SOURCE_UTILITY_UMEA_HEAT_ENABLED', 'SOURCE_UTILITY_EXERGI_ENABLED', 'SOURCE_UTILITY_WATER_ENABLED', 'SOURCE_UTILITY_GAS_ENABLED', 'SMS_WATER_OUTAGE_ENABLED', 'SMS_HEATING_OUTAGE_ENABLED', 'SMS_GAS_OUTAGE_ENABLED', 'UTILITY_OUTAGE_UPCOMING_ENABLED']) assert.equal(vars[k], undefined);
+  });
+
   it('allows the verified merge release branch and the existing deployment paths', () => {
     for (const branch of ['codex/landing-parity-live', 'codex/phase4-sms-notifications', 'deploy/live-stromavbrott', '']) assertDeploymentBranch(branch);
   });
@@ -25,13 +34,13 @@ describe('pod deployment policy', () => {
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'local-key', SOURCE_SMHI_OCEANOGRAPHY_ENABLED: 'false',
       SOURCE_SMHI_HYDROLOGY_ENABLED: 'false', TRAFIKVERKET_ENABLED: 'false',
       SMS_PROVIDER: '46elks', SMS_MONTHLY_LIMIT_PER_ORG: '100' });
-    assert.deepEqual(vars, { ...current, SOURCE_SL_DEVIATIONS_ENABLED: 'false', SOURCE_UTILITY_OUTAGES_ENABLED: 'true' });
+    assert.deepEqual(vars, { ...current, SOURCE_SL_DEVIATIONS_ENABLED: 'false', SOURCE_UTILITY_OUTAGES_ENABLED: 'true', ...GRID });
   });
   it('changes only the selected new sources and keeps SL off', () => {
     const overrides = { MET_NORWAY_CONTACT: 'https://github.com/Mulanger/F-Radar/issues',
       SOURCE_MET_NOWCAST_ENABLED: 'true', SOURCE_SGU_OBSERVED_ENABLED: 'true' };
     const vars = deploymentEnvironment(current, { ...overrides, SOURCE_SL_DEVIATIONS_ENABLED: 'true' });
-    assert.deepEqual(vars, { ...current, ...overrides, SOURCE_SL_DEVIATIONS_ENABLED: 'false', SOURCE_UTILITY_OUTAGES_ENABLED: 'true' });
+    assert.deepEqual(vars, { ...current, ...overrides, SOURCE_SL_DEVIATIONS_ENABLED: 'false', SOURCE_UTILITY_OUTAGES_ENABLED: 'true', ...GRID });
   });
   it('retains unrecognised runtime options and leaves its inputs untouched', () => {
     const before = { ...current, FUTURE_SOURCE_ENABLED: 'true' };
