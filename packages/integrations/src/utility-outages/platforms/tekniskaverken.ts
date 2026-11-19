@@ -71,9 +71,9 @@ export function parseTekniskaVerken(list: unknown, shapes: unknown, op: UtilityO
       continue;
     }
     const o = r.data;
-    const utility = ({ Electricity: 'electricity', DistrictHeating: 'district_heating', DistrictCooling: 'district_cooling' } as const)[o.utility as 'Electricity'];
+    const utility = ({ Electricity: 'electricity', DistrictHeating: 'district_heating', DistrictCooling: 'district_cooling', Water: 'water' } as const)[o.utility as 'Electricity'];
     if (!utility || !op.utilities.includes(utility)) {
-      ignored++; // water, fiber and waste are out of scope.
+      ignored++; // Fiber and waste are out of scope; water needs explicit opt-in.
       continue;
     }
     const polys = polygonsFromGeoJson(geoms.get(o.outageId));

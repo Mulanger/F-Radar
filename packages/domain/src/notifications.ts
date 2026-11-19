@@ -2,6 +2,9 @@ import { z } from "zod";
 import { TRAFFIC_RADIUS } from "./organization-settings";
 
 export const NOTIFICATION_CATEGORIES = [
+  { id: 'water_outage', source: 'utility_outages', label: 'Vatten och avlopp', explanation: 'Exakt träff på leverantörens område eller adresslista. Kokningsrekommendationer följer kommunens besked.', enabled: true },
+  { id: 'heating_outage', source: 'utility_outages', label: 'Fjärrvärme och fjärrkyla', explanation: 'Endast exakt träff på leverantörens publicerade avbrottsområde.', enabled: true },
+  { id: 'gas_outage', source: 'utility_outages', label: 'Gasavbrott', explanation: 'Endast exakt träff på leverantörens publicerade avbrottsområde.', enabled: true },
   {
     id: "smhi_warning",
     source: "smhi_warnings",
@@ -75,7 +78,17 @@ export const NOTIFICATION_CATEGORIES = [
   },
 ] as const;
 
+const supplyCondition = <T extends 'water_outage' | 'heating_outage' | 'gas_outage'>(category: T) => z.object({
+  category: z.literal(category),
+  utilities: z.array(z.enum(['water', 'district_heating', 'district_cooling', 'gas'])).min(1).max(2),
+  unplanned: z.boolean(), planned: z.boolean(), plannedReminder: z.boolean(), restored: z.boolean(), changes: z.boolean(),
+}).strict().refine((c) => c.utilities.every((u) => category === 'water_outage' ? u === 'water' : category === 'gas_outage' ? u === 'gas' : u === 'district_heating' || u === 'district_cooling'), { message: 'Fel nyttighet för SMS-kategorin' })
+  .refine((c) => c.unplanned || c.planned || c.plannedReminder, { message: 'Välj minst en typ av avbrott' });
+
 export const NotificationConditionSchema = z.discriminatedUnion("category", [
+  supplyCondition('water_outage'),
+  supplyCondition('heating_outage'),
+  supplyCondition('gas_outage'),
   z
     .object({
       category: z.literal("smhi_warning"),
@@ -193,6 +206,10 @@ export const NotificationRuleInputSchema = z
   });
 export type NotificationRuleInput = z.infer<typeof NotificationRuleInputSchema>;
 export type NotificationCondition = z.infer<typeof NotificationConditionSchema>;
+export type OutageNotificationCondition = Extract<NotificationCondition, { category: 'power_outage' | 'water_outage' | 'heating_outage' | 'gas_outage' }>;
+export function isOutageCondition(c: NotificationCondition): c is OutageNotificationCondition {
+  return ['power_outage', 'water_outage', 'heating_outage', 'gas_outage'].includes(c.category);
+}
 export type NotificationRule = NotificationRuleInput & {
   id: string;
   createdAt: string;
@@ -259,5 +276,5 @@ export interface NotificationDashboard {
   usage: NotificationUsage;
   canManage: boolean;
   mode: "simulated";
-  categories: typeof NOTIFICATION_CATEGORIES;
+  categories: ReadonlyArray<Omit<(typeof NOTIFICATION_CATEGORIES)[number], 'enabled'> & { enabled: boolean }>;
 }

@@ -64,3 +64,8 @@ Kommande-listan prioriterar kommande officiella perioder före härledda rader, 
 Fulla poddsvar normaliseras utan skipped. Mälarenergi/Öresundskraft saknar ännu säker värmegeometri.
 65 Vitest-filer, 496 godkända och 6 överhoppade; typer/lint gröna; PostGIS 34/34.
 Ingen aktivering/deploy. Ny värme får inte antagen återställning.
+
+2026-11-19 Fas 5: SVOA och Tekniska verken Water kopplade i samma pipeline, avstängda som standard.
+Separata SMS-kategorier/spärrar (simulerat), strikt precision/färskhet, dedup och ett SMS-segment.
+Inga antagna återställningar skickas. Nationell VA-utbyggnad och aktiva kokningsfall återstår.
+67 filer/504 godkända/6 överhoppade, typer/lint gröna, PostGIS 35/35 efter ledighetskontroll.

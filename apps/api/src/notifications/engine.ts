@@ -3,7 +3,12 @@ import type {
   NotificationRuleInput,
 } from "@fastighetsradar/domain";
 import {
+  isOutageCondition,
+  type OutageNotificationCondition,
+} from '@fastighetsradar/domain';
+import {
   precipitationTotal,
+  estimateSmsParts,
   type ForecastStep,
 } from "@fastighetsradar/integrations";
 
@@ -88,7 +93,7 @@ export function eventEligible(
   test = false,
 ): boolean {
   // Forecast rules use thresholds; outage rules use outageSmsPhase.
-  if (c.category === "forecast" || c.category === "power_outage") return false;
+  if (c.category === "forecast" || isOutageCondition(c)) return false;
   if (
     !test &&
     (e.created_at < activatedAt ||
@@ -177,6 +182,18 @@ export function smsText(
   return `FastighetsRadar: ${where}. ${description.replace(/[\r\n]+/g, " ").slice(0, 155)}. ${time}. Källa: ${source}. ${link}`;
 }
 
+/** Keep the deep link intact. If even the minimal form is too long, enqueue rejects it. */
+export function supplySmsText(name: string, label: string, source: string, link: string): string {
+  const plain = (s: string, n: number) => s.replace(/[\r\n]+/g, ' ').slice(0, n);
+  const variants = [
+    `FR: ${label}. ${plain(source, 20)}. ${plain(name, 18)}. ${link}`,
+    `FR: ${label}. ${plain(source, 20)}. ${link}`,
+    `FastighetsRadar: ${label}. ${link}`,
+    `FR: ${label}. ${link}`,
+  ];
+  return variants.find((s) => estimateSmsParts(s) === 1) ?? variants.at(-1)!;
+}
+
 /* ------------------------------------------------------------------ */
 /* Grid-operator outages (docs/plans/stromavbrott.md §7)                */
 /* ------------------------------------------------------------------ */
@@ -184,6 +201,11 @@ export function smsText(
 export type OutageSmsPhase = "start" | "planned" | "change" | "restored";
 
 export interface OutageCandidate {
+  reported_at?: Date | null;
+  actual_start?: Date | null;
+  first_seen_at?: Date;
+  notice_kind?: string;
+  restored_inferred?: boolean;
   change_type: string;
   created_at: Date;
   last_seen_at: Date;
@@ -206,7 +228,7 @@ const SMS_MATCHES = ["outage_polygon", "outage_address"];
  * same outage (checked when enqueuing).
  */
 export function outageSmsPhase(
-  c: Extract<NotificationCondition, { category: "power_outage" }>,
+  c: OutageNotificationCondition,
   e: OutageCandidate,
   now: Date,
   activatedAt: Date,
@@ -215,13 +237,14 @@ export function outageSmsPhase(
   if (!SMS_MATCHES.includes(e.match_method ?? "")) return null;
   // A polygon match needs a confirmed position; an address-list match is by the property's address.
   const confirmed =
-    e.match_method === "outage_address" ||
     e.position_source === "manual_pin" ||
     e.position_source === "manual_adjusted" ||
     e.geocode_precision === "building";
   if (!confirmed) return null;
   if (!(c.utilities as string[]).includes(e.utility)) return null;
-  if (e.kind === "unknown") return null;
+  if (e.notice_kind === 'information' || e.notice_kind === 'water_restriction') return null;
+  const boiling = e.utility === 'water' && e.notice_kind === 'boil_water';
+  if (e.kind === "unknown" && !boiling) return null;
   if (
     !test &&
     (e.created_at < activatedAt ||
@@ -230,12 +253,18 @@ export function outageSmsPhase(
     return null;
   const ended = e.change_type === "ended";
   if (ended) {
-    if (e.state === "restored") return c.restored ? "restored" : null;
+    if (e.state === "restored") return !e.restored_inferred && c.restored ? "restored" : null;
     // A vanished unplanned/unknown outage is not known to be over: no SMS at all (never "tillbaka").
     if (e.state === "withdrawn") return e.kind === "planned" && c.changes ? "change" : null;
     return null;
   }
   if (!test && now.getTime() - e.last_seen_at.getTime() > 20 * 60000) return null;
+  if (!test && c.category !== 'power_outage') {
+    if (e.first_seen_at && e.first_seen_at < activatedAt) return null;
+    const issued = e.reported_at ?? e.actual_start;
+    if (!issued || issued < activatedAt || issued > now) return null;
+  }
+  if (boiling && e.state === 'ongoing' && ['new', 'updated'].includes(e.change_type)) return c.unplanned ? 'start' : null;
   if (e.change_type === "new") {
     if (e.kind === "unplanned" && e.state === "ongoing") return c.unplanned ? "start" : null;
     if (e.kind === "planned" && e.state === "upcoming")

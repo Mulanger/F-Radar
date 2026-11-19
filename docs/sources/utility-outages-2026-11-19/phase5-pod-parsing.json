@@ -1,0 +1,14 @@
+[
+  {
+    "operator": "svoa",
+    "count": 2,
+    "skipped": 0,
+    "ignored": 16
+  },
+  {
+    "operator": "tekniskaverken_water",
+    "count": 2,
+    "skipped": 0,
+    "ignored": 0
+  }
+]

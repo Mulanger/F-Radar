@@ -3,6 +3,7 @@ import type { Queryable } from "@fastighetsradar/db";
 import type { ServerEnv } from "@fastighetsradar/config";
 import {
   formatOutageWindow,
+  isOutageCondition,
   NOTIFICATION_CATEGORIES,
   utilityNoun,
   type UtilityKind,
@@ -25,6 +26,7 @@ import {
   type OutageSmsPhase,
   metricLabels,
   smsText,
+  supplySmsText,
   thresholdTransition,
   type EventCandidate,
 } from "./engine";
@@ -50,6 +52,7 @@ interface Candidate extends EventCandidate {
   id: string;
 }
 interface Trigger {
+  shortDescription?: string;
   key: string;
   properties: Property[];
   description: string;
@@ -63,6 +66,7 @@ interface Trigger {
   /** Follow-ups to an already-sent outage message (restored/change/reminder) are not stopped by the rule cooldown. */
   bypassCooldown?: boolean;
   evidence?: {
+    outagePhase?: string;
     eventId?: string;
     version?: number;
     ended?: boolean;
@@ -125,7 +129,7 @@ export class NotificationService {
       usage,
       canManage,
       mode: "simulated",
-      categories: NOTIFICATION_CATEGORIES,
+      categories: NOTIFICATION_CATEGORIES.map((c) => ({ ...c, enabled: c.enabled && (c.id === 'water_outage' ? this.env.SMS_WATER_OUTAGE_ENABLED && this.env.SOURCE_UTILITY_WATER_ENABLED : c.id === 'heating_outage' ? this.env.SMS_HEATING_OUTAGE_ENABLED : c.id === 'gas_outage' ? this.env.SMS_GAS_OUTAGE_ENABLED && this.env.SOURCE_UTILITY_GAS_ENABLED : true) })),
     };
   }
   async activity(org: string): Promise<NotificationActivity[]> {
@@ -382,7 +386,9 @@ export class NotificationService {
     test: boolean,
   ): Promise<Trigger[]> {
     const c = r.config.condition;
-    if (c.category !== "power_outage" || !props.length) return [];
+    if (!isOutageCondition(c) || !props.length) return [];
+    if (c.category !== 'power_outage' && !this.env.SOURCE_UTILITY_OUTAGES_ENABLED) return [];
+    if (c.category === 'water_outage' && (!this.env.SMS_WATER_OUTAGE_ENABLED || !this.env.SOURCE_UTILITY_WATER_ENABLED) || c.category === 'heating_outage' && !this.env.SMS_HEATING_OUTAGE_ENABLED || c.category === 'gas_outage' && (!this.env.SMS_GAS_OUTAGE_ENABLED || !this.env.SOURCE_UTILITY_GAS_ENABLED)) return [];
     type Row = {
       id: string;
       property_id: string;
@@ -406,9 +412,12 @@ export class NotificationService {
       actual_start: Date | null;
       estimated_restore: Date | null;
       restored_inferred: boolean;
+      notice_kind: string;
+      operator_id: string;
+      reported_at: Date | null;
     };
     const cols = `e.external_id,e.version,e.last_seen_at,e.source_updated_at,e.first_seen_at,e.extra->>'operatorName' AS operator_name,
-      m.match_method,p.geocode_precision,p.position_source,u.utility,u.kind,u.state,u.planned_start,u.planned_end,u.actual_start,u.estimated_restore,u.restored_inferred`;
+      m.match_method,p.geocode_precision,p.position_source,u.operator_id,u.utility,u.kind,u.state,u.planned_start,u.planned_end,u.actual_start,u.estimated_restore,u.restored_inferred,u.notice_kind,u.reported_at`;
     const { rows } = await tx.query<Row>(
       `SELECT c.id,c.property_id,c.event_id,c.change_type,c.created_at,${cols}
       FROM monitoring_changes c JOIN source_events e ON e.id=c.event_id JOIN utility_outages u ON u.event_id=e.id
@@ -428,6 +437,7 @@ export class NotificationService {
         ? new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Stockholm", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d)
         : null;
     const describe = (phase: OutageSmsPhase | "reminder", x: Row) => {
+      if (x.notice_kind === 'boil_water') return phase === 'restored' ? 'Leverantören meddelar att kokningsrekommendationen har upphört' : 'Leverantören har publicerat en kokningsrekommendation för ett område som omfattar adressen. Läs leverantörens besked';
       const window = formatOutageWindow(x.planned_start?.toISOString() ?? null, x.planned_end?.toISOString() ?? null);
       const noun = utilityNoun(x.utility as UtilityKind);
       const back = { electricity: "Strömmen", district_heating: "Fjärrvärmen", district_cooling: "Fjärrkylan", gas: "Gasleveransen", water: "Vattenleveransen" }[x.utility as UtilityKind] ?? "Leveransen";
@@ -467,6 +477,7 @@ export class NotificationService {
       }
       const ended = phase === "restored" || (phase === "change" && x.state === "withdrawn");
       grouped.set(key, {
+        ...(c.category !== 'power_outage' ? { shortDescription: `${x.notice_kind === 'boil_water' ? 'Kokningsrekommendation' : utilityNoun(x.utility as UtilityKind)}${phase === 'restored' ? ' upphört enligt leverantör' : phase === 'planned' || phase === 'reminder' ? ' planerat' : phase === 'change' ? ' ändrat' : x.notice_kind === 'boil_water' ? ' publicerad' : ' registrerat'}` } : {}),
         key,
         properties: [p],
         description: describe(phase ?? (x.kind === "unplanned" ? "start" : "planned"), x),
@@ -480,11 +491,12 @@ export class NotificationService {
             ? ["start", "planned", "reminder"].map((t) => `uo:${x.external_id}:${t}${suffix}`)
             : undefined,
         detail: test && phase === null ? "Avbrottet uppfyller inte regelns villkor för SMS (precision, typ eller tid)." : undefined,
-        evidence: { eventId: x.event_id, version: x.version, ended },
+        evidence: { eventId: x.event_id, version: x.version, ended, outagePhase: tag },
       });
     };
     // Non-eligible changes are not turned into outbox rows (no "not eligible" noise per poll).
     for (const x of rows) {
+      if (['stockholm_exergi', 'vattenfall_heat', 'solor', 'umea'].includes(x.operator_id) && ['district_heating', 'district_cooling'].includes(x.utility) && (c.category !== 'heating_outage' || !this.env.SMS_HEATING_OUTAGE_ENABLED)) continue;
       const phase = outageSmsPhase(c, x, now, r.activated_at, test);
       if (phase || test) add(x, phase);
     }
@@ -499,7 +511,9 @@ export class NotificationService {
         [r.organization_id, props.map((p) => p.id)],
       );
       for (const x of due.rows) {
-        const confirmed = x.match_method === "outage_address" || x.position_source === "manual_pin" || x.position_source === "manual_adjusted" || x.geocode_precision === "building";
+        if (['stockholm_exergi', 'vattenfall_heat', 'solor', 'umea'].includes(x.operator_id) && ['district_heating', 'district_cooling'].includes(x.utility) && (c.category !== 'heating_outage' || !this.env.SMS_HEATING_OUTAGE_ENABLED)) continue;
+        const confirmed = x.position_source === "manual_pin" || x.position_source === "manual_adjusted" || x.geocode_precision === "building";
+        if (x.notice_kind !== 'outage') continue;
         if (!confirmed || !["outage_polygon", "outage_address"].includes(x.match_method ?? "")) continue;
         if (!(c.utilities as string[]).includes(x.utility) || !x.planned_start || !inReminderWindow(x.planned_start, now)) continue;
         add(x, "reminder");
@@ -513,7 +527,7 @@ export class NotificationService {
     const triggers =
       r.config.condition.category === "forecast"
         ? await this.forecastTriggers(tx, r, props, now, test)
-        : r.config.condition.category === "power_outage"
+        : isOutageCondition(r.config.condition)
           ? await this.outageTriggers(tx, r, props, now, test)
           : await this.eventTriggers(tx, r, props, now, test);
     if (test && !triggers.length)
@@ -550,6 +564,7 @@ export class NotificationService {
     });
   }
   private message(t: Trigger) {
+    if (t.shortDescription && t.properties[0]) return supplySmsText(t.properties[0].name, t.shortDescription, t.source, `${this.env.APP_URL}/p/${t.properties[0].notification_link_key}`);
     return smsText(
       t.properties.map((p) => p.name),
       t.description,
@@ -631,13 +646,20 @@ export class NotificationService {
       parts = estimateSmsParts(message),
       price = unitPrice(this.env),
       cost = price === null ? null : Math.ceil(parts * price * 10000) / 10000;
+    if (!test && t.evidence?.eventId && t.evidence.outagePhase) {
+      const duplicate = await tx.query(`SELECT 1 FROM notification_outbox WHERE organization_id=$1 AND recipient_id=$2
+        AND trigger_evidence->>'eventId'=$3 AND trigger_evidence->>'outagePhase'=$4
+        AND status IN ('queued','processing','retry','simulated','unknown','accepted','sent','delivered') LIMIT 1`,
+      [org, recipient.id, t.evidence.eventId, t.evidence.outagePhase]);
+      if (duplicate.rows.length) return false;
+    }
     let status = "queued",
       detail = t.detail ?? null;
     if (
       !t.eligible ||
       (!test && !r.enabled) ||
       !t.properties.length ||
-      parts > 12
+      parts > 12 || !!t.shortDescription && parts !== 1
     )
       status = "not_eligible";
     else if (!recipient.consent_at) status = "pending_verification";

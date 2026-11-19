@@ -105,3 +105,14 @@ Umeås värme/kyla kräver dessutom `SOURCE_UTILITY_UMEA_ENABLED` och global ins
 Övriga tre är separata operatörer (id stockholm_exergi, vattenfall_heat, solor) som också måste ingå
 om UTILITY_OUTAGE_OPERATORS begränsar urvalet. Ingen ny migrering. Exergi/Vattenfall/Solör får
 aldrig påstå återställning när en post försvinner. Okänd nätutbredning räknas inte som bevakad.
+
+Fas 5: `SOURCE_UTILITY_SVOA_ENABLED=false` + `SOURCE_UTILITY_WATER_ENABLED=false` krävs för SVOA.
+Vattenflaggan tillför också Tekniska verkens Water-lager och de verifierade ServiceAlert-profilerna.
+Nya SMS-kategorier har separata spärrar: `SMS_WATER_OUTAGE_ENABLED=false`,
+`SMS_HEATING_OUTAGE_ENABLED=false`, `SMS_GAS_OUTAGE_ENABLED=false`. Regeln är dessutom opt-in,
+kräver mottagarsamtycke och bekräftad exakt träff. SMS_MODE förblir simulerat. Nya värmekällor går
+bara genom heating_outage, inte genom äldre power_outage-regler. Befintliga värmeregler bevaras.
+Startfas dedupliceras även mellan regler för samma mottagare/avbrott. Avslut kräver tidigare SMS.
+Nya SMS-format hålls till en del; orimligt lång konfigurerad APP_URL stoppas, länken kapas aldrig.
+Inga infererade återställningar skickas, även för äldre el (försiktigare enligt planens §6).
+Inget nytt migreringsbehov i denna fas.

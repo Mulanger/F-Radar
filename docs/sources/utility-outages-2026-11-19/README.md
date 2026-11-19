@@ -171,3 +171,28 @@ Fortsatt öppet (Fas 2 är därför delvis):
   det är inte bevis för att den saknar användbart flöde.
 
 Fullparse-metadata: `phase4-pod-parsing.json`. Fixtures är riktiga poddsvar med kontaktuppgifter borttagna.
+
+### Fas 5: vatten
+
+SVOA: officiell `/driftinfo` använder `/driftinfo/Search`, sidor om 10 poster. Båda sidor lästes
+från podden, HTTP 200: 18 poster, två vattenavstängningar (uttryckligen avslutade), 16 ovidkommande
+bygg-/avfallsmeddelanden. Polygoner i `affectedAreaCoordinates`, latitude/longitude som strängar,
+områdes-id grupperar ringar. Båda vattenposterna normaliserar utan skipped. Ny adapter läser alla
+sidor och avvisar ändrat totalantal, upprepade id:n och ofullständiga listor. `expectedEndDate` blir
+aldrig faktisk återställningstid. Datum utan klockslag gissas inte. Publicerade adresslistor finns,
+men används ännu inte för matchning utanför polygonerna: ingen säker ortavgränsning verifierad.
+
+Tekniska verken: `outage/list/?utility=water&brand=tekniskaverken` och shapes-POST med endast publika
+ärende-id:n svarar 200 från podden. En Scheduled/planned och en Active/unplanned, båda Water,
+publicerade polygoner, två normaliserade/0 skipped. Vattenlagret kräver egen opt-in.
+
+Göteborg VA: ServiceAlert-svaret saknar publicerad yta i de granskade posterna; adresskoordinater
+ensamma räcker inte för att rita ett område. Ingen ny aktiv Göteborg-VA-adapter byggd.
+VA SYD första poddprov gav timeout; Uppsala har publika textmeddelanden, men inga verifierade
+maskinläsbara områden i denna fas. Dessa stora organisationer återstår, inte avskrivna.
+
+Kokning: ingen aktiv kokningsrekommendation observerades i de verifierade flödena. Strikta
+rubrikregler stöds för SVOA och ServiceAlert, med syntetiska klassificeringsfall på riktiga ytor.
+Allmänna råd i löptext utlöser inte en kokningsvarning. Produktionsbeteendet för ett verkligt sådant
+meddelande är därför inte liveverifierat. Krisinformation publicerar redan kokningsnyheter
+(t.ex. Hallstahammar, nyhetssidan 2026-11-19); vattenbesparingsmeddelanden tas inte in dubbelt.

@@ -15,6 +15,8 @@ import type { ConcessionArea, OutageFetchResult, UtilityOperator } from './types
 import { withOperatorTransport } from './transport';
 import { parseUmea, parseSkekraft } from './platforms/published-json';
 import { operatorWithEnabledUtilities } from './operators';
+import { parseSvoa, SvoaPage } from './platforms/svoa';
+export { parseSvoa, waterNoticeHeading } from './platforms/svoa';
 
 export * from './types';
 export * from './time';
@@ -77,6 +79,27 @@ const json = (s: string): unknown => {
   }
 };
 const chunks = <T>(xs: T[], n: number) => Array.from({ length: Math.ceil(xs.length / n) }, (_, i) => xs.slice(i * n, i * n + n));
+
+async function fetchSvoa(op: Extract<UtilityOperator, { platform: 'svoa' }>, ctx: AdapterContext): Promise<AdapterResult<OutageFetchResult>> {
+  const rows: unknown[] = [];
+  let total: number | null = null;
+  let fetchedAt = ctx.now().toISOString();
+  do {
+    const url = `${op.dataUrl}?skip=${rows.length}&query=&useCurrentLocation=false&latitude=undefined&longitude=undefined`;
+    const r = await fetchText(url, ctx, `${op.id} page`, { accept: 'application/json' });
+    if (!r.ok) return r;
+    fetchedAt = r.fetchedAt;
+    const p = SvoaPage.safeParse(json(r.data));
+    if (!p.success || p.data.totalCount > 2000 || total !== null && total !== p.data.totalCount || !p.data.disturbances.length && rows.length < p.data.totalCount) {
+      return { ok: false, error: 'invalid_payload', detail: `${op.id}: inconsistent pagination` };
+    }
+    total = p.data.totalCount;
+    rows.push(...p.data.disturbances);
+  } while (rows.length < total);
+  const ids = rows.map((r) => (r as { pageId?: unknown })?.pageId);
+  if (rows.length !== total || new Set(ids).size !== rows.length || ids.some((id) => typeof id !== 'string')) return { ok: false, error: 'invalid_payload', detail: `${op.id}: incomplete or repeated pages` };
+  return { ok: true, data: parseSvoa(rows, op), fetchedAt };
+}
 
 /** Postal-area shapes rarely change: cached per process (id → shape). */
 const ellevioShapes = new Map<number, unknown>();
@@ -246,6 +269,7 @@ export async function fetchOperatorOutages(op: UtilityOperator, ctx: AdapterCont
     const parsed = op.platform === 'umea' ? parseUmea(json(r.data), op, now) : parseSkekraft(json(r.data), op);
     return parsed ? { ok: true, data: parsed, fetchedAt: r.fetchedAt } : { ok: false, error: 'invalid_payload', detail: `${op.id}: unexpected published outage payload` };
   }
+  if (op.platform === 'svoa') return fetchSvoa(op, ctx);
   if (op.platform === 'ellevio') return fetchEllevio(op, ctx);
   if (op.platform === 'tekniskaverken') return fetchTekniskaVerken(op, ctx);
   if (op.platform === 'trimble') return fetchTrimble(op, ctx);

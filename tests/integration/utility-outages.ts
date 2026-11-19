@@ -332,6 +332,46 @@ export function registerUtilityOutageTests(pool: pg.Pool) {
       assert.deepEqual(r.rows[0], { street: 'Sveavägen', housenumber: '42B' });
     });
 
+    it('water SMS gates, exact matches, boiling dedup and explicit cancellation work in the shared pipeline', async () => {
+      const f = await fixture();
+      const env = loadServerEnv({ NODE_ENV: 'test', SOURCE_UTILITY_OUTAGES_ENABLED: 'true', SOURCE_UTILITY_WATER_ENABLED: 'true', SMS_WATER_OUTAGE_ENABLED: 'true', SMS_MAX_MESSAGES_PER_MINUTE: '100' });
+      const app = await buildApp(env, { db: pool, logger: false, verifyAuth: async () => ({ userId: 'user_waterTest', sessionId: 's', clerkOrgId: f.clerkOrg, orgSlug: 't', orgRole: 'org:admin' }) });
+      const rec = await app.inject({ method: 'POST', url: '/v1/notifications/recipients', headers: { authorization: 'Bearer x' }, payload: { phone: '0701234567', consent: true } });
+      assert.equal(rec.statusCode, 201);
+      const config: NotificationRuleInput = {
+        name: 'Vatten', enabled: true, scope: 'all_current', propertyIds: [], recipientIds: [rec.json().recipient.id],
+        condition: { category: 'water_outage', utilities: ['water'], unplanned: true, planned: true, plannedReminder: false, restored: true, changes: false },
+        cooldownMinutes: 5, quietHours: { enabled: false, start: '22:00', end: '07:00', emergencyException: false }, groupProperties: true, dailyPropertyLimit: 10, dailyRecipientLimit: 10,
+      };
+      const rule = await app.inject({ method: 'POST', url: '/v1/notifications/rules', headers: { authorization: 'Bearer x' }, payload: config as unknown as Record<string, unknown> });
+      assert.equal(rule.statusCode, 201, rule.body);
+      const second = await app.inject({ method: 'POST', url: '/v1/notifications/rules', headers: { authorization: 'Bearer x' }, payload: { ...config, name: 'Vatten extra' } as unknown as Record<string, unknown> });
+      assert.equal(second.statusCode, 201, second.body);
+      const water = outage({ utility: 'water', noticeKind: 'boil_water', reportedAt: new Date().toISOString(), kind: 'unknown', state: 'ongoing' });
+      await storeUtilityOutages(pool, OP.id, [water], true, new Date(), { utilities: ['water'], reportsRestored: true });
+      await rematchUtilityOutages(pool);
+      const count = async () => (await pool.query('SELECT message, parts, property_names, status FROM notification_outbox WHERE organization_id=$1 ORDER BY created_at', [f.org])).rows;
+      await new NotificationService(pool, loadServerEnv({ NODE_ENV: 'test' })).evaluateOrganization(f.org);
+      assert.equal((await count()).length, 0, 'default-off SMS category never queues');
+      const service = new NotificationService(pool, env);
+      await service.evaluateOrganization(f.org);
+      let messages = await count();
+      assert.equal(messages.length, 1);
+      assert.deepEqual(messages[0].property_names, ['Inuti']);
+      assert.equal(messages[0].parts, 1);
+      assert.match(messages[0].message, /Kokningsrekommendation/);
+      await storeUtilityOutages(pool, OP.id, [{ ...water, affectedCustomers: 99 }], true);
+      await rematchUtilityOutages(pool); await service.evaluateOrganization(f.org);
+      assert.equal((await count()).length, 1);
+      await storeUtilityOutages(pool, OP.id, [{ ...water, state: 'restored' }], true);
+      await rematchUtilityOutages(pool); await service.evaluateOrganization(f.org);
+      messages = await count();
+      assert.equal(messages.length, 2);
+      assert.match(messages[1].message, /upphört enligt leverantör/);
+      assert.equal(messages[1].parts, 1);
+      await app.close();
+    });
+
     it('anti-spam SMS: only the property inside the polygon triggers; restored goes only to those notified', async () => {
       const f = await fixture();
       const env = loadServerEnv({ NODE_ENV: 'test', SMS_ESTIMATED_PRICE_PER_PART_SEK: '1', SMS_MAX_MESSAGES_PER_MINUTE: '100' });

@@ -1,0 +1,501 @@
+{
+  "disturbances": [
+    {
+      "pageId": "22165",
+      "type": "recyclingstation",
+      "title": "Återvinningsstation Nybrogatan 57 A är tillfälligt stängd",
+      "linkToPage": "/har-lamnar-du-avfall/hitta-atervinning/atervinningsstation/adress/nybrogatan-57-a/",
+      "event": "Ibland stängs återvinningsstationer tillfälligt för byggarbeten eller evenemang. Stationen återvänder när arbetet är klart.",
+      "status": "isongoing",
+      "startDate": "2026-11-10 00:00",
+      "expectedEndDate": null,
+      "expectedEndDateText": null,
+      "location": "Nybrogatan 57 A, 11440 Stockholm",
+      "lastUpdated": "2026-11-17T14:13:50",
+      "area": "Norra innerstaden",
+      "relatedProjectPages": null,
+      "relatedCollectionPointPages": null,
+      "affectedAddresses": null,
+      "affectedAreaCoordinates": null,
+      "singleCoordinates": {
+        "latitude": "59,3381517394973",
+        "longitude": "18,[telefon borttagen]",
+        "type": null
+      },
+      "distanceKm": null,
+      "editorHeading": null,
+      "editorText": null,
+      "contact": null,
+      "entrepreneur": null,
+      "whatDescription": null,
+      "purpose": null,
+      "pegStation": null,
+      "moreInfo": null,
+      "cwNumber": null,
+      "typeText": null,
+      "statusText": null,
+      "distanceFormatted": ""
+    },
+    {
+      "pageId": "22702",
+      "type": "recyclingstation",
+      "title": "Återvinningsstation Ragvaldsgatan 9 är tillfälligt stängd",
+      "linkToPage": "/har-lamnar-du-avfall/hitta-atervinning/atervinningsstation/adress/ragvaldsgatan-9/",
+      "event": "Ibland stängs återvinningsstationer tillfälligt för byggarbeten eller evenemang. Stationen återvänder när arbetet är klart.",
+      "status": "isongoing",
+      "startDate": "2026-05-07 00:00",
+      "expectedEndDate": null,
+      "expectedEndDateText": null,
+      "location": "Ragvaldsgatan 9, 11846 Stockholm",
+      "lastUpdated": "2026-08-05T04:56:36",
+      "area": "Södermalm",
+      "relatedProjectPages": null,
+      "relatedCollectionPointPages": null,
+      "affectedAddresses": null,
+      "affectedAreaCoordinates": null,
+      "singleCoordinates": {
+        "latitude": "59,3187467391931",
+        "longitude": "18,[telefon borttagen]",
+        "type": null
+      },
+      "distanceKm": null,
+      "editorHeading": null,
+      "editorText": null,
+      "contact": null,
+      "entrepreneur": null,
+      "whatDescription": null,
+      "purpose": null,
+      "pegStation": null,
+      "moreInfo": null,
+      "cwNumber": null,
+      "typeText": null,
+      "statusText": null,
+      "distanceFormatted": ""
+    },
+    {
+      "pageId": "22751",
+      "type": "recyclingstation",
+      "title": "Återvinningsstation Mälartorget 17 är stängd",
+      "linkToPage": "/har-lamnar-du-avfall/hitta-atervinning/atervinningsstation/adress/malartorget-17/",
+      "event": "Ibland tas återvinningsstationer bort pga byggarbete eller markägarens önskemål. Vi strävar alltid efter att ersätta stationerna i närheten.",
+      "status": "isongoing",
+      "startDate": null,
+      "expectedEndDate": null,
+      "expectedEndDateText": null,
+      "location": "Mälartorget 17, 11127 Stockholm",
+      "lastUpdated": "2026-10-27T15:12:05",
+      "area": "Södermalm",
+      "relatedProjectPages": null,
+      "relatedCollectionPointPages": null,
+      "affectedAddresses": null,
+      "affectedAreaCoordinates": null,
+      "singleCoordinates": {
+        "latitude": "59,3229257930503",
+        "longitude": "18,[telefon borttagen]",
+        "type": null
+      },
+      "distanceKm": null,
+      "editorHeading": null,
+      "editorText": null,
+      "contact": null,
+      "entrepreneur": null,
+      "whatDescription": null,
+      "purpose": null,
+      "pegStation": null,
+      "moreInfo": null,
+      "cwNumber": null,
+      "typeText": null,
+      "statusText": null,
+      "distanceFormatted": ""
+    },
+    {
+      "pageId": "23211",
+      "type": "recyclingstation",
+      "title": "Återvinningsstation Skrubba Allé 4 är tillfälligt stängd",
+      "linkToPage": "/har-lamnar-du-avfall/hitta-atervinning/atervinningsstation/adress/skrubba-alle-4/",
+      "event": "Ibland stängs återvinningsstationer tillfälligt för byggarbeten eller evenemang. Stationen återvänder när arbetet är klart.",
+      "status": "isongoing",
+      "startDate": "2026-09-29 00:00",
+      "expectedEndDate": null,
+      "expectedEndDateText": null,
+      "location": "Skrubba Allé 4, 13559 TYRESÖ",
+      "lastUpdated": "2026-09-29T10:58:30",
+      "area": "Skarpnäck",
+      "relatedProjectPages": null,
+      "relatedCollectionPointPages": null,
+      "affectedAddresses": null,
+      "affectedAreaCoordinates": null,
+      "singleCoordinates": {
+        "latitude": "59,2417342893126",
+        "longitude": "18,184530579093",
+        "type": null
+      },
+      "distanceKm": null,
+      "editorHeading": null,
+      "editorText": null,
+      "contact": null,
+      "entrepreneur": null,
+      "whatDescription": null,
+      "purpose": null,
+      "pegStation": null,
+      "moreInfo": null,
+      "cwNumber": null,
+      "typeText": null,
+      "statusText": null,
+      "distanceFormatted": ""
+    },
+    {
+      "pageId": "56258",
+      "type": "recycling",
+      "title": "Returrundan inställd på Södermalm - Bohusgatan 28, vid Skanstullshallen",
+      "linkToPage": "/driftinfo/returrundan-installd-pa-sodermalm---bohusgatan-28-vid-skanstullshallen/",
+      "event": "Lördagen den 28 november klockan 09.00-10.00 är Returrundan inställd på Södermalm - Bohusgatan 28, vid Skanstullshallen, p.g.a. utrymmesbrist på platsen.",
+      "status": "isupcoming",
+      "startDate": "2026-11-28 09:00",
+      "expectedEndDate": "2026-11-28 10:00",
+      "expectedEndDateText": null,
+      "location": "Bohusgatan 28",
+      "lastUpdated": "2026-10-29 14:39",
+      "area": null,
+      "relatedProjectPages": [],
+      "relatedCollectionPointPages": [],
+      "affectedAddresses": null,
+      "affectedAreaCoordinates": null,
+      "singleCoordinates": {
+        "latitude": "59.306745",
+        "longitude": "18.083444",
+        "type": null
+      },
+      "distanceKm": null,
+      "editorHeading": "Hitta en annan plats för återvinning",
+      "editorText": null,
+      "contact": null,
+      "entrepreneur": null,
+      "whatDescription": null,
+      "purpose": null,
+      "pegStation": null,
+      "moreInfo": null,
+      "cwNumber": null,
+      "typeText": "Återvinning",
+      "statusText": "Kommande",
+      "distanceFormatted": ""
+    },
+    {
+      "pageId": "56341",
+      "type": "water",
+      "title": "Vattnet avstängt, Vattenavstängning i Slakthusområdet tors. 19/11",
+      "linkToPage": "/driftinfo/vattnet-avstangt-vattenavstangning-i-slakthusomradet-tors.-1911/",
+      "event": "På grund av underhåll av vattenledningarna måste vi stänga av vattnet i ett antal fastigheter i Vattenavstängning i Slakthusområdet tors. 19/11.",
+      "status": "iscompleted",
+      "startDate": "2026-11-19 01:00",
+      "expectedEndDate": "2026-11-19 05:00",
+      "expectedEndDateText": "Mellan kl. 01:00-05:00",
+      "location": "Vattenavstängning i Slakthusområdet tors. 19/11",
+      "lastUpdated": "2026-11-19 05:00",
+      "area": null,
+      "relatedProjectPages": [],
+      "relatedCollectionPointPages": [],
+      "affectedAddresses": [
+        {
+          "areaName": "Johanneshov",
+          "streetAddress": "Arenaslingan",
+          "streetNumber": "4, 6, 8, 10, 12, 14, 16, 18, 20, 23"
+        },
+        {
+          "areaName": "Johanneshov",
+          "streetAddress": "Arenavägen",
+          "streetNumber": "69, 71, 73, 75"
+        },
+        {
+          "areaName": "Johanneshov",
+          "streetAddress": "Charkmästargatan",
+          "streetNumber": "4, 5, 6, 8"
+        },
+        {
+          "areaName": "Johanneshov",
+          "streetAddress": "Hallvägen",
+          "streetNumber": "33, 35, 37"
+        },
+        {
+          "areaName": "Johanneshov",
+          "streetAddress": "Rökerigatan",
+          "streetNumber": "18, 20, 22, 23, 24, 25, 27"
+        },
+        {
+          "areaName": "Johanneshov",
+          "streetAddress": "Slakthusgatan",
+          "streetNumber": "2, 6, 8, 9, 11, 13, 15, 20, 22, 24"
+        },
+        {
+          "areaName": "Johanneshov",
+          "streetAddress": "Styckmästargatan",
+          "streetNumber": "4, 6"
+        }
+      ],
+      "affectedAreaCoordinates": [
+        {
+          "id": "1",
+          "latitude": "59.292111",
+          "longitude": "18.083173",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.292373",
+          "longitude": "18.085402",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.289609",
+          "longitude": "18.086789",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.289434",
+          "longitude": "18.082889",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.289893",
+          "longitude": "18.082172",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.28969",
+          "longitude": "18.081513",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.290782",
+          "longitude": "18.079773",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.291897",
+          "longitude": "18.078329",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.292065",
+          "longitude": "18.078988",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.291548",
+          "longitude": "18.079978",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.291548",
+          "longitude": "18.080944",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.290799",
+          "longitude": "18.08232",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.291484",
+          "longitude": "18.082605",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.29174",
+          "longitude": "18.082479",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.292111",
+          "longitude": "18.083173",
+          "type": "Område"
+        }
+      ],
+      "singleCoordinates": {
+        "latitude": "59.2911389333333",
+        "longitude": "18.0820351333333",
+        "type": "område"
+      },
+      "distanceKm": null,
+      "editorHeading": "Är vattnet rostfärgat?",
+      "editorText": "<p>Efter att vattnet varit avst&auml;ngt kan det se missf&auml;rgat ut och inneh&aring;lla luftbubblor. Det &auml;r ofarligt. Fler hus &auml;n det som haft vattnet avst&auml;ngt kan f&aring; missf&auml;rgningar.&nbsp;</p>\n<ul>\n<li>Om du spolar i kranen en stund kommer vattnet bli klart igen. Det kan ta flera minuter.</li>\n<li>V&auml;nta med att tv&auml;tta kl&auml;der tills vattnet &auml;r klart igen. Rosten kan missf&auml;rga kl&auml;der.</li>\n</ul>\n<h2>Driftinformation via SMS &ndash; registrera ditt nummer</h2>\n<p class=\"mb-1\">Vi anv&auml;nder SMS f&ouml;r att meddela driftinformation, till exempel en vattenavst&auml;ngning eller om det skulle uppst&aring; en kvalitetsst&ouml;rning p&aring; dricksvattnet.</p>\n\r\n<div class=\"c-linklist \">\r\n\r\n\r\n    <ul>\r\n                    <li>\r\n                        <div class=\"c-linklist__content\">\r\n                            <a href=\"/om-oss/kontakta-oss/sms-avisering-vid-driftstorningar/\" target=\"_blank\" title=\"S&#229;h&#228;r registrerar du ditt telefonnummer i v&#229;r sms-tj&#228;nst\">\r\n                                S&#229;h&#228;r registrerar du ditt telefonnummer i v&#229;r sms-tj&#228;nst\r\n                                <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 12.5 24\" fill=\"currentColor\" width=\"20\" height=\"20\" aria-hidden=\"true\">\r\n                                    <path d=\"M.9 24c-.2 0-.4-.1-.6-.3-.3-.3-.3-.9 0-1.2L10.8 12 .3 1.5C0 1.2 0 .6.3.3s.9-.3 1.2 0L12 10.8c.1.1.3.3.4.5s.1.4.1.7c0 .2 0 .5-.1.7s-.2.4-.4.6L1.5 23.7c-.2.2-.4.3-.6.3z\" />\r\n                                </svg>\r\n                            </a>\r\n                        </div>\r\n                    </li>\r\n\r\n</ul>\r\n</div>\r\n\n<p>&nbsp;</p>\n<h2>Att t&auml;nka p&aring; inf&ouml;r en vattenavst&auml;ngning</h2>\n<ul>\n<li>Om m&ouml;jligt: tappa upp vatten i f&ouml;rv&auml;g s&aring; du har tillg&aring;ng till dricksvatten och spolning av toaletten.</li>\n<li>H&aring;ll alla kranar st&auml;ngda.</li>\n<li>Undvik att k&ouml;ra tv&auml;tt- och diskmaskinen.</li>\n</ul>",
+      "contact": null,
+      "entrepreneur": null,
+      "whatDescription": null,
+      "purpose": null,
+      "pegStation": "Finns ej",
+      "moreInfo": null,
+      "cwNumber": "123838",
+      "typeText": "Vattenavstängning",
+      "statusText": "Avslutad",
+      "distanceFormatted": ""
+    },
+    {
+      "pageId": "56340",
+      "type": "water",
+      "title": "Vattnet avstängt, Snättringe",
+      "linkToPage": "/driftinfo/vattnet-avstangt-snattringe2/",
+      "event": "På grund av en oförutsedd vattenläcka är vattnet avstängt i ett antal fastigheter i Snättringe.",
+      "status": "iscompleted",
+      "startDate": "2026-11-18 09:00",
+      "expectedEndDate": "2026-11-18 20:00",
+      "expectedEndDateText": "Under dagen",
+      "location": "Snättringe",
+      "lastUpdated": "2026-11-18 20:00",
+      "area": null,
+      "relatedProjectPages": [],
+      "relatedCollectionPointPages": [],
+      "affectedAddresses": [
+        {
+          "areaName": "Huddinge",
+          "streetAddress": "Köpmansvägen",
+          "streetNumber": "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 64"
+        },
+        {
+          "areaName": "Huddinge",
+          "streetAddress": "Myrmarksvägen",
+          "streetNumber": "5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 45, 47, 49, 51, 53, 55, 57, 59, 61, 63, 65, 67, 69, 71, 73, 75, 77, 79, 81"
+        }
+      ],
+      "affectedAreaCoordinates": [
+        {
+          "id": "1",
+          "latitude": "59.254029",
+          "longitude": "17.978018",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.254035",
+          "longitude": "17.979293",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.253304",
+          "longitude": "17.981604",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.252287",
+          "longitude": "17.98208",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.251861",
+          "longitude": "17.982175",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.251587",
+          "longitude": "17.981151",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.251234",
+          "longitude": "17.981425",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.250984",
+          "longitude": "17.980794",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.252598",
+          "longitude": "17.97828",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.253116",
+          "longitude": "17.977839",
+          "type": "Område"
+        },
+        {
+          "id": "1",
+          "latitude": "59.254029",
+          "longitude": "17.978018",
+          "type": "Område"
+        }
+      ],
+      "singleCoordinates": {
+        "latitude": "59.2526421818182",
+        "longitude": "17.9800615454545",
+        "type": "område"
+      },
+      "distanceKm": null,
+      "editorHeading": "Är vattnet rostfärgat?",
+      "editorText": "<p>Efter att vattnet varit avst&auml;ngt kan det se missf&auml;rgat ut och inneh&aring;lla luftbubblor. Det &auml;r ofarligt. Fler hus &auml;n det som haft vattnet avst&auml;ngt kan f&aring; missf&auml;rgningar.&nbsp;</p>\n<ul>\n<li>Om du spolar i kranen en stund kommer vattnet bli klart igen. Det kan ta flera minuter.</li>\n<li>V&auml;nta med att tv&auml;tta kl&auml;der tills vattnet &auml;r klart igen. Rosten kan missf&auml;rga kl&auml;der.</li>\n</ul>\n<h2>Driftinformation via SMS &ndash; registrera ditt nummer</h2>\n<p class=\"mb-1\">Vi anv&auml;nder SMS f&ouml;r att meddela driftinformation, till exempel en vattenavst&auml;ngning eller om det skulle uppst&aring; en kvalitetsst&ouml;rning p&aring; dricksvattnet.</p>\n\r\n<div class=\"c-linklist \">\r\n\r\n\r\n    <ul>\r\n                    <li>\r\n                        <div class=\"c-linklist__content\">\r\n                            <a href=\"/om-oss/kontakta-oss/sms-avisering-vid-driftstorningar/\" target=\"_blank\" title=\"S&#229;h&#228;r registrerar du ditt telefonnummer i v&#229;r sms-tj&#228;nst\">\r\n                                S&#229;h&#228;r registrerar du ditt telefonnummer i v&#229;r sms-tj&#228;nst\r\n                                <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 12.5 24\" fill=\"currentColor\" width=\"20\" height=\"20\" aria-hidden=\"true\">\r\n                                    <path d=\"M.9 24c-.2 0-.4-.1-.6-.3-.3-.3-.3-.9 0-1.2L10.8 12 .3 1.5C0 1.2 0 .6.3.3s.9-.3 1.2 0L12 10.8c.1.1.3.3.4.5s.1.4.1.7c0 .2 0 .5-.1.7s-.2.4-.4.6L1.5 23.7c-.2.2-.4.3-.6.3z\" />\r\n                                </svg>\r\n                            </a>\r\n                        </div>\r\n                    </li>\r\n\r\n</ul>\r\n</div>\r\n\n<p>&nbsp;</p>\n<h2>Att t&auml;nka p&aring; inf&ouml;r en vattenavst&auml;ngning</h2>\n<ul>\n<li>Om m&ouml;jligt: tappa upp vatten i f&ouml;rv&auml;g s&aring; du har tillg&aring;ng till dricksvatten och spolning av toaletten.</li>\n<li>H&aring;ll alla kranar st&auml;ngda.</li>\n<li>Undvik att k&ouml;ra tv&auml;tt- och diskmaskinen.</li>\n</ul>",
+      "contact": null,
+      "entrepreneur": null,
+      "whatDescription": null,
+      "purpose": null,
+      "pegStation": "Myrmarksvägen 83",
+      "moreInfo": "Vi gör vårt bästa för att åtgärda felet och släppa på vattnet igen så snart som möjligt.",
+      "cwNumber": "124318",
+      "typeText": "Vattenavstängning",
+      "statusText": "Avslutad",
+      "distanceFormatted": ""
+    },
+    {
+      "pageId": "56312",
+      "type": "other",
+      "title": "Arbete Årstaskogen",
+      "linkToPage": "/driftinfo/arbete-arstaskogen/",
+      "event": "Vi kommer att förbättra säkerheten runt anläggningar i Årstaskogen. Det kan förekomma transporter på parkvägar och bullrande arbeten. För frågor kontakta Joacim Kraft [e-post borttagen]",
+      "status": "iscompleted",
+      "startDate": "2026-11-03 10:30",
+      "expectedEndDate": "2026-11-18 08:00",
+      "expectedEndDateText": null,
+      "location": null,
+      "lastUpdated": "2026-11-18 08:00",
+      "area": null,
+      "relatedProjectPages": [],
+      "relatedCollectionPointPages": [],
+      "affectedAddresses": null,
+      "affectedAreaCoordinates": null,
+      "singleCoordinates": {
+        "latitude": "59.3016782",
+        "longitude": "18.0644942",
+        "type": "område"
+      },
+      "distanceKm": null,
+      "editorHeading": null,
+      "editorText": null,
+      "contact": null,
+      "entrepreneur": null,
+      "whatDescription": null,
+      "purpose": null,
+      "pegStation": null,
+      "moreInfo": null,
+      "cwNumber": null,
+      "typeText": "Annat",
+      "statusText": "Avslutad",
+      "distanceFormatted": ""
+    }
+  ],
+  "totalCount": 18,
+  "isOngoing": 15,
+  "isUpcoming": 1,
+  "isCompleted": 3
+}

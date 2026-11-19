@@ -1,0 +1,120 @@
+{
+  "outages": [
+    {
+      "outageId": "65d05446-0564-4e96-cc65-08df3eee4bfe",
+      "incident": "WaterPlannedOutage",
+      "utility": "Water",
+      "status": "Scheduled",
+      "planned": true,
+      "plannedStartTime": "2026-11-19T09:00:00.000Z",
+      "registeredTime": "2026-11-17T14:45:55.590Z",
+      "estimatedCompletionTime": "2026-11-19T12:00:00.000Z",
+      "cause": "PipeMaintenance",
+      "affectedSites": 53,
+      "affectedCustomers": 53,
+      "affectedConnectionPoints": 56,
+      "internalStatusUpdates": null,
+      "externalStatusUpdates": [],
+      "districts": [
+        {
+          "county": "Ostergotland",
+          "city": "Linköping",
+          "name": "Brokind",
+          "affectedSize": 53
+        }
+      ],
+      "mainAreaAffected": "Brokind",
+      "plannedTimeline": {
+        "outageRegistered": {
+          "registeredTime": "2026-11-17T15:45:55.5900525+01:00",
+          "estimatedCompletionTime": "2026-11-19T13:00:00+01:00",
+          "plannedStartTime": "2026-11-19T10:00:00+01:00",
+          "cause": "PipeMaintenance",
+          "eventCreatedTime": "2026-11-17T15:45:55.5900525+01:00"
+        }
+      },
+      "instructions": {
+        "textInstructions": [
+          "Du är utan vatten under avbrottet."
+        ]
+      },
+      "subOutages": []
+    },
+    {
+      "outageId": "27cc1bd0-92a1-4e79-5ba1-08df4543f7df",
+      "incident": "WaterLeak",
+      "utility": "Water",
+      "status": "Active",
+      "planned": false,
+      "registeredTime": "2026-11-19T07:00:00.000Z",
+      "startedTime": "2026-11-19T07:00:00.000Z",
+      "estimatedCompletionTime": "2026-11-19T15:00:00.000Z",
+      "cause": "PipeLeak",
+      "affectedSites": 8,
+      "affectedCustomers": 1,
+      "affectedConnectionPoints": 8,
+      "internalStatusUpdates": null,
+      "externalStatusUpdates": [
+        {
+          "key": "outageRegistered",
+          "done": true,
+          "descriptionKey": "OUTAGEREGISTERED",
+          "timeStamp": "2026-11-19T07:00:00.000Z"
+        },
+        {
+          "key": "investigationStarted",
+          "done": true,
+          "descriptionKey": "INVESTIGATIONSTARTED",
+          "timeStamp": "2026-11-19T07:00:00.000Z"
+        },
+        {
+          "key": "causeFound",
+          "done": true,
+          "descriptionKey": "CAUSEFOUND.CAUSE",
+          "timeStamp": "2026-11-19T06:16:28.989Z"
+        },
+        {
+          "key": "completionTimeEstimated",
+          "done": true,
+          "descriptionKey": "COMPLETIONTIMEESTIMATED",
+          "timeStamp": "2026-11-19T06:16:28.989Z"
+        },
+        {
+          "key": "outageCompleted",
+          "done": false,
+          "descriptionKey": "OUTAGECOMPLETED"
+        }
+      ],
+      "districts": [
+        {
+          "county": "Ostergotland",
+          "city": "Linköping",
+          "name": "Vimanshäll",
+          "affectedSize": 8
+        }
+      ],
+      "mainAreaAffected": "Vimanshäll",
+      "unplannedTimeline": {
+        "outageRegistered": {
+          "registeredTime": "2026-11-19T08:00:00+01:00",
+          "cause": "PipeLeak",
+          "eventCreatedTime": "2026-11-19T07:16:28.9896224+01:00"
+        },
+        "causeFound": {
+          "cause": "PipeLeak",
+          "eventCreatedTime": "2026-11-19T07:16:28.9896224+01:00"
+        },
+        "completionTimeEstimated": {
+          "estimatedCompletionTime": "2026-11-19T16:00:00+01:00",
+          "eventCreatedTime": "2026-11-19T07:16:28.9896224+01:00"
+        }
+      },
+      "instructions": {
+        "textInstructions": [
+          "Du är utan vatten under avbrottet."
+        ]
+      },
+      "subOutages": []
+    }
+  ]
+}

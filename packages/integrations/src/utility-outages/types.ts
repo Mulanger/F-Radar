@@ -54,7 +54,7 @@ export interface ConcessionArea {
   geometry: GeoJsonGeometry;
 }
 
-export type UtilityOperatorPlatform = 'vattenfall' | 'digpro' | 'goteborg_energi' | 'ellevio' | 'tekniskaverken' | 'trimble' | 'eon' | 'servicealert' | 'umea' | 'skekraft';
+export type UtilityOperatorPlatform = 'vattenfall' | 'digpro' | 'goteborg_energi' | 'ellevio' | 'tekniskaverken' | 'trimble' | 'eon' | 'servicealert' | 'umea' | 'skekraft' | 'svoa';
 
 interface OperatorBase {
   /** Observed connection/blocking failures from France; optional Swedish CONNECT egress. */
@@ -80,6 +80,7 @@ export type UtilityOperator =
   | (OperatorBase & { platform: 'digpro'; host: string; cust: string; concessionUrl: string | null; outageUrls?: Partial<Record<UtilityKind, string>> })
   | (OperatorBase & { platform: 'umea'; dataUrl: string })
   | (OperatorBase & { platform: 'skekraft'; dataUrl: string })
+  | (OperatorBase & { platform: 'svoa'; dataUrl: string })
   | (OperatorBase & { platform: 'goteborg_energi'; apiBase: string; utilityTypeIds: Partial<Record<UtilityKind, string>> })
   | (OperatorBase & { platform: 'ellevio'; loadUrl: string; version: string })
   | (OperatorBase & { platform: 'tekniskaverken'; apiBase: string; brand: string })

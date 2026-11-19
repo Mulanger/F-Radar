@@ -3,6 +3,7 @@ import type { OutageKind, UtilityKind } from '@fastighetsradar/domain';
 import { iso } from '../../http';
 import { circleRing, closeRing, inSweden, polygonsToGeoJson, type LonLat } from '../geometry';
 import type { NormalizedUtilityOutage, OutageFetchResult, UtilityOperator } from '../types';
+import { waterNoticeHeading, boilingEndedHeading } from './water-notices';
 
 /**
  * ServiceAlert (sms-service.dk) "driftstatus" map – POST https://se.sms-service.dk/api/WebMessage/
@@ -126,14 +127,18 @@ export function parseServiceAlert(raw: unknown, op: UtilityOperator, utilities: 
       }
       const title = m.data.title?.trim() || null;
       const body = htmlToText(m.data.text);
+      const notice = utility === 'water' ? waterNoticeHeading(title ?? '') : null;
+      if (notice === 'water_restriction') { ignored++; continue; }
+      const boiling = notice === 'boil_water';
+      const boilingEnded = boiling && boilingEndedHeading(title ?? '');
       outages.push({
-        noticeKind: utility === 'water' && prof.kind === 'unknown' ? 'information' : 'outage',
+        noticeKind: notice ?? (utility === 'water' && prof.kind === 'unknown' ? 'information' : 'outage'),
         operatorId: op.id,
         utility,
         externalId: `${op.id}:${m.data.id}`,
         kind: prof.kind,
         // An "acute" profile message is current by nature; otherwise the start is unknown (free text).
-        state: prof.kind === 'unplanned' ? 'ongoing' : 'unknown',
+        state: boilingEnded ? 'restored' : boiling || prof.kind === 'unplanned' ? 'ongoing' : 'unknown',
         affectedCustomers: null,
         areaCustomerTotal: null,
         reportedAt: iso(m.data.dateDelayUtc),

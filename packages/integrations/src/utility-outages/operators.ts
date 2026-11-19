@@ -24,6 +24,12 @@ const digpro = (name: string, host: string, cust: string, concession: boolean, e
 
 export const UTILITY_OPERATORS: UtilityOperator[] = [
   {
+    id: 'svoa', name: 'Stockholm Vatten och Avfall', platform: 'svoa', utilities: ['water'],
+    dataUrl: 'https://www.stockholmvattenochavfall.se/driftinfo/Search', mapUrl: 'https://www.stockholmvattenochavfall.se/driftinfo',
+    eiNames: [], enableFlag: 'SOURCE_UTILITY_SVOA_ENABLED', utilityFlags: { water: 'SOURCE_UTILITY_WATER_ENABLED' },
+    reportsRestored: true, pollSeconds: 900,
+  },
+  {
     id: 'stockholm_exergi', name: 'Stockholm Exergi', platform: 'digpro',
     host: 'avbrott.stockholmexergi.com', cust: 'fov', concessionUrl: null,
     utilities: ['district_heating'], eiNames: [], reportsRestored: true,
@@ -132,7 +138,8 @@ export const UTILITY_OPERATORS: UtilityOperator[] = [
     id: 'tekniskaverken',
     name: 'Tekniska verken Linköping Nät',
     platform: 'tekniskaverken',
-    utilities: ['electricity', 'district_heating', 'district_cooling'],
+    utilities: ['electricity', 'district_heating', 'district_cooling', 'water'],
+    utilityFlags: { water: 'SOURCE_UTILITY_WATER_ENABLED' },
     apiBase: 'https://avbrott.tekniskaverken.se/api/service-information',
     brand: 'tekniskaverken',
     mapUrl: 'https://avbrott.tekniskaverken.se/?tab=map',

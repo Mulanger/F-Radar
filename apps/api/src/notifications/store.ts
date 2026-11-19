@@ -181,6 +181,9 @@ export async function saveRule(
       vma: "krisinformation",
       traffic: "trafikverket",
       power_outage: "utility_outages",
+      water_outage: "utility_outages",
+      heating_outage: "utility_outages",
+      gas_outage: "utility_outages",
     }[input.condition.category];
     let ruleId = id;
     if (ruleId) {

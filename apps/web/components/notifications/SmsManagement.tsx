@@ -8,7 +8,7 @@ import type {
   NotificationRule,
   NotificationRuleInput,
 } from "@fastighetsradar/domain";
-import { NOTIFICATION_STATUS_LABELS, TRAFFIC_RADIUS } from "@fastighetsradar/domain";
+import { isOutageCondition, NOTIFICATION_STATUS_LABELS, TRAFFIC_RADIUS } from "@fastighetsradar/domain";
 import { C, card, cardSub, cardTitle } from "@/lib/design/tokens";
 import { Toggle } from "../ui/Toggle";
 
@@ -75,6 +75,8 @@ const conditionDefault = (
         }
       : category === "vma"
         ? { category, updates: true, cancellations: false }
+        : category === 'water_outage' || category === 'heating_outage' || category === 'gas_outage'
+          ? { category, utilities: category === 'water_outage' ? ['water'] : category === 'gas_outage' ? ['gas'] : ['district_heating'], unplanned: true, planned: false, plannedReminder: false, restored: false, changes: false }
         : category === "power_outage"
           ? {
               category,
@@ -907,7 +909,7 @@ export function SmsManagement({
                   </span>
                 </label>
               )}
-              {draft.condition.category === "power_outage" && (() => {
+              {isOutageCondition(draft.condition) && (() => {
                 const pc = draft.condition;
                 const opts: Array<[keyof typeof pc & ("unplanned" | "planned" | "plannedReminder" | "restored" | "changes"), string]> = [
                   ["unplanned", "Oplanerat avbrott (direkt)"],
@@ -916,11 +918,11 @@ export function SmsManagement({
                   ["restored", "När leveransen är tillbaka (bara efter ett tidigare SMS)"],
                   ["changes", "Ändrad tid eller inställt planerat avbrott (bara efter ett tidigare SMS)"],
                 ];
-                const utilityOpts = [
+                const utilityOpts = (pc.category === 'water_outage' ? [['water', 'Vatten och avlopp']] : pc.category === 'gas_outage' ? [['gas', 'Gas']] : pc.category === 'heating_outage' ? [['district_heating', 'Fjärrvärme'], ['district_cooling', 'Fjärrkyla']] : [
                   ["electricity", "El"],
                   ["district_heating", "Fjärrvärme"],
                   ["district_cooling", "Fjärrkyla"],
-                ] as const;
+                ]) as Array<[string, string]>;
                 return (
                   <>
                     <div style={{ ...row, fontSize: 13, gap: 16 }}>
@@ -928,7 +930,7 @@ export function SmsManagement({
                         <label key={u} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <input
                             type="checkbox"
-                            checked={pc.utilities.includes(u)}
+                            checked={(pc.utilities as string[]).includes(u)}
                             onChange={(e) => {
                               const next = e.target.checked ? [...new Set([...pc.utilities, u])] : pc.utilities.filter((x) => x !== u);
                               if (next.length) updateCondition({ utilities: next } as Partial<typeof pc>);
@@ -960,7 +962,7 @@ export function SmsManagement({
                   </>
                 );
               })()}
-              {draft.condition.category !== "forecast" && draft.condition.category !== "power_outage" && (
+              {draft.condition.category !== "forecast" && !isOutageCondition(draft.condition) && (
                 <label style={{ ...row, fontSize: 13 }}>
                   <input
                     type="checkbox"
