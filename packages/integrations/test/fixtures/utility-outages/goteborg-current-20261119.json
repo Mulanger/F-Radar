@@ -1,0 +1,31 @@
+{
+  "status": "Ok",
+  "result": {
+    "types": [
+      {
+        "id": "36857929",
+        "name": "Gas",
+        "kml": "https://www.goteborgenergi.se/GoteborgEnergi/Outages/FilteredOutagesKml.ashx?type=36857929&t=639306752756695473&active=1",
+        "updated": "19 november 08:54",
+        "color": "purple",
+        "items": [
+          {
+            "name": "Driftstörningar",
+            "type": "Unplanned",
+            "affectedCustomers": 0,
+            "outageCount": 0
+          },
+          {
+            "name": "Planerade",
+            "type": "Planned",
+            "affectedCustomers": 0,
+            "outageCount": 0
+          }
+        ]
+      }
+    ],
+    "status": "Ok"
+  },
+  "time": 7,
+  "datestamp": "2026-11-19T08:54:35.6695473+01:00"
+}

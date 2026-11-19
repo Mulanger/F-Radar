@@ -1,0 +1,17 @@
+{
+  "status": "Ok",
+  "result": {
+    "types": [
+      {
+        "type": "Gas",
+        "id": "Gas",
+        "name": "Gas",
+        "color": "purple",
+        "items": []
+      }
+    ],
+    "status": "Ok"
+  },
+  "time": 0,
+  "datestamp": "2026-11-19T08:54:36.0912939+01:00"
+}

@@ -166,7 +166,7 @@ export type OfficialWarning = z.infer<typeof OfficialWarningSchema>;
 /* Geographic events (crisis, traffic, local notices)                  */
 /* ------------------------------------------------------------------ */
 
-export const EventCategorySchema = z.enum(['Crisis', 'Traffic', 'Water', 'Air', 'Weather', 'Info', 'Power', 'Heating']);
+export const EventCategorySchema = z.enum(['Crisis', 'Traffic', 'Water', 'Air', 'Weather', 'Info', 'Power', 'Heating', 'WaterSupply']);
 export type EventCategory = z.infer<typeof EventCategorySchema>;
 
 export const GeographicEventSchema = z.object({

@@ -134,6 +134,33 @@ export function registerUtilityOutageTests(pool: pg.Pool) {
       assert.ok(resolved.every((g) => g.resolved_at));
     });
 
+    it('water uses the same PostGIS pipeline: area recommendations red, information neutral, no inferred cancellation', async () => {
+      const f = await fixture();
+      const info = outage({ utility: 'water', noticeKind: 'information', kind: 'unknown', state: 'unknown', precision: 'area', affectedCustomers: null });
+      await storeUtilityOutages(pool, OP.id, [info], true, new Date(), { utilities: ['water'], reportsRestored: true });
+      await rematchUtilityOutages(pool);
+      assert.equal((await changesFor(info.externalId)).find((x) => x.property_id === f.inside.id)?.severity, 'info');
+      const category = (await pool.query('SELECT category FROM source_events WHERE external_id = $1', [info.externalId])).rows[0];
+      assert.equal(category.category, 'WaterSupply');
+      const boil = { ...info, noticeKind: 'boil_water' as const, kind: 'unplanned' as const, state: 'ongoing' as const };
+      await storeUtilityOutages(pool, OP.id, [boil], true, new Date(), { utilities: ['water'], reportsRestored: true });
+      await rematchUtilityOutages(pool);
+      const matches = await matchesFor(info.externalId);
+      assert.equal(matches.find((m) => m.property_id === f.inside.id)?.effective_severity, 'critical');
+      assert.equal(matches.find((m) => m.property_id === f.approx.id)?.effective_severity, 'critical');
+      assert.ok(!matches.some((m) => m.property_id === f.outside.id || m.property_id === f.adjacent.id));
+      // Turning off a utility cannot end its stored notices through the next electricity-only poll.
+      await storeUtilityOutages(pool, OP.id, [], true, new Date(), { utilities: ['electricity'] });
+      await storeUtilityOutages(pool, OP.id, [], true, new Date(), { utilities: ['electricity'] });
+      let row = (await pool.query('SELECT u.state, u.missing_polls FROM utility_outages u JOIN source_events e ON e.id=u.event_id WHERE e.external_id=$1', [info.externalId])).rows[0];
+      assert.equal(row.state, 'ongoing'); assert.equal(row.missing_polls, 0);
+      await storeUtilityOutages(pool, OP.id, [], true, new Date(), { utilities: ['water'], reportsRestored: true });
+      await storeUtilityOutages(pool, OP.id, [], true, new Date(), { utilities: ['water'], reportsRestored: true });
+      row = (await pool.query('SELECT u.state, u.restored_inferred, e.headline FROM utility_outages u JOIN source_events e ON e.id=u.event_id WHERE e.external_id=$1', [info.externalId])).rows[0];
+      assert.equal(row.state, 'withdrawn'); assert.equal(row.restored_inferred, false);
+      assert.match(row.headline, /inget besked om att den upphört/);
+    });
+
     it('precision per property: inside red, approximate orange, edge panel-only, 200 m nothing', async () => {
       const f = await fixture();
       const o = outage();

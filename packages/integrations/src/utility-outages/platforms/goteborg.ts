@@ -15,6 +15,7 @@ import type { NormalizedUtilityOutage, OutageFetchResult, UtilityOperator } from
 export const GOTEBORG_ADDRESS_AREA = { lat: 57.7089, lon: 11.9746, radiusM: 25_000 } as const;
 
 const TYPE_UTILITY: Record<string, UtilityKind> = {
+  gas: 'gas',
   fjarrvarme: 'district_heating',
   fjarrkyla: 'district_cooling',
   elnat: 'electricity',

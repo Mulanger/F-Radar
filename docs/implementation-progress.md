@@ -54,3 +54,8 @@ Kommande-listan prioriterar kommande officiella perioder före härledda rader, 
   Fulla poddsvar normaliserade med 0 skipped, nya källor avstängda via egna flaggor.
   61 filer, 481 godkända/6 överhoppade; typer/lint gröna; PostGIS 33/33.
   Övriga elnät, aktiv Umeå-el och fler Skellefteå-statusar är inte färdigverifierade.
+- Fas 2 commit `03417d8`.
+- Fas 3: gemensam water/WaterSupply och noticeKind, migration 0018, VA-profiler och avstängda
+  vatten-/gasflaggor. Kokningsklassificering/vatten-SMS följer i Fas 5. Utility-avgränsad debounce.
+  64 filer, 492 godkända/6 överhoppade; typer/lint gröna; PostGIS 34/34.
+  Koordinatlistor utan yta ger partial; ingen påhittad polygon eller falsk tomgång.

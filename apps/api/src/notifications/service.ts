@@ -430,7 +430,7 @@ export class NotificationService {
     const describe = (phase: OutageSmsPhase | "reminder", x: Row) => {
       const window = formatOutageWindow(x.planned_start?.toISOString() ?? null, x.planned_end?.toISOString() ?? null);
       const noun = utilityNoun(x.utility as UtilityKind);
-      const back = { electricity: "Strömmen", district_heating: "Fjärrvärmen", district_cooling: "Fjärrkylan", gas: "Gasleveransen" }[x.utility as UtilityKind] ?? "Leveransen";
+      const back = { electricity: "Strömmen", district_heating: "Fjärrvärmen", district_cooling: "Fjärrkylan", gas: "Gasleveransen", water: "Vattenleveransen" }[x.utility as UtilityKind] ?? "Leveransen";
       switch (phase) {
         case "start": {
           const since = clock(x.actual_start);

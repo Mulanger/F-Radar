@@ -59,9 +59,10 @@ export const UTILITY_OPERATORS: UtilityOperator[] = [
     id: 'goteborg_energi',
     name: 'Göteborg Energi Nät',
     platform: 'goteborg_energi',
-    utilities: ['electricity', 'district_heating', 'district_cooling'],
+    utilities: ['electricity', 'district_heating', 'district_cooling', 'gas'],
+    utilityFlags: { gas: 'SOURCE_UTILITY_GAS_ENABLED' },
     apiBase: 'https://www.goteborgenergi.se',
-    utilityTypeIds: { electricity: '36857905', district_heating: '50935483', district_cooling: '50935477' },
+    utilityTypeIds: { electricity: '36857905', district_heating: '50935483', district_cooling: '50935477', gas: '36857929' },
     eiNames: ['Göteborg Energi Nät AB'],
     mapUrl: 'https://www.goteborgenergi.se/kundservice/avbrott/aktuella',
   },
@@ -157,15 +158,21 @@ export const UTILITY_OPERATORS: UtilityOperator[] = [
     apiBase,
     customerIds,
     // Profiles decide: "Elnät…", "Fjärrvärme", "Fjärrkyla" (Fas 4).
-    utilities: ['electricity', 'district_heating', 'district_cooling'],
+    utilities: ['electricity', 'district_heating', 'district_cooling', ...(['soderhamn', 'oxelo', 'emmaboda', 'eem', 'ljusdal', 'ulricehamn'].includes(id) ? ['water' as const] : [])],
+    utilityFlags: { water: 'SOURCE_UTILITY_WATER_ENABLED' },
     mapUrl,
     eiNames: [eiName],
   })),
 ];
 
 /** Operators enabled by UTILITY_OUTAGE_OPERATORS ("" = all, "none" = none, else comma list of ids). */
+export function operatorWithEnabledUtilities(op: UtilityOperator, flags?: Partial<ServerEnv>): UtilityOperator {
+  return { ...op, utilities: op.utilities.filter((u) => !op.utilityFlags?.[u] || flags?.[op.utilityFlags[u]!] === true) };
+}
+
 export function enabledOperators(setting: string | undefined, all: UtilityOperator[] = UTILITY_OPERATORS, flags?: Partial<ServerEnv>): UtilityOperator[] {
   all = all.filter((o) => !o.enableFlag || flags?.[o.enableFlag] === true);
+  all = all.map((o) => operatorWithEnabledUtilities(o, flags)).filter((o) => o.utilities.length > 0);
   const v = (setting ?? '').trim();
   if (!v) return all;
   if (v.toLowerCase() === 'none') return [];

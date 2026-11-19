@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { UtilityCoverageReport } from '@fastighetsradar/domain';
 import { C } from '@/lib/design/tokens';
 
-const LABEL = { electricity: 'El', district_heating: 'Fjärrvärme', district_cooling: 'Fjärrkyla', gas: 'Gas' };
+const LABEL = { electricity: 'El', district_heating: 'Fjärrvärme', district_cooling: 'Fjärrkyla', gas: 'Gas', water: 'Vatten och avlopp' };
 const COVERAGE = { monitored: 'Bevakas', not_monitored: 'Leverantören bevakas inte ännu', stale: 'Källan kunde inte kontrolleras', unknown: 'Ej bedömd' };
 
 export function UtilityCoverage({ reports, properties, basePath }: {

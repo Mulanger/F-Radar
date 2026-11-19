@@ -84,3 +84,17 @@ Om `UTILITY_OUTAGE_OPERATORS` är en uttrycklig lista måste id:t också finnas 
 En tom lista aktiverar fortfarande bara befintliga operatörer; de fyra nya kräver egna flaggor.
 Ingen av dessa fyra behöver svensk proxy enligt poddproven. Ingen ny migrering i Fas 2.
 Efter aktivering måste varje jobb ha en komplett lyckad hämtning innan adresser räknas som bevakade.
+
+## Vatten-/gasgrund, Fas 3
+
+- Migration `0018_water_supply_outages.sql`: `water` i nyttighetsvillkoret, `notice_kind` med
+  avbrott/information/kokning/vattenrestriktion och separat kategori `WaterSupply`.
+- `SOURCE_UTILITY_WATER_ENABLED=false` spärrar alla nya VA-profiler.
+- `SOURCE_UTILITY_GAS_ENABLED=false` spärrar Göteborgs nya gaslager, även när el/värme redan hämtas.
+- Utility-flaggor filtrerar både hämtning och visning. Komplett hämtning avslutar bara de nyttigheter
+  som faktiskt ingick, så avstängd VA inte av misstag räknas som återställd av ett eljobb.
+- Kvittering: vanliga exakta avbrott enligt befintliga regler; kokning alltid vid publicerad områdesträff;
+  generiska VA-notiser/restriktioner aldrig. Vatten-SMS införs separat i Fas 5 och gas-SMS i Fas 6.
+- Ritad ServiceAlert-yta kan visas som information. Rena adresspunkter utan ritad yta är ännu inte
+  tillräckliga för en exakt avbrottsyta och gör svaret partial. Det gäller bland annat aktuella VA-poster
+  hos Eskilstuna och Göteborg. Ingen "Bevakas" från ett sådant partial-svar.

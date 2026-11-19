@@ -324,7 +324,7 @@ const UTILITY_SV: Record<string, string> = { electricity: 'strömavbrott', distr
  * Assessed when the power grid is monitored and current, or when an outage is matched.
  */
 export function powerFactor(s: PropertySnapshot): RiskFactor {
-  const sections = s.utilityOutages ?? [];
+  const sections = (s.utilityOutages ?? []).filter((u) => u.utility !== 'water');
   const el = sections.find((u) => u.utility === 'electricity');
   const current = sections.flatMap((u) => u.current).filter((v) => v.state === 'ongoing');
   const cs: Contribution[] = current.map((v) => {
@@ -336,8 +336,11 @@ export function powerFactor(s: PropertySnapshot): RiskFactor {
   });
   const assessed = cs.length > 0 || el?.coverage === 'monitored';
   const c = best(cs) ?? { points: 0, short: 'Inga avbrott', reason: 'Inga registrerade avbrott som omfattar fastigheten.' };
-  return factor('power', 'El och värme', 60, c, assessed, 'Fastighetens elnät bevakas inte eller kunde inte kontrolleras.');
+  return factor('power', SUPPLY_RISK_FACTOR_LABEL, 60, c, assessed, 'Fastighetens elnät bevakas inte eller kunde inte kontrolleras.');
 }
+
+/** Product-owner decision 2026-11-19: keep this name and scope until a later supply-factor decision. */
+export const SUPPLY_RISK_FACTOR_LABEL = 'El och värme';
 
 /** Adds the "El och värme" factor and re-scores (an "Ej bedömd" index stays unassessed). */
 export function withPowerFactor(risk: RiskIndex, s: PropertySnapshot): RiskIndex {

@@ -62,7 +62,7 @@ async function runOperator(op: UtilityOperator, ctx: JobContext): Promise<JobRes
     d.outages.map((o) => ({ ...o, operatorName: op.name, attribution: attribution(op) })),
     d.skipped === 0,
     new Date(),
-    { reportsRestored: PLATFORMS_REPORTING_RESTORED.includes(op.platform) },
+    { reportsRestored: PLATFORMS_REPORTING_RESTORED.includes(op.platform), utilities: op.utilities },
   );
   const changes = await rematchUtilityOutages(ctx.db);
   return {
@@ -95,11 +95,11 @@ async function runEiConcessions(ctx: JobContext): Promise<JobResult> {
 /** One job per operator (all listed so disabling an operator also disables its stored job row). */
 export function buildUtilityOutageJobs(env: ServerEnv): MonitoringJob[] {
   const on = env.SOURCE_UTILITY_OUTAGES_ENABLED;
-  const enabled = new Set(enabledOperators(env.UTILITY_OUTAGE_OPERATORS, UTILITY_OPERATORS, env).map((o) => o.id));
+  const enabled = new Map(enabledOperators(env.UTILITY_OUTAGE_OPERATORS, UTILITY_OPERATORS, env).map((o) => [o.id, o]));
   const jobs: MonitoringJob[] = [];
   for (const op of UTILITY_OPERATORS) {
     const active = on && enabled.has(op.id);
-    jobs.push({ jobId: `${UTILITY_JOB_PREFIX}${op.id}`, sourceId: 'utility_outages', intervalSeconds: env.UTILITY_OUTAGE_POLL_SECONDS, enabled: active, timeoutMs: 90_000, run: (ctx) => runOperator(op, ctx) });
+    jobs.push({ jobId: `${UTILITY_JOB_PREFIX}${op.id}`, sourceId: 'utility_outages', intervalSeconds: op.pollSeconds ?? env.UTILITY_OUTAGE_POLL_SECONDS, enabled: active, timeoutMs: 90_000, run: (ctx) => runOperator(enabled.get(op.id) ?? op, ctx) });
     if (op.platform === 'digpro' && op.concessionUrl) {
       jobs.push({ jobId: `${CONCESSION_JOB_PREFIX}${op.id}`, sourceId: 'utility_outages', intervalSeconds: 7 * 86_400, enabled: active, timeoutMs: 120_000, run: (ctx) => runConcessions(op, ctx) });
     }
@@ -202,19 +202,20 @@ const SEVERITY_STATUS: Record<string, PropertyStatus | undefined> = { critical: 
 
 function toView(r: OrgUtilityOutageRow): UtilityOutageView {
   const confirmed = isPositionConfirmed(r.geocode_precision, r.position_source);
-  const level = outageMatchLevel(r.match_method, confirmed, r.affected_customers);
+  const level = outageMatchLevel(r.match_method, confirmed, r.affected_customers, r.notice_kind);
   const operatorName = r.operator_name ?? r.operator_id;
   return {
     id: r.event_id,
     operatorId: r.operator_id,
     operatorName,
     utility: r.utility,
+    noticeKind: r.notice_kind ?? 'outage',
     kind: r.kind,
     state: r.state,
     matchMethod: r.match_method,
     precisionLevel: level,
-    precisionLabel: outagePrecisionLabel(r.match_method, confirmed, r.place_label),
-    severity: outageEffectiveSeverity({ kind: r.kind, state: r.state }, level),
+    precisionLabel: outagePrecisionLabel(r.match_method, confirmed, r.place_label, r.notice_kind),
+    severity: outageEffectiveSeverity({ kind: r.kind, state: r.state, noticeKind: r.notice_kind }, level),
     distanceMeters: r.distance_m === null ? null : Number(r.distance_m),
     affectedCustomers: r.affected_customers,
     areaCustomerTotal: r.area_customer_total,
@@ -294,7 +295,7 @@ function split(views: UtilityOutageView[]) {
  */
 export function withUtilityOutages(s: PropertySnapshot, inputs: UtilityInputs): PropertySnapshot {
   const sections = [propertyUtilityStatus(s.property.id, inputs, 'electricity')];
-  for (const utility of ['district_heating', 'district_cooling'] as const) {
+  for (const utility of ['district_heating', 'district_cooling', 'gas', 'water'] as const) {
     if (inputs.outages.some((o) => o.property_id === s.property.id && o.utility === utility)) sections.push(propertyUtilityStatus(s.property.id, inputs, utility));
   }
   let status = s.property.status;
@@ -307,8 +308,8 @@ export function withUtilityOutages(s: PropertySnapshot, inputs: UtilityInputs): 
     if (STATUS_RANK[st] > STATUS_RANK[status]) {
       status = st;
       raised = true;
-      const headline = outageHeadline({ utility: v.utility, kind: v.kind, state: v.state, plannedStart: v.plannedStart, plannedEnd: v.plannedEnd }, v.operatorName);
-      reason = v.kind === 'unplanned' && v.precisionLevel === 'high'
+      const headline = outageHeadline({ utility: v.utility, noticeKind: v.noticeKind, kind: v.kind, state: v.state, plannedStart: v.plannedStart, plannedEnd: v.plannedEnd }, v.operatorName);
+      reason = v.noticeKind === 'boil_water' ? headline : v.kind === 'unplanned' && v.precisionLevel === 'high'
         ? `Oplanerat ${utilityNoun(v.utility)} registrerat av ${v.operatorName}`
         : v.precisionLevel === 'area'
           ? outageFeedTitle(headline, v.precisionLevel, v.matchMethod, v.placeLabel)

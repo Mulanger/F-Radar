@@ -14,6 +14,7 @@ import { GOTEBORG_ADDRESS_AREA, parseGoteborgUpcoming } from './platforms/gotebo
 import type { ConcessionArea, OutageFetchResult, UtilityOperator } from './types';
 import { withOperatorTransport } from './transport';
 import { parseUmea, parseSkekraft } from './platforms/published-json';
+import { operatorWithEnabledUtilities } from './operators';
 
 export * from './types';
 export * from './time';
@@ -112,7 +113,7 @@ async function fetchEllevio(op: Extract<UtilityOperator, { platform: 'ellevio' }
 }
 
 async function fetchTekniskaVerken(op: Extract<UtilityOperator, { platform: 'tekniskaverken' }>, ctx: AdapterContext): Promise<AdapterResult<OutageFetchResult>> {
-  const kinds = op.utilities.map((u) => ({ electricity: 'electricity', district_heating: 'districtheating', district_cooling: 'districtcooling', gas: 'gas' })[u]).join(',');
+  const kinds = op.utilities.map((u) => ({ electricity: 'electricity', district_heating: 'districtheating', district_cooling: 'districtcooling', gas: 'gas', water: 'water' })[u]).join(',');
   const list = await fetchText(`${op.apiBase}/outage/list/?utility=${kinds}&brand=${encodeURIComponent(op.brand)}`, ctx, `${op.id} list`, { accept: 'application/json' });
   if (!list.ok) return list;
   const l = TvList.safeParse(json(list.data));
@@ -235,6 +236,8 @@ export async function fetchEiConcessions(ctx: AdapterContext, url = EI_LOCAL_CON
 
 /** Fetches and normalises one operator's current outages. */
 export async function fetchOperatorOutages(op: UtilityOperator, ctx: AdapterContext): Promise<AdapterResult<OutageFetchResult>> {
+  op = operatorWithEnabledUtilities(op, ctx.env);
+  if (!op.utilities.length) return { ok: false, error: 'disabled', detail: `${op.id}: no enabled utility` };
   ctx = withOperatorTransport(op, ctx);
   const now = ctx.now();
   if (op.platform === 'umea' || op.platform === 'skekraft') {

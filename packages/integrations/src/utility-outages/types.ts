@@ -1,9 +1,10 @@
-import type { OutageKind, OutagePrecision, OutageState, UtilityKind } from '@fastighetsradar/domain';
+import type { OutageKind, OutagePrecision, OutageState, UtilityKind, UtilityNoticeKind } from '@fastighetsradar/domain';
 import type { GeoJsonGeometry } from '../types';
 import type { ServerEnv } from '@fastighetsradar/config';
 
 /** One outage as published by a grid operator, normalised (docs/plans/stromavbrott.md §5.2). */
 export interface NormalizedUtilityOutage {
+  noticeKind?: UtilityNoticeKind;
   operatorId: string;
   utility: UtilityKind;
   /** `${operatorId}:${upstreamId}` – stable across polls. */
@@ -60,6 +61,8 @@ interface OperatorBase {
   requiresSwedishEgress?: boolean;
   /** New operators need an additional explicit opt-in, even with an empty operator list. */
   enableFlag?: keyof ServerEnv;
+  utilityFlags?: Partial<Record<UtilityKind, keyof ServerEnv>>;
+  pollSeconds?: number;
   /** Stable id used in job ids, external ids and UTILITY_OUTAGE_OPERATORS. */
   id: string;
   /** Display name shown to customers. */

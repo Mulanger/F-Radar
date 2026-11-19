@@ -40,9 +40,10 @@ export interface OutageEventVM {
   mapEnded: boolean;
 }
 
-const KIND_SV: Record<UtilityKind, string> = { electricity: 'Ström', district_heating: 'Fjärrvärme', district_cooling: 'Fjärrkyla', gas: 'Gas' };
+const KIND_SV: Record<UtilityKind, string> = { electricity: 'Ström', district_heating: 'Fjärrvärme', district_cooling: 'Fjärrkyla', gas: 'Gas', water: 'Vatten och avlopp' };
 
 const tone = (v: UtilityOutageView): SeverityStyle =>
+  (v.noticeKind === 'information' || v.noticeKind === 'water_restriction') && v.state !== 'restored' && v.state !== 'withdrawn' ? SEV.monitor :
   // Green only when the operator says it is over; a vanished outage stays neutral grey.
   outageVanished(v)
     ? SEV.unknown
@@ -66,6 +67,8 @@ const customers = (v: UtilityOutageView) =>
   v.affectedCustomers === null ? null : `${v.affectedCustomers.toLocaleString('sv-SE')} ${v.affectedCustomers === 1 ? 'kund' : 'kunder'} berörda`;
 
 function whenOf(v: UtilityOutageView): string {
+  if (v.noticeKind === 'information' || v.noticeKind === 'water_restriction') return v.reportedAt ? `Publicerat ${formatWeekdayClock(v.reportedAt, '—')}` : 'Tid ej angiven av leverantören';
+  if (v.noticeKind === 'boil_water') return v.state === 'restored' ? (v.restoredAt ? `Upphörd ${formatWeekdayClock(v.restoredAt, '—')}` : 'Upphörd enligt leverantören · tid ej angiven') : v.state === 'withdrawn' ? 'Visas inte längre · inget besked om att rekommendationen upphört' : 'Rekommendation från leverantören';
   const at = (iso: string | null) => (iso ? formatWeekdayClock(iso, '—') : '—');
   // The planned window is already part of the headline.
   if (v.state === 'upcoming') return v.plannedStart ? 'Planerat arbete' : 'Planerat arbete · tid ej angiven';
@@ -76,7 +79,7 @@ function whenOf(v: UtilityOutageView): string {
   return `${v.kind === 'unplanned' ? 'Oplanerat' : 'Avbrott'} · ${start} · beräknat klart ${at(v.estimatedRestore)}`;
 }
 
-export function outageEventsFor(s: PropertySnapshot): OutageEventVM[] {
+export function outageEventsFor(s: Pick<PropertySnapshot, 'utilityOutages'>): OutageEventVM[] {
   const sections = s.utilityOutages ?? [];
   const byStart = (a: UtilityOutageView, b: UtilityOutageView) => Date.parse(a.plannedStart ?? a.actualStart ?? '') - Date.parse(b.plannedStart ?? b.actualStart ?? '');
   const pick = (k: 'current' | 'upcoming' | 'recentlyRestored') => sections.flatMap((u) => u[k]).filter(listedForProperty).sort(byStart);
@@ -86,11 +89,11 @@ export function outageEventsFor(s: PropertySnapshot): OutageEventVM[] {
   return [...current, ...pick('upcoming'), ...pick('recentlyRestored').filter((v) => !replaced(v))].map((v) => {
     const t = tone(v);
     const areaOnly = v.precisionLevel === 'area';
-    const headline = outageHeadline({ utility: v.utility, kind: v.kind, state: v.state, plannedStart: v.plannedStart, plannedEnd: v.plannedEnd, restoredInferred: v.restoredInferred }, v.operatorName);
+    const headline = outageHeadline({ utility: v.utility, noticeKind: v.noticeKind, kind: v.kind, state: v.state, plannedStart: v.plannedStart, plannedEnd: v.plannedEnd, restoredInferred: v.restoredInferred }, v.operatorName);
     return {
       id: v.id,
       kind: KIND_SV[v.utility] ?? 'Avbrott',
-      title: areaOnly && v.state !== 'restored' && v.state !== 'withdrawn' ? outageFeedTitle(headline, v.precisionLevel, v.matchMethod, v.placeLabel) : headline,
+      title: areaOnly && v.state !== 'restored' && v.state !== 'withdrawn' ? outageFeedTitle(headline, v.precisionLevel, v.matchMethod, v.placeLabel, v.noticeKind) : headline,
       when: [whenOf(v), areaOnly ? customers(v) : null].filter(Boolean).join(' · '),
       scope: areaOnly ? v.precisionLabel : 'Berör fastigheten',
       areaOnly,
@@ -106,7 +109,7 @@ export function outageEventsFor(s: PropertySnapshot): OutageEventVM[] {
 }
 
 /** Polygons to draw on the property map – only outages that cover the property. */
-export function outageShapes(s: PropertySnapshot): Array<{ id: string; geometry: unknown; color: string; label: string; dashed: boolean }> {
+export function outageShapes(s: Pick<PropertySnapshot, 'utilityOutages'>): Array<{ id: string; geometry: unknown; color: string; label: string; dashed: boolean }> {
   return (s.utilityOutages ?? [])
     .flatMap((u) => [...u.current, ...u.upcoming])
     .filter((v) => v.geometry && affectsProperty(v))
@@ -114,7 +117,7 @@ export function outageShapes(s: PropertySnapshot): Array<{ id: string; geometry:
       id: v.id,
       geometry: v.geometry,
       color: tone(v).hx,
-      label: outageHeadline({ utility: v.utility, kind: v.kind, state: v.state, plannedStart: v.plannedStart, plannedEnd: v.plannedEnd }, v.operatorName),
+      label: outageHeadline({ utility: v.utility, noticeKind: v.noticeKind, kind: v.kind, state: v.state, plannedStart: v.plannedStart, plannedEnd: v.plannedEnd }, v.operatorName),
       dashed: v.state === 'upcoming',
     }));
 }

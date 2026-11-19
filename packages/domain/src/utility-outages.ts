@@ -11,9 +11,11 @@ import { IsoDateTimeSchema, SeveritySchema } from './common';
  *  - matchMethod: how precisely an outage was tied to a property. Only `outage_polygon` and
  *    `outage_address` with a confirmed property position may ever trigger an SMS.
  */
-export const UTILITY_KINDS = ['electricity', 'district_heating', 'district_cooling', 'gas'] as const;
+export const UTILITY_KINDS = ['electricity', 'district_heating', 'district_cooling', 'gas', 'water'] as const;
 export const UtilityKindSchema = z.enum(UTILITY_KINDS);
 export type UtilityKind = z.infer<typeof UtilityKindSchema>;
+export const UtilityNoticeKindSchema = z.enum(['outage', 'information', 'boil_water', 'water_restriction']);
+export type UtilityNoticeKind = z.infer<typeof UtilityNoticeKindSchema>;
 
 export const OutageKindSchema = z.enum(['planned', 'unplanned', 'unknown']);
 export type OutageKind = z.infer<typeof OutageKindSchema>;
@@ -50,12 +52,14 @@ export type OutageMatchPrecisionLevel = 'high' | 'medium' | 'low' | 'area';
  */
 export const AREA_FEED_MIN_CUSTOMERS = 25;
 
-export function outageMatchLevel(method: OutageMatchMethod, positionConfirmed: boolean, affectedCustomers?: number | null): OutageMatchPrecisionLevel {
+export function outageMatchLevel(method: OutageMatchMethod, positionConfirmed: boolean, affectedCustomers?: number | null, noticeKind?: UtilityNoticeKind): OutageMatchPrecisionLevel {
   // An address-list match is by the property's own street address, independent of the map pin.
   if (method === 'outage_address') return 'high';
   if (method === 'outage_polygon') return positionConfirmed ? 'high' : 'medium';
   if (method === 'outage_street') return 'medium';
   if (method === 'outage_adjacent' || method === 'outage_point') return 'low';
+  // A recommendation/notice is explicitly published for its whole drawn area; no electricity-count threshold.
+  if (noticeKind && noticeKind !== 'outage') return 'area';
   // Area match: below the threshold (or unknown size) it is panel-only.
   return affectedCustomers !== undefined && (affectedCustomers ?? 0) < AREA_FEED_MIN_CUSTOMERS ? 'low' : 'area';
 }
@@ -70,12 +74,14 @@ export function isPositionConfirmed(geocodePrecision: string | null | undefined,
  * Returns null when the match must not create a feed row / status (panel only, or ended).
  */
 export function outageEffectiveSeverity(
-  o: { kind: OutageKind; state: OutageState },
+  o: { kind: OutageKind; state: OutageState; noticeKind?: UtilityNoticeKind },
   level: OutageMatchPrecisionLevel,
 ): z.infer<typeof SeveritySchema> | null {
   // Near matches do not show that the property itself is affected: panel/risk factor only.
   if (level === 'low') return null;
   const ended = o.state === 'restored' || o.state === 'withdrawn';
+  if (o.noticeKind === 'information' || o.noticeKind === 'water_restriction') return 'info';
+  if (o.noticeKind === 'boil_water') return ended ? 'info' : 'critical';
   // Area-level matches (postal area, operating area; ≥ AREA_FEED_MIN_CUSTOMERS) surface ongoing
   // unplanned/unknown outages as blue 'monitor' with a caveat – never red/orange, never SMS.
   // Planned work at area level is not shown (re-enabled 2026-11-17 after a missed Ellevio outage).
@@ -90,6 +96,7 @@ export function outageEffectiveSeverity(
 }
 
 export const UtilityOutageViewSchema = z.object({
+  noticeKind: UtilityNoticeKindSchema.optional(),
   id: z.string(),
   operatorId: z.string(),
   operatorName: z.string(),
@@ -153,12 +160,14 @@ const clock = new Intl.DateTimeFormat('sv-SE', { hour: '2-digit', minute: '2-dig
 const localDay = new Intl.DateTimeFormat('sv-SE', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: TZ });
 
 const UTILITY_NOUN: Record<UtilityKind, string> = {
+  water: 'vattenavbrott',
   electricity: 'strömavbrott',
   district_heating: 'fjärrvärmeavbrott',
   district_cooling: 'fjärrkyleavbrott',
   gas: 'gasavbrott',
 };
 const UTILITY_BACK: Record<UtilityKind, string> = {
+  water: 'Vattenleveransen är tillbaka',
   electricity: 'Strömmen är tillbaka',
   district_heating: 'Fjärrvärmen är tillbaka',
   district_cooling: 'Fjärrkylan är tillbaka',
@@ -191,33 +200,43 @@ export function formatOutageWindow(start: string | null, end: string | null): st
  * ServiceAlert) only remove outages from the map, so removal is read as "troligen tillbaka".
  * Seen in live data 2026-11-17: Ellevio, Göteborg Energi, Digpro, Tekniska verken report restored.
  */
-export const PLATFORMS_REPORTING_RESTORED: readonly string[] = ['ellevio', 'goteborg_energi', 'digpro', 'tekniskaverken', 'umea', 'skekraft'];
+export const PLATFORMS_REPORTING_RESTORED: readonly string[] = ['ellevio', 'goteborg_energi', 'digpro', 'tekniskaverken', 'umea', 'skekraft', 'servicealert'];
 
 export function outageVanished(o: { kind: OutageKind; state: OutageState }): boolean {
   return o.state === 'withdrawn' && o.kind !== 'planned';
 }
 
-export function outageHeadline(o: { utility: UtilityKind; kind: OutageKind; state: OutageState; plannedStart: string | null; plannedEnd: string | null; restoredInferred?: boolean }, operatorName: string): string {
+export function outageHeadline(o: { utility: UtilityKind; kind: OutageKind; state: OutageState; plannedStart: string | null; plannedEnd: string | null; restoredInferred?: boolean; noticeKind?: UtilityNoticeKind }, operatorName: string): string {
+  if (o.noticeKind === 'boil_water') {
+    if (o.state === 'restored') return `Kokningsrekommendation upphörd enligt ${operatorName}`;
+    if (o.state === 'withdrawn') return `Kokningsrekommendation visas inte längre hos ${operatorName} – inget besked om att den upphört`;
+    return `Kokningsrekommendation – ${operatorName}`;
+  }
+  if (o.noticeKind === 'water_restriction') return `Information om vattenanvändning – ${operatorName}`;
+  if (o.noticeKind === 'information') return o.state === 'withdrawn' ? `Vatten- och avloppsmeddelande visas inte längre hos ${operatorName}` : `Vatten- och avloppsmeddelande – ${operatorName}`;
   const noun = UTILITY_NOUN[o.utility];
   const Noun = noun[0]!.toUpperCase() + noun.slice(1);
+  const plannedLabel = o.utility === 'water' ? 'Planerad vattenavstängning' : `Planerat ${noun}`;
   if (o.state === 'restored' && o.restoredInferred) return `${UTILITY_BACK[o.utility].replace(' är tillbaka', ' är troligen tillbaka')} – avbrottet visas inte längre hos ${operatorName}`;
   if (o.state === 'restored') return `${UTILITY_BACK[o.utility]} enligt ${operatorName}`;
   // Withdrawn = no longer in the operator's list. For an outage that was under way this is NOT a
   // statement that power is back (tickets are merged and re-issued), so it says so.
-  if (o.state === 'withdrawn') return o.kind === 'planned' ? `Planerat ${noun} visas inte längre hos ${operatorName}` : `${Noun} visas inte längre hos ${operatorName} – inget besked om att det är åtgärdat`;
+  if (o.state === 'withdrawn') return o.kind === 'planned' ? `${plannedLabel} visas inte längre hos ${operatorName}` : `${Noun} visas inte längre hos ${operatorName} – inget besked om att det är åtgärdat`;
   if (o.kind === 'planned') {
     if (o.state === 'upcoming') {
       const w = formatOutageWindow(o.plannedStart, o.plannedEnd);
-      return `Planerat ${noun}${w ? ` ${w}` : ''} – ${operatorName}`;
+      return `${plannedLabel}${w ? ` ${w}` : ''} – ${operatorName}`;
     }
-    return `Planerat ${noun} pågår – ${operatorName}`;
+    return `${plannedLabel} pågår – ${operatorName}`;
   }
   if (o.kind === 'unplanned') return `Oplanerat ${noun} – ${operatorName}`;
   return `${Noun} registrerat – ${operatorName}`;
 }
 
 /** Caveat shown next to a match, per precision. `placeLabel` names an operating district when known. */
-export function outagePrecisionLabel(method: OutageMatchMethod, positionConfirmed: boolean, placeLabel?: string | null): string {
+export function outagePrecisionLabel(method: OutageMatchMethod, positionConfirmed: boolean, placeLabel?: string | null, noticeKind?: UtilityNoticeKind): string {
+  if (noticeKind === 'boil_water' && (method === 'outage_area' || method === 'outage_postal_area')) return 'I leverantörens publicerade rekommendationsområde';
+  if ((noticeKind === 'information' || noticeKind === 'water_restriction') && (method === 'outage_area' || method === 'outage_postal_area')) return 'Leverantörsmeddelande i området – inte säkert att fastigheten berörs';
   switch (method) {
     case 'outage_polygon':
       return positionConfirmed
@@ -239,7 +258,8 @@ export function outagePrecisionLabel(method: OutageMatchMethod, positionConfirme
 }
 
 /** Per-property feed title: the event headline plus a caveat when the match is not high precision. */
-export function outageFeedTitle(headline: string, level: OutageMatchPrecisionLevel, method: OutageMatchMethod, placeLabel?: string | null): string {
+export function outageFeedTitle(headline: string, level: OutageMatchPrecisionLevel, method: OutageMatchMethod, placeLabel?: string | null, noticeKind?: UtilityNoticeKind): string {
+  if (level === 'area' && noticeKind && noticeKind !== 'outage') return `${headline} – i leverantörens publicerade område`;
   if (level === 'high') return headline;
   if (method === 'outage_postal_area') return `${headline} – i fastighetens postnummerområde`;
   if (method === 'outage_area') return `${headline} – i nätbolagets driftområde${placeLabel ? ` ${placeLabel}` : ''}`;

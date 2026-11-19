@@ -555,7 +555,7 @@ export function buildFeed(changes: FeedChange[], propertyIds: Set<string>): Feed
       title: c.source_id === 'utility_outages' ? c.headline : `${CHANGE_SV[c.change_type] ?? c.change_type}: ${c.headline}`,
       sourceLabel: SOURCE_LABEL[c.source_id as SourceId] ?? c.source_id,
       sourceId: c.source_id as SourceId,
-      severity: c.change_type === 'ended' || c.change_type === 'cancelled' ? 'normal' : (SEV_STATUS[c.severity] ?? 'unknown'),
+      severity: c.change_type === 'ended' || c.change_type === 'cancelled' ? 'normal' : c.source_id === 'utility_outages' && c.severity === 'info' ? 'monitor' : (SEV_STATUS[c.severity] ?? 'unknown'),
       propertyId: c.property_id,
       ...(c.event_id ? { eventId: c.event_id } : {}),
       ...(c.event_id && c.event_ended_on_map ? { eventEndedOnMap: true } : {}),

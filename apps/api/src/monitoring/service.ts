@@ -91,7 +91,7 @@ export class MonitoringService {
         listOrgPropertyConcessions(this.db, organizationId),
         this.operatorStatuses(now),
       ]);
-      return { outages, concessions, operators };
+      return { outages: outages.filter((o) => (o.utility !== 'water' || this.env.SOURCE_UTILITY_WATER_ENABLED) && (o.utility !== 'gas' || this.env.SOURCE_UTILITY_GAS_ENABLED)), concessions, operators };
     } catch {
       return null;
     }

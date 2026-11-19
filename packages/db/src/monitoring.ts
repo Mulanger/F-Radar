@@ -909,7 +909,7 @@ const OUTAGE_EXTENT: Record<string, string> = {
   postal_area: 'Postnummerområde (ungefärligt)',
   point: 'Punkt enligt nätbolaget',
 };
-const UTILITY_LABEL: Record<string, string> = { electricity: 'strömavbrott', district_heating: 'fjärrvärmeavbrott', water: 'vattenavbrott' };
+const UTILITY_LABEL: Record<string, string> = { electricity: 'strömavbrott', district_heating: 'fjärrvärmeavbrott', district_cooling: 'fjärrkyleavbrott', gas: 'gasavbrott', water: 'vattenavbrott' };
 
 /** A utility outage on the map: its area, operator, customers and expected restoration. */
 function outageItemOf(r: MapEventRow & OutageMapRow): EventMapItem | null {
@@ -917,15 +917,17 @@ function outageItemOf(r: MapEventRow & OutageMapRow): EventMapItem | null {
   if (!g.success) return null;
   const noun = UTILITY_LABEL[r.utility ?? ''] ?? 'avbrott';
   const planned = r.outage_kind === 'planned';
+  const noticeKind = r.extra?.noticeKind;
+  const information = noticeKind === 'information' || noticeKind === 'water_restriction';
   const iso = (d: Date | null) => (d ? d.toISOString() : null);
   return {
     eventId: r.event_id,
     geometry: g.data,
     radiusM: null,
     lengthM: null,
-    label: planned ? `Planerat ${noun}` : noun[0]!.toUpperCase() + noun.slice(1),
-    icon: r.utility === 'district_heating' ? 'heat' : r.utility === 'water' ? 'water' : 'power',
-    hue: planned || r.outage_state === 'upcoming' ? 'orange' : 'red',
+    label: noticeKind === 'boil_water' ? 'Kokningsrekommendation' : information ? 'Vatten- och avloppsmeddelande' : planned ? (r.utility === 'water' ? 'Planerad vattenavstängning' : `Planerat ${noun}`) : noun[0]!.toUpperCase() + noun.slice(1),
+    icon: r.utility === 'district_heating' ? 'heat' : r.utility === 'district_cooling' ? 'frost' : r.utility === 'water' ? 'water' : r.utility === 'gas' ? 'fire' : 'power',
+    hue: information ? 'blue' : planned || r.outage_state === 'upcoming' ? 'orange' : 'red',
     impact: r.affected_customers ? `${r.affected_customers.toLocaleString('sv-SE')} kunder` : null,
     where: r.place_label?.trim() || (typeof r.extra?.operatorName === 'string' ? r.extra.operatorName : null),
     description: r.cause?.trim() || null,

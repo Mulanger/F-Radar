@@ -13,6 +13,7 @@ import {
   type OutagePrecision,
   type OutageState,
   type UtilityKind,
+  type UtilityNoticeKind,
 } from '@fastighetsradar/domain';
 import type { Queryable } from './migrations';
 import type { MatchChange } from './monitoring';
@@ -41,6 +42,7 @@ export const OUTAGE_RECENT_HOURS = 24;
 export const OUTAGE_RETENTION_DAYS = 30;
 
 export interface UtilityOutageInput {
+  noticeKind?: UtilityNoticeKind;
   operatorId: string;
   operatorName: string;
   utility: UtilityKind;
@@ -78,14 +80,14 @@ const round = (iso: string | null, minutes: number) => {
 };
 
 /** Material version of an outage (see module doc). */
-export function outageVersionHash(o: Pick<UtilityOutageInput, 'utility' | 'kind' | 'state' | 'plannedStart' | 'plannedEnd' | 'estimatedRestore'>): string {
+export function outageVersionHash(o: Pick<UtilityOutageInput, 'utility' | 'kind' | 'state' | 'plannedStart' | 'plannedEnd' | 'estimatedRestore' | 'noticeKind'>): string {
   return createHash('sha1')
-    .update(JSON.stringify(['uo1', o.utility, o.kind, o.state, round(o.plannedStart, 15), round(o.plannedEnd, 15), round(o.estimatedRestore, 30)]))
+    .update(JSON.stringify(['uo1', o.utility, o.kind, o.state, round(o.plannedStart, 15), round(o.plannedEnd, 15), round(o.estimatedRestore, 30), ...(o.noticeKind && o.noticeKind !== 'outage' ? [o.noticeKind] : [])]))
     .digest('hex');
 }
 
 /** Event-level severity (the per-property severity is computed during matching). */
-export function outageEventSeverity(o: { kind: OutageKind; state: OutageState }): string {
+export function outageEventSeverity(o: { kind: OutageKind; state: OutageState; noticeKind?: UtilityNoticeKind }): string {
   return outageEffectiveSeverity(o, 'high') ?? 'info';
 }
 
@@ -110,7 +112,7 @@ export interface UtilityStoreResult {
  * Then an outage that vanishes was merged/removed, not restored; otherwise removal reads as
  * "troligen tillbaka" (restored_inferred).
  */
-export async function storeUtilityOutages(db: Queryable, operatorId: string, all: UtilityOutageInput[], complete: boolean, now = new Date(), opts: { reportsRestored?: boolean } = {}): Promise<UtilityStoreResult> {
+export async function storeUtilityOutages(db: Queryable, operatorId: string, all: UtilityOutageInput[], complete: boolean, now = new Date(), opts: { reportsRestored?: boolean; utilities?: UtilityKind[] } = {}): Promise<UtilityStoreResult> {
   const result: UtilityStoreResult = { inserted: 0, updated: 0, unchanged: 0, restored: 0, endedMissing: 0 };
   // Some feeds include long history (Göteborg: restored outages from years ago). Only outages restored
   // within the retention window are stored; older ones are irrelevant and never shown.
@@ -121,7 +123,7 @@ export async function storeUtilityOutages(db: Queryable, operatorId: string, all
       const ended = ENDED.includes(o.state);
       return {
         external_id: o.externalId,
-        category: o.utility === 'electricity' ? 'Power' : o.utility === 'gas' ? 'Info' : 'Heating',
+        category: o.utility === 'electricity' ? 'Power' : o.utility === 'water' ? 'WaterSupply' : 'Heating',
         severity: outageEventSeverity(o),
         event_type: `${o.utility}:${o.kind}`,
         headline: outageHeadline(o, o.operatorName).slice(0, 500),
@@ -134,11 +136,12 @@ export async function storeUtilityOutages(db: Queryable, operatorId: string, all
         ended_reason: ended ? (o.state === 'restored' ? 'restored' : 'withdrawn') : null,
         source_url: o.sourceUrl,
         attribution: o.attribution,
-        extra: { operatorId: o.operatorId, operatorName: o.operatorName, utility: o.utility, ...(o.addressArea ? { addressArea: o.addressArea } : {}) },
+        extra: { operatorId: o.operatorId, operatorName: o.operatorName, utility: o.utility, noticeKind: o.noticeKind ?? 'outage', ...(o.addressArea ? { addressArea: o.addressArea } : {}) },
         version_hash: outageVersionHash(o),
         // utility_outages
         operator_id: o.operatorId,
         utility: o.utility,
+        notice_kind: o.noticeKind ?? 'outage',
         kind: o.kind,
         state: o.state,
         precision: o.precision,
@@ -164,7 +167,7 @@ export async function storeUtilityOutages(db: Queryable, operatorId: string, all
            external_id text, category text, severity text, event_type text, headline text, description text, area_label text,
            geojson text, published_at timestamptz, valid_from timestamptz, status text, ended_reason text, source_url text,
            attribution text, extra jsonb, version_hash text,
-           operator_id text, utility text, kind text, state text, precision text, affected_customers integer,
+           operator_id text, utility text, notice_kind text, kind text, state text, precision text, affected_customers integer,
            area_customer_total integer, reported_at timestamptz, planned_start timestamptz, planned_end timestamptz,
            actual_start timestamptz, estimated_restore timestamptz, restored_at timestamptz, addresses jsonb,
            postal_codes jsonb, municipality_code text, place_label text, operator_text text, cause text)
@@ -194,16 +197,16 @@ export async function storeUtilityOutages(db: Queryable, operatorId: string, all
                 extra = EXCLUDED.extra, last_seen_at = now()
          RETURNING e.id, e.external_id, (xmax = 0) AS inserted, e.status
        ), uo AS (
-         INSERT INTO utility_outages AS u (event_id, operator_id, utility, kind, state, precision, affected_customers, area_customer_total,
+         INSERT INTO utility_outages AS u (event_id, operator_id, utility, notice_kind, kind, state, precision, affected_customers, area_customer_total,
                 reported_at, planned_start, planned_end, actual_start, estimated_restore, restored_at, addresses, postal_codes,
                 municipality_code, place_label, operator_text, cause, missing_polls, updated_at)
-         SELECT ev.id, x.operator_id, x.utility, x.kind, x.state, x.precision, x.affected_customers, x.area_customer_total,
+         SELECT ev.id, x.operator_id, x.utility, x.notice_kind, x.kind, x.state, x.precision, x.affected_customers, x.area_customer_total,
                 x.reported_at, x.planned_start, x.planned_end, x.actual_start, x.estimated_restore, x.restored_at, x.addresses,
                 ARRAY(SELECT jsonb_array_elements_text(COALESCE(x.postal_codes, '[]'::jsonb))),
                 x.municipality_code, x.place_label, x.operator_text, x.cause, 0, now()
            FROM ev JOIN x USING (external_id)
          ON CONFLICT (event_id) DO UPDATE SET
-                operator_id = EXCLUDED.operator_id, utility = EXCLUDED.utility, kind = EXCLUDED.kind, state = EXCLUDED.state,
+                operator_id = EXCLUDED.operator_id, utility = EXCLUDED.utility, notice_kind = EXCLUDED.notice_kind, kind = EXCLUDED.kind, state = EXCLUDED.state,
                 precision = EXCLUDED.precision, affected_customers = EXCLUDED.affected_customers,
                 area_customer_total = EXCLUDED.area_customer_total, reported_at = EXCLUDED.reported_at,
                 planned_start = EXCLUDED.planned_start, planned_end = EXCLUDED.planned_end, actual_start = EXCLUDED.actual_start,
@@ -227,32 +230,34 @@ export async function storeUtilityOutages(db: Queryable, operatorId: string, all
       if (r.ended && r.was_active) result.restored++;
     }
   }
-  if (complete) result.endedMissing = await countMissingAndEnd(db, operatorId, all.map((o) => o.externalId), opts.reportsRestored);
+  if (complete) result.endedMissing = await countMissingAndEnd(db, operatorId, all.map((o) => o.externalId), opts.reportsRestored, opts.utilities);
   return result;
 }
 
 /** Increments `missing_polls` for active outages absent from a complete fetch; ends those reaching the threshold. */
-async function countMissingAndEnd(db: Queryable, operatorId: string, seen: string[], reportsRestored = false): Promise<number> {
+async function countMissingAndEnd(db: Queryable, operatorId: string, seen: string[], reportsRestored = false, utilities?: UtilityKind[]): Promise<number> {
   await db.query(
     `UPDATE utility_outages u SET missing_polls = u.missing_polls + 1, updated_at = now()
        FROM source_events e
-      WHERE e.id = u.event_id AND u.operator_id = $1 AND e.status = 'active' AND NOT (e.external_id = ANY($2::text[]))`,
-    [operatorId, seen],
+      WHERE e.id = u.event_id AND u.operator_id = $1 AND e.status = 'active' AND NOT (e.external_id = ANY($2::text[]))
+        AND ($3::text[] IS NULL OR u.utility = ANY($3::text[]))`,
+    [operatorId, seen, utilities ?? null],
   );
-  const { rows } = await db.query<{ id: string; utility: UtilityKind; kind: OutageKind; state: OutageState; planned_start: Date | null; planned_end: Date | null; operator_name: string | null }>(
-    `SELECT e.id, u.utility, u.kind, u.state, u.planned_start, u.planned_end, e.extra->>'operatorName' AS operator_name
+  const { rows } = await db.query<{ id: string; utility: UtilityKind; notice_kind: UtilityNoticeKind; kind: OutageKind; state: OutageState; planned_start: Date | null; planned_end: Date | null; operator_name: string | null }>(
+    `SELECT e.id, u.utility, u.notice_kind, u.kind, u.state, u.planned_start, u.planned_end, e.extra->>'operatorName' AS operator_name
        FROM utility_outages u JOIN source_events e ON e.id = u.event_id
-      WHERE u.operator_id = $1 AND e.status = 'active' AND u.missing_polls >= $2`,
-    [operatorId, OUTAGE_MISSING_POLLS_TO_END],
+      WHERE u.operator_id = $1 AND e.status = 'active' AND u.missing_polls >= $2
+        AND ($3::text[] IS NULL OR u.utility = ANY($3::text[]))`,
+    [operatorId, OUTAGE_MISSING_POLLS_TO_END, utilities ?? null],
   );
   for (const r of rows) {
     // Vanishing is never the operator saying power is back. Operators that report restoration
     // themselves merge and re-issue tickets (Ellevio 2026-11-17), so their vanished outages are
     // 'withdrawn'. For the others removal is the only end signal: 'restored', but inferred
     // ("troligen tillbaka"). Planned work that never started, and notices of unknown state, are withdrawn.
-    const inferred = !reportsRestored && r.state !== 'upcoming' && r.state !== 'unknown';
+    const inferred = !reportsRestored && r.notice_kind !== 'boil_water' && r.state !== 'upcoming' && r.state !== 'unknown';
     const state: OutageState = inferred ? 'restored' : 'withdrawn';
-    const o = { utility: r.utility, kind: r.kind, state, plannedStart: r.planned_start?.toISOString() ?? null, plannedEnd: r.planned_end?.toISOString() ?? null, estimatedRestore: null };
+    const o = { utility: r.utility, noticeKind: r.notice_kind, kind: r.kind, state, plannedStart: r.planned_start?.toISOString() ?? null, plannedEnd: r.planned_end?.toISOString() ?? null, estimatedRestore: null };
     await db.query(
       `WITH u AS (UPDATE utility_outages SET state = $2, restored_inferred = $5, updated_at = now() WHERE event_id = $1 RETURNING 1)
        UPDATE source_events SET status = 'ended', ended_reason = 'missing_from_feed', ended_at = now(),
@@ -269,6 +274,7 @@ async function countMissingAndEnd(db: Queryable, operatorId: string, seen: strin
 /* ------------------------------------------------------------------ */
 
 interface CandidateRow {
+  notice_kind?: UtilityNoticeKind;
   property_id: string;
   organization_id: string;
   event_id: string;
@@ -295,7 +301,7 @@ interface CandidateRow {
 async function addressCandidates(db: Queryable): Promise<CandidateRow[]> {
   const { rows } = await db.query<Omit<CandidateRow, 'match_method' | 'distance_m'> & { street: string | null; housenumber: string | null; addresses: OutageAddress[] | null }>(
     `SELECT p.id AS property_id, p.organization_id, e.id AS event_id, e.version, p.geocode_precision, p.position_source,
-            u.kind, u.state, e.headline, u.affected_customers, u.area_customer_total, u.place_label, u.operator_id, u.utility, u.addresses,
+            u.kind, u.state, u.notice_kind, e.headline, u.affected_customers, u.area_customer_total, u.place_label, u.operator_id, u.utility, u.addresses,
             p.street, p.housenumber
        FROM source_events e JOIN utility_outages u ON u.event_id = e.id
        JOIN properties p ON p.status <> 'paused' AND p.street IS NOT NULL
@@ -342,13 +348,13 @@ export async function rematchUtilityOutages(db: Queryable): Promise<MatchChange[
     `WITH props AS (
        SELECT p.id, p.organization_id, p.location, p.geocode_precision, p.position_source FROM properties p WHERE p.status <> 'paused'
      ), ev AS (
-       SELECT e.id, e.version, e.geom, e.headline, u.kind, u.state, u.precision, u.affected_customers, u.area_customer_total, u.place_label, u.operator_id, u.utility
+       SELECT e.id, e.version, e.geom, e.headline, u.kind, u.state, u.notice_kind, u.precision, u.affected_customers, u.area_customer_total, u.place_label, u.operator_id, u.utility
          FROM source_events e JOIN utility_outages u ON u.event_id = e.id
         WHERE e.source_id = '${UTILITY_OUTAGE_SOURCE}' AND e.geom IS NOT NULL
           AND (e.status = 'active' OR e.ended_at > now() - make_interval(hours => ${OUTAGE_RECENT_HOURS}))
      )
      SELECT pr.id AS property_id, pr.organization_id, ev.id AS event_id, ev.version, pr.geocode_precision, pr.position_source,
-            ev.kind, ev.state, ev.headline, ev.affected_customers, ev.area_customer_total, ev.place_label, ev.operator_id, ev.utility,
+            ev.kind, ev.state, ev.notice_kind, ev.headline, ev.affected_customers, ev.area_customer_total, ev.place_label, ev.operator_id, ev.utility,
             CASE WHEN ev.precision = 'polygon' AND ST_Intersects(ev.geom, pr.location::geometry) THEN 'outage_polygon'
                  WHEN ev.precision = 'polygon' THEN 'outage_adjacent'
                  WHEN ev.precision = 'point' THEN 'outage_point'
@@ -373,13 +379,13 @@ export async function rematchUtilityOutages(db: Queryable): Promise<MatchChange[
   const upserts: Array<{ property_id: string; event_id: string; organization_id: string; match_method: string; distance_m: number | null; version: number; effective_severity: string | null }> = [];
   const seen = new Set<string>();
 
-  const levelOf = (c: CandidateRow) => outageMatchLevel(c.match_method, isPositionConfirmed(c.geocode_precision, c.position_source), c.affected_customers);
+  const levelOf = (c: CandidateRow) => outageMatchLevel(c.match_method, isPositionConfirmed(c.geocode_precision, c.position_source), c.affected_customers, c.notice_kind);
   // Operators merge and re-issue tickets: an outage that vanished from the list while another one from
   // the same operator still covers the property was replaced, not resolved. It gets no feed row and is
   // not shown (Ellevio 2026-11-17: ticket 581219 vanished, 581216 continued until power was back).
   const covering = new Set(
     cand
-      .filter((c) => (c.state === 'ongoing' || c.state === 'unknown') && outageEffectiveSeverity({ kind: c.kind, state: c.state }, levelOf(c)))
+      .filter((c) => (c.state === 'ongoing' || c.state === 'unknown') && outageEffectiveSeverity({ kind: c.kind, state: c.state, noticeKind: c.notice_kind }, levelOf(c)))
       .map((c) => `${c.property_id}|${c.operator_id}|${c.utility}`),
   );
 
@@ -388,7 +394,7 @@ export async function rematchUtilityOutages(db: Queryable): Promise<MatchChange[
     seen.add(k);
     const level = levelOf(c);
     const superseded = outageVanished(c) && covering.has(`${c.property_id}|${c.operator_id}|${c.utility}`);
-    const severity = superseded ? null : outageEffectiveSeverity({ kind: c.kind, state: c.state }, level);
+    const severity = superseded ? null : outageEffectiveSeverity({ kind: c.kind, state: c.state, noticeKind: c.notice_kind }, level);
     const o = old.get(k);
     upserts.push({ property_id: c.property_id, event_id: c.event_id, organization_id: c.organization_id, match_method: c.match_method, distance_m: c.distance_m === null ? null : Number(c.distance_m), version: c.version, effective_severity: severity });
     if (!severity) continue;
@@ -405,7 +411,7 @@ export async function rematchUtilityOutages(db: Queryable): Promise<MatchChange[
       change_type: ended ? 'ended' : !o || becameVisible ? 'new' : 'updated',
       severity,
       // "Strömmen är tillbaka …" needs no position caveat; area-level rows keep theirs (where it applied).
-      headline: (ended && level !== 'area' ? c.headline : outageFeedTitle(c.headline, level, c.match_method, c.place_label)).slice(0, 500),
+      headline: (ended && level !== 'area' ? c.headline : outageFeedTitle(c.headline, level, c.match_method, c.place_label, c.notice_kind)).slice(0, 500),
       dedup_key: `${c.property_id}:${c.event_id}:v${c.version}:${level}`,
     });
   }
@@ -522,6 +528,7 @@ export async function replaceNationalConcessions(
 /* ------------------------------------------------------------------ */
 
 export interface OrgUtilityOutageRow {
+  notice_kind?: UtilityNoticeKind;
   property_id: string;
   event_id: string;
   match_method: OutageMatchMethod;
@@ -555,7 +562,7 @@ export interface OrgUtilityOutageRow {
 export async function listOrgUtilityOutages(db: Queryable, organizationId: string): Promise<OrgUtilityOutageRow[]> {
   const { rows } = await db.query<OrgUtilityOutageRow>(
     `SELECT m.property_id, m.event_id, m.match_method, m.distance_m, m.effective_severity,
-            u.operator_id, e.extra->>'operatorName' AS operator_name, u.utility, u.kind, u.state, u.affected_customers,
+            u.operator_id, e.extra->>'operatorName' AS operator_name, u.utility, u.kind, u.state, u.notice_kind, u.affected_customers,
             u.area_customer_total, u.reported_at, u.planned_start, u.planned_end, u.actual_start, u.estimated_restore,
             u.restored_at, u.restored_inferred, e.ended_at, u.place_label, u.operator_text, u.cause, e.source_url,
             CASE WHEN e.geom IS NOT NULL AND ST_NPoints(e.geom) <= 5000 THEN ST_AsGeoJSON(e.geom, 6)::jsonb END AS geometry,

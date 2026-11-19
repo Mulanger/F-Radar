@@ -42,9 +42,9 @@ const Message = z
  */
 export function serviceAlertProfile(title: string | null | undefined): { utility: UtilityKind; kind: OutageKind } | null {
   const t = (title ?? '').trim().toLowerCase();
-  const utility: UtilityKind | null = t.startsWith('elnät') ? 'electricity' : t.startsWith('fjärrvärme') ? 'district_heating' : t.startsWith('fjärrkyla') ? 'district_cooling' : null;
+  const utility: UtilityKind | null = t.startsWith('elnät') || t === 'el' ? 'electricity' : t.startsWith('fjärrvärme') ? 'district_heating' : t.startsWith('fjärrkyla') ? 'district_cooling' : t === 'va' || /^vatten(?:$|\s)/.test(t) ? 'water' : null;
   if (!utility) return null;
-  const kind: OutageKind = /planer/.test(t) ? 'planned' : /akut|driftstörning|oplanerad/.test(t) ? 'unplanned' : 'unknown';
+  const kind: OutageKind = /akut|driftstörning|oplanerad/.test(t) ? 'unplanned' : /planer/.test(t) ? 'planned' : 'unknown';
   return { utility, kind };
 }
 
@@ -110,21 +110,23 @@ export function parseServiceAlert(raw: unknown, op: UtilityOperator, utilities: 
         skipped++;
         continue;
       }
-      const polys = serviceAlertAreas(m.data.smsGroupGeoObjects);
-      const geometry = polys ? polygonsToGeoJson(polys) : null;
-      if (!geometry) {
-        // Notices without a map area cannot be tied to any property – not a data error.
-        ignored++;
-        continue;
-      }
       const end = iso(m.data.dateExpireUtc);
       if (end && Date.parse(end) < now.getTime()) {
         ignored++;
         continue;
       }
+      const polys = serviceAlertAreas(m.data.smsGroupGeoObjects);
+      const geometry = polys ? polygonsToGeoJson(polys) : null;
+      if (!geometry) {
+        // Recognised notices without a published area cannot mean "no outages". Coordinate-only
+        // address dots are not an outage polygon; do not draw an invented hull or radius around them.
+        skipped++;
+        continue;
+      }
       const title = m.data.title?.trim() || null;
       const body = htmlToText(m.data.text);
       outages.push({
+        noticeKind: utility === 'water' && prof.kind === 'unknown' ? 'information' : 'outage',
         operatorId: op.id,
         utility,
         externalId: `${op.id}:${m.data.id}`,

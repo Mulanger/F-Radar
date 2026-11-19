@@ -81,6 +81,8 @@ export const ServerEnvSchema = z.object({
   SOURCE_UTILITY_KRAFTRINGEN_ENABLED: bool(false),
   SOURCE_UTILITY_UMEA_ENABLED: bool(false),
   SOURCE_UTILITY_SKEKRAFT_ENABLED: bool(false),
+  SOURCE_UTILITY_WATER_ENABLED: bool(false),
+  SOURCE_UTILITY_GAS_ENABLED: bool(false),
   /** Comma-separated operator ids to collect (empty = every implemented operator). "none" disables all. */
   UTILITY_OUTAGE_OPERATORS: optionalString,
   /** HTTPS CONNECT proxy in Sweden, server-only. Used only by explicitly marked operators. */

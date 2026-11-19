@@ -55,7 +55,7 @@ export const STATUS_ORDER = ['normal', 'monitor', 'warning', 'critical'] as cons
  * Krisinformation news is regional (county) information – not a crisis at the property.
  * Flood classes are STATIC mapped scenarios, so they are named by scenario, not as "Hög" risk.
  */
-export const CATEGORY_SV: Record<string, string> = { Crisis: 'Länsinfo', Traffic: 'Trafik', Water: 'Vatten', Air: 'Luft', Weather: 'Väder', Info: 'Info', Power: 'El', Heating: 'Värme' };
+export const CATEGORY_SV: Record<string, string> = { Crisis: 'Länsinfo', Traffic: 'Trafik', Water: 'Vatten', Air: 'Luft', Weather: 'Väder', Info: 'Info', Power: 'El', Heating: 'Värme', WaterSupply: 'Vatten och avlopp' };
 export const EXPOSURE_SV: Record<string, string> = { High: '100-årsflöde', Medium: '200-årsflöde', Low: 'Högsta flöde', unknown: 'Okänd' };
 /** Static mapped exposure is never shown in warning colours. */
 export const exposureStyle = (cls: string): SeverityStyle => (cls === 'High' || cls === 'Medium' ? SEV.monitor : cls === 'Low' ? SEV.normal : SEV.unknown);
