@@ -147,12 +147,13 @@ export const UTILITY_OPERATORS: UtilityOperator[] = [
   },
   ...(
     [
-      ['malarenergi', 'Mälarenergi Elnät', 'https://driftinfo.malarenergi.se/NisOutageMap', 'https://www.malarenergi.se/avbrott/', 'Mälarenergi Elnät AB'],
+      ['malarenergi', 'Mälarenergi', 'https://driftinfo.malarenergi.se/NisOutageMap', 'https://www.malarenergi.se/avbrott/', 'Mälarenergi Elnät AB'],
       ['jamtkraft', 'Jämtkraft Elnät', 'https://avbrottskarta.jamtkraft.se', 'https://avbrottskarta.jamtkraft.se/', 'Jämtkraft Elnät AB'],
       ['sundsvall', 'Sundsvall Elnät', 'https://avbrottskarta.sundsvallelnat.se', 'https://avbrottskarta.sundsvallelnat.se/', 'Sundsvall Elnät AB'],
       ['gavle', 'Gävle Energi Elnät', 'https://avbrottskartan.gavleenergi.se', 'https://avbrottskartan.gavleenergi.se/', 'Gävle Energi Elnät AB'],
     ] as const
-  ).map(([id, name, base, mapUrl, eiName]): UtilityOperator => ({ id: `trimble:${id}`, requiresSwedishEgress: id === 'jamtkraft', name, platform: 'trimble', base, scope: 'p', utilities: ['electricity'], mapUrl, eiNames: [eiName] })),
+  ).map(([id, name, base, mapUrl, eiName]): UtilityOperator => ({ id: `trimble:${id}`, requiresSwedishEgress: id === 'jamtkraft', name, platform: 'trimble', base, scope: 'p', utilities: id === 'malarenergi' ? ['electricity', 'district_heating'] : ['electricity'],
+    ...(id === 'malarenergi' ? { utilityFlags: { district_heating: 'SOURCE_UTILITY_MALAR_HEAT_ENABLED' as const }, utilityScopes: { electricity: 'p', district_heating: 'h' } } : {}), mapUrl, eiNames: [eiName] })),
   // Fas 3: E.ON decoded from its map bundle (station areas → area precision).
   {
     id: 'eon',

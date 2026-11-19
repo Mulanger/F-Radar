@@ -123,3 +123,7 @@ Täckningsrapporten visar alla nyttigheter och källhälsa; VA är kommunens inf
 på enskild anslutning. Endast SVOA (Stockholm/Huddinge) och Tekniska verken (Linköping) har verifierad
 kommunmappning. Värme/gas utan publicerade nätområden förblir Ej bedömd. ETag/304 återanvänder
 validerade svarskroppar; en processomstart hämtar hela svaret igen. Inga nya migreringar i Fas 8.
+
+Komplettering: Mälarenergis värme kräver `SOURCE_UTILITY_MALAR_HEAT_ENABLED=true` och befintliga
+operatören `trimble:malarenergi`. Den hämtas i samma jobb som elen; högst en gemensam app/static/tiles-
+sekvens per poll, scopefiltrerade stationer, områdesprecision utan SMS. Ingen ny migrering.

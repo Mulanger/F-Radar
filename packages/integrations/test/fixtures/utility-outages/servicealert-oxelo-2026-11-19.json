@@ -25,7 +25,82 @@
       "cssColor": "Yellow",
       "mapIconUrl": "/StaticFiles/images/MapIcons/power-plug.png",
       "sortOrder": 1,
-      "webMessages": []
+      "webMessages": [
+        {
+          "id": 234857,
+          "smsGroupId": 3403700,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[17.06122,58.675231],[17.061108,58.674272],[17.06269,58.674244],[17.06283,58.674924],[17.062771,58.674966],[17.062803,58.675225],[17.062181,58.675236],[17.06122,58.675231]]]}}]",
+          "title": "Planerat strömavbrott",
+          "text": "<p><strong>Vallsundsvägen</strong></p><br /><p><span style=\"background-color: rgb(255, 255, 255); color: rgb(51, 51, 51);\">Vi utför arbete på ledningsnätet och strömförsörjningen till er anläggning kommer att brytas under</span><strong style=\"background-color: rgb(255, 255, 255); color: rgb(51, 51, 51);\"> torsdag 26 november</strong><span style=\"background-color: rgb(255, 255, 255); color: rgb(51, 51, 51);\"> mellan klockan </span><strong style=\"background-color: rgb(255, 255, 255); color: rgb(51, 51, 51);\">09:45</strong><span style=\"background-color: rgb(255, 255, 255); color: rgb(51, 51, 51);\"> till </span><strong style=\"background-color: rgb(255, 255, 255); color: rgb(51, 51, 51);\">13:00</strong><span style=\"background-color: rgb(255, 255, 255); color: rgb(51, 51, 51);\">.</span></p>",
+          "profileId": 7160,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-26T22:00:00Z",
+          "dateDelayUtc": "2026-11-19T09:00:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 58.67438742208721,
+              "lng": 17.062417674939848
+            },
+            {
+              "lat": 58.674512404480865,
+              "lng": 17.062491118054822
+            },
+            {
+              "lat": 58.674629090297636,
+              "lng": 17.062495319228766
+            },
+            {
+              "lat": 58.67474576713686,
+              "lng": 17.062499519909192
+            },
+            {
+              "lat": 58.674871254434514,
+              "lng": 17.0625212653814
+            },
+            {
+              "lat": 58.6750685435422,
+              "lng": 17.06254559623203
+            },
+            {
+              "lat": 58.67508054229882,
+              "lng": 17.06223574211829
+            },
+            {
+              "lat": 58.67508272983719,
+              "lng": 17.062011707209688
+            },
+            {
+              "lat": 58.675085580412635,
+              "lng": 17.061718768386005
+            },
+            {
+              "lat": 58.67511536638954,
+              "lng": 17.06142678145949
+            },
+            {
+              "lat": 58.67488980489194,
+              "lng": 17.06153934589503
+            },
+            {
+              "lat": 58.67477329628121,
+              "lng": 17.06151790978486
+            },
+            {
+              "lat": 58.6746476405175,
+              "lng": 17.061513406530466
+            },
+            {
+              "lat": 58.67452198502709,
+              "lng": 17.061508886086237
+            },
+            {
+              "lat": 58.674405139858536,
+              "lng": 17.061521927185794
+            }
+          ]
+        }
+      ]
     },
     {
       "id": 7161,

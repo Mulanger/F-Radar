@@ -82,3 +82,8 @@ Programkod och senaste gröna testresultat från Fas 6 är oförändrade.
 planerade avstängningar bakom avstängd tidslinjeflagga, ETag och defensiv paginering.
 68 filer/511 godkända/6 överhoppade, typer/lint gröna; PostGIS 36/36 efter ledighetskontroll;
 API- och webb-webpack-build gröna, lokal standalone-varning kvar. Ingen deploy/aktivering.
+
+2026-11-19 kompletterande slutgranskning: 81 elnäts-kandidatsidor i kundordning, Mälarenergi värme
+kopplad via publicerad id-relation (områdesprecision, inget SMS), Härryda timeout från podden.
+Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 %, produktion oförändrad.
+69 filer/513 godkända/6 överhoppade; typer/lint gröna, PostGIS 36/36, API/webpack-build gröna.

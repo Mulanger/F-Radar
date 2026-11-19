@@ -85,7 +85,7 @@ export type UtilityOperator =
   | (OperatorBase & { platform: 'ellevio'; loadUrl: string; version: string })
   | (OperatorBase & { platform: 'tekniskaverken'; apiBase: string; brand: string })
   /** Trimble (Tekla) NIS outage map: `<base>/geoserver-api/...`; `scope` 'p' = power. */
-  | (OperatorBase & { platform: 'trimble'; base: string; scope: string })
+  | (OperatorBase & { platform: 'trimble'; base: string; scope: string; utilityScopes?: Partial<Record<UtilityKind, string>> })
   | (OperatorBase & { platform: 'eon'; base: string })
   /** ServiceAlert (sms-service.dk / servicealert.se) driftstatus map. */
   | (OperatorBase & { platform: 'servicealert'; apiBase: string; customerIds: string; profileUtilities?: Record<string, UtilityKind> });

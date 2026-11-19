@@ -1,0 +1,282 @@
+{
+  "measuredAt": "2026-11-19T09:14:11.779Z",
+  "definition": "enabled, last_status ok, latest successful fetch <=20 min old; provider-level Ei 2025 customers, not exact/SMS geometry",
+  "denominator": 5612871,
+  "monitoredCustomers": 3859845,
+  "sharePercent": 68.767748270003,
+  "operators": [
+    {
+      "job_id": "utility_outages:digpro:nac",
+      "enabled": true,
+      "last_status": "error",
+      "last_success_at": null,
+      "age_seconds": null
+    },
+    {
+      "job_id": "utility_outages:digpro:pen",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:18.497623+00:00",
+      "age_seconds": 52
+    },
+    {
+      "job_id": "utility_outages:digpro:lnd",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:18.856556+00:00",
+      "age_seconds": 51
+    },
+    {
+      "job_id": "utility_outages:digpro:she",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:19.134344+00:00",
+      "age_seconds": 51
+    },
+    {
+      "job_id": "utility_outages:digpro:vbo",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:19.383893+00:00",
+      "age_seconds": 51
+    },
+    {
+      "job_id": "utility_outages:trimble:jamtkraft",
+      "enabled": true,
+      "last_status": "error",
+      "last_success_at": null,
+      "age_seconds": null
+    },
+    {
+      "job_id": "utility_outages:digpro:hed",
+      "enabled": true,
+      "last_status": "error",
+      "last_success_at": null,
+      "age_seconds": null
+    },
+    {
+      "job_id": "utility_outages:digpro:hsd",
+      "enabled": true,
+      "last_status": "error",
+      "last_success_at": null,
+      "age_seconds": null
+    },
+    {
+      "job_id": "utility_outages:digpro:bee",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:17.892595+00:00",
+      "age_seconds": 52
+    },
+    {
+      "job_id": "utility_outages:ellevio",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:19.941853+00:00",
+      "age_seconds": 50
+    },
+    {
+      "job_id": "utility_outages:tekniskaverken",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:20.657583+00:00",
+      "age_seconds": 49
+    },
+    {
+      "job_id": "utility_outages:trimble:malarenergi",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:21.049904+00:00",
+      "age_seconds": 49
+    },
+    {
+      "job_id": "utility_outages:servicealert:emmaboda",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:24.950231+00:00",
+      "age_seconds": 45
+    },
+    {
+      "job_id": "utility_outages:servicealert:eem",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:25.046939+00:00",
+      "age_seconds": 45
+    },
+    {
+      "job_id": "utility_outages:vattenfall",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:13.522671+00:00",
+      "age_seconds": 57
+    },
+    {
+      "job_id": "utility_outages:goteborg_energi",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:14.547713+00:00",
+      "age_seconds": 56
+    },
+    {
+      "job_id": "utility_outages:digpro:vax",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:14.907376+00:00",
+      "age_seconds": 55
+    },
+    {
+      "job_id": "utility_outages:trimble:gavle",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:21.934393+00:00",
+      "age_seconds": 48
+    },
+    {
+      "job_id": "utility_outages:eon",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:24.251376+00:00",
+      "age_seconds": 46
+    },
+    {
+      "job_id": "utility_outages:servicealert:karlstad",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:24.456754+00:00",
+      "age_seconds": 46
+    },
+    {
+      "job_id": "utility_outages:servicealert:soderhamn",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:24.723804+00:00",
+      "age_seconds": 45
+    },
+    {
+      "job_id": "utility_outages:servicealert:oxelo",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:24.825841+00:00",
+      "age_seconds": 45
+    },
+    {
+      "job_id": "utility_outages:servicealert:molndal",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:25.417194+00:00",
+      "age_seconds": 45
+    },
+    {
+      "job_id": "utility_outages:digpro:fev",
+      "enabled": true,
+      "last_status": "error",
+      "last_success_at": null,
+      "age_seconds": null
+    },
+    {
+      "job_id": "utility_outages:digpro:lul",
+      "enabled": true,
+      "last_status": "error",
+      "last_success_at": null,
+      "age_seconds": null
+    },
+    {
+      "job_id": "utility_outages:digpro:lme",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:15.237569+00:00",
+      "age_seconds": 55
+    },
+    {
+      "job_id": "utility_outages:digpro:shk",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:15.979243+00:00",
+      "age_seconds": 54
+    },
+    {
+      "job_id": "utility_outages:servicealert:habo",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:25.19665+00:00",
+      "age_seconds": 45
+    },
+    {
+      "job_id": "utility_outages:digpro:hem",
+      "enabled": true,
+      "last_status": "error",
+      "last_success_at": null,
+      "age_seconds": null
+    },
+    {
+      "job_id": "utility_outages:digpro:bte",
+      "enabled": true,
+      "last_status": "error",
+      "last_success_at": null,
+      "age_seconds": null
+    },
+    {
+      "job_id": "utility_outages:digpro:lie",
+      "enabled": true,
+      "last_status": "error",
+      "last_success_at": null,
+      "age_seconds": null
+    },
+    {
+      "job_id": "utility_outages:digpro:udd",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:16.571566+00:00",
+      "age_seconds": 54
+    },
+    {
+      "job_id": "utility_outages:digpro:vbe",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:16.973485+00:00",
+      "age_seconds": 53
+    },
+    {
+      "job_id": "utility_outages:digpro:lre",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:17.53249+00:00",
+      "age_seconds": 53
+    },
+    {
+      "job_id": "utility_outages:trimble:sundsvall",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:21.348855+00:00",
+      "age_seconds": 49
+    },
+    {
+      "job_id": "utility_outages:servicealert:ljusdal",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:25.312025+00:00",
+      "age_seconds": 45
+    },
+    {
+      "job_id": "utility_outages:servicealert:tranas",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:25.523363+00:00",
+      "age_seconds": 45
+    },
+    {
+      "job_id": "utility_outages:servicealert:ulricehamn",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:25.625751+00:00",
+      "age_seconds": 44
+    },
+    {
+      "job_id": "utility_outages:servicealert:osterlen",
+      "enabled": true,
+      "last_status": "ok",
+      "last_success_at": "2026-11-19T09:13:25.723883+00:00",
+      "age_seconds": 44
+    }
+  ]
+}

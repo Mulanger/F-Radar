@@ -16,6 +16,8 @@ export function useUpcoming(vm: OverviewVM) {
   const view = useMemo(() => upcomingView(vm.upcoming, vm.referenceAt, { filter, center: vm.upcomingCenter }), [vm.upcoming, vm.referenceAt, vm.upcomingCenter, filter]);
 
   return {
+    hasOutages: vm.upcoming.some((e) => e.kind === 'outage'),
+    hasWeather: vm.upcoming.some((e) => e.kind !== 'outage'),
     view,
     live: ds.mode === 'live',
     updated: vm.upcomingUpdated,

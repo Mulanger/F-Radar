@@ -39,5 +39,19 @@
       "district_heating",
       "district_cooling"
     ]
+  },
+  {
+    "operator": "trimble:malarenergi",
+    "valid": true,
+    "count": 4,
+    "heating": 2,
+    "electricity": 2,
+    "skipped": 0,
+    "ignored": 0,
+    "utilities": [
+      "electricity",
+      "district_heating"
+    ],
+    "note": "Synchronized full pod responses; same bodies verified by utility-malar-heating.test.ts"
   }
 ]

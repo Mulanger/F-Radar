@@ -1,0 +1,662 @@
+{
+  "generatedAt": "2026-11-19T09:05:14.535Z",
+  "summary": {
+    "digpro": 1
+  },
+  "results": [
+    {
+      "name": "Affärsverken Elnät i Karlskrona AB",
+      "utility": "electricity",
+      "customers": 19683,
+      "page": "https://www.affarsverken.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Alingsås Energi Elnät AB",
+      "utility": "electricity",
+      "customers": 16558,
+      "page": "https://www.alingsasenergi.se/kundservice/driftstorningar/",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Arvika Elnät AB",
+      "utility": "electricity",
+      "customers": 9896,
+      "page": "https://www.teknikivast.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Bengtsfors Energi Nät AB",
+      "utility": "electricity",
+      "customers": 2331,
+      "page": "https://www.nat.bengtsfors.se",
+      "reachable": false,
+      "platforms": []
+    },
+    {
+      "name": "Bjäre Kraft Elnät AB",
+      "utility": "electricity",
+      "customers": 14441,
+      "page": "http://www.bjarekraft.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Bjärke Energi ek. för.",
+      "utility": "electricity",
+      "customers": 5010,
+      "page": "http://www.bjerke-energi.se/kundservice/driftstorning/",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Blåsjön Nät AB",
+      "utility": "electricity",
+      "customers": 1540,
+      "page": "http://blasjonnat.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Bodens Energi Nät AB",
+      "utility": "electricity",
+      "customers": 17343,
+      "page": "https://www.bodensenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Boo Energi ek. för.",
+      "utility": "electricity",
+      "customers": 14847,
+      "page": "https://www.booenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Borgholm Energi Elnät AB",
+      "utility": "electricity",
+      "customers": 4638,
+      "page": "https://www.borgholmenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Brittedals Elnät ek. för.",
+      "utility": "electricity",
+      "customers": 4544,
+      "page": "https://www.brittedal.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Bromölla Energi och Vatten AB",
+      "utility": "electricity",
+      "customers": 4190,
+      "page": "https://www.bromolla.se/bevab/elnat/",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Degerfors Elnät AB",
+      "utility": "electricity",
+      "customers": 4545,
+      "page": "https://degerforsenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Eksjö Elnät AB",
+      "utility": "electricity",
+      "customers": 6606,
+      "page": "https://www.eksjoenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Falbygdens Energi Nät AB",
+      "utility": "electricity",
+      "customers": 17427,
+      "page": "https://www.falbygdensenergi.se/driftinfo/",
+      "reachable": false,
+      "platforms": []
+    },
+    {
+      "name": "Falkenberg Energi Elnät AB",
+      "utility": "electricity",
+      "customers": 15557,
+      "page": "http://falkenberg-energi.se/elnat/info-om-driftsstorningar",
+      "reachable": false,
+      "platforms": []
+    },
+    {
+      "name": "Filipstad Energinät AB",
+      "utility": "electricity",
+      "customers": 3107,
+      "page": "http://www.filipstadenerginat.se/",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Gislaved Energi Elnät AB",
+      "utility": "electricity",
+      "customers": 4533,
+      "page": "https://www.gislavedenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Gotlands Elnät AB",
+      "utility": "electricity",
+      "customers": 42925,
+      "page": "https://www.gotlandsenergi.se",
+      "reachable": false,
+      "platforms": []
+    },
+    {
+      "name": "Hallstaviks Elverk ek. för.",
+      "utility": "electricity",
+      "customers": 1826,
+      "page": "https://-www.hallstavikselverk.se",
+      "reachable": false,
+      "platforms": []
+    },
+    {
+      "name": "Herrljunga Elnät AB                             ",
+      "utility": "electricity",
+      "customers": 5393,
+      "page": "https://www.el.herrljunga.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Hjo Elnät AB",
+      "utility": "electricity",
+      "customers": 3648,
+      "page": "https://www.hjoenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Hjärtums Elförening ek för",
+      "utility": "electricity",
+      "customers": 2045,
+      "page": "https://www.hjartumselforening.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Härjeåns Nät AB",
+      "utility": "electricity",
+      "customers": 28176,
+      "page": "http://213.80.118.54/avbrottskarta/",
+      "reachable": false,
+      "platforms": []
+    },
+    {
+      "name": "Härryda Energi AB",
+      "utility": "electricity",
+      "customers": 14964,
+      "page": "https://www.harrydaenergi.se",
+      "reachable": true,
+      "platforms": [
+        {
+          "platform": "digpro",
+          "host": "instwebb.harrydaenergi.se",
+          "cust": "hra"
+        }
+      ]
+    },
+    {
+      "name": "Höganäs Energi Elnät AB",
+      "utility": "electricity",
+      "customers": 16153,
+      "page": "https://www.hoganasenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Kalmar Energi Elnät AB",
+      "utility": "electricity",
+      "customers": 22736,
+      "page": "https://kalmarenergi.se/el/elnat/stromavbrott/",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Karlsborgs Elnät AB",
+      "utility": "electricity",
+      "customers": 4079,
+      "page": "https://www.karlsborgsenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Karlshamn Elnät AB",
+      "utility": "electricity",
+      "customers": 8144,
+      "page": "https://www.karlshamnenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Karlskoga Elnät AB",
+      "utility": "electricity",
+      "customers": 15722,
+      "page": "https://www.karlskogaenergi.se/driftinformation/",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Kristinehamns Elnät AB",
+      "utility": "electricity",
+      "customers": 10389,
+      "page": "https://kristinehamnsenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Kungälv Energi AB",
+      "utility": "electricity",
+      "customers": 24528,
+      "page": "https://www.kungalvenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Landskrona Energi AB",
+      "utility": "electricity",
+      "customers": 19517,
+      "page": "https://www.landskronaenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "LEVA Nät AB",
+      "utility": "electricity",
+      "customers": 10422,
+      "page": "https://www.levailysekil.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Lidköping Elnät AB",
+      "utility": "electricity",
+      "customers": 23478,
+      "page": "https://www.lidkopingelnat.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Ljungby Energinät AB",
+      "utility": "electricity",
+      "customers": 8813,
+      "page": "https://www.ljungby-energi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Malung-Sälens Elnät AB",
+      "utility": "electricity",
+      "customers": 17568,
+      "page": "https://www.malungselnat.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Mellersta Skånes Kraft ek. för.",
+      "utility": "electricity",
+      "customers": 2425,
+      "page": "http://mskraft.nu/",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Mjölby Kraftnät AB",
+      "utility": "electricity",
+      "customers": 12610,
+      "page": "https://www.mkn.se",
+      "reachable": false,
+      "platforms": []
+    },
+    {
+      "name": "Norrtälje Energi AB",
+      "utility": "electricity",
+      "customers": 18086,
+      "page": "https://www.norrtaljeenergi.se/kundservice/driftinformation-elnat-och-fjarrvarme/avbrottssituationskarta/",
+      "reachable": false,
+      "platforms": []
+    },
+    {
+      "name": "Nossebroortens Energi ek. för.",
+      "utility": "electricity",
+      "customers": 2600,
+      "page": "http://www.nossebroenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Nybro Energi Elnät AB",
+      "utility": "electricity",
+      "customers": 8925,
+      "page": "http://nybroenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Näckåns Elnät AB",
+      "utility": "electricity",
+      "customers": 2908,
+      "page": "http://www.nackansenergi.se/",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Nätkraft Borås Infra AB",
+      "utility": "electricity",
+      "customers": 44245,
+      "page": "https://natkraftboras.se/kundservice/service/driftinformation/",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Olseröds Elektriska Distributionsförening u.p.a.",
+      "utility": "electricity",
+      "customers": 1807,
+      "page": "https://www.oedf.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Oskarshamn Energi Nät AB",
+      "utility": "electricity",
+      "customers": 12216,
+      "page": "https://www.oskarshamnenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "PiteEnergi Elnät AB",
+      "utility": "electricity",
+      "customers": 23472,
+      "page": "https://www.piteenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Ronneby Miljöteknik Elnät AB",
+      "utility": "electricity",
+      "customers": 11981,
+      "page": "https://-http://www.ronneby.se/sv/bolagen/miljo-teknik/",
+      "reachable": false,
+      "platforms": []
+    },
+    {
+      "name": "Rödeby Elverk ek. för.",
+      "utility": "electricity",
+      "customers": 4190,
+      "page": "https://rodebyelverk.net",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Sandhult-Sandareds Elnät AB",
+      "utility": "electricity",
+      "customers": 3757,
+      "page": "https://www.ssel.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Sandviken Energi Elnät AB",
+      "utility": "electricity",
+      "customers": 21565,
+      "page": "https://sandvikenenergi.se/kundservice/driftinfo.html",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Sjogerstads Elektriska Distributionsförening ek. för.",
+      "utility": "electricity",
+      "customers": 2809,
+      "page": "http://www.sjogerstadsenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Sjöbo Elnät AB",
+      "utility": "electricity",
+      "customers": 7979,
+      "page": "https://www.sjoboelnat.se ",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Skara Elnät AB",
+      "utility": "electricity",
+      "customers": 7432,
+      "page": "https://www.skaraenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Skurups Elverk AB",
+      "utility": "electricity",
+      "customers": 4449,
+      "page": "https://www.skurupselverk.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Skånska Energi Nät AB",
+      "utility": "electricity",
+      "customers": 19709,
+      "page": "https://www.skanska-energi.se/elnat/stromavbrott/akuta-stromavbrott/",
+      "reachable": false,
+      "platforms": []
+    },
+    {
+      "name": "Skövde Energi Elnät AB",
+      "utility": "electricity",
+      "customers": 21288,
+      "page": "https://skovdeenergi.se/s/kundservice/driftstatus",
+      "reachable": false,
+      "platforms": []
+    },
+    {
+      "name": "Sollentuna Elnät AB",
+      "utility": "electricity",
+      "customers": 29989,
+      "page": "https://www.sollentunaenergi.se",
+      "reachable": false,
+      "platforms": []
+    },
+    {
+      "name": "Staffanstorps Energi AB",
+      "utility": "electricity",
+      "customers": 7879,
+      "page": "https://www.staffanstorpsenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Sölvesborgs Elnät AB",
+      "utility": "electricity",
+      "customers": 5805,
+      "page": "https://www.solvesborgenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Tekniska verken Katrineholm Nät AB",
+      "utility": "electricity",
+      "customers": 18214,
+      "page": "https://www.tekniskaverken.se/elnat/vid_stromavbrott/storningsinformation/prenumerera/",
+      "reachable": false,
+      "platforms": []
+    },
+    {
+      "name": "Telge Elnät AB",
+      "utility": "electricity",
+      "customers": 55099,
+      "page": "http://www.telge.se/kundservice/driftstatus",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Tibro Elnät AB",
+      "utility": "electricity",
+      "customers": 5364,
+      "page": "http://www.tibroenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Tidaholms Elnät AB",
+      "utility": "electricity",
+      "customers": 6647,
+      "page": "https://www.tidaholmsenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Trelleborgs Elnät AB",
+      "utility": "electricity",
+      "customers": 17066,
+      "page": "https://www.trelleborgsenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Trollhättan Energi Elnät AB",
+      "utility": "electricity",
+      "customers": 24927,
+      "page": "https://www.trollhattanenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Umeå Energi Elnät AB",
+      "utility": "electricity",
+      "customers": 68210,
+      "page": "http://www.umeaenergi.se/kundservice/driftinformation ",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Upplands Energi ek. för.",
+      "utility": "electricity",
+      "customers": 13763,
+      "page": "https://www.upplandsenergi.se/elavbrott",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Vaggeryds Elverk AB",
+      "utility": "electricity",
+      "customers": 4353,
+      "page": "https://www.vaggerydsenergi.com",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Vallebygdens Energi ek. för.",
+      "utility": "electricity",
+      "customers": 2690,
+      "page": "https://vallebygdens.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Vara Energi ek. för.",
+      "utility": "electricity",
+      "customers": 4600,
+      "page": "https://www.varaenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "VänerEnergi AB",
+      "utility": "electricity",
+      "customers": 15071,
+      "page": "https://www.vanerenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Värnamo Elnät AB",
+      "utility": "electricity",
+      "customers": 10421,
+      "page": "https://www.varnamoenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Västerviks Kraft-Elnät AB",
+      "utility": "electricity",
+      "customers": 13457,
+      "page": "http://www.vastervik.se/sites/Miljo/templates/NewsArchive.aspx?id=16375",
+      "reachable": false,
+      "platforms": []
+    },
+    {
+      "name": "Ystad Energi Elnät AB",
+      "utility": "electricity",
+      "customers": 14328,
+      "page": "https://www.ystadenergi.se ",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Ålem Energi Elnät AB",
+      "utility": "electricity",
+      "customers": 3325,
+      "page": "https://www.alemenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Årsunda Kraft & Belysningsförening ek. för.",
+      "utility": "electricity",
+      "customers": 1516,
+      "page": "https://www.arsunda-kraft.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Öresundskraft Elnät AB",
+      "utility": "electricity",
+      "customers": 104127,
+      "page": "http://www.oresundskraft.se/privat/kundservice/avbrottsinformation/",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Östra Kinds Elnät AB",
+      "utility": "electricity",
+      "customers": 2850,
+      "page": "https://www.ostrakindselkraft.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Övertorneå Energi AB",
+      "utility": "electricity",
+      "customers": 3525,
+      "page": "https://www.övertorneåenergi.se",
+      "reachable": true,
+      "platforms": []
+    },
+    {
+      "name": "Övik Energi Nät AB",
+      "utility": "electricity",
+      "customers": 9180,
+      "page": "http://www.ovikenergi.se/kundservice/driftinformation.4.49d121ac119646c4e1b8000260.html",
+      "reachable": false,
+      "platforms": []
+    }
+  ]
+}

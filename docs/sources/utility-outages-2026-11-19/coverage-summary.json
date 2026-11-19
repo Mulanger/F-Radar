@@ -1,0 +1,42 @@
+{
+  "electricity": {
+    "denominator": 5612871,
+    "currentCustomers": 3859845,
+    "currentPercent": 68.767748270003,
+    "newProviderCustomers": 335510,
+    "oldOxeloIncomplete": 6423,
+    "potentialCustomers": 4188932,
+    "potentialPercent": 74.6308261850308,
+    "upperBoundIfAllLegacyHealthy": 74.74525960065714,
+    "potentialAllUtilitiesPercent": 73.79469437298665,
+    "sharedJobPartialOperators": [
+      "servicealert:oxelo",
+      "servicealert:eem"
+    ],
+    "sharedJobExcludedCustomers": 53354
+  },
+  "heating": {
+    "denominatorCustomerRelations": 351520,
+    "verifiedGbgLowerBoundCustomers": 14205,
+    "gbgExergiPotentialLowerBoundCustomers": 25317,
+    "beforeLowerBoundPercent": 4.041021847974511,
+    "potentialLowerBoundPercent": 7.202150659990897,
+    "fullShareVerified": false
+  },
+  "water": {
+    "productionBeforePercent": 0,
+    "productionAfterPercent": 0,
+    "customerShareVerified": false,
+    "municipalityPopulationProxy": 1282639,
+    "populationDenominator": 10605520,
+    "proxyPercent": 12.094069880590485
+  },
+  "gas": {
+    "productionBeforePercent": 0,
+    "productionAfterPercent": 0,
+    "eiReportedDistributionCustomers": 75278,
+    "goteborgCustomers": 7005,
+    "potentialEiSharePercent": 9.30550758521746,
+    "includesCityGasComparabilityVerified": false
+  }
+}

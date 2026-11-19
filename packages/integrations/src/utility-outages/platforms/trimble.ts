@@ -47,7 +47,7 @@ export interface TrimbleDistrict {
 }
 
 /** Districts of one scope from StaticObjects. */
-export function trimbleDistricts(staticObjects: unknown, scope: string): TrimbleDistrict[] | null {
+export function trimbleDistricts(staticObjects: unknown, scope: string, publishedIds?: ReadonlySet<number>): TrimbleDistrict[] | null {
   const features = (staticObjects as { features?: unknown[] })?.features;
   if (!Array.isArray(features)) return null;
   const out: TrimbleDistrict[] = [];
@@ -60,7 +60,7 @@ export function trimbleDistricts(staticObjects: unknown, scope: string): Trimble
     } catch {
       continue;
     }
-    if (ctx._nt !== scope || typeof ctx._id !== 'number') continue;
+    if (typeof ctx._id !== 'number' || (publishedIds ? !publishedIds.has(ctx._id) : ctx._nt !== scope)) continue;
     const ring = closeRing(a.data.path.map((p) => [p.x, p.y] as LonLat));
     if (!ring) continue;
     const xs = ring.map((p) => p[0]);
@@ -82,7 +82,7 @@ export function pointInRing([x, y]: LonLat, ring: LonLat[]): boolean {
 }
 
 /** Outage id → affected station coordinates, from GetObjectsByTiles points. */
-export function trimbleStations(tilePayloads: unknown[]): Map<number, LonLat[]> {
+export function trimbleStations(tilePayloads: unknown[], scope?: string): Map<number, LonLat[]> {
   const byOutage = new Map<number, LonLat[]>();
   const add = (oid: unknown, p: LonLat) => {
     if (typeof oid !== 'number' || oid <= 0 || !inSweden(p)) return;
@@ -101,7 +101,7 @@ export function trimbleStations(tilePayloads: unknown[]): Map<number, LonLat[]> 
       } catch {
         continue;
       }
-      if (ctx.t !== 'po') continue;
+      if (ctx.t !== 'po' || scope && ctx._nt !== scope) continue;
       const p: LonLat = [pt.x, pt.y];
       add(ctx.oid, p);
       for (const v of Object.values(ctx)) if (Array.isArray(v)) for (const e of v) add((e as { oid?: unknown })?.oid, p);
@@ -175,7 +175,7 @@ export function parseTrimble(appData: unknown, districts: TrimbleDistrict[], sta
     outages.push({
       operatorId: op.id,
       utility: op.utilities[0]!,
-      externalId: `${op.id}:${o.id}`,
+      externalId: `${op.id}${op.utilities[0] === 'electricity' ? '' : `:${op.utilities[0]}`}:${o.id}`,
       kind,
       state,
       affectedCustomers: o.cc && o.cc > 0 ? Math.round(o.cc) : null,

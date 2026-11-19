@@ -1,0 +1,83 @@
+{
+  "checkedAt": "2026-11-19T09:19:58.668Z",
+  "waterEnabled": true,
+  "results": [
+    {
+      "operatorId": "servicealert:karlstad",
+      "count": 1,
+      "skipped": 0,
+      "ignored": 0,
+      "water": 0
+    },
+    {
+      "operatorId": "servicealert:soderhamn",
+      "count": 0,
+      "skipped": 0,
+      "ignored": 2,
+      "water": 0
+    },
+    {
+      "operatorId": "servicealert:oxelo",
+      "count": 1,
+      "skipped": 1,
+      "ignored": 1,
+      "water": 0
+    },
+    {
+      "operatorId": "servicealert:emmaboda",
+      "count": 0,
+      "skipped": 0,
+      "ignored": 1,
+      "water": 0
+    },
+    {
+      "operatorId": "servicealert:eem",
+      "count": 1,
+      "skipped": 1,
+      "ignored": 1,
+      "water": 0
+    },
+    {
+      "operatorId": "servicealert:habo",
+      "count": 0,
+      "skipped": 0,
+      "ignored": 0,
+      "water": 0
+    },
+    {
+      "operatorId": "servicealert:ljusdal",
+      "count": 2,
+      "skipped": 0,
+      "ignored": 1,
+      "water": 0
+    },
+    {
+      "operatorId": "servicealert:molndal",
+      "count": 3,
+      "skipped": 0,
+      "ignored": 2,
+      "water": 0
+    },
+    {
+      "operatorId": "servicealert:tranas",
+      "count": 0,
+      "skipped": 0,
+      "ignored": 1,
+      "water": 0
+    },
+    {
+      "operatorId": "servicealert:ulricehamn",
+      "count": 1,
+      "skipped": 0,
+      "ignored": 3,
+      "water": 1
+    },
+    {
+      "operatorId": "servicealert:osterlen",
+      "count": 0,
+      "skipped": 0,
+      "ignored": 0,
+      "water": 0
+    }
+  ]
+}

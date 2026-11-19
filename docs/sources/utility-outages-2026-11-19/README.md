@@ -233,3 +233,49 @@ Kommande avstängningar visas endast när tidslinjeflaggan är på, vatten/värm
 matchningen hög/medel, start inom 48 timmar, explicit slut efter start och källan sedd senaste 20 min.
 Okänd sluttid blir ingen påhittad stapel. Leverantörens text och länk följer med till dator/mobil.
 Riskfaktorns namn och omfattning är fortfarande El och värme enligt ägarbeslut.
+
+### Kompletterande slutgranskning
+
+Den nationella operatörskatalogen från Elsamverkan svarade 200 från podden. Av de saknade näten
+kunde 81 kandidatsidor matchas entydigt i katalogen (en heuristisk sökväg, inte ny täckning).
+Sekventiell genomsökning i kundordning: 66 sidor svarade, 15 kunde inte läsas lokalt.
+23 namn gav inte entydig katalogmatchning; bland dem finns redan separat undersökta eller tillagda
+bolag. `national-discovery.json` och `directory-unmapped.json` bevarar resultatet. Tom plattformslista
+betyder att denna begränsade HTML-sökning inte hittade en adapter, inte att bolaget saknar ett flöde.
+Enda nya Digpro-fingeravtrycket var Härryda (`instwebb.harrydaenergi.se`, hra). Både KML och
+koncession gav timeout från podden; därför byggs ingen adapter. Svensk utgång är inte provad där.
+
+Mälarenergi kunde däremot kompletteras efter fördjupad verifiering. Värmescope h anger 77 områdes-id:n
+som matchar StaticObjects exakt, trots att geometrins kontext är p. Den publika klienten laddar
+gemensam StaticObjects, och kartpunkter för värme är uttryckligen `_nt: h`, `t: po` med aktuellt
+avbrotts-id. Synkroniserade app/static/tiles från podden gav två el- och två värmeavbrott, 0 skipped.
+Ny flagga SOURCE_UTILITY_MALAR_HEAT_ENABLED=false. Samma operatörsjobb hämtar båda lager, ingen
+extra parallell poller; elens id:n bevaras, värmens id:n har eget nyttighetsnamn och stationer filtreras
+per scope även vid id-kollision. Precision förblir områdesnivå, aldrig SMS. Tidigare anteckning om
+saknade värmeområden är ersatt av denna verifierade id-koppling; inga elkoncessioner blir värmenät.
+
+Tidslinjens gemensamma rubrik anger nu leverantörer när avstängningar visas, så dessa inte
+felaktigt tillskrivs SMHI. Varje rad har sin egen publika källänk.
+
+Slutlig nationell mätning: `current-electricity-coverage.json` använder en ny SELECT med enabled,
+senaste fullständiga ok och högst 20 min ålder. Samma elbaslinje bekräftades: 3 859 845/5 612 871
+(68,7677 %). Inget har ändrats i produktion.
+Med fyra nya elbolag tillkommer 335 510 abonnemang i leverantörernas kundbas. Ny parser gör dock
+Oxelös El-profil korrekt partial: ett aktuellt meddelande saknar ritad yta, bekräftat med nytt poddprov.
+Därför är den konservativa potentialen **4 188 932/5 612 871 = 74,6308 %**, inte den tidigare
+övre gränsen 74,7453 %. Skillnaden är Oxelös 6 423 abonnemang. Vattenflaggan var av i detta
+kompatibilitetsprov. Detta är leverantörstäckning, aldrig andel exakt polygon-/SMS-bevakade adresser.
+Värmens fulla nationella andel är inte verifierad. En säker särredovisad del är Göteborg 14 205
+av totalt 351 520 kundrelationer (4,0410 %); med Exergis enskilt redovisade Stockholmsnät blir den
+potentiella nedre gränsen 25 317 (7,2022 %). Andra nät tillgodoräknas inte som hela bolag utan verifierad
+omfattning. VA:s tre verifierade kommuner har 1 282 639 invånare (12,0941 % av SCB-totalen),
+vilket är befolkningsproxy och inte kundandel. Göteborg gas har 7 005 av Ei:s 75 278 redovisade
+abonnemang (9,3055 %), men jämförbarheten med hela landets stadsgas är ännu inte verifierad.
+`coverage-summary.json` bevarar beräkningarna och dessa begränsningar.
+
+Med samtliga nya nyttigheter på i samma ServiceAlert-jobb ger EEM:s koordinatbaserade VA-meddelande
+också partial för hela operatören. Det försiktiga gemensamma hälsomåttet tar då inte heller med
+EEM:s 46 931 elabonnemang. Allt-på-potentialen i dessa fångade svar blir **73,7947 %**, medan
+74,6308 % gäller elutbyggnad med vatten av. Oberoende hälsa per nyttighetslager i ett gemensamt jobb
+är en kvarstående förbättring; nu kan fel i ett lager sänka bevakningsräkningen för de andra.
+`expanded-servicealert-parse.json` visar exakt vilka svar som blev partial. Produktion är oförändrad.

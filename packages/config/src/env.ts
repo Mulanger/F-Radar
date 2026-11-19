@@ -87,6 +87,7 @@ export const ServerEnvSchema = z.object({
   SOURCE_UTILITY_VATTENFALL_HEAT_ENABLED: bool(false),
   SOURCE_UTILITY_SOLOR_ENABLED: bool(false),
   SOURCE_UTILITY_UMEA_HEAT_ENABLED: bool(false),
+  SOURCE_UTILITY_MALAR_HEAT_ENABLED: bool(false),
   SOURCE_UTILITY_SVOA_ENABLED: bool(false),
   SMS_WATER_OUTAGE_ENABLED: bool(false),
   SMS_HEATING_OUTAGE_ENABLED: bool(false),

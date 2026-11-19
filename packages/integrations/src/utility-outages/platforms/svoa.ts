@@ -47,7 +47,7 @@ export function parseSvoa(rows: unknown[], op: UtilityOperator): OutageFetchResu
     const updated = publishedLocalTime(r.lastUpdated);
     const noticeKind = notice ?? (r.type === 'drinkingwater' ? 'information' : 'outage');
     const url = new URL(r.linkToPage, op.mapUrl);
-    if (url.origin !== new URL(op.mapUrl).origin || !['https:'].includes(url.protocol)) { out.skipped++; continue; }
+    if (url.origin !== new URL(op.mapUrl).origin || url.protocol !== 'https:' || url.username || url.password) { out.skipped++; continue; }
     // A negative heading is never turned into an active recommendation; explicit completed status is required.
     const negated = boilingEndedHeading(r.title) || /ingen kokningsrekommendation|inte längre/i.test(r.title);
     if (noticeKind === 'boil_water' && negated && status !== 'restored') { out.skipped++; continue; }

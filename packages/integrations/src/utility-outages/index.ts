@@ -125,6 +125,7 @@ async function fetchSvoa(op: Extract<UtilityOperator, { platform: 'svoa' }>, ctx
 const ellevioShapes = new Map<number, unknown>();
 /** Trimble districts change rarely: cached per operator for 24 h. */
 const trimbleDistrictCache = new Map<string, { at: number; districts: TrimbleDistrict[] }>();
+const trimbleStaticCache = new Map<string, { at: number; data: unknown }>();
 
 async function fetchEllevio(op: Extract<UtilityOperator, { platform: 'ellevio' }>, ctx: AdapterContext): Promise<AdapterResult<OutageFetchResult>> {
   const url = (params: string) => `${op.loadUrl}?v=${encodeURIComponent(op.version)}&${params}`;
@@ -178,6 +179,30 @@ async function fetchTrimble(op: Extract<UtilityOperator, { platform: 'trimble' }
   if (!app.ok) return app;
   const appData = json(app.data);
   if (appData === undefined) return { ok: false, error: 'invalid_payload', detail: `${op.id}: application data not JSON` };
+  if (op.utilityScopes && op.utilities.some((u) => u !== 'electricity')) {
+    const decoded = typeof appData === 'string' ? json(appData) : appData;
+    const scopes = (decoded as { scopes?: Record<string, { areas?: Array<{ id?: unknown }>; outages?: unknown }> } | undefined)?.scopes;
+    const selected = op.utilities.map((utility) => ({ utility, scope: op.utilityScopes![utility] }));
+    if (!scopes || selected.some((s) => !s.scope || !Array.isArray(scopes[s.scope]?.areas) || !Array.isArray(scopes[s.scope]?.outages))) return { ok: false, error: 'invalid_payload', detail: `${op.id}: missing utility scope` };
+    let st = trimbleStaticCache.get(op.id);
+    if (!st || ctx.now().getTime() - st.at > 24 * 3600000) {
+      const r = await fetchText(`${api}/content/StaticObjects`, ctx, `${op.id} shared districts`);
+      if (!r.ok) return r;
+      st = { at: ctx.now().getTime(), data: json(r.data) }; trimbleStaticCache.set(op.id, st);
+    }
+    const layers = selected.map(({ utility, scope }) => ({ utility, scope: scope!, districts: trimbleDistricts(st!.data, scope!, new Set(scopes[scope!]!.areas!.map((a) => a.id).filter((id): id is number => typeof id === 'number'))) }));
+    if (layers.some((l) => !l.districts?.length)) return { ok: false, error: 'invalid_payload', detail: `${op.id}: no published districts` };
+    const ranges = [...new Set(layers.filter((l) => (scopes[l.scope]!.outages as unknown[]).length).flatMap((l) => trimbleTileRanges(l.districts!)))];
+    const tiles: unknown[] = [];
+    for (const rows of chunks(ranges, 25)) {
+      const r = await fetchText(`${api}/GetObjectsByTiles?zoom=10&tiles=${rows.join(',')}`, ctx, `${op.id} shared tiles`);
+      if (!r.ok) return r;
+      tiles.push(json(r.data));
+    }
+    const parts = layers.map((l) => parseTrimble(appData, l.districts!, trimbleStations(tiles, l.scope), { ...op, scope: l.scope, utilities: [l.utility] }, ctx.now()));
+    if (parts.some((p) => !p)) return { ok: false, error: 'invalid_payload', detail: `${op.id}: invalid utility layer` };
+    return { ok: true, data: combine(parts as OutageFetchResult[]), fetchedAt: app.fetchedAt };
+  }
   let cached = trimbleDistrictCache.get(op.id);
   if (!cached || ctx.now().getTime() - cached.at > 24 * 3_600_000) {
     const st = await fetchText(`${api}/content/StaticObjects`, ctx, `${op.id} districts`, { accept: 'application/json' });
@@ -199,7 +224,7 @@ async function fetchTrimble(op: Extract<UtilityOperator, { platform: 'trimble' }
       tiles.push(json(r.data));
     }
   }
-  const parsed = parseTrimble(appData, cached.districts, trimbleStations(tiles), op, ctx.now());
+  const parsed = parseTrimble(appData, cached.districts, trimbleStations(tiles, op.scope), op, ctx.now());
   return parsed ? { ok: true, data: parsed, fetchedAt: app.fetchedAt } : { ok: false, error: 'invalid_payload', detail: `${op.id}: scope ${op.scope} missing` };
 }
 

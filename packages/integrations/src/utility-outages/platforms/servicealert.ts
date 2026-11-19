@@ -153,7 +153,7 @@ export function parseServiceAlert(raw: unknown, op: UtilityOperator, utilities: 
         postalCodes: [],
         municipalityCode: null,
         placeLabel: title,
-        operatorText: [title, body].filter(Boolean).join(' – ').slice(0, 2000) || null,
+        operatorText: [title, body].filter(Boolean).join(' – ') || null,
         cause: null,
         sourceUrl: op.mapUrl,
         upstream: { critical: m.data.criticalStatus ?? null },

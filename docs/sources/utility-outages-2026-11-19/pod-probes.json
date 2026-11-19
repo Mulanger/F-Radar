@@ -80,6 +80,22 @@
     "bytes": 67
   },
   {
+    "id": "driva-home",
+    "url": "https://www.drivagasnat.se/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 63493
+  },
+  {
+    "id": "driva-work",
+    "url": "https://www.drivagasnat.se/arbeten",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 48648
+  },
+  {
     "id": "electric-CElntAB",
     "url": "https://www.c4energi.se/driftinformation/driftkarta-elnat/",
     "apiStatus": 200,
@@ -144,12 +160,12 @@
     "bytes": 142945
   },
   {
-    "id": "exergi-kml",
-    "url": "https://avbrott.stockholmexergi.com/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=fpdh_fov",
+    "id": "elsamverkan-directory",
+    "url": "https://elsamverkan.se/umbraco/surface/OrganizationList/GetOrganizationList",
     "apiStatus": 200,
     "exit": 0,
     "http": "200",
-    "bytes": 112257
+    "bytes": 156990
   },
   {
     "id": "exergi",
@@ -160,12 +176,44 @@
     "bytes": 338860
   },
   {
+    "id": "exergi-concession",
+    "url": "https://avbrott.stockholmexergi.com/bios/site/concession.kml",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "404",
+    "bytes": 244
+  },
+  {
+    "id": "exergi-kml",
+    "url": "https://avbrott.stockholmexergi.com/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=fpdh_fov",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 112257
+  },
+  {
     "id": "gasnatet",
     "url": "https://www.gasnatetstockholm.se/driftinformation/",
     "apiStatus": 200,
     "exit": 28,
     "http": "000",
     "bytes": 88
+  },
+  {
+    "id": "gasnatet-work",
+    "url": "https://www.gasnatetstockholm.se/om-gasnatet-stockholm/pagaende-arbete/",
+    "apiStatus": 200,
+    "exit": 28,
+    "http": "000",
+    "bytes": 88
+  },
+  {
+    "id": "goteborg-current-20261119",
+    "url": "https://www.goteborgenergi.se/external-web/api/outages-map-element/current-outages",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 2732
   },
   {
     "id": "goteborg-gas",
@@ -176,12 +224,20 @@
     "bytes": 334
   },
   {
-    "id": "goteborg-va-api",
-    "url": "https://se.sms-service.dk/api/WebMessage/GetDriftstatusWebMessagesMapModel",
+    "id": "goteborg-gas-restored",
+    "url": "https://www.goteborgenergi.se/GoteborgEnergi/Outages/FilteredOutagesKml.ashx?type=36857929&active=0",
     "apiStatus": 200,
     "exit": 0,
     "http": "200",
-    "bytes": 49685
+    "bytes": 334
+  },
+  {
+    "id": "goteborg-upcoming-20261119",
+    "url": "https://www.goteborgenergi.se/external-web/api/outages-map-element/upcoming-outages",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 7816
   },
   {
     "id": "goteborg-va",
@@ -190,6 +246,14 @@
     "exit": 0,
     "http": "404",
     "bytes": 5506
+  },
+  {
+    "id": "goteborg-va-api",
+    "url": "https://se.sms-service.dk/api/WebMessage/GetDriftstatusWebMessagesMapModel",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 49685
   },
   {
     "id": "gotland-arcgis",
@@ -240,6 +304,22 @@
     "bytes": 21055
   },
   {
+    "id": "harryda-concession",
+    "url": "https://instwebb.harrydaenergi.se/bios/site/concession.kml",
+    "apiStatus": 200,
+    "exit": 28,
+    "http": "000",
+    "bytes": 67
+  },
+  {
+    "id": "harryda-kml",
+    "url": "https://instwebb.harrydaenergi.se/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=fpp_hra",
+    "apiStatus": 200,
+    "exit": 28,
+    "http": "000",
+    "bytes": 67
+  },
+  {
     "id": "jonkoping-api",
     "url": "https://api.jonkopingenergi.se/operationalinfoservice/v1/operationalinfo/operationalinfos",
     "apiStatus": 200,
@@ -278,6 +358,46 @@
     "exit": 0,
     "http": "200",
     "bytes": 11338
+  },
+  {
+    "id": "malar-heat-main",
+    "url": "https://driftinfo.malarenergi.se/NisOutageMap/scripts/main.js",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 601780
+  },
+  {
+    "id": "malar-heat-tiles-0",
+    "url": "https://driftinfo.malarenergi.se/NisOutageMap/geoserver-api/GetObjectsByTiles?zoom=10&tiles=304684-304688,305708-305712,306732-306736,307756-307760,308780-308784",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 23886
+  },
+  {
+    "id": "malar-page-heat",
+    "url": "https://driftinfo.malarenergi.se/NisOutageMap/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 19552
+  },
+  {
+    "id": "malarenergi-all-application",
+    "url": "https://driftinfo.malarenergi.se/NisOutageMap/geoserver-api/GetApplicationData",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 27874
+  },
+  {
+    "id": "malarenergi-all-static",
+    "url": "https://driftinfo.malarenergi.se/NisOutageMap/geoserver-api/content/StaticObjects",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 1221706
   },
   {
     "id": "oresund-application",
@@ -320,6 +440,14 @@
     "bytes": 241011
   },
   {
+    "id": "oresund-page-heat",
+    "url": "https://www.oresundskraft.se/avbrottsinformation/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 241011
+  },
+  {
     "id": "oresund-static",
     "url": "https://driftinformation.oresundskraft.se/OutageMap/geoserver-api/content/StaticObjects",
     "apiStatus": 200,
@@ -328,20 +456,20 @@
     "bytes": 114621
   },
   {
-    "id": "oresund-tiles-0",
-    "url": "https://driftinformation.oresundskraft.se/OutageMap/geoserver-api/GetObjectsByTiles?zoom=10&tiles=324131-324133,325155-325157,326179-326181,327203-327205",
-    "apiStatus": 200,
-    "exit": 0,
-    "http": "200",
-    "bytes": 8630
-  },
-  {
     "id": "oresund-tiles",
     "url": "https://driftinformation.oresundskraft.se/OutageMap/geoserver-api/content/outageTableData.json",
     "apiStatus": 200,
     "exit": 0,
     "http": "200",
     "bytes": 468
+  },
+  {
+    "id": "oresund-tiles-0",
+    "url": "https://driftinformation.oresundskraft.se/OutageMap/geoserver-api/GetObjectsByTiles?zoom=10&tiles=324131-324133,325155-325157,326179-326181,327203-327205",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 8630
   },
   {
     "id": "servicealert-eem",
@@ -527,29 +655,7 @@
     "apiStatus": 200,
     "exit": 0,
     "http": "200",
-    "bytes": 3521,
-    "profiles": [
-      {
-        "title": "El",
-        "messages": 0
-      },
-      {
-        "title": "Fjärrvärme",
-        "messages": 1
-      },
-      {
-        "title": "Stadsnät",
-        "messages": 1
-      },
-      {
-        "title": "Vatten och Avlopp",
-        "messages": 0
-      },
-      {
-        "title": "Avfall & Återvinning",
-        "messages": 0
-      }
-    ]
+    "bytes": 6762
   },
   {
     "id": "servicealert-soderhamn",
@@ -686,12 +792,36 @@
     "bytes": 30371
   },
   {
+    "id": "solor-profiles",
+    "url": "https://se.sms-service.dk/api/WebMessage/GetDriftstatusWebMessagesMapModel",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 11262
+  },
+  {
+    "id": "svoa",
+    "url": "https://www.stockholmvattenochavfall.se/driftinformation/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "404",
+    "bytes": 152372
+  },
+  {
     "id": "svoa-corrected",
     "url": "https://www.stockholmvattenochavfall.se/driftinfo",
     "apiStatus": 200,
     "exit": 0,
     "http": "200",
     "bytes": 159541
+  },
+  {
+    "id": "svoa-headers",
+    "url": "https://www.stockholmvattenochavfall.se/driftinfo/Search?skip=0&query=&useCurrentLocation=false&latitude=undefined&longitude=undefined",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "404",
+    "bytes": 392
   },
   {
     "id": "svoa-search",
@@ -702,12 +832,12 @@
     "bytes": 60896
   },
   {
-    "id": "svoa",
-    "url": "https://www.stockholmvattenochavfall.se/driftinformation/",
+    "id": "svoa-search-next",
+    "url": "https://www.stockholmvattenochavfall.se/driftinfo/Search?skip=10&query=&useCurrentLocation=false&latitude=undefined&longitude=undefined",
     "apiStatus": 200,
     "exit": 0,
-    "http": "404",
-    "bytes": 152372
+    "http": "200",
+    "bytes": 18429
   },
   {
     "id": "tele2",
@@ -750,12 +880,36 @@
     "bytes": 67
   },
   {
+    "id": "tv-water-list",
+    "url": "https://avbrott.tekniskaverken.se/api/service-information/outage/list/?utility=water&brand=tekniskaverken",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 3333
+  },
+  {
+    "id": "tv-water-shapes",
+    "url": "https://avbrott.tekniskaverken.se/api/service-information/outage/shapes/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 4590
+  },
+  {
     "id": "umea-api",
     "url": "https://api.umeaenergi.se/api/v1/Disturbance",
     "apiStatus": 200,
     "exit": 0,
     "http": "200",
     "bytes": 3369805
+  },
+  {
+    "id": "umea-headers",
+    "url": "https://uewebstorage.blob.core.windows.net/disturbance-data-prod/disturbances.json",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 480
   },
   {
     "id": "umea-js",
@@ -790,11 +944,51 @@
     "bytes": 67
   },
   {
+    "id": "vasyd-recheck",
+    "url": "https://www.vasyd.se/driftinformation",
+    "apiStatus": 200,
+    "exit": 28,
+    "http": "000",
+    "bytes": 67
+  },
+  {
+    "id": "vattenfall-heat-app",
+    "url": "https://heatoutagemap.vattenfall.se/NisOutageMap/geoserver-api/GetApplicationData",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 3090
+  },
+  {
+    "id": "vattenfall-heat-static",
+    "url": "https://heatoutagemap.vattenfall.se/NisOutageMap/geoserver-api/content/StaticObjects",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 3562
+  },
+  {
+    "id": "vattenfall-heat-tiles-0",
+    "url": "https://heatoutagemap.vattenfall.se/NisOutageMap/geoserver-api/GetObjectsByTiles?zoom=10&tiles=303650-303668,304674-304692,305698-305716,306722-306740,307746-307764,308770-308788,309794-309812,310818-310836,311842-311860,312866-312884,313890-313908",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 9651
+  },
+  {
     "id": "weum",
     "url": "https://www.weum.se/driftinformation/",
     "apiStatus": 200,
     "exit": 0,
     "http": "404",
     "bytes": 45782
+  },
+  {
+    "id": "weum-home",
+    "url": "https://www.weum.se/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 69828
   }
 ]

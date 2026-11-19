@@ -496,7 +496,7 @@ export class NotificationService {
     };
     // Non-eligible changes are not turned into outbox rows (no "not eligible" noise per poll).
     for (const x of rows) {
-      if (['stockholm_exergi', 'vattenfall_heat', 'solor', 'umea'].includes(x.operator_id) && ['district_heating', 'district_cooling'].includes(x.utility) && (c.category !== 'heating_outage' || !this.env.SMS_HEATING_OUTAGE_ENABLED)) continue;
+      if (['stockholm_exergi', 'vattenfall_heat', 'solor', 'umea', 'trimble:malarenergi'].includes(x.operator_id) && ['district_heating', 'district_cooling'].includes(x.utility) && (c.category !== 'heating_outage' || !this.env.SMS_HEATING_OUTAGE_ENABLED)) continue;
       const phase = outageSmsPhase(c, x, now, r.activated_at, test);
       if (phase || test) add(x, phase);
     }
@@ -511,7 +511,7 @@ export class NotificationService {
         [r.organization_id, props.map((p) => p.id)],
       );
       for (const x of due.rows) {
-        if (['stockholm_exergi', 'vattenfall_heat', 'solor', 'umea'].includes(x.operator_id) && ['district_heating', 'district_cooling'].includes(x.utility) && (c.category !== 'heating_outage' || !this.env.SMS_HEATING_OUTAGE_ENABLED)) continue;
+        if (['stockholm_exergi', 'vattenfall_heat', 'solor', 'umea', 'trimble:malarenergi'].includes(x.operator_id) && ['district_heating', 'district_cooling'].includes(x.utility) && (c.category !== 'heating_outage' || !this.env.SMS_HEATING_OUTAGE_ENABLED)) continue;
         const confirmed = x.position_source === "manual_pin" || x.position_source === "manual_adjusted" || x.geocode_precision === "building";
         if (x.notice_kind !== 'outage') continue;
         if (!confirmed || !["outage_polygon", "outage_address"].includes(x.match_method ?? "")) continue;

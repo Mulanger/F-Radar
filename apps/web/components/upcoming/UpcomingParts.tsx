@@ -9,12 +9,14 @@ const pct = (f: number) => `${(f * 100).toFixed(3)}%`;
 
 /** Title, subtitle and the source badge ("SMHI · uppdaterad 16:00"). */
 export function UpcomingHeader({ st, variant }: { st: UpcomingState; variant: Variant }) {
+  const source = st.hasOutages ? st.hasWeather ? 'SMHI och leverantörer' : 'Leverantörer' : 'SMHI';
+  const updated = st.hasOutages ? null : st.updated;
   const badge = (
     <span className={s.badge}>
       <span className={s.badgeDot} style={{ background: st.live ? 'oklch(0.65 0.14 155)' : 'oklch(0.72 0.12 75)' }} />
       <span>
         {st.live ? '' : 'Demo · '}
-        {variant === 'desktop' ? `SMHI${st.updated ? ` · uppdaterad ${st.updated}` : ''}` : `SMHI${st.updated ? ` ${st.updated}` : ''}`}
+        {variant === 'desktop' ? `${source}${updated ? ` · uppdaterad ${updated}` : ''}` : `${source}${updated ? ` ${updated}` : ''}`}
       </span>
     </span>
   );
@@ -24,7 +26,7 @@ export function UpcomingHeader({ st, variant }: { st: UpcomingState; variant: Va
         <h2 className={s.title}>Kommande förhållanden</h2>
         {badge}
       </div>
-      <div className={s.sub}>Prognos och officiella varningar · nästa 48 h</div>
+      <div className={s.sub}>{st.hasOutages ? 'Prognos, officiella varningar och planerade avstängningar' : 'Prognos och officiella varningar'} · nästa 48 h</div>
     </div>
   );
 }
