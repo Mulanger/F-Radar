@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import type { AcknowledgementHistoryEntry, AcknowledgementHistoryFilters, AcknowledgementHistoryPage } from '@fastighetsradar/domain';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { acknowledgementTime, importedText, severityLabel } from '@/lib/acknowledgements/presentation';
+import type { AcknowledgementReportFormat } from '@/lib/acknowledgements/pdf';
 import { demoAcknowledgementPage } from '@/lib/demo/acknowledgements';
 import { IconAcknowledgements, IconChevronDown, IconDownload } from '../ui/icons';
 import styles from './AcknowledgementHistory.module.css';
@@ -29,6 +30,7 @@ export function AcknowledgementHistory({ demoEntries }: { demoEntries?: Acknowle
   const [history, setHistory] = useState<AcknowledgementHistoryPage | null>(() => demoEntries ? demoAcknowledgementPage(demoEntries, emptyFilters) : null);
   const [loading, setLoading] = useState(!demoEntries);
   const [downloading, setDownloading] = useState(false);
+  const [pdfFormat, setPdfFormat] = useState<AcknowledgementReportFormat>('compact');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -90,7 +92,7 @@ export function AcknowledgementHistory({ demoEntries }: { demoEntries?: Acknowle
       const period = [applied.from && `Från ${applied.from}`, applied.to && `Till ${applied.to}`].filter(Boolean).join(' · ') || 'Alla datum';
       const selection = `${period} · ${property?.name ?? 'Alla fastigheter'}`;
       const { downloadAcknowledgementReport } = await import('@/lib/acknowledgements/pdf');
-      await downloadAcknowledgementReport(entries, portfolio.organizationName, selection, !!demoEntries);
+      await downloadAcknowledgementReport(entries, portfolio.organizationName, selection, !!demoEntries, pdfFormat);
     } catch {
       setError('PDF-filen kunde inte laddas ner. Försök igen.');
     } finally {
@@ -111,9 +113,18 @@ export function AcknowledgementHistory({ demoEntries }: { demoEntries?: Acknowle
           <h1 id="acknowledgement-title">Kvitteringar</h1>
           <p>Organisationens historik över kvitterade larm och händelser.</p>
         </div>
-        <button type="button" className={styles.primary} disabled={busy || !entries.length} onClick={() => void download()}>
-          <IconDownload />{downloading ? 'Skapar PDF…' : 'Ladda ner PDF'}
-        </button>
+        <div className={styles.exportControls}>
+          <label className={styles.exportFormat}>
+            <span className="fr-sr-only">PDF-format</span>
+            <select value={pdfFormat} disabled={busy} onChange={(event) => setPdfFormat(event.currentTarget.value === 'full' ? 'full' : 'compact')}>
+              <option value="compact">Kort lista</option>
+              <option value="full">Fullständig rapport</option>
+            </select>
+          </label>
+          <button type="button" className={styles.primary} disabled={busy || !entries.length} onClick={() => void download()}>
+            <IconDownload />{downloading ? 'Skapar PDF…' : 'Ladda ner PDF'}
+          </button>
+        </div>
       </header>
 
       <form className={styles.filters} onSubmit={handleSubmit}>

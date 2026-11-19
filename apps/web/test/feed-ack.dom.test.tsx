@@ -115,7 +115,7 @@ describe('kvittering i händelseflödet', () => {
 
   it('includes both timestamps in the exported PDF and omits identity fields', () => {
     const example = { ...demoAcknowledgements.find((entry) => !!entry.undoneAt)!, acknowledgedBy: 'Private Name', undoneBy: 'Another Name' };
-    const report = acknowledgementReport([example], 'Demoportfölj', 'Alla datum', true, example.acknowledgedAt);
+    const report = acknowledgementReport([example], 'Demoportfölj', 'Alla datum', true, example.acknowledgedAt, 'full');
     const content = JSON.stringify(report.content);
     expect(content).toContain('Kvitterad 18 nov. 2026 09:04');
     expect(content).toContain('Ångrad 18 nov. 2026 09:16');

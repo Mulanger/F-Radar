@@ -49,6 +49,21 @@
 .textButton:hover:not(:disabled) { text-decoration: underline; }
 .primary:disabled, .secondary:disabled, .textButton:disabled { opacity: .52; cursor: default; }
 
+.exportControls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.exportFormat { display: flex; }
+.exportFormat select {
+  min-height: 40px;
+  max-width: 100%;
+  padding: 0 9px;
+  border: 1px solid #dbe0dc;
+  border-radius: 11px;
+  color: #14171a;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+}
+.exportFormat select:disabled { opacity: .52; }
+
 .filters, .results {
   background: #fff;
   border: 1px solid #e4e7e4;

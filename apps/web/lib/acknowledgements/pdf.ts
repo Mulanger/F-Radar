@@ -1,6 +1,50 @@
-import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
+import type { Content, ContentTable, TDocumentDefinitions } from 'pdfmake/interfaces';
 import type { AcknowledgementHistoryEntry } from '@fastighetsradar/domain';
 import { acknowledgementDay, acknowledgementTime, importedText, severityLabel } from './presentation';
+
+export type AcknowledgementReportFormat = 'compact' | 'full';
+
+function compactEntries(entries: AcknowledgementHistoryEntry[]): ContentTable {
+  return {
+    layout: 'lightHorizontalLines',
+    fontSize: 9,
+    margin: [0, 12, 0, 0],
+    table: {
+      headerRows: 1,
+      dontBreakRows: true,
+      widths: ['*', 105, 98, 57],
+      body: [
+        ['Händelse', 'Fastighet', 'Kvitterad tid', 'Status'].map((text) => ({ text, bold: true })),
+        ...entries.map((entry) => [
+          entry.title,
+          entry.propertyName,
+          acknowledgementTime(entry.acknowledgedAt),
+          entry.undoneAt ? 'Ångrad' : 'Kvitterad',
+        ]),
+      ],
+    },
+  };
+}
+
+function fullEntries(entries: AcknowledgementHistoryEntry[]): Content[] {
+  const content: Content[] = [];
+  for (const entry of entries) {
+    content.push(
+      { text: entry.title, style: 'entryHeading', headlineLevel: 1 },
+      { text: [entry.propertyName, entry.propertyAddress].filter(Boolean).join(' · '), bold: true },
+      { text: `${entry.source} · ${severityLabel(entry.severity)}${entry.area ? ` · ${entry.area}` : ''}`, style: 'secondary' },
+      { text: `Händelsetid ${acknowledgementTime(entry.eventAt)}`, style: 'secondary' },
+      { text: `Kvitterad ${acknowledgementTime(entry.acknowledgedAt)}`, style: 'action' },
+    );
+    if (entry.undoneAt) content.push({
+      text: `Ångrad ${acknowledgementTime(entry.undoneAt)}`,
+      style: 'action', color: '#795019',
+    });
+    if (entry.imported) content.push({ text: importedText, style: 'secondary', italics: true });
+    if (entry.description) content.push({ text: entry.description, margin: [0, 5, 0, 0] });
+  }
+  return content;
+}
 
 export function acknowledgementReport(
   entries: AcknowledgementHistoryEntry[],
@@ -8,26 +52,12 @@ export function acknowledgementReport(
   selection: string,
   demo: boolean,
   exportedAt: string,
+  format: AcknowledgementReportFormat,
 ): TDocumentDefinitions {
-  const layers: Content[] = [];
-  for (const entry of entries) {
-    layers.push(
-      { text: entry.title, style: 'entryHeading', headlineLevel: 1 },
-      { text: [entry.propertyName, entry.propertyAddress].filter(Boolean).join(' · '), bold: true },
-      { text: `${entry.source} · ${severityLabel(entry.severity)}${entry.area ? ` · ${entry.area}` : ''}`, style: 'secondary' },
-      { text: `Händelsetid ${acknowledgementTime(entry.eventAt)}`, style: 'secondary' },
-      { text: `Kvitterad ${acknowledgementTime(entry.acknowledgedAt)}`, style: 'action' },
-    );
-    if (entry.undoneAt) layers.push({
-      text: `Ångrad ${acknowledgementTime(entry.undoneAt)}`,
-      style: 'action', color: '#795019',
-    });
-    if (entry.imported) layers.push({ text: importedText, style: 'secondary', italics: true });
-    if (entry.description) layers.push({ text: entry.description, margin: [0, 5, 0, 0] });
-  }
-
+  const compact = format === 'compact';
+  const formatLabel = compact ? 'Kort lista' : 'Fullständig rapport';
   return {
-    info: { title: 'Kvitteringar', author: 'FastighetsRadar' },
+    info: { title: `Kvitteringar - ${formatLabel}`, author: 'FastighetsRadar' },
     pageSize: 'A4',
     pageMargins: [42, 44, 42, 48],
     defaultStyle: { font: 'Roboto', fontSize: 10, color: '#1A231F', lineHeight: 1.22 },
@@ -37,9 +67,9 @@ export function acknowledgementReport(
     }),
     content: [
       { text: 'Kvitteringar', fontSize: 28, bold: true, margin: [0, 0, 0, 5] },
-      { text: [organizationName, demo && 'Demodata'].filter(Boolean).join(' · '), bold: true },
+      { text: [organizationName, formatLabel, demo && 'Demodata'].filter(Boolean).join(' · '), bold: true },
       { text: `${selection}\n${entries.length === 1 ? '1 kvittering' : `${entries.length} kvitteringar`} · Exporterad ${acknowledgementTime(exportedAt)} (svensk tid)`, style: 'secondary' },
-      ...layers,
+      ...(compact ? [compactEntries(entries)] : fullEntries(entries)),
     ],
     styles: {
       entryHeading: { fontSize: 13, bold: true, margin: [0, 17, 0, 4] },
@@ -50,11 +80,14 @@ export function acknowledgementReport(
   };
 }
 
-export async function downloadAcknowledgementReport(entries: AcknowledgementHistoryEntry[], organizationName: string, selection: string, demo: boolean) {
+export async function downloadAcknowledgementReport(
+  entries: AcknowledgementHistoryEntry[], organizationName: string, selection: string, demo: boolean, format: AcknowledgementReportFormat,
+) {
   const [pdf, fonts] = await Promise.all([import('pdfmake/build/pdfmake'), import('pdfmake/build/vfs_fonts')]);
   const pdfMake = pdf.default ?? pdf;
   pdfMake.addVirtualFileSystem(fonts.default ?? fonts);
   const exportedAt = new Date().toISOString();
-  await pdfMake.createPdf(acknowledgementReport(entries, organizationName, selection, demo, exportedAt))
-    .download(`kvitteringar-${acknowledgementDay(exportedAt)}.pdf`);
+  const formatSlug = format === 'compact' ? 'kort-lista' : 'fullstandig-rapport';
+  await pdfMake.createPdf(acknowledgementReport(entries, organizationName, selection, demo, exportedAt, format))
+    .download(`kvitteringar-${formatSlug}-${acknowledgementDay(exportedAt)}.pdf`);
 }
