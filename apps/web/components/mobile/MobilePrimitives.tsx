@@ -30,7 +30,7 @@ export function MobileWeatherCard({ icon, label, value, sub }: { icon: React.Rea
  * Feed rows link to the property. With `onMap`, a row whose event has a position also gets a map
  * button; with `acks`, a row that must be acknowledged gets "Kvittera" beside it, in the lower right corner.
  */
-export function MobileFeedRows({ feed, basePath, onMap, acks }: { feed: OverviewVM['feed']; basePath: string; onMap?: (row: FeedMapTarget) => void; acks?: FeedAcks }) {
+export function MobileFeedRows({ feed, basePath, onMap, isUnread, acks }: { feed: OverviewVM['feed']; basePath: string; onMap?: (row: FeedMapTarget) => void; isUnread?: (row: FeedMapTarget) => boolean; acks?: FeedAcks }) {
   return feed.map((f) => {
     const map = onMap && f.mapEventId;
     const ack = acks && f.ackRequired;
@@ -38,7 +38,7 @@ export function MobileFeedRows({ feed, basePath, onMap, acks }: { feed: Overview
       <span className={styles.feedIcon} style={{ background: f.bg }}><span className={styles.dot} style={{ background: f.c, width: 8, height: 8 }} /></span>
       <span className={styles.feedMain}><span className={styles.feedTitle}>{f.title}</span><span className={styles.feedMeta}><span className={styles.source}>{f.src}</span><span>{f.prop}</span></span></span>
       <span className={styles.feedTime}>
-        {f.updated && <FeedUpdatedBadge />}
+        {(isUnread?.(f) ?? !!f.unreadUpdateId) && <FeedUpdatedBadge />}
         <span className={styles.time} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: 5 }}>{f.nightWork && <NightMoon label={f.nightWork} />}<time>{f.t}</time></span>
       </span>
     </>;

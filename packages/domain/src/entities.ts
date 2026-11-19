@@ -361,6 +361,10 @@ export const FeedItemSchema = z.object({
   id: z.string(),
   publishedAt: IsoDateTimeSchema,
   updatedAt: IsoDateTimeSchema.optional(),
+  /** The newest traffic revision, present only until this viewer opens it. */
+  unreadUpdateId: z.string().optional(),
+  /** A merged traffic card opens the member containing the most recent revision. */
+  updatedEventId: z.string().optional(),
   title: z.string(),
   sourceLabel: z.string(),
   sourceId: SourceIdSchema,

@@ -510,7 +510,8 @@ type FeedChange = {
   id: string; property_id: string; event_id?: string | null; event_ended_on_map?: boolean; outage_on_map?: boolean; event_active?: boolean; superseded?: boolean;
   acknowledged_at?: Date | null; source_id: string; change_type: string; severity: string; headline: string; created_at: Date;
   event_type?: string | null; situation_id?: string | null; event_valid_from?: Date | null; event_valid_to?: Date | null; event_description?: string | null;
-  updated_at?: Date;
+  update_read?: boolean;
+  revision?: { id: string; at: Date; eventId: string | null | undefined; read: boolean };
 };
 const SAME_BATCH_MS = 5 * 60_000;
 
@@ -553,7 +554,7 @@ function collapseTrafficChanges(rows: FeedChange[], replacements: ReadonlySet<st
       created_at: first.created_at,
       headline: first.headline,
       change_type: ended || replacements.has(first.id) ? latest.change_type : 'new',
-      updated_at: revision?.created_at,
+      revision: revision && { id: revision.id, at: revision.created_at, eventId: revision.event_id, read: revision.update_read === true },
     });
   }
   return otherRows.sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
@@ -580,14 +581,16 @@ export function buildFeed(changes: FeedChange[], propertyIds: Set<string>): Feed
       const c = g[0]!;
       const severity = g.map((x) => x.severity).sort((a, b) => (SEVERITY_RANK[b] ?? 0) - (SEVERITY_RANK[a] ?? 0))[0]!;
       const headline = g.length > 1 ? mergedTrafficTitle(g.map((x) => ({ eventType: x.event_type ?? null, headline: x.headline }))) : c.headline;
-      const updatedAt = g.reduce<Date | undefined>((latest, row) =>
-        row.updated_at && (!latest || row.updated_at > latest) ? row.updated_at : latest, undefined);
-      return { ...c, severity, headline, updated_at: updatedAt };
+      const revision = g.reduce<FeedChange['revision']>((latest, row) =>
+        row.revision && (!latest || row.revision.at > latest.at) ? row.revision : latest, undefined);
+      return { ...c, severity, headline, revision };
     })
     .map((c) => ({
       id: `chg-${c.id}`,
       publishedAt: c.created_at.toISOString(),
-      ...(c.updated_at ? { updatedAt: c.updated_at.toISOString() } : {}),
+      ...(c.revision ? { updatedAt: c.revision.at.toISOString() } : {}),
+      ...(c.revision && !c.revision.read ? { unreadUpdateId: `chg-${c.revision.id}` } : {}),
+      ...(c.revision?.eventId && c.revision.eventId !== c.event_id ? { updatedEventId: c.revision.eventId } : {}),
       // Outage rows already carry a complete, state-specific title ("Strömmen är tillbaka …").
       title: c.source_id === 'utility_outages' ? c.headline : `${CHANGE_SV[c.change_type] ?? c.change_type}: ${c.headline}`,
       sourceLabel: SOURCE_LABEL[c.source_id as SourceId] ?? c.source_id,

@@ -61,12 +61,14 @@ describe('Trafikverket duplicates', () => {
     expect(buildFeed([initial], propertyIds)).toEqual([]);
     expect(buildFeed([first, initial], propertyIds)[0]).toMatchObject({ title: `Ny: ${first.headline}`, publishedAt: first.created_at.toISOString() });
     const [active] = buildFeed([latest, first, initial], propertyIds);
-    expect(active).toMatchObject({ id: 'chg-3', title: `Ny: ${first.headline}`, publishedAt: first.created_at.toISOString(), updatedAt: latest.created_at.toISOString() });
+    expect(active).toMatchObject({ id: 'chg-3', title: `Ny: ${first.headline}`, publishedAt: first.created_at.toISOString(), updatedAt: latest.created_at.toISOString(), unreadUpdateId: 'chg-3' });
     const feed = buildFeed([ended, latest, first, otherProperty, initial], propertyIds);
     expect(feed).toHaveLength(2);
     const closed = feed.find((item) => item.propertyId === 'p1');
-    expect(closed).toMatchObject({ id: 'chg-4', title: `Avslutad: ${first.headline}`, publishedAt: first.created_at.toISOString(), updatedAt: latest.created_at.toISOString(), eventEndedOnMap: true });
+    expect(closed).toMatchObject({ id: 'chg-4', title: `Avslutad: ${first.headline}`, publishedAt: first.created_at.toISOString(), updatedAt: latest.created_at.toISOString(), eventEndedOnMap: true, unreadUpdateId: 'chg-3' });
     expect(feed.find((item) => item.propertyId === 'p2')?.updatedAt).toBeUndefined();
+    expect(buildFeed([{ ...latest, update_read: true }, first], propertyIds)[0]?.unreadUpdateId).toBeUndefined();
+    expect(buildFeed([row('6', 45, 'updated', 'warning'), { ...latest, update_read: true }, first], propertyIds)[0]?.unreadUpdateId).toBe('chg-6');
   });
 });
 

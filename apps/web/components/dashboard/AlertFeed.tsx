@@ -68,7 +68,7 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
             {/* Time on top; the card's buttons in its lower right corner (Kvittera beside the map). */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
-                {f.updated && <FeedUpdatedBadge />}
+                {map.isUnread(f) && <FeedUpdatedBadge />}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {f.nightWork && <NightMoon label={f.nightWork} />}
                   <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: C.text4, whiteSpace: 'nowrap' }}>{f.t}</div>

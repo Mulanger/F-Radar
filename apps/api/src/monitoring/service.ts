@@ -114,7 +114,7 @@ export class MonitoringService {
       listProperties(this.db, t),
       loadOrgMonitoring(this.db, t.organizationId),
       this.statuses(now),
-      listRecentChangesForOrg(this.db, t.organizationId, 60, true),
+      listRecentChangesForOrg(this.db, t.organizationId, 60, t.userId),
       this.utilityInputs(t.organizationId, now),
       getOrganizationSettings(this.db, t.organizationId),
     ]);

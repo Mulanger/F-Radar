@@ -757,7 +757,8 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
   return { history:history.rows, hydrologyReferences:hydrologyReferences.rows, nowcasts: nowcasts.rows, forecasts: forecasts.rows, events: events.rows, contexts: contexts.rows, observations: observations.rows, counties: counties.rows, airHistory: airHistory.rows };
 }
 
-export async function listRecentChangesForOrg(db: Queryable, organizationId: string, limit = 50, forPortfolio = false) {
+export async function listRecentChangesForOrg(db: Queryable, organizationId: string, limit = 50, viewerId?: string) {
+  const forPortfolio = viewerId !== undefined;
   const changeKey = `CASE WHEN c.source_id = 'trafikverket' AND c.event_id IS NOT NULL
     THEN c.property_id || ':' || c.event_id ELSE c.id::text END`;
   // Limit the feed by event before fetching the rows needed for each traffic event's lifecycle.
@@ -786,7 +787,7 @@ export async function listRecentChangesForOrg(db: Queryable, organizationId: str
   )`;
   const { rows } = await db.query<{
     id: string; property_id: string; event_id: string | null; source_id: string; change_type: string; data_class: string; severity: string; headline: string; created_at: Date;
-    event_ended_on_map: boolean; outage_on_map: boolean; event_active: boolean; superseded: boolean; acknowledged_at: Date | null;
+    event_ended_on_map: boolean; outage_on_map: boolean; event_active: boolean; superseded: boolean; acknowledged_at: Date | null; update_read?: boolean;
     event_type: string | null; situation_id: string | null; event_valid_from: Date | null; event_valid_to: Date | null; event_description: string | null;
   }>(
     `${forPortfolio ? portfolioRows : ''}
@@ -794,6 +795,7 @@ export async function listRecentChangesForOrg(db: Queryable, organizationId: str
             COALESCE(e.status <> 'active' AND e.geom IS NOT NULL AND e.source_id IN ${FEED_MAP_SOURCES_SQL}, false) AS event_ended_on_map,
             COALESCE(e.status = 'active' AND e.geom IS NOT NULL AND e.source_id = 'utility_outages', false) AS outage_on_map,
             COALESCE(e.status = 'active', false) AS event_active,
+            ${forPortfolio ? `EXISTS (SELECT 1 FROM feed_update_reads r WHERE r.organization_id = c.organization_id AND r.viewer_id = $3 AND r.change_id = c.id) AS update_read,` : ''}
             e.event_type, e.extra->>'situationId' AS situation_id, e.valid_from AS event_valid_from, e.valid_to AS event_valid_to, e.description AS event_description,
             EXISTS (SELECT 1 FROM monitoring_changes l
                      WHERE l.event_id = c.event_id AND l.property_id = c.property_id AND l.organization_id = c.organization_id
@@ -805,9 +807,20 @@ export async function listRecentChangesForOrg(db: Queryable, organizationId: str
        FROM ${forPortfolio ? 'feed_changes' : 'monitoring_changes'} c
        LEFT JOIN source_events e ON e.id = c.event_id
       WHERE c.organization_id = $1 ORDER BY c.created_at DESC, c.id DESC ${forPortfolio ? '' : 'LIMIT $2'}`,
-    [organizationId, limit],
+    forPortfolio ? [organizationId, limit, viewerId] : [organizationId, limit],
   );
   return rows;
+}
+
+/** Records exactly the traffic revision this viewer opened. Reopening it is idempotent. */
+export async function markFeedUpdateRead(db: Queryable, organizationId: string, changeId: string, viewerId: string): Promise<void> {
+  await db.query(
+    `INSERT INTO feed_update_reads (organization_id, change_id, viewer_id)
+     SELECT c.organization_id, c.id, $3 FROM monitoring_changes c
+     WHERE c.organization_id = $1 AND c.id = $2::bigint AND c.source_id = 'trafikverket' AND c.change_type IN ('new', 'updated')
+     ON CONFLICT DO NOTHING`,
+    [organizationId, changeId, viewerId],
+  );
 }
 
 const severityRankSql = (t: string) =>

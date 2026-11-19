@@ -18,6 +18,7 @@ export interface FeedMapTarget {
   mapEnded?: boolean;
   /** Loaded on its own (ended event, utility outage) instead of from the property's event list. */
   mapSingle?: boolean;
+  unreadUpdateId?: string | null;
 }
 
 const MAP_ICON = 'M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14';
@@ -56,16 +57,37 @@ export function FeedMapButton({ title, ended = false, onClick }: { title: string
  * the dashboard, without leaving it. `open(row)` shows the row's event; `view` is the overlay to render.
  */
 export function useFeedEventMap() {
-  const [target, setTarget] = useState<{ propertyId: string; eventId: string; single: boolean; n: number } | null>(null);
+  const { refresh } = useDashboard();
+  const [readIds, setReadIds] = useState(() => new Set<string>());
+  const [target, setTarget] = useState<{ propertyId: string; eventId: string; single: boolean; unreadUpdateId: string | null; n: number } | null>(null);
+  const isUnread = useCallback((row: FeedMapTarget) => !!row.unreadUpdateId && !readIds.has(row.unreadUpdateId), [readIds]);
   const open = useCallback((row: FeedMapTarget) => {
-    if (row.mapEventId) setTarget({ propertyId: row.propertyId, eventId: row.mapEventId, single: row.mapSingle === true || row.mapEnded === true, n: Date.now() });
-  }, []);
+    if (row.mapEventId) setTarget({ propertyId: row.propertyId, eventId: row.mapEventId, single: row.mapSingle === true || row.mapEnded === true,
+      unreadUpdateId: isUnread(row) ? row.unreadUpdateId! : null, n: Date.now() });
+  }, [isUnread]);
+  const onOpened = useCallback(() => {
+    const changeId = target?.unreadUpdateId;
+    if (!changeId) return;
+    setReadIds((ids) => new Set(ids).add(changeId));
+    void fetch('/api/app/feed/reads', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ changeId }),
+    }).then((r) => {
+      if (!r.ok) throw new Error();
+      refresh();
+    }).catch(() => {
+      setReadIds((ids) => {
+        const next = new Set(ids);
+        next.delete(changeId);
+        return next;
+      });
+    });
+  }, [target, refresh]);
   const close = useCallback(() => setTarget(null), []);
-  const view = target ? <FeedEventMap key={target.n} propertyId={target.propertyId} eventId={target.eventId} single={target.single} onClose={close} /> : null;
-  return { open, view };
+  const view = target ? <FeedEventMap key={target.n} propertyId={target.propertyId} eventId={target.eventId} single={target.single} onClose={close} onOpened={onOpened} /> : null;
+  return { open, view, isUnread };
 }
 
-function FeedEventMap({ propertyId, eventId, single, onClose }: { propertyId: string; eventId: string; single: boolean; onClose: () => void }) {
+function FeedEventMap({ propertyId, eventId, single, onClose, onOpened }: { propertyId: string; eventId: string; single: boolean; onClose: () => void; onOpened: () => void }) {
   const ds = useDashboard();
   const s = ds.portfolio.properties.find((p) => p.property.id === propertyId);
   // The property can disappear on a refresh (removed, or filtered away); then there is nothing to show.
@@ -73,14 +95,14 @@ function FeedEventMap({ propertyId, eventId, single, onClose }: { propertyId: st
     if (!s) onClose();
   }, [s, onClose]);
   if (!s) return null;
-  return single ? <SingleEventMap s={s} eventId={eventId} onClose={onClose} /> : <PropertyEventMap s={s} eventId={eventId} onClose={onClose} />;
+  return single ? <SingleEventMap s={s} eventId={eventId} onClose={onClose} onOpened={onOpened} /> : <PropertyEventMap s={s} eventId={eventId} onClose={onClose} />;
 }
 
 /**
  * One event loaded on its own (live API, or the demo fixture): an ended event's stored stretch, drawn
  * grey, or a utility outage's area. If it can no longer be found (removed), the view simply closes.
  */
-function SingleEventMap({ s, eventId, onClose }: { s: PropertySnapshot; eventId: string; onClose: () => void }) {
+function SingleEventMap({ s, eventId, onClose, onOpened }: { s: PropertySnapshot; eventId: string; onClose: () => void; onOpened: () => void }) {
   const ds = useDashboard();
   const live = s.property.origin === 'live';
   const [data, setData] = useState<PropertyEventMapEvent | null>(() => (live ? null : demoSingleEvent(s.property.id, eventId)));
@@ -94,8 +116,11 @@ function SingleEventMap({ s, eventId, onClose }: { s: PropertySnapshot; eventId:
     fetch(`/api/app/properties/${encodeURIComponent(s.property.id)}/event-map/${encodeURIComponent(eventId)}`, { signal: ctrl.signal, cache: 'no-store', headers: { accept: 'application/json' } })
       .then(async (r) => {
         const parsed = r.ok ? PropertyEventMapEventSchema.safeParse(await r.json()) : null;
-        if (parsed?.success && parsed.data.propertyId === s.property.id && parsed.data.item.eventId === eventId) setData(parsed.data);
-        else onClose();
+        if (ctrl.signal.aborted) return;
+        if (parsed?.success && parsed.data.propertyId === s.property.id && parsed.data.item.eventId === eventId) {
+          setData(parsed.data);
+          onOpened();
+        } else onClose();
       })
       .catch(() => {
         if (!ctrl.signal.aborted) onClose();

@@ -23,7 +23,7 @@ const vm = buildOverviewVM(demoPortfolio, ui);
 const vma = vm.feed.find((f) => f.title.startsWith('VMA'))!;
 
 describe('traffic updates in the feed', () => {
-  it.each(['desktop', 'mobile'])('marks the original row and fetches the exact latest event when opened on %s', async (device) => {
+  it.each(['desktop', 'mobile'])('clears only the opened traffic revision on %s', async (device) => {
     const existing = demoPortfolio.properties[0]!;
     const propertyId = existing.property.id;
     const eventId = 'trafikverket-e14';
@@ -32,19 +32,27 @@ describe('traffic updates in the feed', () => {
       ...demoPortfolio,
       properties: [{ ...existing, property: { ...existing.property, origin: 'live' } }],
       feed: [{ id: 'chg-3', propertyId, eventId, title: 'Ny: Olycka på E14', sourceId: 'trafikverket', sourceLabel: 'Trafikverket', severity: 'warning',
-        origin: 'live', publishedAt: demoPortfolio.generatedAt, updatedAt: demoPortfolio.generatedAt }],
+        origin: 'live', publishedAt: demoPortfolio.generatedAt, updatedAt: demoPortfolio.generatedAt, unreadUpdateId: 'chg-2' }],
     } satisfies Portfolio;
-    const fetchEvent = vi.fn().mockResolvedValue(Response.json({ propertyId, title: 'Olycka på E14', sourceId: 'trafikverket',
-      active: true, endedAt: null, distanceM: 400, item: { eventId, label: 'Olycka', icon: 'accident', hue: 'orange',
-        where: 'E14', description, validFrom: null, validTo: null, impact: null, geometry: { type: 'Point', coordinates: [18, 59] }, radiusM: null, lengthM: null } }));
+    const fetchEvent = vi.fn(async (url: string) => url === '/api/app/feed/reads' ? new Response(null, { status: 204 }) : Response.json({
+      propertyId, title: 'Olycka på E14', sourceId: 'trafikverket', active: true, endedAt: null, distanceM: 400,
+      item: { eventId, label: 'Olycka', icon: 'accident', hue: 'orange', where: 'E14', description, validFrom: null, validTo: null,
+        impact: null, geometry: { type: 'Point', coordinates: [18, 59] }, radiusM: null, lengthM: null },
+    }));
     vi.stubGlobal('fetch', fetchEvent);
     mocks.mode = 'live';
-    render(device === 'mobile' ? <MobileAlerts /> : <AlertFeed vm={buildOverviewVM(activePortfolio, ui)} isDemo={false} onOpen={mocks.openProperty} />);
+    const view = () => device === 'mobile' ? <MobileAlerts /> : <AlertFeed vm={buildOverviewVM(activePortfolio, ui)} isDemo={false} onOpen={mocks.openProperty} />;
+    const { rerender } = render(view());
     expect(screen.getAllByText('Uppdaterad')).toHaveLength(1);
     expect(fetchEvent).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText('Ny: Olycka på E14'));
     expect(fetchEvent).toHaveBeenCalledWith(`/api/app/properties/${propertyId}/event-map/${eventId}`, expect.objectContaining({ cache: 'no-store' }));
     expect((await screen.findByRole('region', { name: 'Beskrivning' })).textContent).toBe(description);
+    expect(screen.queryByText('Uppdaterad')).toBeNull();
+    expect(fetchEvent).toHaveBeenCalledWith('/api/app/feed/reads', expect.objectContaining({ method: 'POST', body: JSON.stringify({ changeId: 'chg-2' }) }));
+    activePortfolio = { ...activePortfolio, feed: activePortfolio.feed.map(item => ({ ...item, unreadUpdateId: 'chg-4' })) };
+    rerender(view());
+    expect(screen.getAllByText('Uppdaterad')).toHaveLength(1);
   });
 });
 

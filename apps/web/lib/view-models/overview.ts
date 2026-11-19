@@ -222,7 +222,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
         id: f.id,
         rowKey: opensTrafficDetails ? `${f.propertyId}:${f.eventId}` : f.id,
         t: feedTime(f.publishedAt, portfolio.generatedAt),
-        updated: !!f.updatedAt,
+        unreadUpdateId: f.unreadUpdateId ?? null,
         title: f.title,
         src: f.sourceLabel,
         c: sev(f.severity).c,
@@ -230,7 +230,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
         prop: byId.get(f.propertyId)?.property.name ?? '—',
         propertyId: f.propertyId,
         /** Event to open in the map view, or null when the row has nothing to show there. */
-        mapEventId: single ? f.eventId! : ev?.id ?? null,
+        mapEventId: single ? f.updatedEventId ?? f.eventId! : ev?.id ?? null,
         /** The event has ended: the map shows where it was, greyed out. */
         mapEnded: ended,
         /** Load this one event for the map (ended event or utility outage) instead of the property's list. */

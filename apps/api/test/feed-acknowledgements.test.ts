@@ -10,11 +10,16 @@ import { buildFeed } from '../src/monitoring/snapshot';
 function fakeDb() {
   const changes = new Map([['7', 'org-a'], ['8', 'org-b']]);
   const acks = new Map<string, { org: string; by: string; at: Date }>();
+  const reads = new Set<string>();
   const calls: string[] = [];
   const db: Queryable = {
     async query<R>(sql: string, params: unknown[] = []) {
       calls.push(sql);
       const [org, id, by] = params as string[];
+      if (sql.includes('INSERT INTO feed_update_reads')) {
+        if (changes.get(id!) === org) reads.add(`${org}:${id}:${by}`);
+        return { rows: [] as R[] };
+      }
       if (sql.trimStart().startsWith('INSERT')) {
         // INSERT … SELECT FROM monitoring_changes WHERE id = $2 AND organization_id = $1
         if (changes.get(id!) !== org) return { rows: [] as R[] };
@@ -25,7 +30,7 @@ function fakeDb() {
       return { rows: [] as R[] };
     },
   };
-  return { db, acks, calls };
+  return { db, acks, reads, calls };
 }
 
 async function app(db: Queryable, org = 'org-a', userId = 'user_a') {
@@ -41,6 +46,21 @@ async function app(db: Queryable, org = 'org-a', userId = 'user_a') {
 }
 
 describe('feed acknowledgements (kvittering i händelseflödet)', () => {
+  it('records each read for the authenticated person and leaves the organization acknowledgement alone', async () => {
+    const { db, reads, acks, calls } = fakeDb();
+    const a = await app(db);
+    const b = await app(db, 'org-a', 'user_b');
+    const request = { method: 'POST' as const, url: '/v1/feed/reads', payload: { changeId: 'chg-7', userId: 'ignored' } };
+    expect((await a.inject(request)).statusCode).toBe(204);
+    expect((await a.inject(request)).statusCode).toBe(204);
+    expect([...reads]).toEqual(['org-a:7:user_a']);
+    expect((await b.inject(request)).statusCode).toBe(204);
+    expect((await b.inject({ ...request, payload: { changeId: 'chg-8', userId: 'ignored' } })).statusCode).toBe(204);
+    expect([...reads]).toEqual(['org-a:7:user_a', 'org-a:7:user_b']);
+    expect(acks.size).toBe(0);
+    expect(calls[0]).toContain('c.organization_id = $1');
+  });
+
   it('acknowledges and undoes a feed row of the own organization', async () => {
     const { db, acks } = fakeDb();
     const a = await app(db);

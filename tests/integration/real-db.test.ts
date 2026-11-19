@@ -81,7 +81,7 @@ const sveavagen = {
 
 async function resetSchema() {
   await pool.query(`
-    DROP TABLE IF EXISTS sms_delivery_callbacks,notification_attempts,notification_properties,notification_outbox,notification_daily_usage,notification_usage,notification_global_usage,notification_rate_buckets,alert_evaluation_state,alert_rule_recipients,alert_rule_properties,sms_recipients,
+    DROP TABLE IF EXISTS feed_update_reads,sms_delivery_callbacks,notification_attempts,notification_properties,notification_outbox,notification_daily_usage,notification_usage,notification_global_usage,notification_rate_buckets,alert_evaluation_state,alert_rule_recipients,alert_rule_properties,sms_recipients,
       property_event_history, station_daily, history_stations, history_backfill_checks,
       station_precipitation_normals, history_normal_checks, history_flow_references, history_archive_state,
       observation_history, observation_backfill_checks, nowcast_points, hydrology_references, hydrology_reference_checks,
