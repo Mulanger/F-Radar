@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { C, monoChip } from '@/lib/design/tokens';
 import { formatClock } from '@fastighetsradar/domain';
-import { IconAlert, IconAnalytics, IconBuilding, IconClose, IconDashboard, IconMap, IconMessage, IconSliders, IconBell } from '../ui/icons';
+import { IconAcknowledgements, IconAlert, IconBuilding, IconClose, IconDashboard, IconMessage, IconSliders, IconBell } from '../ui/icons';
 import { MobileNavigation } from '../mobile/MobileNavigation';
 import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
 
@@ -80,8 +80,9 @@ export function Sidebar() {
   const isSms = pathname === '/sms-rules';
   const isSettings = pathname === '/settings';
   const isAlerts = pathname === `${basePath}/alerts`;
+  const isAcknowledgements = pathname === `${basePath}/acknowledgements`;
   const isProperties = pathname.startsWith(`${basePath}/properties`);
-  const isOverview = !isSms && !isSettings && !isAlerts && !isProperties;
+  const isOverview = !isSms && !isSettings && !isAlerts && !isAcknowledgements && !isProperties;
   const isDemo = mode === 'demo';
   // Health is judged over ENABLED monitoring sources only; deliberately disabled / not-yet-implemented
   // sources (Lantmäteriet, Boverket, oceanography) are listed as such, never as failures.
@@ -151,8 +152,7 @@ export function Sidebar() {
             <span style={{ marginLeft: 'auto', fontSize: 12, color: C.text4 }}>{portfolio.properties.length}</span>
           </Link>
           <Link href={`${basePath}/alerts`} onClick={() => setMenuOpen(false)} aria-current={isAlerts ? 'page' : undefined} style={{ ...navItem, ...(isAlerts ? navOn : navOff) }}><IconAlert />Larm{unseenAlarmCount > 0 && <span aria-label={`${unseenAlarmCount} olästa larm`} style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: '#fff', background: 'oklch(0.6 0.18 28)', borderRadius: 20, padding: '2px 7px' }}>{unseenAlarmCount}</span>}</Link>
-          <PendingLink icon={<IconMap />} label="Kartvy" />
-          <PendingLink icon={<IconAnalytics />} label="Analys" />
+          <Link href={`${basePath}/acknowledgements`} onClick={() => setMenuOpen(false)} aria-current={isAcknowledgements ? 'page' : undefined} style={{ ...navItem, ...(isAcknowledgements ? navOn : navOff) }}><IconAcknowledgements />Kvitteringar</Link>
           <div style={{ ...sectionLabel, padding: '22px 12px 8px' }}>Konfiguration</div>
           {isDemo ? <PendingLink icon={<IconMessage />} label="SMS-regler" /> : <Link href="/sms-rules" aria-current={isSms?'page':undefined} style={{...navItem,...(isSms?navOn:navOff)}}><IconMessage/>SMS-regler</Link>}
           {isDemo ? <PendingLink icon={<IconSliders />} label="Inställningar" /> : <Link href="/settings" aria-current={isSettings ? 'page' : undefined} style={{ ...navItem, ...(isSettings ? navOn : navOff) }}><IconSliders />Inställningar</Link>}

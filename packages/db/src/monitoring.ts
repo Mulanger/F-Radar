@@ -911,14 +911,21 @@ export async function acknowledgeFeedChange(db: Queryable, organizationId: strin
  * TENANT write: undo. Removes the acknowledgement of this row and of earlier rows of the same event
  * for the same property (the ones that covered it), so the row asks for acknowledgement again.
  */
-export async function unacknowledgeFeedChange(db: Queryable, organizationId: string, changeId: string): Promise<void> {
+export async function unacknowledgeFeedChange(db: Queryable, organizationId: string, changeId: string, userId: string): Promise<void> {
   await db.query(
-    `DELETE FROM feed_acknowledgements a
-      USING monitoring_changes c, monitoring_changes p
-      WHERE c.id = $2::bigint AND c.organization_id = $1
-        AND a.organization_id = $1 AND p.id = a.change_id
-        AND (p.id = c.id OR (p.event_id = c.event_id AND p.property_id = c.property_id AND (p.created_at, p.id) < (c.created_at, c.id)))`,
-    [organizationId, changeId],
+    `WITH removed AS (
+       DELETE FROM feed_acknowledgements a
+       USING monitoring_changes c, monitoring_changes p
+       WHERE c.id = $2::bigint AND c.organization_id = $1
+         AND a.organization_id = $1 AND p.id = a.change_id
+         AND (p.id = c.id OR (p.event_id = c.event_id AND p.property_id = c.property_id AND (p.created_at, p.id) < (c.created_at, c.id)))
+       RETURNING a.change_id, a.acknowledged_at
+     )
+     UPDATE feed_acknowledgement_history h
+     SET undone_at = GREATEST(clock_timestamp(), h.acknowledged_at), undone_by = $3
+     FROM removed r
+     WHERE h.organization_id = $1 AND h.change_id = r.change_id AND h.acknowledged_at = r.acknowledged_at AND h.undone_at IS NULL`,
+    [organizationId, changeId, userId],
   );
 }
 

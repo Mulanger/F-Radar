@@ -27,6 +27,12 @@ export const IconBuildingSimple = ({ size = 16, sw = 1.7, ...r }: P) => (
 export const IconAlert = ({ size = 18, sw = 1.7, ...r }: P) => (
   <svg {...base(size, sw, r)}><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /><path d="M12 9v4M12 17h.01" /></svg>
 );
+export const IconAcknowledgements = ({ size = 18, sw = 1.7, ...r }: P) => (
+  <svg {...base(size, sw, r)}><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4V3h6v1m-6 9 2 2 4-4" /></svg>
+);
+export const IconDownload = ({ size = 16, sw = 1.7, ...r }: P) => (
+  <svg {...base(size, sw, r)}><path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4" /></svg>
+);
 export const IconMap = ({ size = 18, sw = 1.7, ...r }: P) => (
   <svg {...base(size, sw, r)}><path d="M9 3 3 6v15l6-3 6 3 6-3V3l-6 3z" /><path d="M9 3v15M15 6v15" /></svg>
 );

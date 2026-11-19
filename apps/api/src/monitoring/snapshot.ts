@@ -54,7 +54,7 @@ const FORECAST_USABLE_S = 6 * 3_600;
 const iso = (d: Date | null | undefined) => (d ? d.toISOString() : null);
 const n = (v: string | number | null | undefined) => (v === null || v === undefined ? null : Number(v));
 
-const SOURCE_LABEL: Partial<Record<SourceId, string>> = {
+export const SOURCE_LABEL: Partial<Record<SourceId, string>> = {
   smhi_warnings: 'SMHI',
   krisinformation: 'Krisinformation.se',
   trafikverket: 'Trafikverket',

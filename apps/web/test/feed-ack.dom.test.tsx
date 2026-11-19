@@ -8,6 +8,8 @@ import { buildOverviewVM } from '@/lib/view-models/overview';
 import { AlertFeed } from '@/components/dashboard/AlertFeed';
 import { UpcomingPanel } from '@/components/upcoming/UpcomingPanel';
 import { MobileAlerts } from '@/components/mobile/MobileAlerts';
+import { acknowledgementReport } from '@/lib/acknowledgements/pdf';
+import { demoAcknowledgements } from '@/lib/demo/acknowledgements';
 
 const mocks = vi.hoisted(() => ({ openProperty: vi.fn(), refresh: vi.fn(), mode: 'demo' as 'demo' | 'live' }));
 let activePortfolio = demoPortfolio;
@@ -68,10 +70,11 @@ describe('kvittering i händelseflödet', () => {
     render(<AlertFeed vm={vm} isDemo onOpen={mocks.openProperty} />);
     fireEvent.click(screen.getByRole('button', { name: `Kvittera: ${vma.title}` }));
     expect(mocks.openProperty).not.toHaveBeenCalled();
-    const done = screen.getByRole('button', { name: new RegExp(`^Kvitterad \\d\\d:\\d\\d: ${vma.title.slice(0, 20)}`) });
-    expect(done.getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByText('Kvitterad', { exact: false }).tagName).toBe('SPAN');
     expect(screen.getByRole('status').textContent).toBe('2 att kvittera');
-    fireEvent.click(done);
+    fireEvent.click(screen.getByRole('button', { name: `Ångra kvittering: ${vma.title}` }));
+    expect(mocks.openProperty).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: `Kvittera: ${vma.title}` })).toBeTruthy();
     expect(screen.getByRole('status').textContent).toBe('3 att kvittera');
   });
 
@@ -105,6 +108,19 @@ describe('kvittering i händelseflödet', () => {
     const feed = screen.getByRole('region', { name: 'Händelseflöde' });
     expect(within(feed).getAllByRole('button', { name: /^Kvittera: / })).toHaveLength(3);
     for (const b of within(feed).getAllByRole('button', { name: /^Kvittera: / })) expect(b.closest('a')).toBeNull();
+    fireEvent.click(within(feed).getByRole('button', { name: `Kvittera: ${vma.title}` }));
+    fireEvent.click(within(feed).getByRole('button', { name: `Ångra kvittering: ${vma.title}` }));
+    expect(within(feed).getByRole('button', { name: `Kvittera: ${vma.title}` })).toBeTruthy();
+  });
+
+  it('includes both timestamps in the exported PDF and omits identity fields', () => {
+    const example = { ...demoAcknowledgements.find((entry) => !!entry.undoneAt)!, acknowledgedBy: 'Private Name', undoneBy: 'Another Name' };
+    const report = acknowledgementReport([example], 'Demoportfölj', 'Alla datum', true, example.acknowledgedAt);
+    const content = JSON.stringify(report.content);
+    expect(content).toContain('Kvitterad 18 nov. 2026 09:04');
+    expect(content).toContain('Ångrad 18 nov. 2026 09:16');
+    expect(content).not.toContain('Private Name');
+    expect(content).not.toContain('Another Name');
   });
 });
 

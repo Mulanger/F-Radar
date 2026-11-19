@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { Viewport } from 'next';
 import { AppShell } from '@/components/shell/AppShell';
+import { DemoAcknowledgementProvider } from '@/components/acknowledgements/DemoAcknowledgements';
 import { loadDemoPortfolio } from '@/lib/data/portfolio';
 
 export const dynamic = 'force-dynamic';
@@ -11,8 +12,10 @@ export default async function DemoLayout({ children }: { children: React.ReactNo
   const result = await loadDemoPortfolio();
   if (result.status !== 'ok') notFound();
   return (
-    <AppShell mode="demo" basePath="/demo" portfolio={result.portfolio}>
-      {children}
-    </AppShell>
+    <DemoAcknowledgementProvider portfolio={result.portfolio}>
+      <AppShell mode="demo" basePath="/demo" portfolio={result.portfolio}>
+        {children}
+      </AppShell>
+    </DemoAcknowledgementProvider>
   );
 }

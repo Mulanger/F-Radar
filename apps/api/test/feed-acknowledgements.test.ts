@@ -28,7 +28,7 @@ function fakeDb() {
         if (!acks.has(id!)) acks.set(id!, { org: org!, by: by!, at: new Date('2026-11-18T08:00:00Z') });
         return { rows: [{ acknowledged_at: acks.get(id!)!.at }] as R[] };
       }
-      if (sql.trimStart().startsWith('DELETE') && changes.get(id!) === org) acks.delete(id!);
+      if (sql.includes('DELETE FROM feed_acknowledgements') && changes.get(id!) === org) acks.delete(id!);
       return { rows: [] as R[] };
     },
   };
@@ -111,6 +111,37 @@ describe('feed acknowledgements (kvittering i händelseflödet)', () => {
       const res = await a.inject({ method: 'POST', url: '/v1/feed/acknowledgements', payload: { changeId, acknowledged: true } });
       expect(res.statusCode).toBe(400);
     }
+  });
+
+  it('uses only the active organization and keeps account identifiers out of the history response', async () => {
+    const property = '33333333-3333-4333-8333-333333333333';
+    const at = new Date('2026-11-18T08:00:00Z');
+    const db: Queryable = {
+      async query<R>(sql: string, params: unknown[] = []) {
+        expect(params[0]).toBe('org-a');
+        if (sql.includes('SELECT h.id')) {
+          expect(params.slice(1, 5)).toEqual(['2026-11-18', '2026-11-19', property, null]);
+          return { rows: [{
+            id: '12', property_id: property, property_name: 'Strandhuset', property_address: 'Åvägen 2',
+            source_id: 'smhi_warnings', operator_name: null, title: 'Snövarning', description: 'Hela texten',
+            area: 'Stockholm', severity: 'warning', event_at: at, acknowledged_at: at,
+            acknowledged_by: 'user_a', undone_at: at, undone_by: 'user_b', imported: false,
+          }] as R[] };
+        }
+        return { rows: [{ id: property, name: 'Strandhuset', address: 'Åvägen 2' }] as R[] };
+      },
+    };
+    const a = await app(db);
+    const res = await a.inject(`/v1/feed/acknowledgements?from=2026-11-18&to=2026-11-19&property=${property}&organizationId=org-b`);
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      entries: [{ description: 'Hela texten', source: 'SMHI', acknowledgedAt: at.toISOString(), undoneAt: at.toISOString() }],
+      properties: [{ id: property }],
+      nextCursor: null,
+    });
+    expect(res.body).not.toMatch(/user_[ab]|acknowledgedBy|undoneBy/);
+    expect((await a.inject('/v1/feed/acknowledgements?from=2026-11-19&to=2026-11-18')).statusCode).toBe(400);
+    expect((await a.inject('/v1/feed/acknowledgements?property=other-org')).statusCode).toBe(400);
   });
 });
 

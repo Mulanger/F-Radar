@@ -1,30 +1,33 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server';
 
 /**
- * Next.js 16 proxy (formerly middleware). Clerk authenticates every request; all routes
- * except the ones below require a signed-in user. `/` is the public landing page. Organization
+ * Next.js 16 proxy (formerly middleware). Clerk authenticates live routes; those outside the public
+ * allowlist require a signed-in user. `/` is the public landing page. Organization
  * checks happen server-side in the dashboard layout and again in the Fastify API.
  */
 const PUBLIC_ROUTES = ['/', '/sign-in(.*)', '/sign-up(.*)', '/onboarding(.*)'];
 const isPublicRoute = createRouteMatcher(PUBLIC_ROUTES);
-const isDemoRoute = createRouteMatcher(['/demo(.*)']);
 // API route handlers enforce auth themselves and answer 401 JSON instead of an HTML redirect.
 const isApiRoute = createRouteMatcher(['/api(.*)']);
 
-export default clerkMiddleware(
+const clerkProxy = clerkMiddleware(
   async (auth, req) => {
-    if (isDemoRoute(req)) {
-      // Fixture dashboard for design comparison – only when explicitly enabled.
-      if (process.env.FASTIGHETSRADAR_DEMO_ENABLED !== 'true') return new NextResponse('Not found', { status: 404 });
-      return;
-    }
     if (isApiRoute(req)) return;
     if (!isPublicRoute(req)) await auth.protect();
   },
   // Keep users on our own branded pages instead of the Clerk-hosted Account Portal.
   { signInUrl: '/sign-in', signUpUrl: '/sign-up' },
 );
+
+export default function proxy(req: NextRequest, event: NextFetchEvent) {
+  const path = req.nextUrl.pathname;
+  if (path === '/demo' || path.startsWith('/demo/')) {
+    // The gated fixture dashboard has no customer data or Clerk session dependency.
+    return process.env.FASTIGHETSRADAR_DEMO_ENABLED === 'true' ? NextResponse.next() : new NextResponse('Not found', { status: 404 });
+  }
+  return clerkProxy(req, event);
+}
 
 export const config = {
   matcher: [

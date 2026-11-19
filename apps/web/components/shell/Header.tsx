@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { C, FONT_MONO } from '@/lib/design/tokens';
@@ -23,6 +24,7 @@ const pill: React.CSSProperties = {
 
 export function Header() {
   const { portfolio, openProperty, mode, basePath } = useDashboard();
+  const isAcknowledgementHistory = usePathname() === `${basePath}/acknowledgements`;
   const editor = usePropertyEditor();
   const isDemo = mode === 'demo';
   const [jumpOpen, setJumpOpen] = useState(false);
@@ -62,10 +64,10 @@ export function Header() {
         </Popover>
       </div>
 
-      <div style={{ ...pill, padding: '0 16px' }}>
+      {!isAcknowledgementHistory && <div style={{ ...pill, padding: '0 16px' }}>
         <IconCalendar stroke="#6B737B" />
         <span style={{ color: C.text4 }}>Period</span>Idag · kommande 48 h
-      </div>
+      </div>}
       {!isDemo && <LiveStatus generatedAt={portfolio.generatedAt} />}
 
       <div className="fr-header-actions" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
