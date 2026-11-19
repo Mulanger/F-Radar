@@ -40,4 +40,14 @@ describe('supply SMS is exact, current, explicit and one part', () => {
       expect(sms).toContain('Kokningsrekommendation');
     }
   });
+  it('gas and heating rules accept only their utilities and require exact confirmed matches', () => {
+    for (const [category, utility] of [['gas_outage', 'gas'], ['heating_outage', 'district_heating'], ['heating_outage', 'district_cooling']] as const) {
+      const c = NotificationConditionSchema.parse({ ...rule, category, utilities: [utility] });
+      if (!('utilities' in c)) throw new Error('Expected supply rule');
+      expect(outageSmsPhase(c, candidate({ utility }), now, activated)).toBe('start');
+      expect(outageSmsPhase(c, candidate({ utility, match_method: 'outage_area' }), now, activated)).toBeNull();
+      expect(outageSmsPhase(c, candidate({ utility, kind: 'unknown' }), now, activated)).toBeNull();
+      expect(outageSmsPhase(c, candidate({ utility: 'water' }), now, activated)).toBeNull();
+    }
+  });
 });

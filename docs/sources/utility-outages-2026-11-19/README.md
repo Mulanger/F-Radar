@@ -196,3 +196,20 @@ rubrikregler stöds för SVOA och ServiceAlert, med syntetiska klassificeringsfa
 Allmänna råd i löptext utlöser inte en kokningsvarning. Produktionsbeteendet för ett verkligt sådant
 meddelande är därför inte liveverifierat. Krisinformation publicerar redan kokningsnyheter
 (t.ex. Hallstahammar, nyhetssidan 2026-11-19); vattenbesparingsmeddelanden tas inte in dubbelt.
+
+### Fas 6: gas
+
+Göteborg Energis aktuella och avslutade gas-KML samt upcoming-POST har verifierats från podden (200).
+Samtliga var tomma; aktiv gaspost och faktisk återställning är inte liveverifierade. Gemensam Digpro-
+normalisering återanvänds, inklusive separat gasflagga och SMS-kategorins avstängda spärr.
+PostGIS provar gaspolygonens exakta träff, kategorin Heating och borttagning utan antagen återställning.
+
+Gasnätet Stockholm är numera Driva Gasnät enligt den egna kundservicesidan
+`https://www.drivagasnat.se/kundservice`. Gamla arbetssidan gav timeout från podden; den officiellt
+länkade nya sidan `https://www.drivagasnat.se/arbeten` och startsidan svarar 200. Arbetstabellen anger
+veckonummer/TBD och gator, inte säkra avbrottstider eller geografiska avbrottsområden. Ledningsarbete
+är inte automatiskt ett leveransavbrott: ingen adapter byggd.
+Weums startsida svarar 200 från podden; dess felanmälningslänk går till kontaktinformation,
+`https://www.weum.se/kundservice/kontakta-oss`. Ingen publik maskinläsbar avbrottskarta identifierad.
+Inga bolag kontaktade och inget konto skapat.
+VA SYD omprov med officiell länk (gemener) gav åter timeout, inte belägg för att flöde saknas.

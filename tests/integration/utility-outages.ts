@@ -332,6 +332,22 @@ export function registerUtilityOutageTests(pool: pg.Pool) {
       assert.deepEqual(r.rows[0], { street: 'Sveavägen', housenumber: '42B' });
     });
 
+    it('gas shares exact PostGIS matching and never infers restoration from a missing notice', async () => {
+      const f = await fixture();
+      const gas = outage({ utility: 'gas' });
+      await storeUtilityOutages(pool, OP.id, [gas], true, new Date(), { utilities: ['gas'], reportsRestored: true });
+      await rematchUtilityOutages(pool);
+      const rows = await listOrgUtilityOutages(pool, f.org);
+      const exact = rows.filter((r) => r.match_method === 'outage_polygon');
+      assert.ok(exact.some((r) => r.property_id === f.inside.id && r.utility === 'gas'));
+      assert.ok(!exact.some((r) => r.property_id === f.outside.id));
+      const event = await pool.query('SELECT e.category FROM source_events e WHERE external_id=$1', [gas.externalId]);
+      assert.equal(event.rows[0].category, 'Heating');
+      for (let i = 0; i < 3; i++) await storeUtilityOutages(pool, OP.id, [], true, new Date(), { utilities: ['gas'], reportsRestored: true });
+      const ended = await pool.query('SELECT state, restored_inferred FROM utility_outages u JOIN source_events e ON e.id=u.event_id WHERE e.external_id=$1', [gas.externalId]);
+      assert.deepEqual(ended.rows[0], { state: 'withdrawn', restored_inferred: false });
+    });
+
     it('water SMS gates, exact matches, boiling dedup and explicit cancellation work in the shared pipeline', async () => {
       const f = await fixture();
       const env = loadServerEnv({ NODE_ENV: 'test', SOURCE_UTILITY_OUTAGES_ENABLED: 'true', SOURCE_UTILITY_WATER_ENABLED: 'true', SMS_WATER_OUTAGE_ENABLED: 'true', SMS_MAX_MESSAGES_PER_MINUTE: '100' });
