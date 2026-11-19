@@ -174,6 +174,7 @@ describe('collector jobs and health', () => {
     for (const last_status of ['partial', 'error', null] as const) {
       expect(resolveOperatorStatuses(env, [job('utility_outages:vattenfall', { last_status })], NOW).find((o) => o.operatorId === 'vattenfall')!.current).toBe(false);
     }
+    expect(resolveOperatorStatuses(env, [job('utility_outages:vattenfall', { last_status: 'partial' })], NOW).find((o) => o.operatorId === 'vattenfall')!.attention).toBe('format_changed');
     expect(resolveOperatorStatuses(env, [job('utility_outages:vattenfall', { last_success_at: null })], NOW).find((o) => o.operatorId === 'vattenfall')!.current).toBe(false);
   });
 });

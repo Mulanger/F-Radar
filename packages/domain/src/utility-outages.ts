@@ -96,6 +96,7 @@ export function outageEffectiveSeverity(
 }
 
 export const UtilityOutageViewSchema = z.object({
+  lastSeenAt: IsoDateTimeSchema.optional(),
   noticeKind: UtilityNoticeKindSchema.optional(),
   id: z.string(),
   operatorId: z.string(),
@@ -196,9 +197,9 @@ export function formatOutageWindow(start: string | null, end: string | null): st
  */
 /**
  * Platforms whose operators report restoration themselves. For them an outage that disappears from
- * the list was merged/re-issued or removed – not restored. The others (Vattenfall, E.ON, Trimble,
- * ServiceAlert) only remove outages from the map, so removal is read as "troligen tillbaka".
- * Seen in live data 2026-11-17: Ellevio, Göteborg Energi, Digpro, Tekniska verken report restored.
+ * the list was merged/re-issued or removed – not restored. ServiceAlert cannot prove restoration
+ * by removing a notice either. Legacy Vattenfall/E.ON/Trimble removal remains an inferred UI state;
+ * no inferred restoration ever triggers SMS. New sources can override this policy per operator.
  */
 export const PLATFORMS_REPORTING_RESTORED: readonly string[] = ['ellevio', 'goteborg_energi', 'digpro', 'tekniskaverken', 'umea', 'skekraft', 'servicealert'];
 

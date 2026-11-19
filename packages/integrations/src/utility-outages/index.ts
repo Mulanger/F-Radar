@@ -44,9 +44,15 @@ export const UTILITY_OUTAGE_USER_AGENT = 'FastighetsRadar-avbrottsbevakning/1.0'
 export const UTILITY_OUTAGE_ATTRIBUTION = 'Källa: respektive nätbolags avbrottskarta';
 const TIMEOUT_MS = 30_000;
 const MAX_BYTES = 8_000_000;
+const conditionalBodies = new WeakMap<typeof fetch, Map<string, { etag: string; text: string }>>();
 
 async function fetchText(url: string, ctx: AdapterContext, label: string, init?: { method?: 'GET' | 'POST'; body?: string; accept?: string }): Promise<AdapterResult<string>> {
+  let bodies = conditionalBodies.get(ctx.fetch);
+  if (!bodies) { bodies = new Map(); conditionalBodies.set(ctx.fetch, bodies); }
+  const canCache = !init?.method || init.method === 'GET';
+  const cached = canCache ? bodies.get(url) : undefined;
   const r = await httpRequest(url, ctx, {
+    acceptNotModified: true,
     label,
     method: init?.method ?? 'GET',
     body: init?.body,
@@ -56,11 +62,18 @@ async function fetchText(url: string, ctx: AdapterContext, label: string, init?:
       'User-Agent': UTILITY_OUTAGE_USER_AGENT,
       Accept: init?.accept ?? '*/*',
       ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(cached ? { 'If-None-Match': cached.etag } : {}),
     },
   });
   if (!r.ok) return r;
+  if (r.data.status === 304) return cached ? { ok: true, data: cached.text, fetchedAt: r.fetchedAt } : { ok: false, error: 'invalid_payload', detail: `${label}: 304 without a cached body` };
   const text = await r.data.text();
   if (text.length > MAX_BYTES) return { ok: false, error: 'invalid_payload', detail: `${label}: response too large` };
+  const etag = r.data.headers.get('etag');
+  if (canCache && etag) {
+    bodies.delete(url); bodies.set(url, { etag, text });
+    while (bodies.size > 32 || [...bodies.values()].reduce((n, e) => n + e.text.length, 0) > 32_000_000) bodies.delete(bodies.keys().next().value!);
+  } else bodies.delete(url);
   return { ok: true, data: text, fetchedAt: r.fetchedAt };
 }
 
@@ -82,6 +95,7 @@ const chunks = <T>(xs: T[], n: number) => Array.from({ length: Math.ceil(xs.leng
 
 async function fetchSvoa(op: Extract<UtilityOperator, { platform: 'svoa' }>, ctx: AdapterContext): Promise<AdapterResult<OutageFetchResult>> {
   const rows: unknown[] = [];
+  let firstPage: string | null = null;
   let total: number | null = null;
   let fetchedAt = ctx.now().toISOString();
   do {
@@ -89,6 +103,7 @@ async function fetchSvoa(op: Extract<UtilityOperator, { platform: 'svoa' }>, ctx
     const r = await fetchText(url, ctx, `${op.id} page`, { accept: 'application/json' });
     if (!r.ok) return r;
     fetchedAt = r.fetchedAt;
+    if (firstPage === null) firstPage = r.data;
     const p = SvoaPage.safeParse(json(r.data));
     if (!p.success || p.data.totalCount > 2000 || total !== null && total !== p.data.totalCount || !p.data.disturbances.length && rows.length < p.data.totalCount) {
       return { ok: false, error: 'invalid_payload', detail: `${op.id}: inconsistent pagination` };
@@ -98,6 +113,11 @@ async function fetchSvoa(op: Extract<UtilityOperator, { platform: 'svoa' }>, ctx
   } while (rows.length < total);
   const ids = rows.map((r) => (r as { pageId?: unknown })?.pageId);
   if (rows.length !== total || new Set(ids).size !== rows.length || ids.some((id) => typeof id !== 'string')) return { ok: false, error: 'invalid_payload', detail: `${op.id}: incomplete or repeated pages` };
+  if (rows.length > 10) {
+    const recheck = await fetchText(`${op.dataUrl}?skip=0&query=&useCurrentLocation=false&latitude=undefined&longitude=undefined`, ctx, `${op.id} pagination recheck`, { accept: 'application/json' });
+    if (!recheck.ok) return recheck;
+    if (recheck.data !== firstPage) return { ok: false, error: 'invalid_payload', detail: `${op.id}: pages changed during fetch` };
+  }
   return { ok: true, data: parseSvoa(rows, op), fetchedAt };
 }
 

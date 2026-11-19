@@ -1,6 +1,6 @@
 import type { ServerEnv } from '@fastighetsradar/config';
 import type { DataSourceStatus, Portfolio, PropertyRecord, PropertySnapshot } from '@fastighetsradar/domain';
-import { buildUtilityCoverageReport, utilityCoverageLogEntries } from '@fastighetsradar/domain';
+import { buildUtilityCoverageReport, utilityCoverageLogEntries, UTILITY_KINDS } from '@fastighetsradar/domain';
 import {
   getProperty,
   recordUtilityCoverageGaps,
@@ -20,7 +20,7 @@ import {
   type OrgContext,
   type Queryable,
 } from '@fastighetsradar/db';
-import { resolveSourceStatuses } from '@fastighetsradar/integrations';
+import { operatorById, resolveSourceStatuses } from '@fastighetsradar/integrations';
 import { buildLivePortfolio } from '../portfolio';
 import type { MonitoringBus } from './bus';
 import { PER_PROPERTY_JOBS } from './jobs';
@@ -49,13 +49,20 @@ export class MonitoringService {
     private readonly logger?: { warn(obj: object, message: string): void },
   ) {}
 
+  private coverageReports(properties: PropertyRecord[], inputs: UtilityInputs | null) {
+    return UTILITY_KINDS.map((utility) => ({
+      ...buildUtilityCoverageReport(properties.map((p) => ({ id: p.id, geocodePrecision: p.geocode.precision, positionSource: p.positionSource, statuses: inputs ? [propertyUtilityStatus(p.id, inputs, utility)] : [] })), utility),
+      sources: (inputs?.operators ?? []).filter((o) => o.utilities?.includes(utility)).map((o) => ({
+        operatorId: o.operatorId, name: o.name, enabled: o.enabled && (o.enabledUtilities?.includes(utility) ?? false), current: o.current,
+        lastSuccessAt: o.lastSuccessAt, lastStatus: o.lastStatus, attention: o.attention,
+      })),
+    }));
+  }
+
   async utilityCoverage(organizationId: string, now = new Date(), requireInputs = false) {
     const [properties, inputs] = await Promise.all([listProperties(this.db, { organizationId }), this.utilityInputs(organizationId, now)]);
     if (requireInputs && !inputs) throw new Error('Utility coverage unavailable');
-    return [buildUtilityCoverageReport(properties.map((p) => ({
-      id: p.id, geocodePrecision: p.geocode.precision, positionSource: p.positionSource,
-      statuses: inputs ? [propertyUtilityStatus(p.id, inputs)] : [],
-    })), 'electricity')];
+    return this.coverageReports(properties, inputs);
   }
 
   async statuses(now = new Date()): Promise<DataSourceStatus[]> {
@@ -86,12 +93,17 @@ export class MonitoringService {
   /** Outage inputs for an organization. Missing tables (migration not applied) → no outage section. */
   private async utilityInputs(organizationId: string, now: Date): Promise<UtilityInputs | null> {
     try {
-      const [outages, concessions, operators] = await Promise.all([
+      const [outages, concessions, operators, municipalities] = await Promise.all([
         listOrgUtilityOutages(this.db, organizationId),
         listOrgPropertyConcessions(this.db, organizationId),
         this.operatorStatuses(now),
+        this.db.query<{ property_id: string; municipality: string | null }>('SELECT id AS property_id, municipality FROM properties WHERE organization_id=$1', [organizationId]),
       ]);
-      return { outages: outages.filter((o) => (o.utility !== 'water' || this.env.SOURCE_UTILITY_WATER_ENABLED) && (o.utility !== 'gas' || this.env.SOURCE_UTILITY_GAS_ENABLED)), concessions, operators };
+      return { outages: outages.filter((o) => {
+        const op = operatorById(o.operator_id);
+        return (o.utility !== 'water' || this.env.SOURCE_UTILITY_WATER_ENABLED) && (o.utility !== 'gas' || this.env.SOURCE_UTILITY_GAS_ENABLED)
+          && (!op?.enableFlag || this.env[op.enableFlag] === true) && (!op?.utilityFlags?.[o.utility] || this.env[op.utilityFlags[o.utility]!] === true);
+      }), concessions, operators, municipalities: municipalities.rows };
     } catch {
       return null;
     }
@@ -115,12 +127,9 @@ export class MonitoringService {
       ...base,
       regionLabel: 'Sverige',
       properties: snapshots,
-      utilityCoverage: [buildUtilityCoverageReport(properties.map((p, i) => ({
-        id: p.id, geocodePrecision: p.geocode.precision, positionSource: p.positionSource,
-        statuses: snapshots[i]?.utilityOutages ?? [],
-      })), 'electricity')],
+      utilityCoverage: this.coverageReports(properties, utility),
       feed: buildFeed(changes, new Set(properties.map((p) => p.id))),
-      upcoming: buildUpcoming(snapshots, data.forecasts, now),
+      upcoming: buildUpcoming(snapshots, data.forecasts, now, this.env.UTILITY_OUTAGE_UPCOMING_ENABLED),
       settings: { trafficRadiusM: settings.trafficRadiusM },
     };
   }

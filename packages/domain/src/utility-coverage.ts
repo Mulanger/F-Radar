@@ -2,6 +2,11 @@ import { z } from 'zod';
 import { isPositionConfirmed, UtilityKindSchema, OutageCoverageSchema, type PropertyUtilityStatus, type UtilityKind } from './utility-outages';
 
 export const UtilityCoverageReportSchema = z.object({
+  sources: z.array(z.object({
+    operatorId: z.string(), name: z.string(), enabled: z.boolean(), current: z.boolean(),
+    lastSuccessAt: z.string().nullable(), lastStatus: z.string().nullable(),
+    attention: z.enum(['format_changed', 'unreachable']).nullable(),
+  })).optional(),
   utility: UtilityKindSchema,
   total: z.number().int().nonnegative(),
   monitored: z.number().int().nonnegative(),

@@ -9,6 +9,15 @@ const ref = demoPortfolio.generatedAt; // ons 12 nov 14:32
 const H = 3_600_000;
 
 describe('kommande förhållanden – events', () => {
+  it('shows planned shutdowns with their own chip, exact interval and provider attribution', () => {
+    const start = new Date(Date.parse(ref) + H).toISOString(), end = new Date(Date.parse(ref) + H + 5 * 60000).toISOString();
+    const p: Portfolio = { ...demoPortfolio, upcoming: [{ id: 'outage-test', kind: 'outage', label: 'Planerad vattenavstängning', where: 'Testfastigheten', when: 'Imorgon', value: 'Planerad avstängning', validAt: start, validTo: end, sourceId: 'utility_outages', sourceName: 'VA-bolaget', sourceUrl: 'https://example.test/drift', explanation: 'Leverantörens ordagranna text.', origin: 'live', tone: 'monitor' }] };
+    const rows = buildUpcomingEvents(p, ids(p));
+    expect(rows[0]).toMatchObject({ kind: 'outage', src: 'VA-bolaget · avbrottsinformation', start: Date.parse(start), end: Date.parse(end), sourceUrl: 'https://example.test/drift' });
+    expect(rows[0]!.note).toBe('Leverantörens text: Leverantörens ordagranna text.');
+    expect(rows[0]!.note).not.toContain('SMHI');
+    expect(upcomingView(rows, ref).chips.some((c) => c.label === 'Avstängningar')).toBe(true);
+  });
   const events = buildUpcomingEvents(demoPortfolio, ids(demoPortfolio));
   const by = (prefix: string) => events.find((e) => e.id.startsWith(prefix))!;
 

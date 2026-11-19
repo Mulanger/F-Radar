@@ -116,3 +116,10 @@ Startfas dedupliceras även mellan regler för samma mottagare/avbrott. Avslut k
 Nya SMS-format hålls till en del; orimligt lång konfigurerad APP_URL stoppas, länken kapas aldrig.
 Inga infererade återställningar skickas, även för äldre el (försiktigare enligt planens §6).
 Inget nytt migreringsbehov i denna fas.
+
+Fas 8: `UTILITY_OUTAGE_UPCOMING_ENABLED=false` styr tidslinjetillägget på servern. Start/slut måste
+vara kända; start inom 48 h, hög/medel matchning och senaste hämtning högst 20 min gammal.
+Täckningsrapporten visar alla nyttigheter och källhälsa; VA är kommunens information, aldrig bevis
+på enskild anslutning. Endast SVOA (Stockholm/Huddinge) och Tekniska verken (Linköping) har verifierad
+kommunmappning. Värme/gas utan publicerade nätområden förblir Ej bedömd. ETag/304 återanvänder
+validerade svarskroppar; en processomstart hämtar hela svaret igen. Inga nya migreringar i Fas 8.

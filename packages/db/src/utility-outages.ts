@@ -528,6 +528,7 @@ export async function replaceNationalConcessions(
 /* ------------------------------------------------------------------ */
 
 export interface OrgUtilityOutageRow {
+  last_seen_at?: Date;
   notice_kind?: UtilityNoticeKind;
   property_id: string;
   event_id: string;
@@ -564,7 +565,7 @@ export async function listOrgUtilityOutages(db: Queryable, organizationId: strin
     `SELECT m.property_id, m.event_id, m.match_method, m.distance_m, m.effective_severity,
             u.operator_id, e.extra->>'operatorName' AS operator_name, u.utility, u.kind, u.state, u.notice_kind, u.affected_customers,
             u.area_customer_total, u.reported_at, u.planned_start, u.planned_end, u.actual_start, u.estimated_restore,
-            u.restored_at, u.restored_inferred, e.ended_at, u.place_label, u.operator_text, u.cause, e.source_url,
+            u.restored_at, u.restored_inferred, e.ended_at, u.place_label, u.operator_text, u.cause, e.source_url, e.last_seen_at,
             CASE WHEN e.geom IS NOT NULL AND ST_NPoints(e.geom) <= 5000 THEN ST_AsGeoJSON(e.geom, 6)::jsonb END AS geometry,
             p.geocode_precision, p.position_source
        FROM property_event_matches m

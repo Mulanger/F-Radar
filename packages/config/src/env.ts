@@ -91,6 +91,7 @@ export const ServerEnvSchema = z.object({
   SMS_WATER_OUTAGE_ENABLED: bool(false),
   SMS_HEATING_OUTAGE_ENABLED: bool(false),
   SMS_GAS_OUTAGE_ENABLED: bool(false),
+  UTILITY_OUTAGE_UPCOMING_ENABLED: bool(false),
   /** Comma-separated operator ids to collect (empty = every implemented operator). "none" disables all. */
   UTILITY_OUTAGE_OPERATORS: optionalString,
   /** HTTPS CONNECT proxy in Sweden, server-only. Used only by explicitly marked operators. */

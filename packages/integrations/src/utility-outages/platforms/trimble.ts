@@ -139,7 +139,7 @@ export function parseTrimble(appData: unknown, districts: TrimbleDistrict[], sta
   }
   const scope = (j as { scopes?: Record<string, { outages?: unknown }> })?.scopes?.[op.scope];
   if (!scope) return null;
-  if (!Array.isArray(scope.outages)) return { outages: [], skipped: 0, ignored: 0, sourceUpdatedAt: null };
+  if (!Array.isArray(scope.outages)) return null;
   const outages: NormalizedUtilityOutage[] = [];
   let skipped = 0;
   const unknown = new Set<string>();

@@ -77,3 +77,8 @@ Driva/Weum har inget tillräckligt verifierat avbrottsflöde; endast Göteborg, 
 2026-11-19 Fas 7: ingen implementation enligt uttryckligt ägarbeslut. Kartläggning i Fas 0;
 rekommenderar leverantörsval och ytterligare verifiering om ett separat telekomprojekt beställs.
 Programkod och senaste gröna testresultat från Fas 6 är oförändrade.
+
+2026-11-19 Fas 8: källhälsa/täckning för alla fem nyttigheter, verifierade VA-huvudmän med förbehåll,
+planerade avstängningar bakom avstängd tidslinjeflagga, ETag och defensiv paginering.
+68 filer/511 godkända/6 överhoppade, typer/lint gröna; PostGIS 36/36 efter ledighetskontroll;
+API- och webb-webpack-build gröna, lokal standalone-varning kvar. Ingen deploy/aktivering.

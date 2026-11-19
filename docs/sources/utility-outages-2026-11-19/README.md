@@ -213,3 +213,23 @@ Weums startsida svarar 200 från podden; dess felanmälningslänk går till kont
 `https://www.weum.se/kundservice/kontakta-oss`. Ingen publik maskinläsbar avbrottskarta identifierad.
 Inga bolag kontaktade och inget konto skapat.
 VA SYD omprov med officiell länk (gemener) gav åter timeout, inte belägg för att flöde saknas.
+
+### Fas 8: helhet och drift
+
+Täckningsrapport/källhälsa omfattar alla fem implementerade nyttigheter. Kommunbaserad VA-bedömning
+begränsas till verifierade huvudmän: SVOA Stockholm/Huddinge, Tekniska verken Linköping. Detta är
+bevakning av kommunens information, inte bekräftelse på enskild VA-anslutning. Källa:
+- https://www.stockholmvattenochavfall.se/villa-och-radhus/vatten-och-avlopp/ordlista-for-vatten-och-avlopp/
+- https://tekniskaverken.se/privat/vatten-avlopp
+Inga värme-/gasområden uppfinns från elkoncessioner eller kommunnamn. Dessa förblir Ej bedömd.
+Partialsvar visas som ofullständiga och behöver åtgärd direkt; fullgod täckning kräver senaste status ok.
+
+Umeås publika blob skickar ETag, verifierat med HEAD från podden (200). GET-hämtningar skickar
+If-None-Match när ETag finns och återanvänder kroppen vid 304; oombedd 304 blir fel, aldrig tomt svar.
+Processcachen är begränsad. SVOA HEAD gav 404 trots fungerande GET; ingen HEAD-förfrågan används i
+adaptern. SVOA kontrollerar första sidan på nytt efter paginering för att avvisa flyttande listor.
+
+Kommande avstängningar visas endast när tidslinjeflaggan är på, vatten/värme/kyla är planerat,
+matchningen hög/medel, start inom 48 timmar, explicit slut efter start och källan sedd senaste 20 min.
+Okänd sluttid blir ingen påhittad stapel. Leverantörens text och länk följer med till dator/mobil.
+Riskfaktorns namn och omfattning är fortfarande El och värme enligt ägarbeslut.

@@ -113,6 +113,8 @@ export function buildUtilityOutageJobs(env: ServerEnv): MonitoringJob[] {
 /* ------------------------------------------------------------------ */
 
 export interface OperatorStatus {
+  utilities?: UtilityKind[];
+  enabledUtilities?: UtilityKind[];
   operatorId: string;
   name: string;
   mapUrl: string;
@@ -138,6 +140,8 @@ export function resolveOperatorStatuses(env: ServerEnv, jobs: JobRow[], now: Dat
     const j = byJob.get(`${UTILITY_JOB_PREFIX}${op.id}`);
     const last = j?.last_success_at ?? null;
     return {
+      utilities: op.utilities,
+      enabledUtilities: enabledOperators(env.UTILITY_OUTAGE_OPERATORS, [op], env)[0]?.utilities ?? [],
       operatorId: op.id,
       name: op.name,
       mapUrl: op.mapUrl,
@@ -147,7 +151,7 @@ export function resolveOperatorStatuses(env: ServerEnv, jobs: JobRow[], now: Dat
       lastStatus: j?.last_status ?? null,
       errorCode: j?.last_status === 'error' ? (j.last_error_code ?? null) : null,
       attention:
-        j?.last_status !== 'error'
+        j?.last_status === 'partial' ? 'format_changed' : j?.last_status !== 'error'
           ? null
           : j.last_error_code === 'invalid_payload' && j.consecutive_failures >= ATTENTION_FAILURES
             ? 'format_changed'
@@ -189,7 +193,7 @@ export function aggregateUtilityJob(jobs: JobRow[]): JobRow | null {
 /** Enabled operators whose latest fetch failed (shown as a note on an otherwise healthy source). */
 export function failingUtilityOperators(jobs: JobRow[]): { failing: number; total: number } {
   const ops = jobs.filter((j) => j.job_id.startsWith(UTILITY_JOB_PREFIX) && j.enabled);
-  return { failing: ops.filter((j) => j.last_status === 'error').length, total: ops.length };
+  return { failing: ops.filter((j) => j.last_status === 'error' || j.last_status === 'partial').length, total: ops.length };
 }
 
 /* ------------------------------------------------------------------ */
@@ -206,6 +210,7 @@ function toView(r: OrgUtilityOutageRow): UtilityOutageView {
   const operatorName = r.operator_name ?? r.operator_id;
   return {
     id: r.event_id,
+    ...(r.last_seen_at ? { lastSeenAt: r.last_seen_at.toISOString() } : {}),
     operatorId: r.operator_id,
     operatorName,
     utility: r.utility,
@@ -235,27 +240,29 @@ function toView(r: OrgUtilityOutageRow): UtilityOutageView {
 }
 
 export interface UtilityInputs {
+  municipalities?: Array<{ property_id: string; municipality: string | null }>;
   outages: OrgUtilityOutageRow[];
-  concessions: Array<Pick<PropertyConcessionRow, 'property_id' | 'operator_id'> & { operator_name?: string | null }>;
+  concessions: Array<Pick<PropertyConcessionRow, 'property_id' | 'operator_id'> & { operator_name?: string | null; utility?: UtilityKind }>;
   operators: OperatorStatus[];
 }
 
-/** Builds the electricity section for one property (Fas 1: electricity only). */
+/** Coverage uses published networks; water may use the verified municipal principal, not a connection claim. */
 export function propertyUtilityStatus(propertyId: string, inputs: UtilityInputs, utility: UtilityKind = 'electricity'): PropertyUtilityStatus {
   const views = inputs.outages.filter((o) => o.property_id === propertyId && o.utility === utility).map(toView);
-  if (utility !== 'electricity') {
-    // No concession data for district heating/cooling: coverage is unknown and the section exists only
-    // when an outage is matched (see withUtilityOutages).
-    return { utility, operator: null, coverage: 'unknown', updatedAt: null, ...split(views) };
-  }
   // Concession areas (Ei national dataset + operator feeds; boundaries approximate). One operator id may
   // appear from several sources; distinct operators mean the property lies near a boundary.
-  const rows = inputs.concessions.filter((c) => c.property_id === propertyId).map((c) => ({
+  const rows = inputs.concessions.filter((c) => c.property_id === propertyId && (c.utility ?? 'electricity') === utility).map((c) => ({
     ...c,
     // Existing Ei rows can retain their old placeholder until the weekly import. Resolve new adapters
     // by the same exact concession-holder mapping without editing production reference data.
-    operator_id: c.operator_id.startsWith('ei:') ? operatorIdForEiName(c.operator_name ?? c.operator_id.slice(3)) : c.operator_id,
+    operator_id: utility === 'electricity' && c.operator_id.startsWith('ei:') ? operatorIdForEiName(c.operator_name ?? c.operator_id.slice(3)) : c.operator_id,
   }));
+  if (!rows.length && utility === 'water') {
+    const name = inputs.municipalities?.find((p) => p.property_id === propertyId)?.municipality?.trim().toLocaleLowerCase('sv').replace(/\s+(?:kommun|stad)$/, '');
+    // Verified principal areas: SVOA's official glossary and Tekniska verken's Linköping VA page.
+    const id = name && ['stockholm', 'stockholms', 'huddinge'].includes(name) ? 'svoa' : name && ['linköping', 'linköpings'].includes(name) ? 'tekniskaverken' : null;
+    if (id) rows.push({ property_id: propertyId, operator_id: id, operator_name: id === 'svoa' ? 'Stockholm Vatten och Avfall' : 'Tekniska verken' });
+  }
   const ids = [...new Set(rows.map((c) => c.operator_id))];
   const nameOf = (id: string) => inputs.operators.find((o) => o.operatorId === id)?.name ?? rows.find((r) => r.operator_id === id && r.operator_name)?.operator_name ?? id.replace(/^ei:/, '');
   let operator: PropertyUtilityStatus['operator'] = null;
@@ -264,11 +271,11 @@ export function propertyUtilityStatus(propertyId: string, inputs: UtilityInputs,
   if (ids.length === 1) {
     const st = inputs.operators.find((o) => o.operatorId === ids[0]);
     operator = { id: ids[0]!, name: nameOf(ids[0]!), mapUrl: st?.mapUrl ?? null };
-    coverage = !st || !st.enabled ? 'not_monitored' : st.current ? 'monitored' : 'stale';
+    coverage = !st || !st.enabled || st.enabledUtilities && !st.enabledUtilities.includes(utility) ? 'not_monitored' : st.current ? 'monitored' : 'stale';
     updatedAt = st?.lastSuccessAt ?? null;
   }
   return {
-    utility: 'electricity',
+    utility,
     operator,
     coverage,
     ...(ids.length > 1 ? { operatorCandidates: ids.map(nameOf) } : {}),
@@ -296,7 +303,8 @@ function split(views: UtilityOutageView[]) {
 export function withUtilityOutages(s: PropertySnapshot, inputs: UtilityInputs): PropertySnapshot {
   const sections = [propertyUtilityStatus(s.property.id, inputs, 'electricity')];
   for (const utility of ['district_heating', 'district_cooling', 'gas', 'water'] as const) {
-    if (inputs.outages.some((o) => o.property_id === s.property.id && o.utility === utility)) sections.push(propertyUtilityStatus(s.property.id, inputs, utility));
+    const status = propertyUtilityStatus(s.property.id, inputs, utility);
+    if (status.coverage !== 'unknown' || inputs.outages.some((o) => o.property_id === s.property.id && o.utility === utility)) sections.push(status);
   }
   let status = s.property.status;
   let reason = s.property.statusReason ?? null;

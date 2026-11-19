@@ -10,7 +10,7 @@ describe('verified national water feeds', () => {
   it('reads all SVOA pages and filters unrelated projects without inventing restoration times', async () => {
     const fetcher = vi.fn(async (input) => new Response(JSON.stringify(fx(String(input).includes('skip=0') ? 'svoa-search' : 'svoa-search-next'))));
     const r = await fetchOperatorOutages(operatorById('svoa')!, context(fetcher as typeof fetch));
-    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(fetcher).toHaveBeenCalledTimes(3);
     expect(r).toMatchObject({ ok: true, data: { skipped: 0, ignored: 16 } });
     if (!r.ok) throw new Error('Unexpected failure');
     expect(r.data.outages).toHaveLength(2);

@@ -382,6 +382,9 @@ export const FeedItemSchema = z.object({
 export type FeedItem = z.infer<typeof FeedItemSchema>;
 
 export const UpcomingConditionSchema = z.object({
+  kind: z.literal('outage').optional(),
+  sourceName: z.string().optional(),
+  sourceUrl: z.string().url().optional(),
   id: z.string(),
   label: z.string(),
   where: z.string(),

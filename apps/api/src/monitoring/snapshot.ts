@@ -17,7 +17,7 @@ import type {
   WarningLevel,
   WeatherForecast,
 } from '@fastighetsradar/domain';
-import { assessPropertyRisk, feedNeedsAck, nightWorkLabel, formatWeekdayClock, swedishDayWindows, forecastInformation, WEATHER_WATER, summarizeNowcast, measurementTrend, type TimedReading, classifyFlow, measuredPrecipitation } from '@fastighetsradar/domain';
+import { assessPropertyRisk, feedNeedsAck, nightWorkLabel, formatWeekdayClock, swedishDayWindows, forecastInformation, WEATHER_WATER, summarizeNowcast, measurementTrend, type TimedReading, classifyFlow, measuredPrecipitation, outageHeadline } from '@fastighetsradar/domain';
 import type { OrgContextRow, OrgEventRow, OrgForecastRow, OrgMonitoringData, OrgObservationRow } from '@fastighetsradar/db';
 import {
   AIR_PHENOMENA,
@@ -572,9 +572,21 @@ export function buildFeed(changes: FeedChange[], propertyIds: Set<string>): Feed
  * Forecast-derived upcoming conditions (next 24 h). Plain thresholds on the SMHI point forecast,
  * shown as forecast facts – not alerts and not a risk assessment.
  */
-export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForecastRow[], now: Date): UpcomingCondition[] {
+export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForecastRow[], now: Date, outagesEnabled = false): UpcomingCondition[] {
   const out: UpcomingCondition[] = [];
   for (const s of snapshots) {
+    if (outagesEnabled) for (const section of s.utilityOutages ?? []) for (const o of section.upcoming) {
+      if (o.kind !== 'planned' || o.state !== 'upcoming' || o.noticeKind && o.noticeKind !== 'outage' || !['water', 'district_heating', 'district_cooling'].includes(o.utility) || !['high', 'medium'].includes(o.precisionLevel)) continue;
+      const start = Date.parse(o.plannedStart ?? ''), end = Date.parse(o.plannedEnd ?? '');
+      const seen = Date.parse(o.lastSeenAt ?? '');
+      if (!Number.isFinite(seen) || seen > now.getTime() || now.getTime() - seen > 20 * 60000) continue;
+      // Unknown ends are omitted: the timeline must not invent a one-hour shutdown.
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start <= now.getTime() || start > now.getTime() + 48 * 3600000 || end <= start) continue;
+      out.push({ id: `outage-${s.property.id}-${o.id}`, kind: 'outage', label: outageHeadline({ utility: o.utility, kind: 'planned', state: 'upcoming', plannedStart: o.plannedStart, plannedEnd: o.plannedEnd }, o.operatorName),
+        where: s.property.name, propertyId: s.property.id, when: formatWeekdayClock(o.plannedStart!), validAt: o.plannedStart!, validTo: o.plannedEnd!,
+        sourceId: 'utility_outages', sourceName: o.operatorName, ...(o.sourceUrl ? { sourceUrl: o.sourceUrl } : {}),
+        ...(o.operatorText ? { explanation: o.operatorText } : {}), value: 'Planerad avstängning', tone: 'monitor', origin: 'live', official: false });
+    }
     for (const w of s.warnings) if(w.validFrom && Date.parse(w.validFrom)>now.getTime() && Date.parse(w.validFrom)<=now.getTime()+48*3600000) out.push({id:'official-'+s.property.id+'-'+w.id,label:w.type,where:s.property.name,propertyId:s.property.id,when:formatWeekdayClock(w.validFrom),validAt:w.validFrom,...(w.validTo?{validTo:w.validTo}:{}),sourceId:w.sourceId,sourceUpdatedAt:w.issuedAt,official:true,value:LEVEL_SV[w.level],tone:w.level==='Red'||w.level==='VMA'?'critical':w.level==='Orange'?'warning':'monitor',origin:w.origin});
     const row = forecasts.find(f => f.property_id === s.property.id);
     if (!row || now.getTime() - row.fetched_at.getTime() > WEATHER_WATER.forecastUsableHours * 3_600_000) continue;

@@ -13,11 +13,12 @@ import { darkSpans } from './daylight';
  * only derives presentation.
  */
 
-export type UpcomingKind = 'warning' | 'ice' | 'frost' | 'freeze' | 'wind' | 'rain' | 'snow' | 'thunder';
+export type UpcomingKind = 'warning' | 'ice' | 'frost' | 'freeze' | 'wind' | 'rain' | 'snow' | 'thunder' | 'outage';
 
 const BLUE = 'oklch(0.56 0.12 245)';
 /** Chip label and bar colour per kind (official warnings are coloured by their level instead). */
 export const UPCOMING_KIND: Record<UpcomingKind, { label: string; bar: string }> = {
+  outage: { label: 'Avstängningar', bar: BLUE },
   warning: { label: 'Varningar', bar: 'oklch(0.7 0.16 55)' },
   ice: { label: 'Halka', bar: 'oklch(0.68 0.15 58)' },
   frost: { label: 'Minusgrader', bar: BLUE },
@@ -27,7 +28,7 @@ export const UPCOMING_KIND: Record<UpcomingKind, { label: string; bar: string }>
   snow: { label: 'Snö', bar: 'oklch(0.74 0.05 240)' },
   thunder: { label: 'Åska', bar: 'oklch(0.56 0.15 305)' },
 };
-const KIND_ORDER: UpcomingKind[] = ['warning', 'ice', 'frost', 'freeze', 'wind', 'rain', 'snow', 'thunder'];
+const KIND_ORDER: UpcomingKind[] = ['warning', 'outage', 'ice', 'frost', 'freeze', 'wind', 'rain', 'snow', 'thunder'];
 const LEVEL_BAR: Record<string, string> = { gul: 'oklch(0.83 0.15 92)', orange: 'oklch(0.7 0.16 55)', röd: SEV.critical.c };
 
 interface Kind {
@@ -91,6 +92,7 @@ const HOUR = 3_600_000;
 const WINDOW = 48 * HOUR;
 
 export interface UpcomingEvent {
+  sourceUrl?: string;
   id: string;
   kind: UpcomingKind;
   /** Lower = more serious: official red/VMA, orange, yellow, ice, other warnings, the rest. */
@@ -122,15 +124,16 @@ export function buildUpcomingEvents(portfolio: Portfolio, propertyIds: Set<strin
       const prefix = PREFIXES.find((p) => u.id.startsWith(p + '-'));
       const k = !u.official && prefix ? KINDS[prefix]! : null;
       const start = u.validAt ? Date.parse(u.validAt) : ref;
-      const end = u.validTo ? Math.max(Date.parse(u.validTo), start + 15 * 60_000) : start + HOUR;
-      const src = (u.sourceId && SOURCE_SV[u.sourceId]) || 'SMHI';
+      const end = u.kind === 'outage' ? Date.parse(u.validTo!) : u.validTo ? Math.max(Date.parse(u.validTo), start + 15 * 60_000) : start + HOUR;
+      const src = u.kind === 'outage' ? u.sourceName ?? 'Leverantören' : (u.sourceId && SOURCE_SV[u.sourceId]) || 'SMHI';
       const level = u.official ? u.value.split(' ')[0]!.toLowerCase() : '';
-      const kind: UpcomingKind = k?.kind ?? 'warning';
+      const kind: UpcomingKind = u.kind === 'outage' ? 'outage' : k?.kind ?? 'warning';
       const vu = k ? k.value(u, (end - start) / HOUR) : { value: u.value.replace(/\s*varning$/i, ''), unit: /varning/i.test(u.value) ? 'varning' : '' };
       const temp = prefix === 'frost' ? Number(u.value.replace('−', '-').replace(',', '.').replace(/[^\d.-]/g, '')) : NaN;
       const rank = u.official ? (u.tone === 'critical' ? 0 : u.tone === 'warning' ? 1 : 2) : kind === 'ice' ? 3 : u.tone === 'warning' ? 4 : kind === 'frost' ? 5 : 6;
       return {
         id: u.id,
+        ...(u.sourceUrl ? { sourceUrl: u.sourceUrl } : {}),
         kind,
         rank,
         official: !!u.official,
@@ -143,10 +146,10 @@ export function buildUpcomingEvents(portfolio: Portfolio, propertyIds: Set<strin
         end,
         value: vu.value,
         unit: vu.unit,
-        note: k ? `${k.body}${u.explanation && prefix !== 'freeze-thaw' ? ` ${u.explanation[0]!.toUpperCase()}${u.explanation.slice(1)}.` : ''} ${k.action}` : `${src} har utfärdat en ${u.value.toLowerCase()} för ${stripTag(u.label).toLowerCase()}. ${OFFICIAL_ACTION}`,
+        note: kind === 'outage' ? u.explanation ? `Leverantörens text: ${u.explanation}` : 'Leverantören har registrerat en planerad avstängning vid fastighetens läge. Läs leverantörens driftinformation.' : k ? `${k.body}${u.explanation && prefix !== 'freeze-thaw' ? ` ${u.explanation[0]!.toUpperCase()}${u.explanation.slice(1)}.` : ''} ${k.action}` : `${src} har utfärdat en ${u.value.toLowerCase()} för ${stripTag(u.label).toLowerCase()}. ${OFFICIAL_ACTION}`,
         from: formatWeekdayClock(new Date(start).toISOString()),
         to: formatWeekdayClock(new Date(end).toISOString()),
-        src: `${src} · ${u.official ? 'varning' : 'prognos'}`,
+        src: `${src} · ${kind === 'outage' ? 'avbrottsinformation' : u.official ? 'varning' : 'prognos'}`,
         tmin: Number.isFinite(temp) ? temp : null,
       };
     });
@@ -182,6 +185,7 @@ export function whenPhrase(start: number, ref: number): string {
 }
 
 const HEADLINE: Record<UpcomingKind, (e: UpcomingEvent) => string> = {
+  outage: (e) => e.label,
   warning: (e) => e.label.replace(' · ', ' för '),
   ice: () => 'Risk för halka',
   frost: (e) => `Minusgrader ner till ${e.value}`,
@@ -198,6 +202,7 @@ function sentence(kind: UpcomingKind, list: UpcomingEvent[]): string {
   const n = places.length;
   const where = n === 1 ? `vid ${places[0]}` : `på ${words(n)} platser`;
   switch (kind) {
+    case 'outage': return `Planerade avstängningar ${where}.`;
     case 'warning': return `${cap(words(list.length))} ${list.length === 1 ? 'officiell varning' : 'officiella varningar'} ${where}.`;
     case 'frost': {
       const cold = [...list].sort((a, b) => (a.tmin ?? 0) - (b.tmin ?? 0))[0]!;

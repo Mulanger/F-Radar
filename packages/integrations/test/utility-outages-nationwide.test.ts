@@ -12,6 +12,17 @@ const fx = (id: string) => JSON.parse(text(id));
 const context = (body: unknown): AdapterContext => ({ env: loadServerEnv({}), now: () => now, fetch: vi.fn(async () => new Response(typeof body === 'string' ? body : JSON.stringify(body))), logger: { debug() {}, info() {}, warn() {}, error() {} } });
 
 describe('nationwide electricity additions: actual pod response contracts', () => {
+  it('reuses ETag bodies on 304 instead of treating an unchanged feed as empty; unsolicited 304 is an error', async () => {
+    const body = text('umea-public');
+    const fetcher = vi.fn().mockResolvedValueOnce(new Response(body, { headers: { ETag: '"published-v1"' } })).mockResolvedValueOnce(new Response(null, { status: 304 }));
+    const c: AdapterContext = { env: loadServerEnv({}), fetch: fetcher, now: () => now, logger: { debug() {}, info() {}, warn() {}, error() {} } };
+    const first = await fetchOperatorOutages(operatorById('umea')!, c);
+    const second = await fetchOperatorOutages(operatorById('umea')!, c);
+    expect(first.ok).toBe(true);
+    expect(second).toEqual(first);
+    expect(fetcher.mock.calls[1]![1].headers['If-None-Match']).toBe('"published-v1"');
+    expect(await fetchOperatorOutages(operatorById('umea')!, { ...c, fetch: vi.fn(async () => new Response(null, { status: 304 })) })).toMatchObject({ ok: false, error: 'invalid_payload' });
+  });
   it('all four operators stay disabled even with global source on and an explicit operator list', () => {
     const ids = ['oresundskraft', 'kraftringen_elnat', 'umea', 'skekraft'];
     const off = loadServerEnv({ SOURCE_UTILITY_OUTAGES_ENABLED: 'true' });

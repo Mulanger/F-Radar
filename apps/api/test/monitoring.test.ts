@@ -359,7 +359,8 @@ describe('monitoring HTTP endpoints', () => {
     expect((await app.inject({ method: 'GET', url: '/v1/utility-coverage', headers: { authorization: 'Bearer noorg' } })).statusCode).toBe(403);
     const r = await app.inject({ method: 'GET', url: '/v1/utility-coverage', headers: { authorization: 'Bearer org' } });
     expect(r.statusCode).toBe(200);
-    expect(r.json().reports).toMatchObject([{ utility: 'electricity', total: 0, monitored: 0, properties: [], gaps: [] }]);
+    expect(r.json().reports.map((r: { utility: string }) => r.utility)).toEqual(['electricity', 'district_heating', 'district_cooling', 'gas', 'water']);
+    expect(r.json().reports.every((r: { total: number; properties: unknown[]; gaps: unknown[] }) => r.total === 0 && !r.properties.length && !r.gaps.length)).toBe(true);
   });
 
   it('streams SSE scoped to the organization', async () => {

@@ -101,7 +101,7 @@ function Details({ e, st, variant }: { e: UpcomingBar; st: UpcomingState; varian
       <div className={s.facts}>
         <div><span>Från</span><span className={s.mono}>{e.from}</span></div>
         <div><span>Till</span><span className={s.mono}>{e.to}</span></div>
-        <div className={s.factWide}><span>Källa</span><span>{e.src}</span></div>
+        <div className={s.factWide}><span>Källa</span><span>{e.sourceUrl ? <a href={e.sourceUrl} target="_blank" rel="noopener noreferrer">{e.src}</a> : e.src}</span></div>
       </div>
       {e.propertyId && (
         <button type="button" className={s.propLink} onClick={() => st.openProperty(e.propertyId!)}>
