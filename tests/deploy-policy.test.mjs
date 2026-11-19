@@ -23,6 +23,7 @@ const ROLLOUT_FLAGS = [
 ];
 const WATER_OPERATORS = [
   'svoa',
+  'tekniskaverken',
 ];
 const ROLLOUT = { ...Object.fromEntries(ROLLOUT_FLAGS.map((k) => [k, 'true'])), UTILITY_OUTAGE_WATER_OPERATORS: WATER_OPERATORS.join(',') };
 const DEFERRED_FLAGS = [

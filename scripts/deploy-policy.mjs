@@ -45,6 +45,7 @@ export function deploymentEnvironment(current, local) {
   vars.SOURCE_UTILITY_SVOA_ENABLED = 'true';
   vars.UTILITY_OUTAGE_WATER_OPERATORS = [
     'svoa',
+    'tekniskaverken',
   ].join(',');
   return vars;
 }
