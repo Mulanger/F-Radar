@@ -49,6 +49,7 @@ export function deploymentEnvironment(current, local) {
     'servicealert:soderhamn',
     'servicealert:oxelo',
     'servicealert:emmaboda',
+    'servicealert:ljusdal',
   ].join(',');
   return vars;
 }

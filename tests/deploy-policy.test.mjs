@@ -27,6 +27,7 @@ const WATER_OPERATORS = [
   'servicealert:soderhamn',
   'servicealert:oxelo',
   'servicealert:emmaboda',
+  'servicealert:ljusdal',
 ];
 const ROLLOUT = { ...Object.fromEntries(ROLLOUT_FLAGS.map((k) => [k, 'true'])), UTILITY_OUTAGE_WATER_OPERATORS: WATER_OPERATORS.join(',') };
 const DEFERRED_FLAGS = [
