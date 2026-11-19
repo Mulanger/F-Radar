@@ -49,3 +49,8 @@ Kommande-listan prioriterar kommande officiella perioder före härledda rader, 
   Verifiering: 60 filer, 474 godkända/6 överhoppade, typer/lint gröna; PostGIS 33/33.
   API-build och webb-webpack-build passerar. Lokal Turbopack/standalone begränsas av externa junctions.
   Proxy saknas, ny TLS-kod ej provad i podden, inget aktiverat eller deployat.
+- Fas 1 commit `78c82cb`.
+- Fas 2 delvis: fyra nationellt prioriterade elnät, 335 510 abonnemang, potential 68,7677 → 74,7453 %.
+  Fulla poddsvar normaliserade med 0 skipped, nya källor avstängda via egna flaggor.
+  61 filer, 481 godkända/6 överhoppade; typer/lint gröna; PostGIS 33/33.
+  Övriga elnät, aktiv Umeå-el och fler Skellefteå-statusar är inte färdigverifierade.

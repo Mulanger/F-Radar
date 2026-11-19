@@ -1,4 +1,5 @@
 import type { UtilityOperator } from './types';
+import type { ServerEnv } from '@fastighetsradar/config';
 
 /**
  * Grid operators collected in Fas 1 (docs/plans/stromavbrott.md §4). Every entry was verified live
@@ -22,6 +23,29 @@ const digpro = (name: string, host: string, cust: string, concession: boolean, e
 });
 
 export const UTILITY_OPERATORS: UtilityOperator[] = [
+  {
+    id: 'oresundskraft', name: 'Öresundskraft Elnät', platform: 'trimble', scope: 'p',
+    base: 'https://driftinformation.oresundskraft.se/OutageMap', utilities: ['electricity'],
+    mapUrl: 'https://www.oresundskraft.se/avbrottsinformation/', eiNames: ['Öresundskraft Elnät AB'],
+    enableFlag: 'SOURCE_UTILITY_ORESUND_ENABLED',
+  },
+  {
+    id: 'kraftringen_elnat', name: 'Kraftringen Nät', platform: 'digpro',
+    host: 'stavbrottskartan.blob.core.windows.net', cust: 'lnd', concessionUrl: null,
+    outageUrls: { electricity: 'https://stavbrottskartan.blob.core.windows.net/xml/fpp_lnd_outages.kml' },
+    utilities: ['electricity'], mapUrl: 'https://www.kraftringen.se/kundservice/avbrott-och-felanmalan/stromavbrott/',
+    eiNames: ['Kraftringen Nät AB'], enableFlag: 'SOURCE_UTILITY_KRAFTRINGEN_ENABLED',
+  },
+  {
+    id: 'umea', name: 'Umeå Energi Elnät', platform: 'umea', utilities: ['electricity'],
+    dataUrl: 'https://uewebstorage.blob.core.windows.net/disturbance-data-prod/disturbances.json',
+    mapUrl: 'https://driftinfo.umeaenergi.se/', eiNames: ['Umeå Energi Elnät AB'], enableFlag: 'SOURCE_UTILITY_UMEA_ENABLED',
+  },
+  {
+    id: 'skekraft', name: 'Skellefteå Kraft Elnät', platform: 'skekraft', utilities: ['electricity'],
+    dataUrl: 'https://driftinfo3-api.skekraft.se/api/disturbances',
+    mapUrl: 'https://driftinfo.skekraft.se/', eiNames: ['Skellefteå Kraft Elnät AB'], enableFlag: 'SOURCE_UTILITY_SKEKRAFT_ENABLED',
+  },
   {
     id: 'vattenfall',
     name: 'Vattenfall Eldistribution',
@@ -140,7 +164,8 @@ export const UTILITY_OPERATORS: UtilityOperator[] = [
 ];
 
 /** Operators enabled by UTILITY_OUTAGE_OPERATORS ("" = all, "none" = none, else comma list of ids). */
-export function enabledOperators(setting: string | undefined, all: UtilityOperator[] = UTILITY_OPERATORS): UtilityOperator[] {
+export function enabledOperators(setting: string | undefined, all: UtilityOperator[] = UTILITY_OPERATORS, flags?: Partial<ServerEnv>): UtilityOperator[] {
+  all = all.filter((o) => !o.enableFlag || flags?.[o.enableFlag] === true);
   const v = (setting ?? '').trim();
   if (!v) return all;
   if (v.toLowerCase() === 'none') return [];

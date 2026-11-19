@@ -95,7 +95,7 @@ async function runEiConcessions(ctx: JobContext): Promise<JobResult> {
 /** One job per operator (all listed so disabling an operator also disables its stored job row). */
 export function buildUtilityOutageJobs(env: ServerEnv): MonitoringJob[] {
   const on = env.SOURCE_UTILITY_OUTAGES_ENABLED;
-  const enabled = new Set(enabledOperators(env.UTILITY_OUTAGE_OPERATORS).map((o) => o.id));
+  const enabled = new Set(enabledOperators(env.UTILITY_OUTAGE_OPERATORS, UTILITY_OPERATORS, env).map((o) => o.id));
   const jobs: MonitoringJob[] = [];
   for (const op of UTILITY_OPERATORS) {
     const active = on && enabled.has(op.id);
@@ -133,7 +133,7 @@ export const ATTENTION_FAILURES = 3;
 
 export function resolveOperatorStatuses(env: ServerEnv, jobs: JobRow[], now: Date): OperatorStatus[] {
   const byJob = new Map(jobs.map((j) => [j.job_id, j]));
-  const enabled = new Set(env.SOURCE_UTILITY_OUTAGES_ENABLED ? enabledOperators(env.UTILITY_OUTAGE_OPERATORS).map((o) => o.id) : []);
+  const enabled = new Set(env.SOURCE_UTILITY_OUTAGES_ENABLED ? enabledOperators(env.UTILITY_OUTAGE_OPERATORS, UTILITY_OPERATORS, env).map((o) => o.id) : []);
   return UTILITY_OPERATORS.map((op) => {
     const j = byJob.get(`${UTILITY_JOB_PREFIX}${op.id}`);
     const last = j?.last_success_at ?? null;
@@ -223,7 +223,7 @@ function toView(r: OrgUtilityOutageRow): UtilityOutageView {
     plannedEnd: iso(r.planned_end),
     actualStart: iso(r.actual_start),
     estimatedRestore: iso(r.estimated_restore),
-    restoredAt: iso(r.restored_at) ?? (r.state === 'restored' ? iso(r.ended_at) : null),
+    restoredAt: iso(r.restored_at),
     restoredInferred: r.state === 'restored' && Boolean(r.restored_inferred),
     operatorText: r.operator_text,
     cause: r.cause,
@@ -249,7 +249,12 @@ export function propertyUtilityStatus(propertyId: string, inputs: UtilityInputs,
   }
   // Concession areas (Ei national dataset + operator feeds; boundaries approximate). One operator id may
   // appear from several sources; distinct operators mean the property lies near a boundary.
-  const rows = inputs.concessions.filter((c) => c.property_id === propertyId);
+  const rows = inputs.concessions.filter((c) => c.property_id === propertyId).map((c) => ({
+    ...c,
+    // Existing Ei rows can retain their old placeholder until the weekly import. Resolve new adapters
+    // by the same exact concession-holder mapping without editing production reference data.
+    operator_id: c.operator_id.startsWith('ei:') ? operatorIdForEiName(c.operator_name ?? c.operator_id.slice(3)) : c.operator_id,
+  }));
   const ids = [...new Set(rows.map((c) => c.operator_id))];
   const nameOf = (id: string) => inputs.operators.find((o) => o.operatorId === id)?.name ?? rows.find((r) => r.operator_id === id && r.operator_name)?.operator_name ?? id.replace(/^ei:/, '');
   let operator: PropertyUtilityStatus['operator'] = null;

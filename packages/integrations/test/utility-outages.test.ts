@@ -161,7 +161,7 @@ describe('Digpro outagemap2 KML', () => {
 describe('operators', () => {
   it('lists unique ids and honours UTILITY_OUTAGE_OPERATORS', () => {
     expect(new Set(UTILITY_OPERATORS.map((o) => o.id)).size).toBe(UTILITY_OPERATORS.length);
-    expect(enabledOperators('')).toHaveLength(UTILITY_OPERATORS.length);
+    expect(enabledOperators('')).toHaveLength(UTILITY_OPERATORS.filter((o) => !o.enableFlag).length);
     expect(enabledOperators('none')).toEqual([]);
     expect(enabledOperators('vattenfall, digpro:fev').map((o) => o.id)).toEqual(['vattenfall', 'digpro:fev']);
   });

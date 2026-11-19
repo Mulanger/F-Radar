@@ -65,7 +65,7 @@ describe('heating layers', () => {
   });
   it('heating-only operators never claim an electricity grid', () => {
     expect(operatorById('digpro:lnd')!.utilities).toEqual(['district_heating']);
-    expect(operatorIdForEiName('Kraftringen Nät AB')).toBe('ei:Kraftringen Nät AB');
+    expect(operatorIdForEiName('Kraftringen Nät AB', [operatorById('digpro:lnd')!])).toBe('ei:Kraftringen Nät AB');
     expect(UTILITY_OPERATORS.filter((o) => o.utilities.includes('district_heating')).length).toBeGreaterThanOrEqual(8);
   });
 });

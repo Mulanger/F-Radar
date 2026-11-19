@@ -191,7 +191,7 @@ export function formatOutageWindow(start: string | null, end: string | null): st
  * ServiceAlert) only remove outages from the map, so removal is read as "troligen tillbaka".
  * Seen in live data 2026-11-17: Ellevio, Göteborg Energi, Digpro, Tekniska verken report restored.
  */
-export const PLATFORMS_REPORTING_RESTORED: readonly string[] = ['ellevio', 'goteborg_energi', 'digpro', 'tekniskaverken'];
+export const PLATFORMS_REPORTING_RESTORED: readonly string[] = ['ellevio', 'goteborg_energi', 'digpro', 'tekniskaverken', 'umea', 'skekraft'];
 
 export function outageVanished(o: { kind: OutageKind; state: OutageState }): boolean {
   return o.state === 'withdrawn' && o.kind !== 'planned';

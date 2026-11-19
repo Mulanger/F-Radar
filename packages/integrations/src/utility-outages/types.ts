@@ -1,5 +1,6 @@
 import type { OutageKind, OutagePrecision, OutageState, UtilityKind } from '@fastighetsradar/domain';
 import type { GeoJsonGeometry } from '../types';
+import type { ServerEnv } from '@fastighetsradar/config';
 
 /** One outage as published by a grid operator, normalised (docs/plans/stromavbrott.md §5.2). */
 export interface NormalizedUtilityOutage {
@@ -52,11 +53,13 @@ export interface ConcessionArea {
   geometry: GeoJsonGeometry;
 }
 
-export type UtilityOperatorPlatform = 'vattenfall' | 'digpro' | 'goteborg_energi' | 'ellevio' | 'tekniskaverken' | 'trimble' | 'eon' | 'servicealert';
+export type UtilityOperatorPlatform = 'vattenfall' | 'digpro' | 'goteborg_energi' | 'ellevio' | 'tekniskaverken' | 'trimble' | 'eon' | 'servicealert' | 'umea' | 'skekraft';
 
 interface OperatorBase {
   /** Observed connection/blocking failures from France; optional Swedish CONNECT egress. */
   requiresSwedishEgress?: boolean;
+  /** New operators need an additional explicit opt-in, even with an empty operator list. */
+  enableFlag?: keyof ServerEnv;
   /** Stable id used in job ids, external ids and UTILITY_OUTAGE_OPERATORS. */
   id: string;
   /** Display name shown to customers. */
@@ -69,7 +72,9 @@ interface OperatorBase {
 }
 export type UtilityOperator =
   | (OperatorBase & { platform: 'vattenfall'; dataUrl: string })
-  | (OperatorBase & { platform: 'digpro'; host: string; cust: string; concessionUrl: string | null })
+  | (OperatorBase & { platform: 'digpro'; host: string; cust: string; concessionUrl: string | null; outageUrls?: Partial<Record<UtilityKind, string>> })
+  | (OperatorBase & { platform: 'umea'; dataUrl: string })
+  | (OperatorBase & { platform: 'skekraft'; dataUrl: string })
   | (OperatorBase & { platform: 'goteborg_energi'; apiBase: string; utilityTypeIds: Partial<Record<UtilityKind, string>> })
   | (OperatorBase & { platform: 'ellevio'; loadUrl: string; version: string })
   | (OperatorBase & { platform: 'tekniskaverken'; apiBase: string; brand: string })

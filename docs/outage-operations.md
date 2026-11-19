@@ -68,3 +68,19 @@ Lokala byggprov använder delade externa beroenden via junctions. Turbopack acce
 utanför worktree-roten; `next build --webpack` passerar men dess standalone-spårning varnar om
 externa junction-filer. Dessa lokala artefakter får inte användas som deploypaket.
 En ren installation utan externa junctions krävs inför release.
+
+## Nya elnät, Fas 2
+
+Samtliga kräver `SOURCE_UTILITY_OUTAGES_ENABLED=true` och dessutom sin egen flagga:
+
+| Operatörs-id | Flagga (default false) |
+|---|---|
+| `oresundskraft` | `SOURCE_UTILITY_ORESUND_ENABLED` |
+| `kraftringen_elnat` | `SOURCE_UTILITY_KRAFTRINGEN_ENABLED` |
+| `umea` | `SOURCE_UTILITY_UMEA_ENABLED` |
+| `skekraft` | `SOURCE_UTILITY_SKEKRAFT_ENABLED` |
+
+Om `UTILITY_OUTAGE_OPERATORS` är en uttrycklig lista måste id:t också finnas där.
+En tom lista aktiverar fortfarande bara befintliga operatörer; de fyra nya kräver egna flaggor.
+Ingen av dessa fyra behöver svensk proxy enligt poddproven. Ingen ny migrering i Fas 2.
+Efter aktivering måste varje jobb ha en komplett lyckad hämtning innan adresser räknas som bevakade.

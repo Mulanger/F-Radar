@@ -101,6 +101,13 @@ const job = (id: string, o: Partial<JobRow> = {}): JobRow =>
   }) as JobRow;
 
 describe('collector jobs and health', () => {
+  it('new operators need their own opt-in and old Ei placeholders resolve without a production data rewrite', () => {
+    const env = loadServerEnv({ SOURCE_UTILITY_OUTAGES_ENABLED: 'true', SOURCE_UTILITY_KRAFTRINGEN_ENABLED: 'true' });
+    const inputs = { outages: [], concessions: [{ property_id: 'p', operator_id: 'ei:Kraftringen Nät AB', operator_name: 'Kraftringen Nät AB' }], operators: resolveOperatorStatuses(env, [job('utility_outages:kraftringen_elnat')], NOW) };
+    expect(propertyUtilityStatus('p', inputs)).toMatchObject({ coverage: 'monitored', operator: { id: 'kraftringen_elnat' } });
+    const off = { ...inputs, operators: resolveOperatorStatuses(loadServerEnv({ SOURCE_UTILITY_OUTAGES_ENABLED: 'true' }), [job('utility_outages:kraftringen_elnat')], NOW) };
+    expect(propertyUtilityStatus('p', off).coverage).toBe('not_monitored');
+  });
   it('one job per operator, all disabled unless SOURCE_UTILITY_OUTAGES_ENABLED', () => {
     const off = buildUtilityOutageJobs(loadServerEnv({}));
     expect(off.length).toBeGreaterThan(10);
@@ -232,7 +239,7 @@ describe('property outage section and status', () => {
 
   it('national concession areas name operators we do not monitor; two operators mean a boundary case', () => {
     const notMon = propertyUtilityStatus(PID, { outages: [], concessions: [{ property_id: PID, operator_id: 'ei:Kraftringen Nät AB', operator_name: 'Kraftringen Nät AB' }], operators: [op()] });
-    expect(notMon).toMatchObject({ coverage: 'not_monitored', operator: { id: 'ei:Kraftringen Nät AB', name: 'Kraftringen Nät AB', mapUrl: null } });
+    expect(notMon).toMatchObject({ coverage: 'not_monitored', operator: { id: 'kraftringen_elnat', name: 'Kraftringen Nät AB', mapUrl: null } });
     // Same operator from two sources (Ei + operator feed) is still one operator.
     const dup = propertyUtilityStatus(PID, { outages: [], concessions: [{ property_id: PID, operator_id: 'vattenfall', operator_name: 'Vattenfall Eldistribution AB' }, { property_id: PID, operator_id: 'vattenfall' }], operators: [op()] });
     expect(dup.coverage).toBe('monitored');

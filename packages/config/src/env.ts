@@ -77,6 +77,10 @@ export const ServerEnvSchema = z.object({
   SL_DEVIATIONS_API_KEY: optionalString,
   /** Grid operators' outage maps (docs/plans/stromavbrott.md). Off until the product owner enables it. */
   SOURCE_UTILITY_OUTAGES_ENABLED: bool(false),
+  SOURCE_UTILITY_ORESUND_ENABLED: bool(false),
+  SOURCE_UTILITY_KRAFTRINGEN_ENABLED: bool(false),
+  SOURCE_UTILITY_UMEA_ENABLED: bool(false),
+  SOURCE_UTILITY_SKEKRAFT_ENABLED: bool(false),
   /** Comma-separated operator ids to collect (empty = every implemented operator). "none" disables all. */
   UTILITY_OUTAGE_OPERATORS: optionalString,
   /** HTTPS CONNECT proxy in Sweden, server-only. Used only by explicitly marked operators. */

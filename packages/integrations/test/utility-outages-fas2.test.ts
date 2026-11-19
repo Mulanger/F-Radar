@@ -177,7 +177,8 @@ describe('Energimarknadsinspektionen concession areas', () => {
   it('maps holders to our operators; unknown holders become ei:<name>', () => {
     expect(operatorIdForEiName('Göteborg Energi Nät AB')).toBe('goteborg_energi');
     expect(operatorIdForEiName('Vattenfall Eldistribution AB')).toBe('vattenfall');
-    expect(operatorIdForEiName('Kraftringen Nät AB')).toBe('ei:Kraftringen Nät AB');
+    expect(operatorIdForEiName('Kraftringen Nät AB')).toBe('kraftringen_elnat');
+    expect(operatorIdForEiName('Nätet Utan Adapter AB')).toBe('ei:Nätet Utan Adapter AB');
     expect(UTILITY_OPERATORS.filter((o) => o.utilities.includes('electricity')).every((o) => o.eiNames.length > 0)).toBe(true);
   });
   it('rejects a non-ZIP', () => {

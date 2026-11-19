@@ -13,12 +13,14 @@ import { parseServiceAlert } from './platforms/servicealert';
 import { GOTEBORG_ADDRESS_AREA, parseGoteborgUpcoming } from './platforms/goteborg';
 import type { ConcessionArea, OutageFetchResult, UtilityOperator } from './types';
 import { withOperatorTransport } from './transport';
+import { parseUmea, parseSkekraft } from './platforms/published-json';
 
 export * from './types';
 export * from './time';
 export * from './geometry';
 export * from './operators';
 export * from './transport';
+export { parseUmea, parseSkekraft, publishedLocalTime } from './platforms/published-json';
 export { parseVattenfall, plannedEndFromText, VATTENFALL_ONGOING_FAULT, VATTENFALL_ONGOING_PLANNED, VATTENFALL_UPCOMING_PLANNED } from './platforms/vattenfall';
 export { parseDigproKml, parseConcessionKml, digproPlacemarkToOutage } from './platforms/digpro';
 export { goteborgKmlUrl } from './platforms/goteborg-url';
@@ -235,6 +237,12 @@ export async function fetchEiConcessions(ctx: AdapterContext, url = EI_LOCAL_CON
 export async function fetchOperatorOutages(op: UtilityOperator, ctx: AdapterContext): Promise<AdapterResult<OutageFetchResult>> {
   ctx = withOperatorTransport(op, ctx);
   const now = ctx.now();
+  if (op.platform === 'umea' || op.platform === 'skekraft') {
+    const r = await fetchText(op.dataUrl, ctx, `${op.id} outages`, { accept: 'application/json' });
+    if (!r.ok) return r;
+    const parsed = op.platform === 'umea' ? parseUmea(json(r.data), op, now) : parseSkekraft(json(r.data), op);
+    return parsed ? { ok: true, data: parsed, fetchedAt: r.fetchedAt } : { ok: false, error: 'invalid_payload', detail: `${op.id}: unexpected published outage payload` };
+  }
   if (op.platform === 'ellevio') return fetchEllevio(op, ctx);
   if (op.platform === 'tekniskaverken') return fetchTekniskaVerken(op, ctx);
   if (op.platform === 'trimble') return fetchTrimble(op, ctx);
@@ -261,7 +269,7 @@ export async function fetchOperatorOutages(op: UtilityOperator, ctx: AdapterCont
     const parts: OutageFetchResult[] = [];
     let fetchedAt = now.toISOString();
     for (const l of layers) {
-      const url = `https://${op.host}/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=${l.app}_${op.cust}`;
+      const url = op.outageUrls?.[l.utility] ?? `https://${op.host}/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=${l.app}_${op.cust}`;
       const r = await fetchText(url, ctx, `${op.id} kml ${l.app}`, { accept: 'application/vnd.google-earth.kml+xml, application/xml, */*' });
       if (!r.ok) return r;
       const parsed = parseDigproKml(r.data, { operatorId: op.id, utility: l.utility, mapUrl: op.mapUrl, now, externalPrefix: l.prefix });

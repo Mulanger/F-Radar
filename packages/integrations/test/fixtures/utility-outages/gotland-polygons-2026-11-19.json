@@ -1,0 +1,343 @@
+{
+  "type": "FeatureCollection",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": 1,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              18.4623436795774,
+              57.6067210210269
+            ],
+            [
+              18.4611690984478,
+              57.6071762754061
+            ],
+            [
+              18.4470199210176,
+              57.6148561767907
+            ],
+            [
+              18.4678839047067,
+              57.6214232465687
+            ],
+            [
+              18.4699290516805,
+              57.6209698616293
+            ],
+            [
+              18.4890150065975,
+              57.6104603131421
+            ],
+            [
+              18.4623436795774,
+              57.6067210210269
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "objectid": 1,
+        "name": "UH L711 stolpbyte 261120",
+        "description": "Arbete på LUFTLEDNING med driftsmärkning L711                    . Gräns mot spänning: L711-F25 samt L711-AF29\r\nByte av provisoriskt lagad stolpe enl ärende 526705\r\nkunder är aviserade 2026-11-12\r\nFörutsättningar:  1. Elsäkerhetsledaren ansvarar för att erforderliga jordningar.  2.Ingen åska",
+        "state_txt": "Godkänt",
+        "starttime": 1795161600000,
+        "type_txt": "Koppling",
+        "priority": 0,
+        "timelimit": 1795168800000,
+        "lfk_txt": null,
+        "assignedto_txt": null,
+        "gridlevel_txt": "Msp",
+        "flag": 1424,
+        "reason_txt": "Planerat arbete",
+        "num_ns": 0,
+        "num_ab": 0,
+        "last_updated": 1795067567000,
+        "customer_web_text": "För att säkra en trygg och stabil elleverans behöver vi utföra underhåll på elnätet. Observera att strömmen kan återkopplas tidigare. Under avbrottet ska anläggningen betraktas som spänningssatt. ",
+        "last_edited_date": 1795067618337,
+        "eventid": 527501
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 2,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              18.4910231067086,
+              57.4926850543471
+            ],
+            [
+              18.484826655573,
+              57.4940190678421
+            ],
+            [
+              18.4847430786626,
+              57.4940458298466
+            ],
+            [
+              18.4907171525241,
+              57.493501535423
+            ],
+            [
+              18.4910231067086,
+              57.4926850543471
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "objectid": 2,
+        "name": "AB LSP 30150 Grp 1",
+        "description": "Arbete på NÄTSTATION med driftsmärkning 30150                           . \r\nGräns mot spänning: L30150 Grp 1, \r\nvi ska skarva in ett nytt KS på bef kabel.\r\n\r\nKunder aviserade  2026-11-12",
+        "state_txt": "Godkänt",
+        "starttime": 1795507200000,
+        "type_txt": "Koppling",
+        "priority": 0,
+        "timelimit": 1795518000000,
+        "lfk_txt": null,
+        "assignedto_txt": null,
+        "gridlevel_txt": "Msp",
+        "flag": 1152,
+        "reason_txt": "Planerat arbete",
+        "num_ns": 0,
+        "num_ab": 0,
+        "last_updated": 1795067567000,
+        "customer_web_text": "För att säkra en trygg och stabil elleverans behöver vi utföra underhåll på elnätet. Observera att strömmen kan återkopplas tidigare. Under avbrottet ska anläggningen betraktas som spänningssatt. ",
+        "last_edited_date": 1795067618597,
+        "eventid": 527893
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 3,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              18.4599134724665,
+              57.8170826297811
+            ],
+            [
+              18.4603133159939,
+              57.8175773759188
+            ],
+            [
+              18.4606983581857,
+              57.8178206814094
+            ],
+            [
+              18.4631295694842,
+              57.818894676006
+            ],
+            [
+              18.4651281807455,
+              57.8193660755974
+            ],
+            [
+              18.4653112319679,
+              57.8174899239018
+            ],
+            [
+              18.4630753876115,
+              57.8172424598453
+            ],
+            [
+              18.4599134724665,
+              57.8170826297811
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "objectid": 3,
+        "name": "L162 NS16220 Byte trafo",
+        "description": "Arbete på NÄTSTATION med driftsmärkning 16220                           . Gräns mot spänning: Frånskiljare transformator.\r\nVi skall byta befintlig 50kVA trafo mot 100kVA i befintlig NS16220.\r\n kunder är aviserade 2026-11-12, Förutsättningar: 1. Elsäkerhetsledaren ansvarar för att erforderliga jordningar.  2.Ingen åska",
+        "state_txt": "Godkänt",
+        "starttime": 1796198400000,
+        "type_txt": "Koppling",
+        "priority": 0,
+        "timelimit": 1796209200000,
+        "lfk_txt": null,
+        "assignedto_txt": null,
+        "gridlevel_txt": "Msp",
+        "flag": 1152,
+        "reason_txt": "Planerat arbete",
+        "num_ns": 0,
+        "num_ab": 0,
+        "last_updated": 1795067567000,
+        "customer_web_text": "För att säkra en trygg och stabil elleverans behöver vi utföra underhåll på elnätet. Observera att strömmen kan återkopplas tidigare. Under avbrottet ska anläggningen betraktas som spänningssatt. ",
+        "last_edited_date": 1795067618862,
+        "eventid": 527913
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 4,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              18.3974622748281,
+              57.652628301227
+            ],
+            [
+              18.3920395276731,
+              57.6556210486435
+            ],
+            [
+              18.3950686091469,
+              57.6576229264044
+            ],
+            [
+              18.4099442001918,
+              57.6593967333181
+            ],
+            [
+              18.4100637315168,
+              57.6591546211142
+            ],
+            [
+              18.4103555613608,
+              57.6584011675257
+            ],
+            [
+              18.3974622748281,
+              57.652628301227
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "objectid": 4,
+        "name": "AB L-61335 ",
+        "description": "Arbete på NÄTSTATION med driftsmärkning 61335                           . Gräns mot spänning: L613-F6, L613-F5,  samt L613-F9 Förutsättningar: 1. Elsäkerhetsledaren ansvarar för att erforderliga jordningar.  2.Ingen åska. Vi ska byta stp station 61335 till ny markstation, 86104.\r\n\r\nKunder aviserade: 2026-11-17",
+        "state_txt": "Godkänt",
+        "starttime": 1796112000000,
+        "type_txt": "Koppling",
+        "priority": 0,
+        "timelimit": 1796126400000,
+        "lfk_txt": null,
+        "assignedto_txt": null,
+        "gridlevel_txt": "Msp",
+        "flag": 1152,
+        "reason_txt": "Planerat arbete",
+        "num_ns": 0,
+        "num_ab": 0,
+        "last_updated": 1795067567000,
+        "customer_web_text": "För att säkra en trygg och stabil elleverans behöver vi utföra underhåll på elnätet. Observera att strömmen kan återkopplas tidigare. Under avbrottet ska anläggningen betraktas som spänningssatt. ",
+        "last_edited_date": 1795067619091,
+        "eventid": 529329
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 5,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              19.0406438715431,
+              57.8654318583564
+            ],
+            [
+              19.038794364164,
+              57.865902971367
+            ],
+            [
+              19.0383650785221,
+              57.8669993486877
+            ],
+            [
+              19.0406438715431,
+              57.8654318583564
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "objectid": 5,
+        "name": "L143, Byte KS14335-1A",
+        "description": "Arbete på KABELSKÅP med driftsmärkning 14335-1A                        . Gräns mot spänning: SA i NS14335.\r\nVi skall byta KS då det varit brand i SA, felavhjälpt 11/11-26.\r\nErik D har pratat med företagskunderna 2026-11-16,\r\nkunder är aviserade 2026-11-17\r\nFörutsättningar: 1. Elsäkerhetsledaren ansvarar för att erforderliga jordningar.  2.Ingen åska",
+        "state_txt": "Godkänt",
+        "starttime": 1796279400000,
+        "type_txt": "Koppling",
+        "priority": 0,
+        "timelimit": 1796293800000,
+        "lfk_txt": null,
+        "assignedto_txt": null,
+        "gridlevel_txt": "Lsp",
+        "flag": 1152,
+        "reason_txt": "Planerat arbete",
+        "num_ns": 0,
+        "num_ab": 0,
+        "last_updated": 1795067567000,
+        "customer_web_text": "För att säkra en trygg och stabil elleverans behöver vi utföra underhåll på elnätet. Observera att strömmen kan återkopplas tidigare. Under avbrottet ska anläggningen betraktas som spänningssatt. ",
+        "last_edited_date": 1795067619326,
+        "eventid": 530712
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 6,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              18.1233645491858,
+              57.262657991485
+            ],
+            [
+              18.1000055531929,
+              57.281028665816
+            ],
+            [
+              18.128238174267,
+              57.2714284487372
+            ],
+            [
+              18.1233645491858,
+              57.262657991485
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "objectid": 6,
+        "name": "HSP L413",
+        "description": "Fel sökning pågår\r\n\r\nExeri pekar på luftlinje efter L413 59\r\nL413-AF24 går inte att manövrera på fjärr. Gasen är ur och behöver kopplas in igen.  \r\nHar öppnat L413-AF12 tillsvidare.L413-F30/F32/F31 behöver manövreras spänningslöst Därav flera avbrott. \r\n\r\nMax och Anders åker på detta.\r\n\r\n20:30 - Kabelfel mellan K10 och K11, Ringt ut tre st kraggar. Lite oklarheter vart dem står. Brucesson har två lastbilar ute och levererar kraggar.  \r\n\r\n22:22 Elin Hemma\r\n03:23 Anders Hemma\r\n03:29 Max och Stefan",
+        "state_txt": "Pågående",
+        "starttime": 1795009260000,
+        "type_txt": "Driftavbrott",
+        "priority": 2,
+        "timelimit": 1795068000000,
+        "lfk_txt": "Sebastian Johansson",
+        "assignedto_txt": null,
+        "gridlevel_txt": "Msp",
+        "flag": 208,
+        "reason_txt": "Kabelfel",
+        "num_ns": 3,
+        "num_ab": 0,
+        "last_updated": 1795067567000,
+        "customer_web_text": "Reparation har påbörjats och våra tekniker arbetar för fullt för att du ska få strömmen tillbaka.",
+        "last_edited_date": 1795067619586,
+        "eventid": 533665
+      }
+    }
+  ]
+}

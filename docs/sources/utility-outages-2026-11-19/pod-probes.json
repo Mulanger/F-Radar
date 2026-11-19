@@ -1,5 +1,21 @@
 [
   {
+    "id": "boras-new",
+    "url": "https://natkraftboras.se/driftinformation/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 135385
+  },
+  {
+    "id": "c4-electric",
+    "url": "https://www.c4energi.se/kundservice/driftinformation/driftinformationelnat.925.html",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 93985
+  },
+  {
     "id": "digpro-bte",
     "url": "https://dpweb.btea.se/bios/servlet/sys.outagemap.servlets.api.GetOutagesKML?app=fpp_bte",
     "apiStatus": 200,
@@ -174,6 +190,158 @@
     "exit": 0,
     "http": "404",
     "bytes": 5506
+  },
+  {
+    "id": "gotland-arcgis",
+    "url": "https://www.arcgis.com/sharing/rest/content/items/a58b3611518c4a1a93370b3d9035ad02/data?f=json",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 34325
+  },
+  {
+    "id": "gotland-electric",
+    "url": "https://geab.se/elnat/stromavbrott/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 211227
+  },
+  {
+    "id": "gotland-layer",
+    "url": "https://services7.arcgis.com/0S7jo8hScZjFyvuM/arcgis/rest/services/Outages_view/FeatureServer/1?f=json",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 12750
+  },
+  {
+    "id": "gotland-points",
+    "url": "https://services7.arcgis.com/0S7jo8hScZjFyvuM/arcgis/rest/services/Outages_view/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 6119
+  },
+  {
+    "id": "gotland-polygons",
+    "url": "https://services7.arcgis.com/0S7jo8hScZjFyvuM/arcgis/rest/services/Outages_view/FeatureServer/1/query?where=1%3D1&outFields=*&outSR=4326&f=geojson",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 7565
+  },
+  {
+    "id": "gotland-webmap",
+    "url": "https://www.arcgis.com/sharing/rest/content/items/37e3965af4f24626a1780f13e23e213a/data?f=json",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 21055
+  },
+  {
+    "id": "jonkoping-api",
+    "url": "https://api.jonkopingenergi.se/operationalinfoservice/v1/operationalinfo/operationalinfos",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 3129
+  },
+  {
+    "id": "kraftringen-electric",
+    "url": "https://www.kraftringen.se/kundservice/avbrott-och-felanmalan/stromavbrott/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 258914
+  },
+  {
+    "id": "kraftringen-js",
+    "url": "https://avbrott.kraftringen.se/assets/index-Cd6F28vV.js",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 294690
+  },
+  {
+    "id": "kraftringen-kml",
+    "url": "https://stavbrottskartan.blob.core.windows.net/xml/fpp_lnd_outages.kml",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 35889
+  },
+  {
+    "id": "kraftringen-map",
+    "url": "https://avbrott.kraftringen.se/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 11338
+  },
+  {
+    "id": "oresund-application",
+    "url": "https://driftinformation.oresundskraft.se/OutageMap/geoserver-api/GetApplicationData",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 7415
+  },
+  {
+    "id": "oresund-js",
+    "url": "https://www.oresundskraft.se/bundles/js/vuepagesjs?v=GGSqFLkOTkOGEKfi64BH-sotCE8D0sRDmPL62MIMjjI1",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 5985
+  },
+  {
+    "id": "oresund-main",
+    "url": "https://driftinformation.oresundskraft.se/OutageMap/scripts/main.js",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 603323
+  },
+  {
+    "id": "oresund-map",
+    "url": "https://driftinformation.oresundskraft.se/OutageMap/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 19496
+  },
+  {
+    "id": "oresund-new",
+    "url": "https://www.oresundskraft.se/avbrottsinformation/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 241011
+  },
+  {
+    "id": "oresund-static",
+    "url": "https://driftinformation.oresundskraft.se/OutageMap/geoserver-api/content/StaticObjects",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 114621
+  },
+  {
+    "id": "oresund-tiles-0",
+    "url": "https://driftinformation.oresundskraft.se/OutageMap/geoserver-api/GetObjectsByTiles?zoom=10&tiles=324131-324133,325155-325157,326179-326181,327203-327205",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 8630
+  },
+  {
+    "id": "oresund-tiles",
+    "url": "https://driftinformation.oresundskraft.se/OutageMap/geoserver-api/content/outageTableData.json",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 468
   },
   {
     "id": "servicealert-eem",
@@ -486,6 +654,38 @@
     ]
   },
   {
+    "id": "skekraft-api",
+    "url": "https://driftinfo.skekraft.se/api/disturbances",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "404",
+    "bytes": 1255
+  },
+  {
+    "id": "skekraft-config",
+    "url": "https://driftinfo.skekraft.se/scripts/app/app.config.js",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 428
+  },
+  {
+    "id": "skekraft-disturbances",
+    "url": "https://driftinfo3-api.skekraft.se/api/disturbances",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 76686
+  },
+  {
+    "id": "skekraft-js",
+    "url": "https://driftinfo.skekraft.se/scripts/app-concatenated/concatenated.app.js?v=20230629",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 30371
+  },
+  {
     "id": "svoa-corrected",
     "url": "https://www.stockholmvattenochavfall.se/driftinfo",
     "apiStatus": 200,
@@ -548,6 +748,38 @@
     "exit": 28,
     "http": "000",
     "bytes": 67
+  },
+  {
+    "id": "umea-api",
+    "url": "https://api.umeaenergi.se/api/v1/Disturbance",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 3369805
+  },
+  {
+    "id": "umea-js",
+    "url": "https://driftinfo.umeaenergi.se/assets/index-C-b-jcF5.js",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 2187797
+  },
+  {
+    "id": "umea-map",
+    "url": "https://driftinfo.umeaenergi.se/",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 1643
+  },
+  {
+    "id": "umea-public",
+    "url": "https://uewebstorage.blob.core.windows.net/disturbance-data-prod/disturbances.json",
+    "apiStatus": 200,
+    "exit": 0,
+    "http": "200",
+    "bytes": 525153
   },
   {
     "id": "vasyd",

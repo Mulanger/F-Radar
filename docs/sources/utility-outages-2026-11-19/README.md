@@ -111,3 +111,41 @@ inget tillräckligt verifierat områdesflöde. Först prövade Tele2-/Tre-URL:er
 ingen allmänt tillgänglig samlad API-åtkomst verifierad. Navet finns, men öppet uttag/avtal ej klarlagt.
 Rekommendation: avvakta Fas 7 och kräva leverantörsval vid en framtida införing.
 Produktägaren har uttryckligen valt **ingen Fas 7-implementation** i detta uppdrag.
+
+## Fas 2: anslutna bakom avstängda flaggor
+
+| Operatör | 2025 abonnemang | Plattform / faktisk publicerad URL | Från podden |
+|---|---:|---|---|
+| Öresundskraft | 104 127 | Trimble `https://driftinformation.oresundskraft.se/OutageMap/geoserver-api/` – GetApplicationData, StaticObjects, härledda stationsrutor | ja; 17 normaliserade avbrott, 0 skipped |
+| Kraftringen Nät | 96 063 | Digpro-KML `https://stavbrottskartan.blob.core.windows.net/xml/fpp_lnd_outages.kml` | ja; 11 avbrott, 0 skipped |
+| Umeå Energi Elnät | 68 210 | publicerad JSON `https://uewebstorage.blob.core.windows.net/disturbance-data-prod/disturbances.json` | ja; 88 elposter, 0 skipped; endast återställda elposter vid provet |
+| Skellefteå Kraft Elnät | 67 110 | JSON `https://driftinfo3-api.skekraft.se/api/disturbances` | ja; 64 poster, 0 skipped |
+
+Normalisering av de fulla poddsvaren: `phase2-pod-parsing.json`. Realistiska fixtures sparade.
+Öresundskraft ger driftområdesprecision, aldrig SMS. Kraftringen/Umeå/Skellefteå ger polygoner
+eller punkter; punkt ger fortsatt inget SMS. Umeås enum och lokala datum verifierades i kartkoden:
+domän 0 el/2 värme/3 kyla, läge 0 åtgärdat/1 pågående/2 planerat, typ 0 planerat/1 fel.
+Dess breda backend-API används inte; bara blobben som den publika kartan faktiskt hämtar.
+Skellefteås `total` är historikarkivet, `count` det returnerade urvalet; ofullständigt urval blir
+partial, inte tomt lyckat svar. Skellefteås övriga statuskoder och framtida planerade poster
+har inte observerats: de blir konservativt unknown tills nytt verifierat underlag finns.
+Umeå/Skellefteå ger inget "troligen återställt" vid försvinnande eftersom de själva publicerar avslut.
+Okänd återställningstid ersätts inte med vår inläsningstid.
+
+Potentiell leverantörstäckning med dessa fyra aktiverade och fungerande:
+**4 195 355 / 5 612 871 = 74,7453 %**, +5,9775 procentenheter.
+**Produktions­täckningen är oförändrad**; inga flaggor har ändrats där.
+Ei-placeholder-id:n för nya bolag löses även vid läsning; ingen omskrivning av
+produktionsdata eller väntan på veckovis Ei-import behövs för täckningsvisningen.
+
+Fortsatt öppet (Fas 2 är därför delvis):
+
+- Jönköpings befintliga JSON provat på nytt från podden, HTTP 200: bara kategori/rubrik/HTML-text
+  och tider, inga koordinater eller strukturerad adresslista. Ingen adapter byggd mot gissad geografi.
+- Telge: publik Blazor-app; inget tillräckligt verifierat geometriflöde ännu.
+- Borås och C4: driftsidor svarar; inget säkert flöde/precisionskontrakt identifierat ännu.
+- Gotland: ArcGIS-punkt- och polygonlager svarar från podden och fixtures finns, men kundantalet är
+  0 i samtliga poster vid provet, även ett pågående driftavbrott; tids-/områdesbetydelse behöver
+  verifieras bättre innan det kopplas in. Vi har inte behandlat dessa nollor som bevis för berörda kunder.
+- Övriga saknade elnät är inte färdiginventerade. Rangordningen i `electricity.json` kvarstår;
+  arbetet har inte styrts av testportföljen.
