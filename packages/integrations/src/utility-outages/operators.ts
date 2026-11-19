@@ -9,6 +9,7 @@ import type { UtilityOperator } from './types';
  */
 const digpro = (name: string, host: string, cust: string, concession: boolean, eiName: string, heating = false): UtilityOperator => ({
   id: `digpro:${cust}`,
+  requiresSwedishEgress: ['fev', 'hsd', 'hem', 'bte', 'lul', 'nac'].includes(cust),
   name,
   eiNames: [eiName],
   platform: 'digpro',
@@ -99,7 +100,7 @@ export const UTILITY_OPERATORS: UtilityOperator[] = [
       ['sundsvall', 'Sundsvall Elnät', 'https://avbrottskarta.sundsvallelnat.se', 'https://avbrottskarta.sundsvallelnat.se/', 'Sundsvall Elnät AB'],
       ['gavle', 'Gävle Energi Elnät', 'https://avbrottskartan.gavleenergi.se', 'https://avbrottskartan.gavleenergi.se/', 'Gävle Energi Elnät AB'],
     ] as const
-  ).map(([id, name, base, mapUrl, eiName]): UtilityOperator => ({ id: `trimble:${id}`, name, platform: 'trimble', base, scope: 'p', utilities: ['electricity'], mapUrl, eiNames: [eiName] })),
+  ).map(([id, name, base, mapUrl, eiName]): UtilityOperator => ({ id: `trimble:${id}`, requiresSwedishEgress: id === 'jamtkraft', name, platform: 'trimble', base, scope: 'p', utilities: ['electricity'], mapUrl, eiNames: [eiName] })),
   // Fas 3: E.ON decoded from its map bundle (station areas → area precision).
   {
     id: 'eon',

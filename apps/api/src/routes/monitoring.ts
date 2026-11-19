@@ -201,6 +201,11 @@ export function registerMonitoringRoutes(app: FastifyInstance, deps: MonitoringR
 
   /* ---------------- source status (authenticated) ---------------- */
 
+  app.get('/v1/utility-coverage', { preHandler: deps.requireOrg }, async (req) => ({
+    generatedAt: gen(),
+    reports: await svc().utilityCoverage(orgContext(req).organizationId),
+  }));
+
   app.get('/v1/sources/status', { preHandler: deps.requireUser }, async () => ({
     generatedAt: gen(),
     smsMode: resolveSmsMode(deps.env),

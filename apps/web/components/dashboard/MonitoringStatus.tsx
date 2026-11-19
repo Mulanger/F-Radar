@@ -5,6 +5,7 @@ import type { OverviewVM } from '@/lib/view-models/overview';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { C, FONT_MONO, card, cardSub, cardTitle } from '@/lib/design/tokens';
 import styles from './PortfolioOverview.module.css';
+import { UtilityCoverage } from './UtilityCoverage';
 
 export function MonitoringStatus({ vm, onOpen, expanded, onToggleFull }: {
   vm: OverviewVM;
@@ -12,7 +13,7 @@ export function MonitoringStatus({ vm, onOpen, expanded, onToggleFull }: {
   expanded: boolean;
   onToggleFull: () => void;
 }) {
-  const { basePath } = useDashboard();
+  const { basePath, portfolio } = useDashboard();
   return (
     <section className={styles.monitoring} style={card} aria-label="Bevakningsstatus">
       <div className={styles.monitorHeader}>
@@ -56,6 +57,7 @@ export function MonitoringStatus({ vm, onOpen, expanded, onToggleFull }: {
           ))}
         </div>
       </div>
+      <UtilityCoverage reports={portfolio.utilityCoverage} properties={portfolio.properties.map((s) => s.property)} basePath={basePath} />
       {vm.rows.some((r) => r.nowcast.badge) && <div style={{ fontSize: 10, color: C.text3 }}>MET Norway · bearbetad av FastighetsRadar · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></div>}
     </section>
   );

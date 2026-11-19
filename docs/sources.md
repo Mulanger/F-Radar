@@ -13,6 +13,8 @@ shows the data with attribution, and no alerts/SMS are sent.
 Nationell avbrottskartläggning 2026-11-19: [underlag, kundmått och poddprov](sources/utility-outages-2026-11-19/README.md).
 El: 68,7677 % av 2025 års uttagsabonnemang hos implementerade bolag med lyckat jobb
 (inte SMS-precision). VA/gas saknar ännu anslutna källor. Värmens kundandel är inte fullt verifierad.
+Fas 1:s [proxy-, TLS- och migreringsinstruktioner](outage-operations.md). Täckningsrapporten
+räknar bara komplett aktuell hämtning som bevakad; partial/error/aldrig lyckat räknas inte.
 
 | Provider | Source id | Data class | Status | Evidence |
 |---|---|---|---|---|

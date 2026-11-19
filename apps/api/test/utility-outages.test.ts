@@ -164,6 +164,10 @@ describe('collector jobs and health', () => {
     expect(st.find((o) => o.operatorId === 'vattenfall')).toMatchObject({ enabled: true, current: true });
     expect(st.find((o) => o.operatorId === 'digpro:fev')).toMatchObject({ enabled: true, current: false });
     expect(st.find((o) => o.operatorId === 'digpro:vax')).toMatchObject({ enabled: false, current: false });
+    for (const last_status of ['partial', 'error', null] as const) {
+      expect(resolveOperatorStatuses(env, [job('utility_outages:vattenfall', { last_status })], NOW).find((o) => o.operatorId === 'vattenfall')!.current).toBe(false);
+    }
+    expect(resolveOperatorStatuses(env, [job('utility_outages:vattenfall', { last_success_at: null })], NOW).find((o) => o.operatorId === 'vattenfall')!.current).toBe(false);
   });
 });
 

@@ -12,7 +12,8 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@fastighetsradar/config": "*",
     "@fastighetsradar/domain": "*",
-    "@fastighetsradar/config": "*"
+    "undici": "^6.29.1"
   }
 }

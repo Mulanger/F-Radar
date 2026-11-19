@@ -43,3 +43,9 @@ Kommande-listan prioriterar kommande officiella perioder före härledda rader, 
 - Produktägaren tillåter endast testskriptets testskrivningar i podden; inga produktionsändringar.
 - Beslut: proxy-stöd utan serverinköp; behåll "El och värme"; kokningsrekommendationer enligt §2.3;
   kommande avstängningar enligt §5.6 bakom avstängd flagga; ingen Fas 7-implementation.
+- Fas 0 commit `9ee7b22`.
+- Fas 1: täckningsrapport i dator/mobil och tenantbundet API, lucksignal utan adresslogg,
+  migration 0017, värdlåst proxy och pinnade mellanliggande CA-certifikat.
+  Verifiering: 60 filer, 474 godkända/6 överhoppade, typer/lint gröna; PostGIS 33/33.
+  API-build och webb-webpack-build passerar. Lokal Turbopack/standalone begränsas av externa junctions.
+  Proxy saknas, ny TLS-kod ej provad i podden, inget aktiverat eller deployat.

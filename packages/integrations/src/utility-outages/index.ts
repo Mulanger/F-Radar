@@ -12,11 +12,13 @@ import { decodeEonOutstat, parseEon, parseEonDetailText } from './platforms/eon'
 import { parseServiceAlert } from './platforms/servicealert';
 import { GOTEBORG_ADDRESS_AREA, parseGoteborgUpcoming } from './platforms/goteborg';
 import type { ConcessionArea, OutageFetchResult, UtilityOperator } from './types';
+import { withOperatorTransport } from './transport';
 
 export * from './types';
 export * from './time';
 export * from './geometry';
 export * from './operators';
+export * from './transport';
 export { parseVattenfall, plannedEndFromText, VATTENFALL_ONGOING_FAULT, VATTENFALL_ONGOING_PLANNED, VATTENFALL_UPCOMING_PLANNED } from './platforms/vattenfall';
 export { parseDigproKml, parseConcessionKml, digproPlacemarkToOutage } from './platforms/digpro';
 export { goteborgKmlUrl } from './platforms/goteborg-url';
@@ -231,6 +233,7 @@ export async function fetchEiConcessions(ctx: AdapterContext, url = EI_LOCAL_CON
 
 /** Fetches and normalises one operator's current outages. */
 export async function fetchOperatorOutages(op: UtilityOperator, ctx: AdapterContext): Promise<AdapterResult<OutageFetchResult>> {
+  ctx = withOperatorTransport(op, ctx);
   const now = ctx.now();
   if (op.platform === 'ellevio') return fetchEllevio(op, ctx);
   if (op.platform === 'tekniskaverken') return fetchTekniskaVerken(op, ctx);
@@ -331,6 +334,7 @@ function parseMerge(active: OutageFetchResult, inactive: OutageFetchResult): Out
 
 /** Concession areas published by the operator itself (Digpro concession.kml). */
 export async function fetchOperatorConcessions(op: UtilityOperator, ctx: AdapterContext): Promise<AdapterResult<ConcessionArea[]>> {
+  ctx = withOperatorTransport(op, ctx);
   if (op.platform !== 'digpro' || !op.concessionUrl) return { ok: false, error: 'not_implemented', detail: `${op.id}: no published concession areas` };
   const r = await fetchText(op.concessionUrl, ctx, `${op.id} concession`);
   if (!r.ok) return r;

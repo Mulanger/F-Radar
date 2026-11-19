@@ -58,7 +58,7 @@ export async function buildApp(env: ServerEnv, deps: AppDeps = {}): Promise<Fast
 
   const verify = deps.verifyAuth !== undefined ? deps.verifyAuth : createClerkVerifier(env);
   const { requireUser, requireOrg } = registerAuth(app, { verify, db: deps.db ?? null });
-  const monitoring = deps.monitoring !== undefined ? deps.monitoring : deps.db ? new MonitoringService(deps.db, env, new MonitoringBus()) : null;
+  const monitoring = deps.monitoring !== undefined ? deps.monitoring : deps.db ? new MonitoringService(deps.db, env, new MonitoringBus(), app.log) : null;
   registerCustomerRoutes(app, {
     env,
     db: deps.db ?? null,

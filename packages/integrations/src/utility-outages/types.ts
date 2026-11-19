@@ -55,6 +55,8 @@ export interface ConcessionArea {
 export type UtilityOperatorPlatform = 'vattenfall' | 'digpro' | 'goteborg_energi' | 'ellevio' | 'tekniskaverken' | 'trimble' | 'eon' | 'servicealert';
 
 interface OperatorBase {
+  /** Observed connection/blocking failures from France; optional Swedish CONNECT egress. */
+  requiresSwedishEgress?: boolean;
   /** Stable id used in job ids, external ids and UTILITY_OUTAGE_OPERATORS. */
   id: string;
   /** Display name shown to customers. */

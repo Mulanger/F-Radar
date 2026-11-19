@@ -79,6 +79,11 @@ export const ServerEnvSchema = z.object({
   SOURCE_UTILITY_OUTAGES_ENABLED: bool(false),
   /** Comma-separated operator ids to collect (empty = every implemented operator). "none" disables all. */
   UTILITY_OUTAGE_OPERATORS: optionalString,
+  /** HTTPS CONNECT proxy in Sweden, server-only. Used only by explicitly marked operators. */
+  UTILITY_OUTAGE_SE_PROXY_URL: optionalUrl.pipe(z.string().refine((v) => {
+    const u = new URL(v);
+    return u.protocol === 'https:' && (u.pathname === '/' || u.pathname === '') && !u.search && !u.hash;
+  }, 'Utility proxy must be an HTTPS CONNECT proxy origin').optional()),
   /** Poll interval per operator in seconds (minimum 120). */
   UTILITY_OUTAGE_POLL_SECONDS: intWithDefault(300).pipe(z.number().int().min(120)),
   KRISINFORMATION_BASE_URL: z.string().url().default('https://api.krisinformation.se/v3'),

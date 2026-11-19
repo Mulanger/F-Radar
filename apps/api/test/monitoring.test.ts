@@ -354,6 +354,14 @@ describe('monitoring HTTP endpoints', () => {
     expect(sum.json()).toMatchObject({ properties: 0, riskScore: null, statusMethod: 'highest_official_warning' });
   });
 
+  it('coverage requires an active organization and uses only that tenant', async () => {
+    expect((await app.inject({ method: 'GET', url: '/v1/utility-coverage' })).statusCode).toBe(401);
+    expect((await app.inject({ method: 'GET', url: '/v1/utility-coverage', headers: { authorization: 'Bearer noorg' } })).statusCode).toBe(403);
+    const r = await app.inject({ method: 'GET', url: '/v1/utility-coverage', headers: { authorization: 'Bearer org' } });
+    expect(r.statusCode).toBe(200);
+    expect(r.json().reports).toMatchObject([{ utility: 'electricity', total: 0, monitored: 0, properties: [], gaps: [] }]);
+  });
+
   it('streams SSE scoped to the organization', async () => {
     const ac = new AbortController();
     const res = await fetch(`${base}/v1/stream`, { headers: { authorization: 'Bearer org' }, signal: ac.signal });

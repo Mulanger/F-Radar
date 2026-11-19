@@ -7,6 +7,7 @@ import { C } from '@/lib/design/tokens';
 import { portfolioSceneConfig } from '../three/property-scene';
 import { IconRain, IconWind } from '../ui/icons';
 import { EmptyPortfolio } from '../dashboard/EmptyPortfolio';
+import { UtilityCoverage } from '../dashboard/UtilityCoverage';
 import { useFeedEventMap } from '../dashboard/FeedEventMap';
 import { FeedAckCount, useFeedAcks } from '../dashboard/FeedAck';
 import { MobileRiskGauge } from './MobileRiskGauge';
@@ -55,6 +56,7 @@ export function MobilePortfolioOverview({ vm }: { vm: OverviewVM }) {
         </div>
       </MobileSection>
       <MobileSection title="Bevakningsstatus" subtitle="Sorterat efter risk" meta={<span className={styles.meta}>Risk</span>}>
+        <UtilityCoverage reports={ds.portfolio.utilityCoverage} properties={ds.portfolio.properties.map((s) => s.property)} basePath={ds.basePath} />
         <div className={`${styles.surface} ${styles.list}`}>
           {!vm.rows.length && <div className={styles.empty}>Inga fastigheter i vald grupp.</div>}
           <MobileScrollList visible={5} count={vm.rows.length} label="Fastigheter"><MobileStatusRows rows={vm.rows} basePath={ds.basePath} /></MobileScrollList>

@@ -11,6 +11,7 @@ export * from './weather-information';
 export * from './nowcast';
 export * from './water-information';
 export * from './utility-outages';
+export * from './utility-coverage';
 export * from './activity';
 export * from './event-map';
 export * from './organization-settings';

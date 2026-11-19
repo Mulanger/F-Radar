@@ -1,4 +1,5 @@
 import { NowcastSchema } from './nowcast';
+import { UtilityCoverageReportSchema } from './utility-coverage';
 import { z } from 'zod';
 import {
   DataKindSchema,
@@ -401,6 +402,7 @@ export const UpcomingConditionSchema = z.object({
 export type UpcomingCondition = z.infer<typeof UpcomingConditionSchema>;
 
 export const PortfolioSchema = z.object({
+  utilityCoverage: z.array(UtilityCoverageReportSchema).optional(),
   organizationId: z.string(),
   organizationName: z.string(),
   /** Snapshot reference time (source clock for demo data). */

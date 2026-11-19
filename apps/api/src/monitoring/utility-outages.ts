@@ -142,7 +142,7 @@ export function resolveOperatorStatuses(env: ServerEnv, jobs: JobRow[], now: Dat
       name: op.name,
       mapUrl: op.mapUrl,
       enabled: enabled.has(op.id) && !!j?.enabled,
-      current: !!last && (now.getTime() - last.getTime()) / 1000 <= OPERATOR_FRESHNESS_S && j?.last_status !== 'error',
+      current: !!last && last.getTime() <= now.getTime() && (now.getTime() - last.getTime()) / 1000 <= OPERATOR_FRESHNESS_S && j?.last_status === 'ok',
       lastSuccessAt: last?.toISOString() ?? null,
       lastStatus: j?.last_status ?? null,
       errorCode: j?.last_status === 'error' ? (j.last_error_code ?? null) : null,

@@ -12,11 +12,13 @@ import {
   replaceConcessionAreas,
   replaceNationalConcessions,
   storeUtilityOutages,
+  recordUtilityCoverageGaps,
   type UtilityOutageInput,
 } from '../../packages/db/src';
 import { buildApp } from '../../apps/api/src/app';
 import { NotificationService } from '../../apps/api/src/notifications/service';
 import type { NotificationRuleInput } from '../../packages/domain/src';
+import { buildUtilityCoverageReport, type PropertyUtilityStatus } from '../../packages/domain/src';
 
 /**
  * Grid-operator outages on real PostGIS (docs/plans/stromavbrott.md §10): per-property precision,
@@ -107,6 +109,30 @@ export function registerUtilityOutageTests(pool: pg.Pool) {
           [externalId],
         )
       ).rows;
+
+    it('coverage signals are tenant-isolated, idempotent and resolved when coverage recovers', async () => {
+      const f = await fixture();
+      const secondOrg = await ensureOrganization(pool, `org_other${randomUUID().replaceAll('-', '')}`);
+      const status: PropertyUtilityStatus = {
+        utility: 'electricity', coverage: 'not_monitored', operator: { id: OP.id, name: OP.name, mapUrl: null },
+        updatedAt: null, current: [], upcoming: [], nearby: [], recentlyRestored: [],
+      };
+      const items = [f.inside, f.approx].map((p) => ({ id: p.id, geocodePrecision: p.geocode.precision, positionSource: p.positionSource, statuses: [status] }));
+      const report = buildUtilityCoverageReport(items, 'electricity');
+      assert.equal(report.notMonitored, 2);
+      assert.equal(report.approximatePosition, 1);
+      await recordUtilityCoverageGaps(pool, f.org, [report]);
+      await recordUtilityCoverageGaps(pool, f.org, [report]);
+      await recordUtilityCoverageGaps(pool, secondOrg, [report]); // forged cross-tenant property ids rejected
+      const gaps = (await pool.query('SELECT organization_id, property_id FROM utility_coverage_gaps WHERE organization_id = ANY($1::uuid[]) AND resolved_at IS NULL', [[f.org, secondOrg]])).rows;
+      assert.equal(gaps.length, 2);
+      assert.ok(gaps.every((g) => g.organization_id === f.org));
+      const recovered = buildUtilityCoverageReport(items.map((p) => ({ ...p, statuses: [{ ...status, coverage: 'monitored' as const }] })), 'electricity');
+      await recordUtilityCoverageGaps(pool, f.org, [recovered]);
+      const resolved = (await pool.query('SELECT resolved_at FROM utility_coverage_gaps WHERE organization_id = $1', [f.org])).rows;
+      assert.equal(resolved.length, 2);
+      assert.ok(resolved.every((g) => g.resolved_at));
+    });
 
     it('precision per property: inside red, approximate orange, edge panel-only, 200 m nothing', async () => {
       const f = await fixture();
