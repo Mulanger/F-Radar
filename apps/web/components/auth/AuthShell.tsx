@@ -30,8 +30,8 @@ export function AuthShell({ children }: { children: ReactNode }) {
   const sceneOptions = {
     extras: true,
     speed: 1,
-    zoom: mobile ? (mode === 'signup' ? 0.9 : 1.0) : 1.38,
-    offsetY: mobile ? 0 : -0.05,
+    zoom: mobile ? 1.15 : 1.38,
+    offsetY: mobile ? -0.04 : -0.05,
   };
 
   return (
@@ -64,7 +64,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
 
         <div className={s.panel} data-mode={mode}>
           <AuthScene options={sceneOptions} className={s.scene} />
-          <span className={s.pill}>FastighetsRadar</span>
+          <span className={s.mobileBrand}>FastighetsRadar</span>
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 /*
  * Sign-in / sign-up layout – values copied from the approved design (AuthScreen.dc.html,
  * "Autentisering med 3D-scen"). Desktop: floating card, form left, 3D panel right.
- * Below 820 px: full-bleed white page, 3D panel on top, form underneath.
+ * Below 820 px: "2C · Uttonad scen", with the form overlapping the scene's fade.
  */
 
 .root {
@@ -119,7 +119,7 @@
   inset: 0;
 }
 
-.pill { display: none; }
+.mobileBrand { display: none; }
 
 /* Between the design's two sizes (tablets, small laptops): same layout, tighter gutters. */
 @media (min-width: 820px) and (max-width: 1099.98px) {
@@ -136,7 +136,7 @@
   .root {
     display: block;
     padding: 0;
-    background: #fff;
+    background: linear-gradient(180deg, #fff 0%, #eef3f4 42%, #e4ebee 100%);
   }
 
   .card {
@@ -146,14 +146,18 @@
     min-height: 100vh;
     min-height: 100svh;
     flex-direction: column;
+    background: transparent;
     border-radius: 0;
     box-shadow: none;
     overflow: visible;
   }
 
   .form {
+    position: relative;
+    z-index: 1;
     flex: 1 0 auto;
-    padding: 26px 24px max(22px, env(safe-area-inset-bottom));
+    margin-top: -64px;
+    padding: 0 24px max(22px, env(safe-area-inset-bottom));
     overflow: visible;
   }
 
@@ -161,32 +165,34 @@
 
   .main {
     justify-content: flex-start;
-    padding: 0 0 32px;
+    padding: 0 0 28px;
   }
 
-  .footer { justify-content: center; }
+  .footer {
+    justify-content: center;
+    color: #60686f;
+  }
+
+  .footer nav, .footer a { color: inherit; }
 
   .panel {
     order: -1;
     flex: none;
-    height: 272px;
-    margin: max(10px, env(safe-area-inset-top)) 10px 0;
-    border-radius: 28px;
+    height: 360px;
+    margin: 0;
+    border-radius: 0;
+    background: radial-gradient(80% 60% at 50% 45%, #fff 0%, transparent 70%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
   }
-  .panel[data-mode='signup'] { height: 196px; }
+  .panel[data-mode='signup'] { height: 250px; }
 
-  .pill {
-    display: block;
+  .mobileBrand {
     position: absolute;
-    top: 14px;
-    left: 14px;
-    padding: 8px 13px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.7);
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 255, 255, 0.9);
-    font-size: 14px;
+    inset: calc(26px + env(safe-area-inset-top)) 0 auto;
+    display: block;
+    text-align: center;
+    font-size: 16px;
     font-weight: 600;
     letter-spacing: -0.02em;
     pointer-events: none;
