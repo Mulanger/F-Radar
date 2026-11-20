@@ -5,13 +5,37 @@ import { AcknowledgementHistory } from '@/components/acknowledgements/Acknowledg
 import { acknowledgementReport } from '@/lib/acknowledgements/pdf';
 import { demoAcknowledgements } from '@/lib/demo/acknowledgements';
 
-const download = vi.hoisted(() => vi.fn(async () => {}));
+const { download, refresh } = vi.hoisted(() => ({ download: vi.fn(async () => {}), refresh: vi.fn() }));
 vi.mock('@/lib/acknowledgements/pdf', async (importOriginal) => ({
   ...await importOriginal<typeof import('@/lib/acknowledgements/pdf')>(),
   downloadAcknowledgementReport: download,
 }));
-vi.mock('@/lib/state/dashboard-state', () => ({ useDashboard: () => ({ portfolio: { organizationName: 'Demoportfölj' } }) }));
-afterEach(() => { cleanup(); download.mockClear(); });
+vi.mock('@/lib/state/dashboard-state', () => ({ useDashboard: () => ({ portfolio: { organizationName: 'Demoportfölj' }, refresh }) }));
+afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals(); });
+
+it('undoes the selected history id, keeps the row and exports the undo time', async () => {
+  const entry = demoAcknowledgements[0]!;
+  const undoneAt = '2026-11-20T10:15:00Z';
+  const request = vi.fn(async (_url: string, options?: RequestInit) => options?.method === 'POST'
+    ? Response.json({ id: entry.id, undoneAt })
+    : Response.json({ entries: [entry, demoAcknowledgements[2]], properties: [], nextCursor: null }));
+  vi.stubGlobal('fetch', request);
+  render(<AcknowledgementHistory />);
+
+  const undo = await screen.findByRole('button', { name: `Ångra kvittering: ${entry.title} · ${entry.propertyName}` });
+  expect(screen.getAllByRole('button', { name: /^Ångra kvittering:/ })).toHaveLength(1);
+  fireEvent.click(undo);
+  await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+  expect(request).toHaveBeenCalledWith(`/api/app/feed/acknowledgements/${entry.id}/undo`, { method: 'POST' });
+  expect(screen.queryByRole('button', { name: /^Ångra kvittering:/ })).toBeNull();
+  const details = screen.getByRole('button', { name: new RegExp(`${entry.title}.*Ångrad`) });
+  fireEvent.click(details);
+  expect(document.querySelector(`time[datetime="${undoneAt}"]`)).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Ladda ner PDF' }));
+  await waitFor(() => expect(download).toHaveBeenCalledWith(
+    [{ ...entry, undoneAt }, demoAcknowledgements[2]], 'Demoportfölj', 'Alla datum · Alla fastigheter', false, 'compact',
+  ));
+});
 
 it('defaults to a short list and exports every matching page in both formats', async () => {
   const sample = demoAcknowledgements[2]!;

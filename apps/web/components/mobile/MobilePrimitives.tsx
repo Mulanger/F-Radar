@@ -42,15 +42,17 @@ export function MobileFeedRows({ feed, basePath, onMap, isUnread, acks }: { feed
         <span className={styles.time} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: 5 }}>{f.nightWork && <NightMoon label={f.nightWork} />}<time>{f.t}</time></span>
       </span>
     </>;
-    return <div key={f.rowKey} className={styles.feedItem} data-acks={ack ? '' : undefined} data-ack={ack && !acks.ackedAt(f) ? 'waiting' : undefined}>
-    {map && f.opensTrafficDetails
-      ? <button type="button" className={styles.feedRow} onClick={() => onMap(f)}>{content}</button>
-      : <Link href={`${basePath}/properties/${encodeURIComponent(f.propertyId)}`} className={styles.feedRow}>{content}</Link>}
-    {(map || ack) && <div className={styles.feedMap}>
-      {ack && <FeedAckButton f={f} acks={acks} />}
-      {map && <FeedMapButton title={f.title} ended={f.mapEnded} onClick={() => onMap(f)} />}
-    </div>}
-  </div>;
+    return (
+      <div key={f.rowKey} className={styles.feedItem} data-ack={ack && !acks.ackedAt(f) ? 'waiting' : undefined}>
+        {map && f.opensTrafficDetails
+          ? <button type="button" className={styles.feedRow} onClick={() => onMap(f)}>{content}</button>
+          : <Link href={`${basePath}/properties/${encodeURIComponent(f.propertyId)}`} className={styles.feedRow}>{content}</Link>}
+        {(map || ack) && <div className={styles.feedActions}>
+          {ack && <FeedAckButton f={f} acks={acks} />}
+          {map && <FeedMapButton title={f.title} ended={f.mapEnded} onClick={() => onMap(f)} />}
+        </div>}
+      </div>
+    );
   });
 }
 

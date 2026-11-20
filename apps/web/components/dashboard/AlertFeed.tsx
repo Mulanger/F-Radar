@@ -66,7 +66,7 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
               </div>
             </div>
             {/* Time on top; the card's buttons in its lower right corner (Kvittera beside the map). */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0, alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
                 {map.isUnread(f) && <FeedUpdatedBadge />}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

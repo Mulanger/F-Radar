@@ -10,13 +10,14 @@ type DemoHistory = {
   entries: DemoEntry[];
   overrides: Record<string, string | null>;
   toggle: (changeId: string, next: string | null) => void;
+  undo: (id: string, undoneAt: string) => void;
 };
 const DemoAcknowledgementContext = createContext<DemoHistory | null>(null);
 
 export const useDemoAcknowledgements = () => useContext(DemoAcknowledgementContext);
 
 export function DemoAcknowledgementProvider({ portfolio, children }: { portfolio: Portfolio; children: ReactNode }) {
-  const [{ entries, overrides }, setHistory] = useState<Omit<DemoHistory, 'toggle'>>({ entries: demoAcknowledgements, overrides: {} });
+  const [{ entries, overrides }, setHistory] = useState<Omit<DemoHistory, 'toggle' | 'undo'>>({ entries: demoAcknowledgements, overrides: {} });
 
   function toggle(changeId: string, next: string | null) {
     const feed = portfolio.feed.find(({ id }) => id === changeId);
@@ -38,9 +39,23 @@ export function DemoAcknowledgementProvider({ portfolio, children }: { portfolio
     }));
   }
 
-  return <DemoAcknowledgementContext.Provider value={{ entries, overrides, toggle }}>{children}</DemoAcknowledgementContext.Provider>;
+  function undo(id: string, undoneAt: string) {
+    setHistory((current) => {
+      const entry = current.entries.find((item) => item.id === id);
+      if (!entry || entry.undoneAt) return current;
+      const changeId = entry.changeId;
+      return {
+        entries: current.entries.map((item) => item.id === id ? { ...item, undoneAt } : item),
+        overrides: changeId && current.overrides[changeId] === entry.acknowledgedAt
+          ? { ...current.overrides, [changeId]: null } : current.overrides,
+      };
+    });
+  }
+
+  return <DemoAcknowledgementContext.Provider value={{ entries, overrides, toggle, undo }}>{children}</DemoAcknowledgementContext.Provider>;
 }
 
 export function DemoAcknowledgementHistory() {
-  return <AcknowledgementHistory demoEntries={useDemoAcknowledgements()?.entries ?? demoAcknowledgements} />;
+  const history = useDemoAcknowledgements();
+  return <AcknowledgementHistory demoEntries={history?.entries ?? demoAcknowledgements} onDemoUndo={history?.undo} />;
 }

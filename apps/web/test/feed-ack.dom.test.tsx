@@ -8,6 +8,7 @@ import { buildOverviewVM } from '@/lib/view-models/overview';
 import { AlertFeed } from '@/components/dashboard/AlertFeed';
 import { UpcomingPanel } from '@/components/upcoming/UpcomingPanel';
 import { MobileAlerts } from '@/components/mobile/MobileAlerts';
+import { DemoAcknowledgementHistory, DemoAcknowledgementProvider } from '@/components/acknowledgements/DemoAcknowledgements';
 import { acknowledgementReport } from '@/lib/acknowledgements/pdf';
 import { demoAcknowledgements } from '@/lib/demo/acknowledgements';
 
@@ -66,16 +67,13 @@ describe('kvittering i händelseflödet', () => {
     expect(screen.getByRole('status').textContent).toBe('3 att kvittera');
   });
 
-  it('acknowledges without opening the property, and can be undone', () => {
+  it('acknowledges without opening the property and shows a read-only status in the feed', () => {
     render(<AlertFeed vm={vm} isDemo onOpen={mocks.openProperty} />);
     fireEvent.click(screen.getByRole('button', { name: `Kvittera: ${vma.title}` }));
     expect(mocks.openProperty).not.toHaveBeenCalled();
     expect(screen.getByText('Kvitterad', { exact: false }).tagName).toBe('SPAN');
     expect(screen.getByRole('status').textContent).toBe('2 att kvittera');
-    fireEvent.click(screen.getByRole('button', { name: `Ångra kvittering: ${vma.title}` }));
-    expect(mocks.openProperty).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: `Kvittera: ${vma.title}` })).toBeTruthy();
-    expect(screen.getByRole('status').textContent).toBe('3 att kvittera');
+    expect(screen.queryByRole('button', { name: /Ångra kvittering/ })).toBeNull();
   });
 
   it('saves for the organization in live mode and restores on failure', async () => {
@@ -103,14 +101,23 @@ describe('kvittering i händelseflödet', () => {
     expect(screen.getAllByRole('img', { name: /^Nattarbete 22–05 – påverkar troligen inte dagtid$/ })).toHaveLength(1);
   });
 
-  it('works on the mobile Larm page too', () => {
-    render(<MobileAlerts />);
+  it('keeps the event time separate on mobile and restores the Larm row when undone from history', async () => {
+    activePortfolio = { ...demoPortfolio, feed: demoPortfolio.feed.map((item) => item.id === vma.id
+      ? { ...item, publishedAt: new Date(Date.parse(item.publishedAt) - 86_400_000).toISOString() } : item) };
+    render(<DemoAcknowledgementProvider portfolio={activePortfolio}><MobileAlerts /><DemoAcknowledgementHistory /></DemoAcknowledgementProvider>);
     const feed = screen.getByRole('region', { name: 'Händelseflöde' });
     expect(within(feed).getAllByRole('button', { name: /^Kvittera: / })).toHaveLength(3);
     for (const b of within(feed).getAllByRole('button', { name: /^Kvittera: / })) expect(b.closest('a')).toBeNull();
     fireEvent.click(within(feed).getByRole('button', { name: `Kvittera: ${vma.title}` }));
-    fireEvent.click(within(feed).getByRole('button', { name: `Ångra kvittering: ${vma.title}` }));
+    const eventTime = within(feed).getByText('igår 13:20');
+    const status = within(feed).getByText('Kvitterad', { exact: false });
+    expect(eventTime.closest('a')?.contains(status)).toBe(false);
+    expect(status.querySelector('time')?.getAttribute('datetime')).toBeTruthy();
+    expect(within(feed).queryByRole('button', { name: /Ångra kvittering/ })).toBeNull();
+    const history = screen.getByRole('region', { name: 'Kvitteringar' });
+    fireEvent.click(await within(history).findByRole('button', { name: `Ångra kvittering: ${vma.title} · ${vma.prop}` }));
     expect(within(feed).getByRole('button', { name: `Kvittera: ${vma.title}` })).toBeTruthy();
+    expect(within(history).getByRole('button', { name: new RegExp(`${vma.title}.*Ångrad`) })).toBeTruthy();
   });
 
   it('includes both timestamps in the exported PDF and omits identity fields', () => {

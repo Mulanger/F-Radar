@@ -14,10 +14,13 @@ import pg from 'pg';
 import { loadServerEnv } from '../../packages/config/src';
 import {
   createProperty,
+  acknowledgeFeedChange,
   deleteProperty,
   ensureOrganization,
   getProperty,
   listProperties,
+  listAcknowledgementHistory,
+  undoAcknowledgementHistory,
   migrateUp,
   migrationStatus,
   updateProperty,
@@ -81,7 +84,7 @@ const sveavagen = {
 
 async function resetSchema() {
   await pool.query(`
-    DROP TABLE IF EXISTS feed_update_reads,sms_delivery_callbacks,notification_attempts,notification_properties,notification_outbox,notification_daily_usage,notification_usage,notification_global_usage,notification_rate_buckets,alert_evaluation_state,alert_rule_recipients,alert_rule_properties,sms_recipients,
+    DROP TABLE IF EXISTS feed_acknowledgement_history,feed_update_reads,sms_delivery_callbacks,notification_attempts,notification_properties,notification_outbox,notification_daily_usage,notification_usage,notification_global_usage,notification_rate_buckets,alert_evaluation_state,alert_rule_recipients,alert_rule_properties,sms_recipients,
       property_event_history, station_daily, history_stations, history_backfill_checks,
       station_precipitation_normals, history_normal_checks, history_flow_references, history_archive_state,
       observation_history, observation_backfill_checks, nowcast_points, hydrology_references, hydrology_reference_checks,
@@ -89,7 +92,7 @@ async function resetSchema() {
       property_context, admin_areas, provider_jobs, property_monitoring, integration_runs, alert_rules, property_source_profiles, properties,
       source_catalog, organization_members, users, organizations, schema_migrations CASCADE;
     DROP FUNCTION IF EXISTS fr_set_updated_at() CASCADE;`);
-  await pool.query(`DROP FUNCTION IF EXISTS fr_archive_match_trigger(),fr_archive_end_trigger(),fr_archive_unmatch_trigger() CASCADE`);
+  await pool.query(`DROP FUNCTION IF EXISTS fr_archive_match_trigger(),fr_archive_end_trigger(),fr_archive_unmatch_trigger(),fr_archive_feed_acknowledgement(),fr_archive_legacy_feed_undo() CASCADE`);
 }
 
 describe('real PostgreSQL / PostGIS', () => {
@@ -195,6 +198,40 @@ describe('real PostgreSQL / PostGIS', () => {
     assert.equal(await deleteProperty(pool, b, p.id), false);
     assert.equal((await getProperty(pool, a, p.id))!.name, sveavagen.name);
     await deleteProperty(pool, a, p.id);
+  });
+
+  it('undoes an exact history entry, including concurrent retries and expired events', async () => {
+    const a = { organizationId: await ensureOrganization(pool, ORG_A, 'org-a'), userId: 'user_testA' };
+    const otherOrg = await ensureOrganization(pool, ORG_B, 'org-b');
+    const property = await createProperty(pool, a, sveavagen);
+    const { rows: [change] } = await pool.query<{ id: string }>(
+      `INSERT INTO monitoring_changes (organization_id, property_id, source_id, change_type, data_class, severity, headline, dedup_key)
+       VALUES ($1, $2, 'smhi_warnings', 'new', 'OFFICIAL_WARNING', 'warning', 'Testvarning', 'test-history-undo') RETURNING id`,
+      [a.organizationId, property.id],
+    );
+    const history = async () => (await listAcknowledgementHistory(pool, a.organizationId, { property: property.id })).entries;
+    assert.ok(await acknowledgeFeedChange(pool, a.organizationId, change!.id, a.userId));
+    const [first] = await history();
+    assert.equal(await undoAcknowledgementHistory(pool, otherOrg, first!.id, 'user_testB'), null);
+
+    const undo = (id: string) => undoAcknowledgementHistory(pool, a.organizationId, id, a.userId);
+    const [one, two] = await Promise.all([undo(first!.id), undo(first!.id)]);
+    assert.ok(one);
+    assert.deepEqual(one, two);
+    assert.equal((await pool.query('SELECT 1 FROM feed_acknowledgements WHERE change_id = $1', [change!.id])).rowCount, 0);
+
+    assert.ok(await acknowledgeFeedChange(pool, a.organizationId, change!.id, a.userId));
+    const [second] = await history();
+    assert.notEqual(second!.id, first!.id);
+    assert.deepEqual(await undo(first!.id), one);
+    assert.equal((await pool.query('SELECT 1 FROM feed_acknowledgements WHERE change_id = $1', [change!.id])).rowCount, 1);
+    assert.equal((await history()).find((entry) => entry.id === second!.id)?.undone_at, null);
+
+    await pool.query('DELETE FROM monitoring_changes WHERE id = $1', [change!.id]);
+    assert.equal((await history()).find((entry) => entry.id === second!.id)?.undone_at, null);
+    assert.ok(await undo(second!.id));
+    assert.equal((await history()).filter((entry) => entry.undone_at).length, 2);
+    await deleteProperty(pool, a, property.id);
   });
 
   it('API end-to-end on real DB: auth, CRUD, persistence and cross-organization isolation', async () => {

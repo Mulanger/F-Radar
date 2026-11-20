@@ -1,6 +1,6 @@
 import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
 import { z } from 'zod';
-import { acknowledgeFeedChange, listAcknowledgementHistory, listAcknowledgementProperties, markAlarmChangesRead, markFeedUpdateRead, unacknowledgeFeedChange, type Queryable } from '@fastighetsradar/db';
+import { acknowledgeFeedChange, listAcknowledgementHistory, listAcknowledgementProperties, markAlarmChangesRead, markFeedUpdateRead, unacknowledgeFeedChange, undoAcknowledgementHistory, type Queryable } from '@fastighetsradar/db';
 import type { AcknowledgementHistoryPage } from '@fastighetsradar/domain';
 import { orgContext } from '../auth';
 import { HttpProblem } from '../errors';
@@ -12,11 +12,12 @@ const ChangeId = z.string().regex(/^(chg-)?\d{1,18}$/, 'Ogiltig rad').transform(
 const AckBody = z.object({ changeId: ChangeId, acknowledged: z.boolean() });
 const ReadBody = z.object({ changeId: ChangeId });
 const AlarmReadsBody = z.object({ changeIds: z.array(ChangeId).min(1).max(500) });
+const HistoryId = z.string().regex(/^[1-9]\d{0,17}$/);
 const HistoryFilters = z.object({
   from: z.iso.date().optional(),
   to: z.iso.date().optional(),
   property: z.uuid().optional(),
-  cursor: z.string().regex(/^[1-9]\d{0,17}$/).optional(),
+  cursor: HistoryId.optional(),
 }).refine(({ from, to }) => !from || !to || from <= to, 'Startdatum måste vara före eller samma som slutdatum');
 
 interface Deps {
@@ -62,6 +63,15 @@ export function registerFeedAcknowledgementRoutes(app: FastifyInstance, deps: De
         imported: entry.imported,
       })),
     };
+  });
+
+  app.post('/v1/feed/acknowledgements/:id/undo', { preHandler: deps.requireOrg }, async (req) => {
+    const ctx = orgContext(req);
+    if (!writes.take(ctx.userId)) throw new HttpProblem(429, 'För många ändringar. Försök senare.');
+    const { id } = z.object({ id: HistoryId }).parse(req.params);
+    const undoneAt = await undoAcknowledgementHistory(db(), ctx.organizationId, id, ctx.userId);
+    if (!undoneAt) throw new HttpProblem(404, 'Kvitteringen finns inte i historiken');
+    return { id, undoneAt: undoneAt.toISOString() };
   });
 
   app.post('/v1/feed/alarm-reads', { preHandler: deps.requireOrg }, async (req, reply) => {

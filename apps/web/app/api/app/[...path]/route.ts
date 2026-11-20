@@ -21,6 +21,7 @@ const ROUTES: Array<{ pattern: RegExp; methods: string[] }> = [
   { pattern: new RegExp(`^notifications/recipients/${UUID}/verification(/complete)?$`), methods: ['POST'] },
   { pattern: new RegExp(`^notifications/properties/${UUID}$`), methods: ['PATCH'] },
   { pattern: /^feed\/acknowledgements$/, methods: ['GET', 'POST'] },
+  { pattern: /^feed\/acknowledgements\/[1-9]\d{0,17}\/undo$/, methods: ['POST'] },
   { pattern: /^feed\/(reads|alarm-reads)$/, methods: ['POST'] },
   { pattern: /^settings$/, methods: ['GET', 'PATCH'] },
   { pattern: /^me$/, methods: ['GET'] },

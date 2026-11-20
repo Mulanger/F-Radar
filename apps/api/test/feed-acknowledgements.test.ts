@@ -143,6 +143,25 @@ describe('feed acknowledgements (kvittering i händelseflödet)', () => {
     expect((await a.inject('/v1/feed/acknowledgements?from=2026-11-19&to=2026-11-18')).statusCode).toBe(400);
     expect((await a.inject('/v1/feed/acknowledgements?property=other-org')).statusCode).toBe(400);
   });
+
+  it('undoes by archived id with the authenticated actor and validates the id', async () => {
+    const undoneAt = new Date('2026-11-20T10:15:00Z');
+    let calls = 0;
+    const a = await app({
+      async query<R>(sql: string, params: unknown[] = []) {
+        calls++;
+        expect(params).toEqual(['org-a', '12', 'user_a']);
+        expect(sql).toContain('h.organization_id = $1 AND h.id = $2::bigint');
+        expect(sql).toContain('a.acknowledged_at = h.acknowledged_at');
+        return { rows: [{ undone_at: undoneAt }] as R[] };
+      },
+    });
+    const undo = await a.inject({ method: 'POST', url: '/v1/feed/acknowledgements/12/undo?organizationId=org-b' });
+    expect(undo.statusCode).toBe(200);
+    expect(undo.json()).toEqual({ id: '12', undoneAt: undoneAt.toISOString() });
+    expect((await a.inject({ method: 'POST', url: '/v1/feed/acknowledgements/chg-12/undo' })).statusCode).toBe(400);
+    expect(calls).toBe(1);
+  });
 });
 
 describe('which feed rows must be acknowledged', () => {

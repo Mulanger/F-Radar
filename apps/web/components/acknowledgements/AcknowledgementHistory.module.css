@@ -120,6 +120,7 @@
 }
 
 .columnLabels {
+  grid-template-columns: minmax(0, 2.3fr) minmax(0, 1fr) minmax(0, 1fr) 102px 62px;
   padding-block: 9px;
   border-block: 1px solid #e8ebe8;
   background: #f8f9f7;
@@ -129,30 +130,36 @@
 }
 
 .record + .record { border-top: 1px solid #e8ebe8; }
-.record:last-child .recordSummary, .record:last-child .details { border-radius: 0 0 18px 18px; }
-.record[open]:last-child .recordSummary { border-radius: 0; }
+.recordHeader { display: grid; grid-template-columns: minmax(0, 1fr) 76px; align-items: center; }
+.record:last-child .recordHeader, .record:last-child .details { border-radius: 0 0 18px 18px; }
+.record[data-open='true']:last-child .recordHeader { border-radius: 0; }
 
 .recordSummary {
   min-height: 69px;
   box-sizing: border-box;
   padding-block: 11px;
-  list-style: none;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
   font-size: 13px;
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
-.recordSummary::-webkit-details-marker { display: none; }
-.recordSummary:hover, .record[open] .recordSummary { background: #f8f9f7; }
+.recordHeader:hover, .record[data-open='true'] .recordHeader { background: #f8f9f7; }
 .recordSummary:focus-visible { outline: 2px solid #337172; outline-offset: -3px; }
+.textButton.recordUndo { justify-self: start; min-height: 36px; padding-inline: 7px; }
 .recordTitle { display: flex; flex-direction: column; gap: 4px; }
 .recordTitle strong { font-weight: 600; }
 .recordTitle > span { color: #535c60; font-size: 12px; }
 .recordTime { font-variant-numeric: tabular-nums; }
 .recordStatus { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
 .recordStatus > svg { flex: none; color: #59615e; }
-.record[open] .recordStatus > svg { transform: rotate(180deg); }
+.record[data-open='true'] .recordStatus > svg { transform: rotate(180deg); }
 .confirmed, .reversed { border-radius: 999px; padding: 4px 8px; font-size: 11px; font-weight: 600; }
 .confirmed { color: #18563e; background: #e3f2e9; }
 .reversed { color: #794516; background: #fbefde; }
@@ -180,7 +187,9 @@
   .resultsHeading { padding: 15px; }
   .columnLabels { display: none; }
   .record { border-top: 1px solid #e8ebe8; }
-  .recordSummary { grid-template-columns: minmax(0, 1fr) auto; gap: 5px 10px; padding: 11px 14px; }
+  .recordHeader { grid-template-columns: minmax(0, 1fr) 61px; }
+  .recordSummary { grid-template-columns: minmax(0, 1fr) auto; gap: 5px 8px; padding: 11px 7px 11px 14px; }
+  .textButton.recordUndo { padding-inline: 4px; }
   .recordTitle { grid-area: 1 / 1; }
   .recordProperty { grid-area: 2 / 1; color: #535c60; font-size: 12px; }
   .recordTime { grid-area: 3 / 1; font-size: 12px; }

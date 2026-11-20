@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useId, useState, type FormEvent } from 'react';
 import type { AcknowledgementHistoryEntry, AcknowledgementHistoryFilters, AcknowledgementHistoryPage } from '@fastighetsradar/domain';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { acknowledgementTime, importedText, severityLabel } from '@/lib/acknowledgements/presentation';
@@ -23,13 +23,17 @@ async function loadHistory(filters: Filters, demoEntries?: AcknowledgementHistor
   return await response.json() as AcknowledgementHistoryPage;
 }
 
-export function AcknowledgementHistory({ demoEntries }: { demoEntries?: AcknowledgementHistoryEntry[] }) {
-  const { portfolio } = useDashboard();
+export function AcknowledgementHistory({ demoEntries, onDemoUndo }: {
+  demoEntries?: AcknowledgementHistoryEntry[];
+  onDemoUndo?: (id: string, undoneAt: string) => void;
+}) {
+  const { portfolio, refresh } = useDashboard();
   const [draft, setDraft] = useState<Filters>(emptyFilters);
   const [applied, setApplied] = useState<Filters>(emptyFilters);
   const [history, setHistory] = useState<AcknowledgementHistoryPage | null>(() => demoEntries ? demoAcknowledgementPage(demoEntries, emptyFilters) : null);
   const [loading, setLoading] = useState(!demoEntries);
   const [downloading, setDownloading] = useState(false);
+  const [undoing, setUndoing] = useState<string | null>(null);
   const [pdfFormat, setPdfFormat] = useState<AcknowledgementReportFormat>('compact');
   const [error, setError] = useState('');
 
@@ -100,9 +104,33 @@ export function AcknowledgementHistory({ demoEntries }: { demoEntries?: Acknowle
     }
   }
 
+  async function undo(entry: AcknowledgementHistoryEntry) {
+    if (busy || entry.undoneAt) return;
+    setUndoing(entry.id);
+    setError('');
+    try {
+      let undoneAt: string;
+      if (demoEntries) {
+        if (!onDemoUndo) return;
+        undoneAt = new Date().toISOString();
+        onDemoUndo(entry.id, undoneAt);
+      } else {
+        const response = await fetch(`/api/app/feed/acknowledgements/${encodeURIComponent(entry.id)}/undo`, { method: 'POST' });
+        if (!response.ok) throw new Error('Undo request failed');
+        ({ undoneAt } = await response.json() as { undoneAt: string });
+      }
+      setHistory((page) => page && { ...page, entries: page.entries.map((item) => item.id === entry.id ? { ...item, undoneAt } : item) });
+      if (!demoEntries) refresh();
+    } catch {
+      setError('Kvitteringen kunde inte ångras. Försök igen.');
+    } finally {
+      setUndoing(null);
+    }
+  }
+
   const entries = history?.entries ?? [];
   const properties = history?.properties ?? [];
-  const busy = loading || downloading;
+  const busy = loading || downloading || undoing !== null;
   const filtered = !!(applied.from || applied.to || applied.property);
   const count = history?.nextCursor ? `${entries.length} visade` : entries.length === 1 ? '1 kvittering' : `${entries.length} kvitteringar`;
 
@@ -151,7 +179,9 @@ export function AcknowledgementHistory({ demoEntries }: { demoEntries?: Acknowle
         {entries.length > 0 ? (
           <>
             <div className={styles.columnLabels} aria-hidden="true"><span>Händelse</span><span>Fastighet</span><span>Kvitterad</span><span>Status</span></div>
-            {entries.map((entry) => <HistoryRow key={entry.id} entry={entry} />)}
+            {entries.map((entry) => <HistoryRow key={entry.id} entry={entry}
+              onUndo={!entry.undoneAt && (!demoEntries || onDemoUndo) ? () => void undo(entry) : undefined}
+              disabled={busy} undoing={undoing === entry.id} />)}
           </>
         ) : !busy && history && (
           <div className={styles.empty}>
@@ -168,19 +198,32 @@ export function AcknowledgementHistory({ demoEntries }: { demoEntries?: Acknowle
   );
 }
 
-function HistoryRow({ entry }: { entry: AcknowledgementHistoryEntry }) {
+function HistoryRow({ entry, onUndo, disabled, undoing }: {
+  entry: AcknowledgementHistoryEntry;
+  onUndo?: () => void;
+  disabled: boolean;
+  undoing: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const detailsId = useId();
   return (
-    <details className={styles.record}>
-      <summary className={styles.recordSummary}>
-        <span className={styles.recordTitle}><strong>{entry.title}</strong><span>{entry.source}</span></span>
-        <span className={styles.recordProperty}>{entry.propertyName}</span>
-        <time className={styles.recordTime} dateTime={entry.acknowledgedAt}>{acknowledgementTime(entry.acknowledgedAt)}</time>
-        <span className={styles.recordStatus}>
-          <span className={entry.undoneAt ? styles.reversed : styles.confirmed}>{entry.undoneAt ? 'Ångrad' : 'Kvitterad'}</span>
-          <IconChevronDown />
-        </span>
-      </summary>
-      <div className={styles.details}>
+    <div className={styles.record} data-open={open}>
+      <div className={styles.recordHeader}>
+        <button type="button" className={styles.recordSummary} aria-expanded={open} aria-controls={detailsId} onClick={() => setOpen((value) => !value)}>
+          <span className={styles.recordTitle}><strong>{entry.title}</strong><span>{entry.source}</span></span>
+          <span className={styles.recordProperty}>{entry.propertyName}</span>
+          <time className={styles.recordTime} dateTime={entry.acknowledgedAt}>{acknowledgementTime(entry.acknowledgedAt)}</time>
+          <span className={styles.recordStatus}>
+            <span className={entry.undoneAt ? styles.reversed : styles.confirmed}>{entry.undoneAt ? 'Ångrad' : 'Kvitterad'}</span>
+            <IconChevronDown />
+          </span>
+        </button>
+        {onUndo && <button type="button" className={`${styles.textButton} ${styles.recordUndo}`} disabled={disabled}
+          aria-label={`Ångra kvittering: ${entry.title} · ${entry.propertyName}`} onClick={onUndo}>
+          {undoing ? 'Ångrar…' : 'Ångra'}
+        </button>}
+      </div>
+      <div id={detailsId} className={styles.details} hidden={!open}>
         <dl>
           <div><dt>Fastighet</dt><dd>{entry.propertyName} · {entry.propertyAddress}</dd></div>
           {entry.area && <div><dt>Område</dt><dd>{entry.area}</dd></div>}
@@ -192,6 +235,6 @@ function HistoryRow({ entry }: { entry: AcknowledgementHistoryEntry }) {
         <h3>Händelsetext</h3>
         <p className={styles.description}>{entry.description || 'Källan lämnade ingen ytterligare beskrivning.'}</p>
       </div>
-    </details>
+    </div>
   );
 }

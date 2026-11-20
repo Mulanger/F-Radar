@@ -66,34 +66,29 @@ export function useFeedAcks() {
 }
 export type FeedAcks = ReturnType<typeof useFeedAcks>;
 
-/**
- * Keep the timestamp visible when acknowledged and provide a separate undo action.
- */
+/** Keep the history timestamp visible in the feed. Undo lives on the history page. */
 export function FeedAckButton({ f, acks }: { f: FeedAckRow; acks: FeedAcks }) {
   if (!f.ackRequired) return null;
   const at = acks.ackedAt(f);
-  const label = at ? 'Ångra kvittering' : 'Kvittera';
+  if (at) return <span className={styles.done}>Kvitterad <time dateTime={at}>{formatClock(at)}</time></span>;
   return (
-    <span className={styles.actions}>
-      {at && <span className={styles.done}>Kvitterad <time dateTime={at}>{formatClock(at)}</time></span>}
-      <button
-        type="button"
-        className={at ? styles.undo : styles.ack}
-        aria-label={`${label}: ${f.title}`}
-        disabled={acks.isSaving(f.id)}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          acks.save(f, !at);
-        }}
-        onKeyDown={(e) => e.stopPropagation()}
-      >
-        {!at && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d={CHECK} />
-        </svg>}
-        {label}
-      </button>
-    </span>
+    <button
+      type="button"
+      className={styles.ack}
+      aria-label={`Kvittera: ${f.title}`}
+      disabled={acks.isSaving(f.id)}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        acks.save(f, true);
+      }}
+      onKeyDown={(e) => e.stopPropagation()}
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d={CHECK} />
+      </svg>
+      Kvittera
+    </button>
   );
 }
 

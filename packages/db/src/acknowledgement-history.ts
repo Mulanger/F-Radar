@@ -50,3 +50,33 @@ export async function listAcknowledgementProperties(db: Queryable, organizationI
   );
   return rows;
 }
+
+/** Undo one archived acknowledgement, even after its feed row expires. */
+export async function undoAcknowledgementHistory(db: Queryable, organizationId: string, id: string, userId: string): Promise<Date | null> {
+  const { rows } = await db.query<{ undone_at: Date }>(
+    `WITH removed AS (
+       DELETE FROM feed_acknowledgements a USING feed_acknowledgement_history h
+       WHERE h.organization_id = $1 AND h.id = $2::bigint AND h.undone_at IS NULL
+         AND a.organization_id = h.organization_id AND a.change_id = h.change_id
+         AND a.acknowledged_at = h.acknowledged_at
+       RETURNING a.change_id
+     )
+     UPDATE feed_acknowledgement_history h
+     SET undone_at = GREATEST(clock_timestamp(), h.acknowledged_at), undone_by = $3
+     WHERE h.organization_id = $1 AND h.id = $2::bigint AND h.undone_at IS NULL
+       AND (EXISTS (SELECT 1 FROM removed) OR NOT EXISTS (
+         SELECT 1 FROM feed_acknowledgements a WHERE a.organization_id = h.organization_id
+           AND a.change_id = h.change_id AND a.acknowledged_at = h.acknowledged_at
+       ))
+     RETURNING h.undone_at`,
+    [organizationId, id, userId],
+  );
+  if (rows[0]) return rows[0].undone_at;
+
+  // A retry or concurrent undo returns the original undo time without touching a newer acknowledgement.
+  const existing = await db.query<{ undone_at: Date | null }>(
+    'SELECT undone_at FROM feed_acknowledgement_history WHERE organization_id = $1 AND id = $2::bigint',
+    [organizationId, id],
+  );
+  return existing.rows[0]?.undone_at ?? null;
+}
