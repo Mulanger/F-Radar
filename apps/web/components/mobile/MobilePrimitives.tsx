@@ -43,7 +43,7 @@ export function MobileFeedRows({ feed, basePath, onMap, isUnread, acks }: { feed
       </span>
     </>;
     return (
-      <div key={f.rowKey} className={styles.feedItem} data-ack={ack && !acks.ackedAt(f) ? 'waiting' : undefined}>
+      <div key={f.rowKey} className={styles.feedItem} data-map-only={map && !ack ? '' : undefined} data-ack={ack && !acks.ackedAt(f) ? 'waiting' : undefined}>
         {map && f.opensTrafficDetails
           ? <button type="button" className={styles.feedRow} onClick={() => onMap(f)}>{content}</button>
           : <Link href={`${basePath}/properties/${encodeURIComponent(f.propertyId)}`} className={styles.feedRow}>{content}</Link>}
