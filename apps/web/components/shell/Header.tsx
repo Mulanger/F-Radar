@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { C, FONT_MONO } from '@/lib/design/tokens';
 import { IconBell, IconBuildingSimple, IconCalendar, IconChevronDown, IconPlus, IconSearch } from '../ui/icons';
@@ -87,24 +86,6 @@ export function Header() {
           <IconPlus />
           Lägg till fastighet
         </button>
-        {!isDemo && (
-          <div style={{ ...pill, gap: 3, padding: '0 5px' }}>
-            <UserButton showName={false} />
-            <OrganizationSwitcher
-              hidePersonal
-              afterSelectOrganizationUrl={`${basePath}/overview`}
-              afterCreateOrganizationUrl={`${basePath}/overview`}
-              afterLeaveOrganizationUrl="/onboarding"
-              appearance={{
-                elements: {
-                  organizationSwitcherTrigger: { borderRadius: 22, minHeight: 36, padding: '0 5px', boxShadow: 'none' },
-                  organizationPreviewAvatarBox: { width: 24, height: 24 },
-                  organizationPreviewTextContainer__organizationSwitcherTrigger: { display: 'none' },
-                },
-              }}
-            />
-          </div>
-        )}
       </div>
     </header>
   );

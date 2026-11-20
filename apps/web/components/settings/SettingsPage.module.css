@@ -28,6 +28,13 @@
 .reset:hover { background: #f4f5f4; }
 .notes { margin: 0; padding: 14px 16px 14px 32px; border-radius: 14px; background: #f6f7f6; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: #4a5157; line-height: 1.45; }
 
+.desktopAccount { display: grid; gap: 12px; }
+.accountRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; border-top: 1px solid #14171a0d; padding-top: 8px; font-size: 14px; }
+
+@media (max-width: 899.98px) {
+  .desktopAccount { display: none; }
+}
+
 @media (max-width: 599.98px) {
   .h1 { font-size: 30px; }
   .head { flex-direction: column; gap: 8px; }

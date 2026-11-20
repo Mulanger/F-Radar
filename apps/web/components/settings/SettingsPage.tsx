@@ -16,7 +16,7 @@ const pctOf = (v: number) => ((v - TRAFFIC_RADIUS.min) / (TRAFFIC_RADIUS.max - T
 const spoken = (v: number) => formatTrafficRadius(v).replace(' km', ' kilometer').replace(' m', ' meter');
 
 /** Inställningar: organization-wide settings (today the Trafikverket distance). */
-export function SettingsPage({ initial, back }: { initial: OrganizationSettingsResponse; back?: React.ReactNode }) {
+export function SettingsPage({ initial, back, account }: { initial: OrganizationSettingsResponse; back?: React.ReactNode; account?: React.ReactNode }) {
   const router = useRouter();
   const [saved, setSaved] = useState(initial.trafficRadiusM);
   const [value, setValue] = useState(initial.trafficRadiusM);
@@ -125,6 +125,7 @@ export function SettingsPage({ initial, back }: { initial: OrganizationSettingsR
           <li>Väder, VMA och strömavbrott påverkas inte: de matchas mot fastighetens läge, kommun eller län.</li>
         </ul>
       </section>
+      {account}
     </div>
   );
 }
