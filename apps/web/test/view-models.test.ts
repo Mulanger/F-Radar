@@ -28,12 +28,34 @@ describe('overview view-model reproduces the approved design values', () => {
   it('KPIs', () => {
     expect(vm.kpi.total).toBe(8);
     expect(vm.kpi.alerts).toBe(14);
-    expect(vm.kpi.warnings).toBe(3);
+    expect(vm.kpi.warnings).toBe(4);
     expect(vm.kpi.warnAffected).toBe(4);
     expect(vm.kpi.wx).toBe(7);
     expect(vm.kpi.sms).toBe(30);
     expect(vm.kpi.smsSub).toBe('7 av 8 fastigheter med SMS aktiverat');
     expect(vm.kpi.barLabel).toBe('Ingen aktiv varning: 3 · Info: 2 · Varning: 2 · Kritisk: 1');
+  });
+
+  it('groups warnings across 100 properties and orders them by level and publication time', () => {
+    const template = demoPortfolio.properties[0]!;
+    const warning = template.warnings[0]!;
+    const data: Portfolio = {
+      ...demoPortfolio,
+      properties: Array.from({ length: 100 }, (_, i) => ({
+        ...template,
+        property: { ...template.property, id: `property-${i}` },
+        warnings: [{ ...warning, origin: 'live', externalId: `${i < 80 ? '100' : 200 + i}:${i % 3}`,
+          issuedAt: new Date(Date.UTC(2026, 10, 20, 8, i)).toISOString(), level: i === 79 ? 'Red' : 'Yellow' }],
+      })),
+    };
+
+    const result = buildOverviewVM(data, ui);
+    expect(result.kpi.warnings).toBe(21);
+    expect(result.kpi.warnAffected).toBe(100);
+    expect(result.warningPreview[0]).toMatchObject({ id: 'smhi_warnings:100', level: 'Red', affected: 80 });
+    expect(result.warningPreview.slice(1).map(({ id }) => id)).toEqual(
+      Array.from({ length: 20 }, (_, i) => `smhi_warnings:${299 - i}`),
+    );
   });
 
   it('finds the map for a feed row about any message of a merged closure (Palandergatan, 2026-11-18)', () => {
@@ -102,7 +124,7 @@ describe('overview view-model reproduces the approved design values', () => {
 
   it('hero and health', () => {
     // Status line: properties with an active official warning (Bevaka or higher) and the worst one.
-    expect(vm.hero.status.headline).toBe('5 av 8 fastigheter med varning');
+    expect(vm.hero.status.headline).toBe('5 av 8 fastigheter att bevaka');
     expect(vm.hero.status.detail).toBe('Högst: Augustendal Brygga · Orange varning (kraftig vind)'); // highest status first
     expect(vm.hero.statusDash.startsWith(String((5 / 8) * 2 * Math.PI * 28))).toBe(true);
     expect(vm.hero.avgTemp).toBe('3,9');
@@ -188,7 +210,7 @@ describe('missing data is never rendered as a normal value', () => {
     expect(d.sms.rules.find((r) => r.code === 'RN')!.hit).toBe(false);
 
     const vm = buildOverviewVM(portfolio, ui);
-    expect(vm.hero.status.headline).toBe('0 av 1 fastighet med varning'); // warning status is still assessed
+    expect(vm.hero.status.headline).toBe('0 av 1 fastighet att bevaka'); // warning status is still assessed
     expect(vm.rows[0]!.temp).toBe('—');
     expect(vm.rows[0]!.aq).toBe('—');
     expect(vm.kpi.alertsDelta).toBeNull();

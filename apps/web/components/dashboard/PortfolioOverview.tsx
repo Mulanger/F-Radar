@@ -21,11 +21,11 @@ export function PortfolioOverview() {
   const ds = useDashboard();
   const [statusFull, setStatusFull] = useState(false);
   const { portfolio, ready, group, isSmsOn, isRuleOn } = ds;
-  const vm = buildOverviewVM(portfolio, { ready, group, isSmsOn, isRuleOn });
+  const mobile = useMobileDashboard();
+  const vm = buildOverviewVM(portfolio, { ready, group: mobile ? 'all' : group, isSmsOn, isRuleOn });
   // Stable list identity so the map only refits when the filter actually changes.
   const mapList = useMemo(() => filterByGroup(portfolio, group), [portfolio, group]);
   const isDemo = ds.mode === 'demo';
-  const mobile = useMobileDashboard();
 
   if (mobile) return <MobilePortfolioOverview vm={vm} />;
 

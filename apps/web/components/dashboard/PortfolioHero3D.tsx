@@ -34,7 +34,7 @@ export function PortfolioHero3D({ vm, isDemo }: { vm: OverviewVM; isDemo: boolea
             <circle cx="34" cy="34" r="28" fill="none" stroke="rgba(20,23,26,0.07)" strokeWidth="6" />
             <circle cx="34" cy="34" r="28" fill="none" stroke={h.status.c} strokeWidth="6" strokeLinecap="round" strokeDasharray={h.statusDash} style={{ transition: 'stroke-dasharray 1.4s cubic-bezier(.2,.8,.2,1)' }} />
           </svg>
-          <div style={{ position: 'relative', minWidth: 0 }} title={`Fastigheter med en aktiv officiell varning (SMHI eller VMA) eller ett strömavbrott som berör adressen${isDemo ? ' · demodata' : ''}.`}>
+          <div style={{ position: 'relative', minWidth: 0 }} title={`Fastigheter med förhöjd bevakningsstatus, till exempel på grund av en officiell varning eller ett driftavbrott${isDemo ? ' · demodata' : ''}.`}>
             <div style={{ fontSize: 19, fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1.2 }}>{h.status.headline}</div>
             <div style={{ fontSize: 12, color: C.text2, marginTop: 4, lineHeight: 1.4 }}>{h.status.detail}</div>
           </div>

@@ -6,7 +6,7 @@ import styles from './mobile.module.css';
 
 /**
  * 3/4 ring around the 3D scene. Defaults to a 0–100 score; `fraction`, `unit` and `max` let the
- * portfolio show "5 av 8 fastigheter med varning" with the same ring.
+ * portfolio show "5 av 8 fastigheter att bevaka" with the same ring.
  */
 export function MobileRiskGauge({ score, color, label, config, ready, fraction, unit = '/ 100', max = '100', ariaLabel }: {
   score: string; color: string; label: string; config: SceneConfig; ready: boolean;

@@ -48,15 +48,45 @@ describe('mobile portfolio overview', () => {
     expect(screen.queryAllByRole('switch')).toHaveLength(0);
   });
 
-  it('shows the share of properties with a warning, property routes and existing group selection', () => {
+  it('keeps the 3D scene and warning summary in the same card, with all properties shown', () => {
     render(<MobilePortfolioOverview vm={vm} />);
-    expect(screen.getByRole('img', { name: '5 av 8 fastigheter med varning. 3D-illustration.' })).toBeTruthy();
+    expect(screen.getByRole('img', { name: '5 av 8 fastigheter att bevaka. 3D-illustration.' })).toBeTruthy();
     expect(screen.getByText(/^Högst: Augustendal Brygga/)).toBeTruthy();
     expect(screen.getByTestId('three-scene')).toBeTruthy();
-    fireEvent.click(screen.getByRole('tab', { name: 'Innerstad 4' }));
-    expect(mocks.setGroup).toHaveBeenCalledWith('inner');
+    expect(screen.queryByRole('tablist', { name: 'Fastighetsgrupp' })).toBeNull();
+    const risk = screen.getByRole('region', { name: 'Portföljens risköversikt' });
+    expect(within(risk).getByRole('img', { name: /SMS-larm .*aktiverat/ })).toBeTruthy();
+    expect(within(risk).queryByRole('switch')).toBeNull();
+    const warnings = within(risk).getByRole('button', { name: /VMA och 3 andra varningar.*Visa varningar/ });
+    expect(warnings.getAttribute('data-level')).toBe('VMA');
+    vi.spyOn(warnings, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 300, 300, 60));
+    fireEvent.click(warnings);
+    const preview = within(risk).getByRole('region', { name: 'Officiella varningar' });
+    expect(within(preview).getAllByRole('listitem')).toHaveLength(4);
+    expect(within(preview).getByText('Gul varning · Nacka · Värmdö')).toBeTruthy();
+    expect(within(preview).getByText('Gul varning · Stockholm · Innerstaden')).toBeTruthy();
+    expect(within(preview).getByRole('link', { name: 'Gå till Larm' }).getAttribute('href')).toBe('/demo/alerts');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(within(risk).queryByRole('region', { name: 'Officiella varningar' })).toBeNull();
     const feed = screen.getByRole('region', { name: 'Händelseflöde' });
     expect(within(feed).getAllByRole('link')[0]!.getAttribute('href')).toBe(`/demo/properties/${vm.feed[0]!.propertyId}`);
+  });
+
+  it('keeps a long warning list keyboard-scrollable with the Larm link outside the scrolling area', () => {
+    const warnings = Array.from({ length: 25 }, (_, i) => ({ ...vm.warningPreview[0]!, id: `warning-${i}`, title: `Varning ${i + 1}` }));
+    render(<MobilePortfolioOverview vm={{ ...vm, warningPreview: warnings }} />);
+    const trigger = screen.getByRole('button', { name: /Visa varningar/ });
+    vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 300, 300, 60));
+    fireEvent.click(trigger);
+    const preview = screen.getByRole('region', { name: 'Officiella varningar' });
+    const list = within(preview).getByRole('list');
+    Object.defineProperties(list, { scrollHeight: { value: 1150 }, clientHeight: { value: 228 } });
+    fireEvent.scroll(list);
+    expect(list.getAttribute('tabindex')).toBe('0');
+    expect(list.getAttribute('aria-label')).toBe('25 varningar – scrolla för fler');
+    expect(within(list).getAllByRole('listitem')).toHaveLength(25);
+    expect(within(list).queryByRole('link')).toBeNull();
+    expect(within(preview).getByRole('link', { name: 'Gå till Larm' }).getAttribute('href')).toBe('/demo/alerts');
   });
 
   it('keeps missing source data distinct from zero and an assessed low risk', () => {

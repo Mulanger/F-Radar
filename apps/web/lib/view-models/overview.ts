@@ -1,5 +1,5 @@
 import { nowcastVM } from './nowcast';
-import type { Portfolio, PropertySnapshot, PropertyStatus } from '@fastighetsradar/domain';
+import type { OfficialWarning, Portfolio, PropertySnapshot, PropertyStatus } from '@fastighetsradar/domain';
 import { formatClock, formatLongDate, formatNumber, formatShortDate, swedishDateKey, type RiskFactorKey } from '@fastighetsradar/domain';
 import { C, EXPOSURE_SV, SEV, STATUS_ORDER, WL, riskStyle } from '../design/tokens';
 import { smooth } from './chart';
@@ -71,6 +71,43 @@ export function feedTime(iso: string, nowIso: string): string {
   return `${day === yesterday ? 'igår' : formatShortDate(iso).replace(/\.$/, '')} ${formatClock(iso)}`;
 }
 
+/** Same published warning may reach several properties or be split into separate SMHI areas. */
+function buildWarningPreview(properties: PropertySnapshot[]) {
+  const groups = new Map<string, { warning: OfficialWarning; properties: Set<string>; regions: Set<string>; publishedAt: number }>();
+
+  for (const { property, warnings } of properties) {
+    for (const warning of warnings) {
+      if (!isOfficialLevel(warning.level)) continue;
+      const { externalId, sourceId } = warning;
+      const sourceKey = sourceId === 'smhi_warnings' ? externalId?.split(':', 1)[0] : externalId;
+      // Fixtures have an id per property. Match the same fixture warning by its area and validity.
+      const fallback = warning.origin === 'demo_fixture'
+        ? JSON.stringify([warning.level, warning.type, warning.region, warning.validFrom, warning.validTo])
+        : warning.id;
+      const key = `${sourceId}:${sourceKey ?? fallback}`;
+      const publishedAt = Date.parse(warning.issuedAt ?? warning.validFrom ?? '') || 0;
+      let group = groups.get(key);
+      if (!group) {
+        group = { warning, properties: new Set(), regions: new Set(), publishedAt };
+        groups.set(key, group);
+      }
+      if ((WARN_RANK[warning.level] ?? 0) > (WARN_RANK[group.warning.level] ?? 0)) group.warning = warning;
+      group.publishedAt = Math.max(group.publishedAt, publishedAt);
+      group.properties.add(property.id);
+      if (warning.region) group.regions.add(warning.region);
+    }
+  }
+
+  return Array.from(groups, ([id, { warning, properties, regions, publishedAt }]) => ({
+    id,
+    level: warning.level,
+    title: warning.level === 'VMA' ? warning.type.replace('Viktigt meddelande till allmänheten — ', 'VMA — ') : warning.type,
+    region: regions.size === 1 ? [...regions][0] : undefined,
+    affected: properties.size,
+    publishedAt,
+  })).sort((a, b) => (WARN_RANK[b.level] ?? 0) - (WARN_RANK[a.level] ?? 0) || b.publishedAt - a.publishedAt || a.id.localeCompare(b.id));
+}
+
 export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
   const { ready } = ui;
   const list = filterByGroup(portfolio, ui.group);
@@ -81,17 +118,10 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
   });
   const n = list.length || 1;
 
-  // Official warnings (unique level+type, excluding informational)
-  const warnSet: Record<string, keyof typeof WL> = {};
-  let warnAff = 0;
-  list.forEach((s) => {
-    const ws = s.warnings.filter((w) => isOfficialLevel(w.level));
-    if (ws.length) warnAff++;
-    ws.forEach((w) => (warnSet[w.level + w.type] = w.level));
-  });
-  const wl = Object.values(warnSet);
+  const warningPreview = buildWarningPreview(list);
+  const warnAff = list.filter((snap) => snap.warnings.some((warning) => isOfficialLevel(warning.level))).length;
   const wc: Partial<Record<keyof typeof WL, number>> = {};
-  wl.forEach((l) => (wc[l] = (wc[l] || 0) + 1));
+  warningPreview.forEach(({ level }) => (wc[level] = (wc[level] ?? 0) + 1));
 
   const rain = (s: PropertySnapshot) => metricValue(s, 'weather.precipitation_24h');
   const gust = (s: PropertySnapshot) => metricValue(s, 'weather.wind_gust');
@@ -129,7 +159,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
   const gustP = [...list].sort((a, b) => n0(gust(b)) - n0(gust(a)))[0];
   const temps = list.map(temp).filter((v): v is number => v !== null);
 
-  // Hero status: properties with an active official warning (status Info/monitor or higher) and the worst one.
+  // Hero status: properties worth monitoring (Info or higher) and the most affected one.
   const C30 = 2 * Math.PI * 28;
   const flagged = list.filter((s) => STATUS_RANK[s.property.status] >= 1);
   const top = [...flagged].sort((a, b) => STATUS_RANK[b.property.status] - STATUS_RANK[a.property.status] || worstRank(b) - worstRank(a))[0];
@@ -144,8 +174,8 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     return {
       ...base,
       n: flagged.length,
-      headline: `${flagged.length} av ${list.length} ${list.length === 1 ? 'fastighet' : 'fastigheter'} med varning`,
-      detail: (top ? `Högst: ${top.property.name} · ${describeWorst(top)}` : 'Inga aktiva officiella varningar') + tail,
+      headline: `${flagged.length} av ${list.length} ${list.length === 1 ? 'fastighet' : 'fastigheter'} att bevaka`,
+      detail: (top ? `Högst: ${top.property.name} · ${describeWorst(top)}` : 'Inga fastigheter att bevaka just nu') + tail,
       label: top ? sev(top.property.status).label : SEV.normal.label,
       c: top ? sev(top.property.status).c : SEV.normal.c,
       fill: flagged.length / list.length,
@@ -288,7 +318,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
       spark,
       alertsDelta: portfolio.demoTrends?.alertsDeltaLabel ?? null,
       alertsSince: portfolio.demoTrends?.alertsSince ?? '',
-      warnings: wl.length,
+      warnings: warningPreview.length,
       warnAffected: warnAff,
       warnChips: (Object.keys(wc) as Array<keyof typeof WL>).map((k) => ({ key: k, label: WL[k].label + ' ×' + wc[k], bg: WL[k].bg, fg: WL[k].fg })),
       wx: wxR + wxW + wxF,
@@ -307,6 +337,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
       ...STATUS_ORDER.map((k) => ({ key: k as string, label: SEV[k].label, c: SEV[k].c, n: counts[k] })),
       ...(notAssessed ? [{ key: 'unknown', label: SEV.unknown.label, c: SEV.unknown.c, n: notAssessed }] : []),
     ],
+    warningPreview,
     feed,
     rows,
     cats: catsRaw.map((c) => ({ ...c, w: ready ? (c.n / catMax) * 100 + '%' : '0%' })),
