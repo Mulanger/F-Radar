@@ -20,12 +20,13 @@ function useIsMobile() {
 }
 
 /**
- * Shared frame for /sign-in and /sign-up. It lives in the `(auth)` route-group layout, so
- * switching between the two keeps the same 3D scene and animates the mobile panel height.
+ * Shared frame for /sign-in, /sign-up and /onboarding. It lives in the `(auth)` route-group
+ * layout, so moving between them keeps the same 3D scene and animates the mobile panel height.
  */
 export function AuthShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? '';
-  const mode = pathname.startsWith('/sign-up') ? 'signup' : 'login';
+  // Sign-up and onboarding have taller forms, so the mobile 3D panel is shorter.
+  const mode = pathname.startsWith('/sign-up') || pathname.startsWith('/onboarding') ? 'signup' : 'login';
   const mobile = useIsMobile();
   const sceneOptions = {
     extras: true,

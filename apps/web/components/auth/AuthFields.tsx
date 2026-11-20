@@ -4,6 +4,33 @@ import { useId, useState, type InputHTMLAttributes, type ReactNode } from 'react
 import { passwordStrength, strengthMeter } from '@/lib/auth/password';
 import f from './AuthForm.module.css';
 
+/** Two-step progress: 1 Konto (sign-up) → 2 Organisation (onboarding). */
+export function AuthSteps({ current }: { current: 1 | 2 }) {
+  const steps = ['Konto', 'Organisation'] as const;
+  return (
+    <ol className={f.steps} aria-label="Steg">
+      {steps.map((label, i) => {
+        const n = i + 1;
+        const state = n === current ? 'active' : n < current ? 'done' : 'todo';
+        return (
+          <li key={label} className={f.stepItem}>
+            {i > 0 ? <span className={f.stepLine} aria-hidden="true" /> : null}
+            <span className={`${f.step}${state === 'active' ? ` ${f.stepActive}` : state === 'done' ? ` ${f.stepDone}` : ''}`} aria-current={state === 'active' ? 'step' : undefined}>
+              <span className={f.stepNo}>
+                {state === 'done' ? (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                ) : n}
+              </span>
+              {label}
+              {state === 'done' ? <span className={f.srOnly}> (klart)</span> : null}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 export function AuthHeading({ title, lead }: { title: string; lead: ReactNode }) {
   return (
     <div className={f.head}>
@@ -131,9 +158,9 @@ export function Checkbox({ checked, onChange, children, error, top }: {
 
 export type SubmitState = 'idle' | 'loading' | 'done';
 
-export function SubmitButton({ state, idle, loading, done }: { state: SubmitState; idle: string; loading: string; done: string }) {
+export function SubmitButton({ state, idle, loading, done, disabled }: { state: SubmitState; idle: string; loading: string; done: string; disabled?: boolean }) {
   return (
-    <button type="submit" className={f.submit} disabled={state !== 'idle'} aria-busy={state === 'loading' || undefined}>
+    <button type="submit" className={f.submit} disabled={disabled || state !== 'idle'} aria-busy={state === 'loading' || undefined}>
       {state === 'idle' ? (
         <>
           {idle}

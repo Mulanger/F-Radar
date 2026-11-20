@@ -1,9 +1,9 @@
 import { clerkSv } from '@/lib/i18n/clerk-sv';
 
 /** Form fields the custom sign-in / sign-up screens can attach an error to. */
-export type AuthField = 'email' | 'password' | 'code' | 'firstName' | 'lastName' | 'form';
+export type AuthField = 'email' | 'password' | 'code' | 'firstName' | 'lastName' | 'name' | 'form';
 export type AuthErrors = Partial<Record<AuthField, string>>;
-export type AuthContext = 'signIn' | 'signUp' | 'reset';
+export type AuthContext = 'signIn' | 'signUp' | 'reset' | 'organization';
 
 interface ApiErrorLike {
   code?: string;
@@ -26,6 +26,7 @@ const PARAM_FIELD: Record<string, AuthField> = {
   firstName: 'firstName',
   last_name: 'lastName',
   lastName: 'lastName',
+  name: 'name',
 };
 
 /** Field a Clerk error code belongs to when the API does not name a parameter. */
@@ -91,7 +92,11 @@ function message(e: ApiErrorLike, ctx: AuthContext, field: AuthField): string {
       return field === 'email' ? 'Ange en giltig e-postadress.' : 'Ogiltigt värde.';
     case 'form_param_nil':
     case 'form_param_missing':
-      return 'Obligatoriskt.';
+      return field === 'name' ? 'Ange ett namn på organisationen.' : 'Obligatoriskt.';
+    case 'form_param_max_length_exceeded':
+      return field === 'name' ? 'Namnet är för långt.' : 'Värdet är för långt.';
+    case 'organization_membership_quota_exceeded':
+      return 'Organisationen har inga lediga platser. Kontakta en administratör där.';
     case 'session_exists':
       return 'Du är redan inloggad.';
     default:

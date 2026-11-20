@@ -10,21 +10,13 @@ import { EMAIL_RE } from '@/lib/auth/password';
 import { destinationFor } from '@/lib/auth/redirect';
 import { useClerkSettings } from '@/lib/auth/use-clerk-settings';
 import { readSignupEmail } from '@/lib/landing/signup-email';
-import { AuthHeading, Checkbox, CodeField, FormAlert, FormNotice, PasswordField, SubmitButton, TextField, type SubmitState } from './AuthFields';
+import { AuthHeading, AuthSteps, Checkbox, CodeField, FormAlert, FormNotice, PasswordField, SubmitButton, TextField, type SubmitState } from './AuthFields';
 import f from './AuthForm.module.css';
 
 type Step = 'details' | 'verify';
 type Errors = AuthErrors & { terms?: string };
 
-function Steps() {
-  return (
-    <ol className={f.steps} aria-label="Steg" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-      <li className={`${f.step} ${f.stepActive}`} aria-current="step"><span className={f.stepNo}>1</span>Konto</li>
-      <li className={f.stepLine} aria-hidden="true" />
-      <li className={f.step}><span className={f.stepNo}>2</span>Organisation</li>
-    </ol>
-  );
-}
+const Steps = () => <AuthSteps current={1} />;
 
 function LegalLink({ href, children }: { href: string | null; children: ReactNode }) {
   return href ? <Link href={href} className={f.link} target="_blank">{children}</Link> : <span style={{ fontWeight: 500 }}>{children}</span>;
