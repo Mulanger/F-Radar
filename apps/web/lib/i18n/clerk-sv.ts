@@ -32,13 +32,14 @@ const overrides = {
     emailAddressPage: { formHint: 'Du behöver verifiera e-postadressen innan den kan läggas till på ditt konto.' },
   },
   signIn: {
-    start: { titleCombined: 'Fortsätt till {{applicationName}}' },
+    start: { titleCombined: 'Fortsätt till FastighetsRadar', subtitle: 'Följ dina fastigheter och dina larm.' },
     emailLink: { verifiedTransferable: { title: 'E-postadressen är verifierad', subtitle: 'Gå tillbaka till den ursprungliga fliken för att fortsätta' } },
     passwordCompromised: { title: 'Lösenordet har läckt' },
     passwordUntrusted: { title: 'Lösenordet är inte betrott' },
     protectCheck: { title: 'Vi verifierar din begäran', subtitle: 'Vänta medan vi verifierar din begäran.', loading: 'Laddar…', retryButton: 'Försök igen' },
   },
   signUp: {
+    start: { subtitle: 'Skapa ett konto för att börja bevaka dina fastigheter.' },
     protectCheck: { title: 'Vi verifierar din begäran', subtitle: 'Vänta medan vi verifierar din begäran.', loading: 'Laddar…', retryButton: 'Försök igen' },
     restrictedAccess: { actionText: 'Har du redan ett konto?', blockButton__emailSupport: 'Mejla supporten' },
   },
