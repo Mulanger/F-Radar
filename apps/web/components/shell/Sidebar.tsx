@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { usePathname } from 'next/navigation';
+import { useOrganization, useUser } from '@clerk/nextjs';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { C } from '@/lib/design/tokens';
-import { IconAcknowledgements, IconAlert, IconBuilding, IconDashboard, IconMessage, IconSliders, IconBell } from '../ui/icons';
+import { IconAcknowledgements, IconAlert, IconBuilding, IconDashboard, IconMessage, IconSliders, IconBell, IconUser } from '../ui/icons';
 import { MobileNavigation } from '../mobile/MobileNavigation';
-import { SourceStatus } from './SourceStatus';
 
 const navItem: React.CSSProperties = {
   display: 'flex',
@@ -84,12 +84,42 @@ export function Sidebar() {
           {isDemo ? <PendingLink icon={<IconSliders />} label="Inställningar" /> : <Link href="/settings" aria-current={isSettings ? 'page' : undefined} style={{ ...navItem, ...(isSettings ? navOn : navOff) }}><IconSliders />Inställningar</Link>}
         </nav>
   
-        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <SourceStatus />
-        </div>
+        {isDemo
+          ? <SidebarIdentity name={portfolio.viewer.displayName} organization={portfolio.organizationName} />
+          : <LiveSidebarIdentity />}
       </aside>
       <Suspense><MobileNavigation /></Suspense>
     </>
+  );
+}
+
+function LiveSidebarIdentity() {
+  const { user } = useUser();
+  const { organization } = useOrganization();
+  const name = user?.fullName?.trim() || user?.username;
+
+  return <SidebarIdentity name={name} organization={organization?.name} />;
+}
+
+function SidebarIdentity({ name, organization = 'Organisation' }: { name?: string | null; organization?: string }) {
+  const initials = name?.split(/\s+/u).slice(0, 2).map(word => Array.from(word)[0]).join('').toLocaleUpperCase('sv-SE');
+
+  return (
+    <div className="fr-sidebar-identity" style={{
+      marginTop: 'auto', display: 'flex', alignItems: 'center', gap: 9, padding: '9px 10px',
+      borderRadius: 14, border: '1px solid #14171a12', background: C.white,
+    }}>
+      <span aria-hidden="true" style={{
+        flex: '0 0 34px', height: 34, display: 'grid', placeItems: 'center',
+        borderRadius: '50%', background: '#e2ece5', color: '#29483d', fontSize: 11, fontWeight: 650,
+      }}>
+        {initials || <IconUser size={16} />}
+      </span>
+      <div style={{ minWidth: 0, overflowWrap: 'anywhere', lineHeight: 1.3 }}>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>{name || 'Ditt konto'}</div>
+        <div style={{ fontSize: 11.5, color: C.text2, marginTop: 2 }}>{organization}</div>
+      </div>
+    </div>
   );
 }
 

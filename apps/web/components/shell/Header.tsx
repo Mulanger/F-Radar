@@ -28,7 +28,6 @@ export function Header() {
   const editor = usePropertyEditor();
   const isDemo = mode === 'demo';
   const [jumpOpen, setJumpOpen] = useState(false);
-  const viewer = portfolio.viewer;
 
   return (
     <header className="fr-header" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 26, flexWrap: 'wrap' }}>
@@ -88,36 +87,22 @@ export function Header() {
           <IconPlus />
           Lägg till fastighet
         </button>
-        {isDemo ? (
-          <div style={{ ...pill, gap: 10, padding: '4px 14px 4px 4px', boxSizing: 'border-box' }}>
-            <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'oklch(0.88 0.04 215)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 600, color: 'oklch(0.38 0.07 225)' }}>
-              {viewer.initials}
-            </div>
-            <div style={{ lineHeight: 1.15 }}>
-              <div style={{ fontSize: 13, fontWeight: 500 }}>{viewer.displayName}</div>
-              <div style={{ fontSize: 11.5, color: C.text4 }}>{viewer.role}</div>
-            </div>
-          </div>
-        ) : (
-          // Authentication-aware profile pill: Clerk user menu (profile, sign-out) + organization switcher.
-          <div style={{ ...pill, gap: 10, padding: '4px 10px 4px 4px', boxSizing: 'border-box' }}>
-            <UserButton appearance={{ elements: { userButtonAvatarBox: { width: 36, height: 36 } } }} />
-            <div style={{ lineHeight: 1.15, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-              <div style={{ fontSize: 13, fontWeight: 500, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{viewer.displayName}</div>
-              <OrganizationSwitcher
-                hidePersonal
-                afterSelectOrganizationUrl={`${basePath}/overview`}
-                afterCreateOrganizationUrl={`${basePath}/overview`}
-                afterLeaveOrganizationUrl="/onboarding"
-                appearance={{
-                  elements: {
-                    organizationSwitcherTrigger: { padding: 0, fontSize: 11.5, color: '#9AA1A8', boxShadow: 'none', minHeight: 0 },
-                    organizationPreviewAvatarBox: { display: 'none' },
-                    organizationPreviewMainIdentifier: { fontSize: 11.5, color: '#9AA1A8', fontWeight: 400 },
-                  },
-                }}
-              />
-            </div>
+        {!isDemo && (
+          <div style={{ ...pill, gap: 3, padding: '0 5px' }}>
+            <UserButton showName={false} />
+            <OrganizationSwitcher
+              hidePersonal
+              afterSelectOrganizationUrl={`${basePath}/overview`}
+              afterCreateOrganizationUrl={`${basePath}/overview`}
+              afterLeaveOrganizationUrl="/onboarding"
+              appearance={{
+                elements: {
+                  organizationSwitcherTrigger: { borderRadius: 22, minHeight: 36, padding: '0 5px', boxShadow: 'none' },
+                  organizationPreviewAvatarBox: { width: 24, height: 24 },
+                  organizationPreviewTextContainer__organizationSwitcherTrigger: { display: 'none' },
+                },
+              }}
+            />
           </div>
         )}
       </div>
