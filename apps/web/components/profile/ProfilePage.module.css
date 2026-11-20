@@ -1,0 +1,195 @@
+.page {
+  display: none;
+}
+
+.desktop a {
+  display: inline-flex;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: #fff;
+}
+
+@media (max-width: 899.98px) {
+  .desktop { display: none; }
+  .page {
+    display: grid;
+    gap: 22px;
+    max-width: 596px;
+    box-sizing: border-box;
+    margin-inline: auto;
+    padding: 14px 16px 0;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -.04em;
+}
+
+.demo {
+  padding: 5px 9px;
+  border-radius: 20px;
+  background: oklch(.95 .055 84);
+  color: oklch(.42 .09 66);
+  font-size: 12px;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #14171a0a;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #edf3f4, #e6edef);
+}
+
+.avatar,
+.rowIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+}
+
+.avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  background: #fff;
+  color: #345365;
+}
+
+.identityText {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.identityText p { margin: 0; }
+.name { font-size: 20px; font-weight: 600; letter-spacing: -.03em; }
+.email { font-size: 13px; color: #4d5966; padding-top: 2px; }
+.organization {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+  color: #345365;
+  font-size: 12px;
+  font-weight: 500;
+}
+.organization svg { flex: none; }
+
+.sectionTitle {
+  margin: 0 0 7px 2px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -.015em;
+}
+
+.card {
+  border-radius: 18px;
+  border: 1px solid #14171a0b;
+  background: #fff;
+  box-shadow: 0 2px 4px #14171a06;
+}
+
+.card > * + * { border-top: 1px solid #14171a0b; }
+
+.row {
+  display: flex;
+  width: 100%;
+  min-height: 52px;
+  box-sizing: border-box;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 13px;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+}
+
+:is(a, button, summary).row, .primary, .secondary { cursor: pointer; }
+.row:focus-visible { outline-offset: -3px; border-radius: 11px; }
+.row:active { background: #edf1ee; }
+.row > svg { flex: none; color: #59636e; }
+
+.rowIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #eef1ef;
+  color: #354740;
+}
+
+.rowText {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.rowTitle { font-weight: 550; }
+.rowDescription { color: #59636e; font-size: 12px; line-height: 1.35; }
+.sources summary { list-style: none; }
+.sources summary::-webkit-details-marker { display: none; }
+.sources[open] .chevron, .row[aria-expanded='true'] .chevron { transform: rotate(180deg); }
+.sourceStatus { padding: 0 12px 12px; }
+
+.form {
+  display: grid;
+  gap: 12px;
+  padding: 6px 13px 13px;
+}
+
+.card > .form { padding-top: 12px; }
+.form label { display: grid; gap: 5px; color: #38434f; font-size: 13px; font-weight: 500; }
+.form :is(input, select) {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid #c3cbca;
+  border-radius: 11px;
+  color: #14171a;
+  font: inherit;
+  font-size: 16px;
+}
+
+.form :is(input, select):focus-visible { outline: 2px solid #2a687f; outline-offset: 2px; }
+.fields { display: grid; gap: 10px; margin: 0; padding: 0; border: 0; min-inline-size: 0; }
+.formActions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.primary, .secondary {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid #14171a20;
+  border-radius: 22px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.primary { background: #14171a; color: #fff; }
+.secondary { background: #fff; color: #14171a; }
+:is(.primary, .secondary, .row):disabled { cursor: default; opacity: .55; }
+.error, .success { margin: 0; font-size: 13px; }
+.error, .signOut, .signOut .rowIcon { color: #a13029; }
+.success { color: #225e3e; }
+.signOut .rowIcon { background: #f9eeed; }
+.signOutError { padding: 10px 13px; }

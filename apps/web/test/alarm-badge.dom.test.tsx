@@ -23,7 +23,7 @@ const alarm: FeedItem = {
 function view(alarms: FeedItem[]) {
   const portfolio: Portfolio = { ...demoPortfolio, feed: [], activeAlarms: alarms };
   return <DashboardStateProvider mode="live" basePath="" portfolio={portfolio}>
-    <MobileNavigation onSettings={() => {}} />
+    <MobileNavigation />
     {nav.pathname === '/alerts' && <MobileAlerts />}
   </DashboardStateProvider>;
 }

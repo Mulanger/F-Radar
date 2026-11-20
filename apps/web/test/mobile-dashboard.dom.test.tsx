@@ -122,14 +122,19 @@ describe('mobile property list', () => {
   });
 });
 
-it('mobile navigation has actual routes and opens settings', () => {
+it('mobile navigation links to the profile and marks the current page', () => {
   mocks.path = '/demo/properties/demo-ulvsunda-lager';
-  const onSettings = vi.fn();
-  render(<MobileNavigation onSettings={onSettings} />);
+  const { rerender } = render(<MobileNavigation />);
   expect(screen.getByRole('link', { name: 'Fastigheter' }).getAttribute('aria-current')).toBe('page');
   expect(screen.getByRole('link', { name: /Larm/ }).getAttribute('href')).toBe('/demo/alerts');
-  fireEvent.click(screen.getByRole('button', { name: 'Öppna inställningar och meny' }));
-  expect(onSettings).toHaveBeenCalledOnce();
+  expect(screen.getByRole('link', { name: 'Profil' }).getAttribute('href')).toBe('/demo/profile');
+  expect(screen.queryByRole('button', { name: /inställningar/i })).toBeNull();
+  mocks.path = '/demo/profile';
+  rerender(<MobileNavigation />);
+  expect(screen.getByRole('link', { name: 'Profil' }).getAttribute('aria-current')).toBe('page');
+  mocks.path = '/demo/acknowledgements';
+  rerender(<MobileNavigation />);
+  expect(screen.getByRole('link', { name: 'Profil' }).getAttribute('aria-current')).toBe('location');
 });
 
 it('mobile forecast switches metrics through the dashboard state', () => {

@@ -18,6 +18,12 @@ const base = (size: number, sw: number, rest: SVGProps<SVGSVGElement>): SVGProps
 export const IconDashboard = ({ size = 18, sw = 1.7, ...r }: P) => (
   <svg {...base(size, sw, r)}><rect x="3" y="3" width="7" height="9" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="16" width="7" height="5" rx="1.5" /></svg>
 );
+export const IconUser = ({ size = 18, sw = 1.7, ...r }: P) => (
+  <svg {...base(size, sw, r)}><circle cx="12" cy="8" r="3.5" /><path d="M5 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2" /></svg>
+);
+export const IconLogOut = ({ size = 18, sw = 1.7, ...r }: P) => (
+  <svg {...base(size, sw, r)}><path d="M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h5m5-13 5 5-5 5m5-5H9" /></svg>
+);
 export const IconBuilding = ({ size = 18, sw = 1.7, ...r }: P) => (
   <svg {...base(size, sw, r)}><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M9 21v-4h6v4M8 7h.01M12 7h.01M16 7h.01M8 11h.01M12 11h.01M16 11h.01" /></svg>
 );
