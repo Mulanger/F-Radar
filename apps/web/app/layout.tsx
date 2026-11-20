@@ -4,6 +4,7 @@ import { clerkSv } from '@/lib/i18n/clerk-sv';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import { clerkAppearance } from '@/lib/design/clerk-appearance';
+import { SessionPersistenceGuard } from '@/components/auth/SessionPersistenceGuard';
 import 'leaflet/dist/leaflet.css';
 import './globals.css';
 
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           afterSignOutUrl="/"
           taskUrls={{ 'choose-organization': '/onboarding' }}
         >
+          <SessionPersistenceGuard />
           {children}
         </ClerkProvider>
       </body>

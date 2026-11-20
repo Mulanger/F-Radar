@@ -1,0 +1,198 @@
+/*
+ * Sign-in / sign-up layout – values copied from the approved design (AuthScreen.dc.html,
+ * "Autentisering med 3D-scen"). Desktop: floating card, form left, 3D panel right.
+ * Below 820 px: full-bleed white page, 3D panel on top, form underneath.
+ */
+
+.root {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: radial-gradient(110% 90% at 20% 0%, oklch(0.955 0.016 225) 0%, oklch(0.885 0.034 230) 100%);
+  color: #14171a;
+  overflow: hidden;
+}
+
+.card {
+  width: 1240px;
+  max-width: 100%;
+  height: 800px;
+  max-height: calc(100vh - 80px);
+  max-height: calc(100svh - 80px);
+  min-height: 620px;
+  display: flex;
+  flex-direction: row;
+  background: #fff;
+  border-radius: 32px;
+  box-shadow: 0 1px 2px rgba(20, 23, 26, 0.04), 0 60px 120px -60px rgba(24, 52, 72, 0.45);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.form {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 34px 60px 30px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.form::-webkit-scrollbar { display: none; }
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex: none;
+}
+
+.brand {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #14171a;
+}
+.brand:hover { color: #14171a; }
+
+.back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b737b;
+}
+.back:hover { color: #14171a; }
+
+.main {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 28px 0;
+}
+
+.inner {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.footer {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-size: 12.5px;
+  color: #9aa1a8;
+}
+.footer nav { display: flex; gap: 16px; color: #6b737b; }
+.footer a { color: #6b737b; }
+.footer a:hover { color: #14171a; }
+
+.panel {
+  order: 2;
+  flex: 1.06 1 0;
+  min-width: 0;
+  min-height: 0;
+  margin: 12px;
+  border-radius: 24px;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(120% 100% at 70% 20%, #fff 0%, #eef3f4 50%, #e1eaed 100%);
+  transition: height 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+}
+
+.pill { display: none; }
+
+/* Between the design's two sizes (tablets, small laptops): same layout, tighter gutters. */
+@media (min-width: 820px) and (max-width: 1099.98px) {
+  .root { padding: 24px; }
+  .card {
+    max-height: calc(100vh - 48px);
+    max-height: calc(100svh - 48px);
+  }
+  .form { padding: 30px 36px 26px; }
+  .panel { flex-grow: 0.9; }
+}
+
+@media (max-width: 819.98px) {
+  .root {
+    display: block;
+    padding: 0;
+    background: #fff;
+  }
+
+  .card {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    min-height: 100vh;
+    min-height: 100svh;
+    flex-direction: column;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .form {
+    flex: 1 0 auto;
+    padding: 26px 24px max(22px, env(safe-area-inset-bottom));
+    overflow: visible;
+  }
+
+  .header { display: none; }
+
+  .main {
+    justify-content: flex-start;
+    padding: 0 0 32px;
+  }
+
+  .footer { justify-content: center; }
+
+  .panel {
+    order: -1;
+    flex: none;
+    height: 272px;
+    margin: max(10px, env(safe-area-inset-top)) 10px 0;
+    border-radius: 28px;
+  }
+  .panel[data-mode='signup'] { height: 196px; }
+
+  .pill {
+    display: block;
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    padding: 8px 13px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.7);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    pointer-events: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel { transition: none; }
+}
