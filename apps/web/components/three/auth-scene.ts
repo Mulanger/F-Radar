@@ -6,7 +6,7 @@ import * as T from 'three';
  * rings, particles) matches `property-scene.ts`; the design adds a radar sweep, clouds with rain
  * over a warned property, alert pins, boats on the water ring and wind turbines on islets.
  *
- * Differences from the design file (engineering only, no visual change):
+ * Differences from the design file:
  *  - three.js is bundled locally (no runtime CDN import).
  *  - No `preserveDrawingBuffer` (it only existed for design-tool screenshots).
  */
@@ -14,6 +14,8 @@ import * as T from 'three';
 export interface AuthSceneOptions {
   /** Clouds, radar, pins, boats and turbines. */
   extras: boolean;
+  /** Clouds, rain and floating pins, when extras are enabled. */
+  skyEffects: boolean;
   /** Orbit speed multiplier. */
   speed: number;
   /** >1 moves the camera closer; never crops the island sideways. */
@@ -51,7 +53,7 @@ const waveY = (x: number, z: number, t: number) =>
   AMP * (Math.sin(x * 1.5 + t * 1.3) + 0.7 * Math.sin(z * 1.8 - t * 1.05) + 0.3 * Math.sin((x + z) * 3.2 + t * 2.2));
 
 export function createAuthScene(el: HTMLElement, opts?: Partial<AuthSceneOptions>): AuthSceneHandle {
-  const o: AuthSceneOptions = { extras: true, speed: 1, zoom: 1, offsetY: 0, ...opts };
+  const o: AuthSceneOptions = { extras: true, skyEffects: true, speed: 1, zoom: 1, offsetY: 0, ...opts };
   const reduced = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
   const renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
@@ -203,6 +205,10 @@ export function createAuthScene(el: HTMLElement, opts?: Partial<AuthSceneOptions
   sweep.renderOrder = 2;
   ex.add(sweep);
 
+  const sky = new T.Group();
+  sky.visible = o.skyEffects;
+  ex.add(sky);
+
   // Clouds
   const makeCloud = (s: number, mat: T.Material) => {
     const g = new T.Group();
@@ -221,7 +227,7 @@ export function createAuthScene(el: HTMLElement, opts?: Partial<AuthSceneOptions
     { r: 3.9, h: 6.3, a: 4.5, s: 0.62, v: 0.035 },
   ].map((c) => {
     const g = makeCloud(c.s, M.cloud);
-    ex.add(g);
+    sky.add(g);
     return { ...c, g };
   });
 
@@ -229,7 +235,7 @@ export function createAuthScene(el: HTMLElement, opts?: Partial<AuthSceneOptions
   const RB = BUILDINGS[7]!;
   const rainCloud = makeCloud(0.72, M.cloudRain);
   rainCloud.position.set(RB.x, 4.4, RB.z);
-  ex.add(rainCloud);
+  sky.add(rainCloud);
   const RN = 80;
   const rTop = 4.05;
   const rBot = 1.42;
@@ -237,7 +243,7 @@ export function createAuthScene(el: HTMLElement, opts?: Partial<AuthSceneOptions
   const rSeed = Array.from({ length: RN }, () => [RB.x + (Math.random() - 0.5) * 0.95, RB.z + (Math.random() - 0.5) * 0.6, Math.random(), 0.8 + Math.random() * 0.4] as const);
   const rainGeo = new T.BufferGeometry();
   rainGeo.setAttribute('position', new T.BufferAttribute(rPos, 3));
-  ex.add(new T.LineSegments(rainGeo, M.rain));
+  sky.add(new T.LineSegments(rainGeo, M.rain));
 
   // Alert pins
   const pins = BUILDINGS.filter((b) => b.hot).map((b, i) => {
@@ -256,7 +262,7 @@ export function createAuthScene(el: HTMLElement, opts?: Partial<AuthSceneOptions
     stem.position.y = -0.36;
     g.add(head, tip, dot, stem);
     g.position.set(b.x, top + 0.62, b.z);
-    ex.add(g);
+    sky.add(g);
     return { g, y: top + 0.62, o: i * 1.4 };
   });
 
@@ -331,8 +337,7 @@ export function createAuthScene(el: HTMLElement, opts?: Partial<AuthSceneOptions
     }
     pts.rotation.y = t * 0.03;
 
-    if (ex.visible) {
-      sweepMat.uniforms.uA!.value = t * 0.9;
+    if (ex.visible && sky.visible) {
       clouds.forEach((c) => {
         const ca = c.a + t * c.v;
         c.g.position.set(Math.cos(ca) * c.r, c.h + Math.sin(t * 0.4 + c.a) * 0.12, Math.sin(ca) * c.r);
@@ -348,6 +353,10 @@ export function createAuthScene(el: HTMLElement, opts?: Partial<AuthSceneOptions
         p.g.position.y = p.y + Math.sin(t * 1.6 + p.o) * 0.07;
         p.g.rotation.y = t * 0.8 + p.o;
       });
+    }
+
+    if (ex.visible) {
+      sweepMat.uniforms.uA!.value = t * 0.9;
       boats.forEach((b) => {
         const ba = b.a + t * b.v;
         const x = Math.cos(ba) * b.r;
@@ -448,6 +457,7 @@ export function createAuthScene(el: HTMLElement, opts?: Partial<AuthSceneOptions
     set(next) {
       Object.assign(o, next);
       ex.visible = o.extras;
+      sky.visible = o.skyEffects;
       resize();
     },
     dispose() {

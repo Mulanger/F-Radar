@@ -197,6 +197,10 @@
     letter-spacing: -0.02em;
     pointer-events: none;
   }
+
+  .panel[data-mode='signup'] .mobileBrand {
+    top: calc(18px + env(safe-area-inset-top));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

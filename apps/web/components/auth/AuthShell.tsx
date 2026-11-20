@@ -29,6 +29,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
   const mobile = useIsMobile();
   const sceneOptions = {
     extras: true,
+    skyEffects: !(mobile && mode === 'signup'),
     speed: 1,
     zoom: mobile ? 1.15 : 1.38,
     offsetY: mobile ? -0.04 : -0.05,
