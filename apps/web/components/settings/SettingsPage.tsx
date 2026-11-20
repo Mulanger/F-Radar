@@ -16,7 +16,7 @@ const pctOf = (v: number) => ((v - TRAFFIC_RADIUS.min) / (TRAFFIC_RADIUS.max - T
 const spoken = (v: number) => formatTrafficRadius(v).replace(' km', ' kilometer').replace(' m', ' meter');
 
 /** Inställningar: organization-wide settings (today the Trafikverket distance). */
-export function SettingsPage({ initial }: { initial: OrganizationSettingsResponse }) {
+export function SettingsPage({ initial, back }: { initial: OrganizationSettingsResponse; back?: React.ReactNode }) {
   const router = useRouter();
   const [saved, setSaved] = useState(initial.trafficRadiusM);
   const [value, setValue] = useState(initial.trafficRadiusM);
@@ -63,6 +63,7 @@ export function SettingsPage({ initial }: { initial: OrganizationSettingsRespons
 
   return (
     <div className={s.page}>
+      {back}
       <div>
         <h1 className={s.h1}>Inställningar</h1>
         <p style={{ ...cardSub, margin: 0 }}>Gäller hela organisationen och alla fastigheter.</p>

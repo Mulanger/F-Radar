@@ -30,7 +30,7 @@ export function PropertyEditorHost({ children }: { children: React.ReactNode }) 
           }}
           onDeleted={() => {
             setMode(null);
-            ds.goOverview();
+            ds.goProperties();
             ds.refresh();
           }}
         />

@@ -1,4 +1,5 @@
-import Link from 'next/link';
+import { DashboardLink } from '../shell/DashboardLink';
+import { propertyHref, type DashboardSection } from '@/lib/navigation/dashboard';
 import { C } from '@/lib/design/tokens';
 import { IconChevronRight } from '../ui/icons';
 import type { OverviewVM } from '@/lib/view-models/overview';
@@ -30,7 +31,7 @@ export function MobileWeatherCard({ icon, label, value, sub }: { icon: React.Rea
  * Feed rows link to the property. With `onMap`, a row whose event has a position also gets a map
  * button; with `acks`, a row that must be acknowledged gets "Kvittera" beside it, in the lower right corner.
  */
-export function MobileFeedRows({ feed, basePath, onMap, isUnread, acks }: { feed: OverviewVM['feed']; basePath: string; onMap?: (row: FeedMapTarget) => void; isUnread?: (row: FeedMapTarget) => boolean; acks?: FeedAcks }) {
+export function MobileFeedRows({ feed, basePath, from = 'overview', onMap, isUnread, acks }: { feed: OverviewVM['feed']; basePath: string; from?: DashboardSection; onMap?: (row: FeedMapTarget) => void; isUnread?: (row: FeedMapTarget) => boolean; acks?: FeedAcks }) {
   return feed.map((f) => {
     const map = onMap && f.mapEventId;
     const ack = acks && f.ackRequired;
@@ -46,7 +47,7 @@ export function MobileFeedRows({ feed, basePath, onMap, isUnread, acks }: { feed
       <div key={f.rowKey} className={styles.feedItem} data-map-only={map && !ack ? '' : undefined} data-ack={ack && !acks.ackedAt(f) ? 'waiting' : undefined}>
         {map && f.opensTrafficDetails
           ? <button type="button" className={styles.feedRow} onClick={() => onMap(f)}>{content}</button>
-          : <Link href={`${basePath}/properties/${encodeURIComponent(f.propertyId)}`} className={styles.feedRow}>{content}</Link>}
+          : <DashboardLink href={propertyHref(basePath, f.propertyId, from)} className={styles.feedRow}>{content}</DashboardLink>}
         {(map || ack) && <div className={styles.feedActions}>
           {ack && <FeedAckButton f={f} acks={acks} />}
           {map && <FeedMapButton title={f.title} ended={f.mapEnded} onClick={() => onMap(f)} />}
@@ -57,7 +58,7 @@ export function MobileFeedRows({ feed, basePath, onMap, isUnread, acks }: { feed
 }
 
 export function MobileStatusRows({ rows, basePath }: { rows: OverviewVM['rows']; basePath: string }) {
-  return rows.map((r) => <Link key={r.id} href={`${basePath}/properties/${encodeURIComponent(r.id)}`} className={styles.statusRow}>
+  return rows.map((r) => <DashboardLink key={r.id} href={propertyHref(basePath, r.id, 'overview')} className={styles.statusRow}>
     <div style={{ minWidth: 0 }}>
       <div className={styles.statusName}><span className={styles.name}>{r.name}</span><MobileStatusBadge label={r.status} color={r.c} background={r.bg} /></div>
       <div className={styles.statusWeather}><span>{r.temp}° · {r.rain} mm · {r.wind} m/s</span>{r.warn !== 'Ingen' && <span className={styles.warning} style={{ color: r.wFg, background: r.wBg }} title={r.warn}>{r.warn}</span>}</div>
@@ -65,5 +66,5 @@ export function MobileStatusRows({ rows, basePath }: { rows: OverviewVM['rows'];
     </div>
     <div className={styles.statusRisk} title={r.riskTitle}><span>{r.risk}</span><div className={styles.riskTrack}><div style={{ background: r.riskC, width: r.riskW }} /></div></div>
     <IconChevronRight size={16} stroke={C.sep} />
-  </Link>);
+  </DashboardLink>);
 }

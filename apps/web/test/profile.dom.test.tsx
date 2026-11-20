@@ -67,9 +67,9 @@ it('shows account and organization data and keeps the existing monitoring routes
   expect(screen.getByText('elin@example.com')).toBeTruthy();
   expect(screen.getByText('Fastighetsgruppen')).toBeTruthy();
   expect(screen.getByText('Läsbehörighet för SMS-regler och bevakningsinställningar')).toBeTruthy();
-  expect(screen.getByRole('link', { name: /^SMS-regler och mottagare/ }).getAttribute('href')).toBe('/sms-rules');
-  expect(screen.getByRole('link', { name: /^Kvitteringar/ }).getAttribute('href')).toBe('/acknowledgements');
-  expect(screen.getByRole('link', { name: /^Bevakningsinställningar/ }).getAttribute('href')).toBe('/settings');
+  expect(screen.getByRole('link', { name: /^SMS-regler och mottagare/ }).getAttribute('href')).toBe('/sms-rules?via=profile');
+  expect(screen.getByRole('link', { name: /^Kvitteringar/ }).getAttribute('href')).toBe('/acknowledgements?via=profile');
+  expect(screen.getByRole('link', { name: /^Bevakningsinställningar/ }).getAttribute('href')).toBe('/settings?via=profile');
   expect(screen.queryByRole('button', { name: 'Ändra lösenord' })).toBeNull();
   expect(screen.queryByRole('combobox')).toBeNull();
 });
@@ -120,7 +120,7 @@ it('offers the user’s other organizations and signs out through Clerk', async 
 it('keeps demo navigation in the demo and disables live account actions', () => {
   mocks.mode = 'demo';
   render(<DemoProfile />);
-  expect(screen.getByRole('link', { name: /^Kvitteringar/ }).getAttribute('href')).toBe('/demo/acknowledgements');
+  expect(screen.getByRole('link', { name: /^Kvitteringar/ }).getAttribute('href')).toBe('/demo/acknowledgements?via=profile');
   expect(screen.queryByRole('link', { name: /^SMS-regler/ })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Ändra namn' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Logga ut' })).toBeNull();

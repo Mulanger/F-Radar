@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { dashboardSection, propertyHref, propertySmsHref, recordDashboardDeparture, type DashboardSection } from '@/lib/navigation/dashboard';
 import type { Portfolio, PropertySnapshot } from '@fastighetsradar/domain';
 
 export type ChartMetric = 'temp' | 'rain' | 'wind' | 'hum';
@@ -32,14 +33,12 @@ interface DashboardState {
   toggleLayer: (k: 'weather' | 'flood') => void;
   metric: ChartMetric;
   setMetric: (m: ChartMetric) => void;
-  /** Last property opened – target of the sidebar "Properties" link. */
-  selectedId: string;
   isSmsOn: (s: PropertySnapshot) => boolean;
   toggleSms: (s: PropertySnapshot) => void;
   isRuleOn: (ruleId: string, fallback: boolean) => boolean;
   toggleRule: (ruleId: string, current: boolean) => void;
-  openProperty: (id: string, opts?: { scroll?: boolean }) => void;
-  goOverview: () => void;
+  openProperty: (id: string, opts?: { replace?: boolean; from?: DashboardSection }) => void;
+  goProperties: () => void;
   property: (id: string | undefined) => PropertySnapshot | undefined;
 }
 
@@ -64,7 +63,6 @@ export function DashboardStateProvider({
   const [metric, setMetric] = useState<ChartMetric>('temp');
   const [smsOff, setSmsOff] = useState<Record<string, boolean>>({});
   const [rules, setRules] = useState<Record<string, boolean>>({});
-  const [lastId, setLastId] = useState(portfolio.properties[0]?.property.id ?? '');
   const [seenAlarms, setSeenAlarms] = useState(() => new Set<string>());
   const viewedAlertsPage = useRef(false);
   const alarmIds = useMemo(() => mode === 'demo'
@@ -107,30 +105,22 @@ export function DashboardStateProvider({
     return () => clearTimeout(t);
   }, []);
 
-  // Keep "last selected" in sync with the URL (also covers direct links / back button).
-  useEffect(() => {
-    const m = /\/properties\/([^/]+)/.exec(pathname ?? '');
-    if (m?.[1]) setLastId(decodeURIComponent(m[1]));
-  }, [pathname]);
-
   const byId = useMemo(() => new Map(portfolio.properties.map((p) => [p.property.id, p])), [portfolio]);
-  // Fall back to the first property if the remembered one was deleted.
-  const selectedId = byId.has(lastId) ? lastId : (portfolio.properties[0]?.property.id ?? '');
-
-  const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
   const openProperty = useCallback(
-    (id: string, opts: { scroll?: boolean } = {}) => {
-      setLastId(id);
-      router.push(`${basePath}/properties/${encodeURIComponent(id)}`, { scroll: false });
-      if (opts.scroll !== false) scrollTop();
+    (id: string, opts: { replace?: boolean; from?: DashboardSection } = {}) => {
+      const origin = opts.replace ? opts.from : dashboardSection(pathname?.slice(basePath.length + 1));
+      const href = propertyHref(basePath, id, origin);
+      if (pathname === propertyHref(basePath, id)) return;
+      recordDashboardDeparture(href, opts.replace);
+      if (opts.replace) router.replace(href, { scroll: false });
+      else router.push(href);
     },
-    [router, basePath],
+    [router, basePath, pathname],
   );
 
-  const goOverview = useCallback(() => {
-    router.push(`${basePath}/overview`, { scroll: false });
-    scrollTop();
+  const goProperties = useCallback(() => {
+    router.replace(`${basePath}/properties`);
   }, [router, basePath]);
 
   const smsInteractive = mode === 'demo' || portfolio.viewer.role === 'org:admin';
@@ -149,12 +139,11 @@ export function DashboardStateProvider({
     toggleLayer: (k) => setLayers((l) => ({ ...l, [k]: !l[k] })),
     metric,
     setMetric,
-    selectedId,
     isSmsOn: (s) => (s.property.id in smsOff ? !smsOff[s.property.id] : s.sms.enabled),
     toggleSms: (s) => {
       if (!smsInteractive) return;
       if (mode === 'live') {
-        if (!s.alertRules.some(r=>r.enabled)) { router.push(`/sms-rules?property=${encodeURIComponent(s.property.id)}`); return; }
+        if (!s.alertRules.some(r=>r.enabled)) { const href = propertySmsHref(s.property.id, dashboardSection(new URLSearchParams(window.location.search).get('via'))); recordDashboardDeparture(href); router.push(href); return; }
         void fetch(`/api/app/notifications/properties/${s.property.id}`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({enabled:!s.sms.enabled})}).then(async r=>{if(!r.ok)throw new Error((await r.json()).detail??'Inställningen kunde inte sparas');router.refresh();}).catch(e=>window.alert(e.message));
         return;
       }
@@ -170,7 +159,7 @@ export function DashboardStateProvider({
       else setRules((r) => ({ ...r, [ruleId]: !current }));
     },
     openProperty,
-    goOverview,
+    goProperties,
     property: (id) => (id ? byId.get(id) : undefined),
   };
 

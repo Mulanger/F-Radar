@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { useSavedView, useViewScroll } from '@/lib/navigation/view-state';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { buildOverviewVM, filterByGroup } from '@/lib/view-models/overview';
 import { C } from '@/lib/design/tokens';
@@ -19,9 +20,12 @@ import { MobilePortfolioOverview } from '../mobile/MobilePortfolioOverview';
 /** Page 1 – Portfolio Overview (`/overview`). */
 export function PortfolioOverview() {
   const ds = useDashboard();
-  const [statusFull, setStatusFull] = useState(false);
+
   const { portfolio, ready, group, isSmsOn, isRuleOn } = ds;
   const mobile = useMobileDashboard();
+  const viewKey = `${ds.basePath}:${portfolio.organizationId}:overview:desktop`;
+  const [statusFull, setStatusFull, restored] = useSavedView(`${viewKey}:full-table`, false);
+  useViewScroll(viewKey, !mobile && restored);
   const vm = buildOverviewVM(portfolio, { ready, group: mobile ? 'all' : group, isSmsOn, isRuleOn });
   // Stable list identity so the map only refits when the filter actually changes.
   const mapList = useMemo(() => filterByGroup(portfolio, group), [portfolio, group]);
@@ -70,7 +74,7 @@ export function PortfolioOverview() {
 
       <div className={styles.mapRow}>
         <PortfolioMap list={mapList} legend={vm.legend} layers={ds.layers} onToggleLayer={ds.toggleLayer} onOpen={(id) => ds.openProperty(id)} />
-        <MonitoringStatus vm={vm} onOpen={ds.openProperty} expanded={statusFull} onToggleFull={() => setStatusFull((v) => !v)} />
+        <MonitoringStatus vm={vm} onOpen={ds.openProperty} expanded={statusFull} onToggleFull={() => setStatusFull(!statusFull)} />
       </div>
 
       {vm.isEmpty ? <EmptyPortfolio /> : statusFull && (

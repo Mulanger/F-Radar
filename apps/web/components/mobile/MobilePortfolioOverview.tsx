@@ -1,5 +1,6 @@
 'use client';
 
+import { useViewScroll } from '@/lib/navigation/view-state';
 import { useMemo } from 'react';
 import type { OverviewVM } from '@/lib/view-models/overview';
 import { useDashboard } from '@/lib/state/dashboard-state';
@@ -20,6 +21,8 @@ import styles from './mobile.module.css';
 
 export function MobilePortfolioOverview({ vm }: { vm: OverviewVM }) {
   const ds = useDashboard();
+  const scrollKey = `${ds.basePath}:${ds.portfolio.organizationId}:overview:mobile`;
+  useViewScroll(scrollKey);
   const config = useMemo(() => ({ ...portfolioSceneConfig(), shift: 0, fit: { top: 34, bottom: 24, side: 10 } }), []);
   const st = vm.hero.status;
   const demo = ds.mode === 'demo';
@@ -41,14 +44,14 @@ export function MobilePortfolioOverview({ vm }: { vm: OverviewVM }) {
         {acks.pending(vm.feed) > 0 && <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '-4px 4px 10px' }}><FeedAckCount n={acks.pending(vm.feed)} /></div>}
         <div className={`${styles.surface} ${styles.list}`}>
           {!vm.feed.length && <div className={styles.empty}>{hasFeed ? 'Inga händelser för valda fastigheter.' : 'Händelser visas när de offentliga datakällorna levererar data.'}</div>}
-          <MobileScrollList visible={4} count={vm.feed.length} label="Händelser"><MobileFeedRows feed={vm.feed} basePath={ds.basePath} onMap={map.open} isUnread={map.isUnread} acks={acks} /></MobileScrollList>
+          <MobileScrollList scrollKey={`${scrollKey}:feed`} visible={4} count={vm.feed.length} label="Händelser"><MobileFeedRows feed={vm.feed} basePath={ds.basePath} onMap={map.open} isUnread={map.isUnread} acks={acks} /></MobileScrollList>
         </div>
       </MobileSection>
       <MobileSection title="Bevakningsstatus" subtitle="Sorterat efter risk" meta={<span className={styles.meta}>Risk</span>}>
         <UtilityCoverage reports={ds.portfolio.utilityCoverage} properties={ds.portfolio.properties.map((s) => s.property)} basePath={ds.basePath} />
         <div className={`${styles.surface} ${styles.list}`}>
           {!vm.rows.length && <div className={styles.empty}>Inga fastigheter i vald grupp.</div>}
-          <MobileScrollList visible={5} count={vm.rows.length} label="Fastigheter"><MobileStatusRows rows={vm.rows} basePath={ds.basePath} /></MobileScrollList>
+          <MobileScrollList scrollKey={`${scrollKey}:properties`} visible={5} count={vm.rows.length} label="Fastigheter"><MobileStatusRows rows={vm.rows} basePath={ds.basePath} /></MobileScrollList>
           {vm.rows.some(r => r.nowcast.badge) && <div className={styles.small} style={{ marginTop: 10 }}>MET Norway · bearbetad av FastighetsRadar · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></div>}
         </div>
       </MobileSection>

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { C } from '@/lib/design/tokens';
@@ -33,18 +34,13 @@ function PendingLink({ icon, label, badge }: { icon: React.ReactNode; label: str
 
 export function Sidebar() {
   const pathname = usePathname() ?? '';
-  const { portfolio, selectedId, mode, basePath, openProperty, goOverview, unseenAlarmCount } = useDashboard();
-  const nav = (fn: () => void) => (e: React.MouseEvent) => {
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-    e.preventDefault();
-    fn();
-  };
+  const { portfolio, mode, basePath, unseenAlarmCount } = useDashboard();
   const isSms = pathname === '/sms-rules';
   const isSettings = pathname === '/settings';
   const isAlerts = pathname === `${basePath}/alerts`;
   const isAcknowledgements = pathname === `${basePath}/acknowledgements`;
-  const isProperties = pathname.startsWith(`${basePath}/properties`);
-  const isOverview = pathname !== `${basePath}/profile` && !isSms && !isSettings && !isAlerts && !isAcknowledgements && !isProperties;
+  const isProperties = pathname === `${basePath}/properties` || pathname.startsWith(`${basePath}/properties/`);
+  const isOverview = pathname === `${basePath}/overview`;
   const isDemo = mode === 'demo';
 
   return (
@@ -68,14 +64,13 @@ export function Sidebar() {
   
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }} aria-label="Huvudmeny">
           <div style={sectionLabel}>Bevakning</div>
-          <Link href={`${basePath}/overview`} onClick={nav(goOverview)} aria-current={isOverview ? 'page' : undefined} style={{ ...navItem, ...(isOverview ? navOn : navOff) }}>
+          <Link href={`${basePath}/overview`} aria-current={isOverview ? 'page' : undefined} style={{ ...navItem, ...(isOverview ? navOn : navOff) }}>
             <IconDashboard />
             Översikt
           </Link>
           <Link
-            href={selectedId ? `${basePath}/properties/${encodeURIComponent(selectedId)}` : `${basePath}/overview`}
-            onClick={nav(() => (selectedId ? openProperty(selectedId) : goOverview()))}
-            aria-current={isProperties ? 'page' : undefined}
+            href={`${basePath}/properties`}
+            aria-current={isProperties ? (pathname === `${basePath}/properties` ? 'page' : 'location') : undefined}
             style={{ ...navItem, ...(isProperties ? navOn : navOff) }}
           >
             <IconBuilding />
@@ -93,7 +88,7 @@ export function Sidebar() {
           <SourceStatus />
         </div>
       </aside>
-      <MobileNavigation />
+      <Suspense><MobileNavigation /></Suspense>
     </>
   );
 }

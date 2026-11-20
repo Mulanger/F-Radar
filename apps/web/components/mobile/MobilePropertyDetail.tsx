@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import Link from 'next/link';
+import { DashboardBackLink, DashboardLink } from '../shell/DashboardLink';
+import type { ReturnTarget } from '@/lib/navigation/dashboard';
 import type { DetailVM } from '@/lib/view-models/detail';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { C } from '@/lib/design/tokens';
@@ -18,13 +19,13 @@ import { MeasuredRainPanel } from '../properties/MeasuredRainPanel';
 import { usePropertyTimeline } from '../properties/use-property-timeline';
 import styles from './mobile.module.css';
 
-export function MobilePropertyDetail({ d, onSwitch }: { d: DetailVM; onSwitch: (id: string) => void }) {
+export function MobilePropertyDetail({ d, onSwitch, target, smsHref }: { d: DetailVM; onSwitch: (id: string) => void; target: ReturnTarget; smsHref: string }) {
   const ds = useDashboard();
   const timeline = usePropertyTimeline(d);
   const editor = usePropertyEditor();
   const config = useMemo(() => ({ ...detailSceneConfig(d.floors, d.hex, d.floodExposure), shift: 0, fit: { top: 30, bottom: 26, side: 12 } }), [d.floors, d.hex, d.floodExposure]);
   return <div className={styles.page} data-screen-label="Mobil fastighetssida">
-    <div className={styles.detailNav}><Link className={styles.back} href={`${ds.basePath}/properties`} aria-label="Tillbaka till fastigheter"><IconChevronLeft size={20} /><span className={styles.backLabel}>Fastigheter</span></Link><div className={styles.detailTitle}>{d.area && <div className={styles.detailArea}>{d.area}</div>}<h1 className={styles.detailName}>{d.name}</h1></div><div className={styles.switcher}><button className={styles.iconButton} aria-label="Föregående fastighet" onClick={() => onSwitch(d.prevId)}><IconChevronLeft size={20} /></button><span>{d.pos}</span><button className={styles.iconButton} aria-label="Nästa fastighet" onClick={() => onSwitch(d.nextId)}><IconChevronRight size={20} /></button></div></div>
+    <div className={styles.detailNav}><DashboardBackLink className={styles.back} target={target} compact /><div className={styles.detailTitle}>{d.area && <div className={styles.detailArea}>{d.area}</div>}<h1 className={styles.detailName}>{d.name}</h1></div><div className={styles.switcher}><button className={styles.iconButton} aria-label="Föregående fastighet" onClick={() => onSwitch(d.prevId)}><IconChevronLeft size={20} /></button><span>{d.pos}</span><button className={styles.iconButton} aria-label="Nästa fastighet" onClick={() => onSwitch(d.nextId)}><IconChevronRight size={20} /></button></div></div>
     <div className={styles.heading} style={{ paddingTop: 0, marginTop: -14 }}>{d.type && <div className={styles.date}>{d.type}</div>}<div className={styles.detailAddress}><MobileStatusBadge label={d.status} color={d.c} background={d.bg} /><span>{d.address}</span></div>{editor.enabled && <button className={styles.more} style={{ width: 'auto', background: '#fff' }} onClick={() => { const snapshot = ds.property(d.id); if (snapshot) editor.openEdit(snapshot); }}>Redigera fastighet</button>}</div>
     <section className={styles.hero} aria-label="Fastighetens risköversikt">
       <div className={styles.heroTop}><span className={styles.heroPill}><span className={styles.dot} style={{ color: ds.mode === 'demo' ? C.demo : d.gauge.c, width: 6, height: 6 }} />{ds.mode === 'demo' ? 'Illustration · Demo' : '3D-illustration'}</span><span className={styles.small}>{d.buildingLine}</span></div>
@@ -61,7 +62,7 @@ export function MobilePropertyDetail({ d, onSwitch }: { d: DetailVM; onSwitch: (
         <NowcastPanel d={d} /><ForecastDays d={d} /><MeasuredRainPanel d={d} />
       </div>
       <div className={styles.section}>
-        {ds.mode === 'live' ? <Link className={`${styles.surface} ${styles.configLink}`} href={`/sms-rules?property=${encodeURIComponent(d.id)}`}><span className={styles.weatherIcon}><IconMessage size={18} /></span><div style={{ flex: 1 }}><strong style={{ fontSize: 15 }}>SMS-inställningar</strong><div className={styles.sectionSub}>Hantera mottagare, regler och aktivering</div></div><IconChevronRight /></Link> : <div className={`${styles.surface} ${styles.configLink}`}><span className={styles.weatherIcon}><IconMessage size={18} /></span><div><strong style={{ fontSize: 15 }}>SMS-bevakning</strong><div className={styles.sectionSub}>Demodata · SMS-inställningar hanteras i ditt konto.</div></div></div>}
+        {ds.mode === 'live' ? <DashboardLink className={`${styles.surface} ${styles.configLink}`} href={smsHref}><span className={styles.weatherIcon}><IconMessage size={18} /></span><div style={{ flex: 1 }}><strong style={{ fontSize: 15 }}>SMS-inställningar</strong><div className={styles.sectionSub}>Hantera mottagare, regler och aktivering</div></div><IconChevronRight /></DashboardLink> : <div className={`${styles.surface} ${styles.configLink}`}><span className={styles.weatherIcon}><IconMessage size={18} /></span><div><strong style={{ fontSize: 15 }}>SMS-bevakning</strong><div className={styles.sectionSub}>Demodata · SMS-inställningar hanteras i ditt konto.</div></div></div>}
       </div>
     </>
   </div>;

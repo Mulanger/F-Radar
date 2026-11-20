@@ -7,18 +7,18 @@ import type { PropertySnapshot } from '@fastighetsradar/domain';
 import { buildOverviewVM } from '@/lib/view-models/overview';
 import { buildDetailVM } from '@/lib/view-models/detail';
 import { MobilePortfolioOverview } from '@/components/mobile/MobilePortfolioOverview';
-import { MobilePropertyIndex } from '@/components/mobile/MobilePropertyIndex';
+import { PropertyIndex } from '@/components/properties/PropertyIndex';
 import { MobileWeatherChart } from '@/components/mobile/MobileWeatherChart';
 import { MobileNavigation } from '@/components/mobile/MobileNavigation';
 
-const mocks = vi.hoisted(() => ({ setGroup: vi.fn(), replace: vi.fn(), matchMobile: true, path: '/demo/overview' }));
-vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: mocks.replace }), usePathname: () => mocks.path }));
-vi.mock('next/link', () => ({ default: ({ href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) => <a href={href} {...props} /> }));
+const mocks = vi.hoisted(() => ({ setGroup: vi.fn(), search: "", matchMobile: true, path: '/demo/overview' }));
+vi.mock('next/navigation', () => ({ usePathname: () => mocks.path, useSearchParams: () => new URLSearchParams(mocks.search) }));
+vi.mock('next/link', () => ({ default: ({ href, onNavigate: _onNavigate, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { onNavigate?: unknown }) => <a href={href} {...props} /> }));
 vi.mock('@/components/three/ThreeScene', () => ({ ThreeScene: () => <div data-testid="three-scene" /> }));
 vi.mock('@/components/maps/PortfolioMap', () => ({ PortfolioMap: () => <div data-testid="portfolio-map" /> }));
 vi.mock('@/components/properties/PropertyEditorHost', () => ({ usePropertyEditor: () => ({ enabled: false, openCreate: vi.fn() }) }));
 vi.mock('@/lib/state/dashboard-state', () => ({ useDashboard: () => ({
-  portfolio: demoPortfolio, mode: 'demo', ready: true, basePath: '/demo', selectedId: demoPortfolio.properties[0]!.property.id,
+  portfolio: demoPortfolio, mode: 'demo', ready: true, basePath: '/demo',
   setGroup: mocks.setGroup, layers: { weather: false, flood: true }, toggleLayer: vi.fn(), openProperty: vi.fn(),
   isSmsOn: (s: PropertySnapshot) => s.sms.enabled, isRuleOn: (_id: string, fallback: boolean) => fallback,
 }) }));
@@ -28,6 +28,8 @@ const vm = buildOverviewVM(demoPortfolio, ui);
 beforeEach(() => {
   mocks.matchMobile = true;
   mocks.path = '/demo/overview';
+  mocks.search = '';
+  sessionStorage.clear();
   vi.clearAllMocks();
   vi.stubGlobal('matchMedia', () => ({ matches: mocks.matchMobile, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
 });
@@ -69,7 +71,7 @@ describe('mobile portfolio overview', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(within(risk).queryByRole('region', { name: 'Officiella varningar' })).toBeNull();
     const feed = screen.getByRole('region', { name: 'Händelseflöde' });
-    expect(within(feed).getAllByRole('link')[0]!.getAttribute('href')).toBe(`/demo/properties/${vm.feed[0]!.propertyId}`);
+    expect(within(feed).getAllByRole('link')[0]!.getAttribute('href')).toBe(`/demo/properties/${vm.feed[0]!.propertyId}?via=overview`);
   });
 
   it('keeps a long warning list keyboard-scrollable with the Larm link outside the scrolling area', () => {
@@ -100,7 +102,7 @@ describe('mobile portfolio overview', () => {
 
 describe('mobile property list', () => {
   it('combines search and status filtering, sorts by Swedish name, and clears empty results', () => {
-    render(<MobilePropertyIndex />);
+    render(<PropertyIndex />);
     const search = screen.getByRole('searchbox', { name: 'Sök fastighet, adress eller område' });
     fireEvent.change(search, { target: { value: 'bromma' } });
     expect(screen.getByRole('status').textContent).toBe('1 fastighet');
@@ -112,20 +114,26 @@ describe('mobile property list', () => {
     expect(screen.getAllByRole('link')).toHaveLength(8);
     fireEvent.click(screen.getByRole('button', { name: 'Namn' }));
     expect(screen.getAllByRole('link')[0]!.textContent).toContain('Arenastaden Hus C');
-    expect(mocks.replace).not.toHaveBeenCalled();
   });
 
-  it('preserves the selected-property redirect on desktop', () => {
+  it('shows the desktop list and restores its filters after leaving the route', () => {
     mocks.matchMobile = false;
-    render(<MobilePropertyIndex />);
-    expect(mocks.replace).toHaveBeenCalledWith(`/demo/properties/${demoPortfolio.properties[0]!.property.id}`);
+    const view = render(<PropertyIndex />);
+    expect(screen.getByRole('table', { name: 'Bevakningsstatus per fastighet' })).toBeTruthy();
+    const search = screen.getByRole('searchbox');
+    fireEvent.change(search, { target: { value: 'Ulvsunda' } });
+    view.unmount();
+    render(<PropertyIndex />);
+    expect(screen.getByRole<HTMLInputElement>('searchbox').value).toBe('Ulvsunda');
+    expect(screen.queryByText('Götgården')).toBeNull();
+    expect(screen.getByText('Ulvsunda Lager')).toBeTruthy();
   });
 });
 
 it('mobile navigation links to the profile and marks the current page', () => {
   mocks.path = '/demo/properties/demo-ulvsunda-lager';
   const { rerender } = render(<MobileNavigation />);
-  expect(screen.getByRole('link', { name: 'Fastigheter' }).getAttribute('aria-current')).toBe('page');
+  expect(screen.getByRole('link', { name: 'Fastigheter' }).getAttribute('aria-current')).toBe('location');
   expect(screen.getByRole('link', { name: /Larm/ }).getAttribute('href')).toBe('/demo/alerts');
   expect(screen.getByRole('link', { name: 'Profil' }).getAttribute('href')).toBe('/demo/profile');
   expect(screen.queryByRole('button', { name: /inställningar/i })).toBeNull();
@@ -133,8 +141,12 @@ it('mobile navigation links to the profile and marks the current page', () => {
   rerender(<MobileNavigation />);
   expect(screen.getByRole('link', { name: 'Profil' }).getAttribute('aria-current')).toBe('page');
   mocks.path = '/demo/acknowledgements';
+  mocks.search = 'via=profile';
   rerender(<MobileNavigation />);
   expect(screen.getByRole('link', { name: 'Profil' }).getAttribute('aria-current')).toBe('location');
+  mocks.search = 'via=alerts';
+  rerender(<MobileNavigation />);
+  expect(screen.getByRole('link', { name: /Larm/ }).getAttribute('aria-current')).toBe('location');
 });
 
 it('mobile forecast switches metrics through the dashboard state', () => {

@@ -137,9 +137,11 @@ export async function notificationRequest<T>(
 export function SmsManagement({
   initial,
   propertyId,
+  back,
 }: {
   initial: NotificationDashboard;
   propertyId?: string;
+  back?: React.ReactNode;
 }) {
   const [data, setData] = useState(initial),
     [draft, setDraft] = useState<NotificationRuleInput>(() =>
@@ -242,6 +244,7 @@ export function SmsManagement({
         animation: "frFade .45s ease both",
       }}
     >
+      {back}
       <div>
         <h1
           style={{

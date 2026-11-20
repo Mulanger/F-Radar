@@ -9,7 +9,7 @@ import { MobileAlerts } from '@/components/mobile/MobileAlerts';
 import { MobileNavigation } from '@/components/mobile/MobileNavigation';
 
 const nav = vi.hoisted(() => ({ pathname: '/overview', router: { refresh: vi.fn(), push: vi.fn() } }));
-vi.mock('next/navigation', () => ({ usePathname: () => nav.pathname, useRouter: () => nav.router }));
+vi.mock('next/navigation', () => ({ usePathname: () => nav.pathname, useRouter: () => nav.router, useSearchParams: () => new URLSearchParams() }));
 vi.mock('next/link', () => ({ default: ({ href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) => <a href={href} {...props} /> }));
 vi.mock('@/lib/design/use-mobile-dashboard', () => ({ useAndroidNavigation: () => false }));
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); nav.pathname = '/overview'; nav.router.refresh.mockClear(); });

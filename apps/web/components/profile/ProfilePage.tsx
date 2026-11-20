@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { DashboardLink } from '../shell/DashboardLink';
 import type { ReactNode } from 'react';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { SourceStatus } from '../shell/SourceStatus';
@@ -44,11 +45,11 @@ export function ProfilePage({
       <ProfileSection id="profile-account" title="Mitt konto">{account}</ProfileSection>
 
       <ProfileSection id="profile-monitoring" title="Bevakning">
-        <ProfileLink href={demo ? undefined : '/sms-rules'} icon={<IconMessage />} title="SMS-regler och mottagare"
+        <ProfileLink href={demo ? undefined : '/sms-rules?via=profile'} icon={<IconMessage />} title="SMS-regler och mottagare"
           description={demo ? 'Tillgängligt i inloggat läge' : 'Regler, telefonnummer och SMS-historik'} />
-        <ProfileLink href={`${basePath}/acknowledgements`} icon={<IconAcknowledgements />} title="Kvitteringar"
+        <ProfileLink href={`${basePath}/acknowledgements?via=profile`} icon={<IconAcknowledgements />} title="Kvitteringar"
           description="Historik och PDF-export" />
-        <ProfileLink href={demo ? undefined : '/settings'} icon={<IconSliders />} title="Bevakningsinställningar"
+        <ProfileLink href={demo ? undefined : '/settings?via=profile'} icon={<IconSliders />} title="Bevakningsinställningar"
           description={demo ? 'Tillgängligt i inloggat läge' : 'Organisationens bevakningsavstånd för Trafikverket'} />
       </ProfileSection>
 
@@ -98,10 +99,10 @@ function ProfileSection({ id, title, children }: { id: string; title: string; ch
 
 function ProfileLink({ href, icon, title, description }: { href?: string; icon: ReactNode; title: string; description: string }) {
   if (!href) return <ProfileRow icon={icon} title={title} description={description} />;
-  return <Link className={s.row} href={href}>
+  return <DashboardLink className={s.row} href={href}>
     <RowContent icon={icon} title={title} description={description} />
     <IconChevronRight size={16} />
-  </Link>;
+  </DashboardLink>;
 }
 
 export function ProfileRow({ icon, title, description }: { icon: ReactNode; title: string; description?: string }) {

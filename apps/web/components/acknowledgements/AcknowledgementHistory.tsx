@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import type { AcknowledgementHistoryEntry, AcknowledgementHistoryFilters, AcknowledgementHistoryPage } from '@fastighetsradar/domain';
+import { readView, useSavedView, useViewScroll, writeView } from '@/lib/navigation/view-state';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { acknowledgementTime, importedText, severityLabel } from '@/lib/acknowledgements/presentation';
 import type { AcknowledgementReportFormat } from '@/lib/acknowledgements/pdf';
@@ -23,13 +24,16 @@ async function loadHistory(filters: Filters, demoEntries?: AcknowledgementHistor
   return await response.json() as AcknowledgementHistoryPage;
 }
 
-export function AcknowledgementHistory({ demoEntries, onDemoUndo }: {
+export function AcknowledgementHistory({ demoEntries, onDemoUndo, back }: {
+  back?: React.ReactNode;
   demoEntries?: AcknowledgementHistoryEntry[];
   onDemoUndo?: (id: string, undoneAt: string) => void;
 }) {
-  const { portfolio, refresh } = useDashboard();
-  const [draft, setDraft] = useState<Filters>(emptyFilters);
-  const [applied, setApplied] = useState<Filters>(emptyFilters);
+  const { basePath, portfolio, refresh } = useDashboard();
+  const viewKey = `${basePath}:${portfolio.organizationId}:acknowledgements`;
+  const pagesKey = `${viewKey}:pages`;
+  const [draft, setDraft] = useSavedView(`${viewKey}:draft`, emptyFilters);
+  const [applied, setApplied, restored] = useSavedView(`${viewKey}:filters`, emptyFilters);
   const [history, setHistory] = useState<AcknowledgementHistoryPage | null>(() => demoEntries ? demoAcknowledgementPage(demoEntries, emptyFilters) : null);
   const [loading, setLoading] = useState(!demoEntries);
   const [downloading, setDownloading] = useState(false);
@@ -37,9 +41,21 @@ export function AcknowledgementHistory({ demoEntries, onDemoUndo }: {
   const [pdfFormat, setPdfFormat] = useState<AcknowledgementReportFormat>('compact');
   const [error, setError] = useState('');
 
+  useViewScroll(`${viewKey}:scroll`, restored && !loading && history !== null);
+
   useEffect(() => {
+    if (!restored) return;
     const controller = new AbortController();
-    loadHistory(applied, demoEntries, undefined, controller.signal).then((result) => {
+    async function restoreHistory() {
+      let result = await loadHistory(applied, demoEntries, undefined, controller.signal);
+      const savedPages = readView(pagesKey, 1);
+      for (let page = 1; page < savedPages && result.nextCursor && !controller.signal.aborted; page++) {
+        const next = await loadHistory(applied, demoEntries, result.nextCursor, controller.signal);
+        result = { ...result, entries: [...result.entries, ...next.entries], nextCursor: next.nextCursor };
+      }
+      return result;
+    }
+    restoreHistory().then((result) => {
       if (!controller.signal.aborted) {
         setHistory(result);
         setLoading(false);
@@ -52,11 +68,12 @@ export function AcknowledgementHistory({ demoEntries, onDemoUndo }: {
       }
     });
     return () => controller.abort();
-  }, [applied, demoEntries]);
+  }, [applied, demoEntries, pagesKey, restored]);
 
   function apply(filters: Filters) {
     setError('');
     setLoading(true);
+    writeView(pagesKey, 1);
     setApplied({ ...filters });
   }
 
@@ -73,6 +90,7 @@ export function AcknowledgementHistory({ demoEntries, onDemoUndo }: {
     try {
       const page = await loadHistory(applied, demoEntries, history.nextCursor);
       setHistory({ ...history, entries: [...history.entries, ...page.entries], nextCursor: page.nextCursor });
+      writeView(pagesKey, readView(pagesKey, 1) + 1);
     } catch {
       setError('Fler kvitteringar kunde inte hämtas. Försök igen.');
     } finally {
@@ -136,6 +154,7 @@ export function AcknowledgementHistory({ demoEntries, onDemoUndo }: {
 
   return (
     <section className={styles.page} aria-labelledby="acknowledgement-title">
+      {back}
       <header className={styles.heading}>
         <div>
           <h1 id="acknowledgement-title">Kvitteringar</h1>

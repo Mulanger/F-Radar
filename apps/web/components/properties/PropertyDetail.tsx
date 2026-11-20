@@ -5,12 +5,12 @@ import { NowcastPanel } from './NowcastPanel';
 import { ForecastDays } from './ForecastDays';
 
 import { useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { buildDetailVM } from '@/lib/view-models/detail';
 import { C, FONT_MONO } from '@/lib/design/tokens';
 import { usePropertyEditor } from './PropertyEditorHost';
-import { IconArrowLeft, IconSliders } from '../ui/icons';
+import { IconSliders } from '../ui/icons';
 import { PropertySwitcher } from './PropertySwitcher';
 import { PropertyHero3D } from './PropertyHero3D';
 import { PropertyRiskPanel } from './PropertyRiskPanel';
@@ -22,6 +22,8 @@ import { LocalEvents } from './LocalEvents';
 import { PropertyTimeline } from './PropertyTimeline';
 import { SMSRulesPanel } from './SMSRulesPanel';
 import { useMobileDashboard } from '@/lib/design/use-mobile-dashboard';
+import { DashboardBackLink, DashboardLink } from '../shell/DashboardLink';
+import { dashboardSection, propertySmsHref, sectionTarget } from '@/lib/navigation/dashboard';
 import { MobilePropertyDetail } from '../mobile/MobilePropertyDetail';
 
 /**
@@ -32,7 +34,7 @@ import { MobilePropertyDetail } from '../mobile/MobilePropertyDetail';
  * and the map flies to the new location, exactly like the prototype.
  */
 export function PropertyDetail() {
-  const router = useRouter();
+  const from = dashboardSection(useSearchParams().get('via'));
   const params = useParams<{ propertyId?: string }>();
   const ds = useDashboard();
   const smsRef = useRef<HTMLDivElement>(null);
@@ -44,31 +46,23 @@ export function PropertyDetail() {
 
   const isDemo = ds.mode === 'demo';
   const d = buildDetailVM(ds.portfolio, s, { ready: ds.ready, metric: ds.metric, smsOn: ds.isSmsOn(s), isRuleOn: ds.isRuleOn });
-  const switchTo = (pid: string) => ds.openProperty(pid, { scroll: false });
+  const target = sectionTarget(ds.basePath, from ?? 'properties');
+  const smsHref = propertySmsHref(s.property.id, from);
+  const switchTo = (pid: string) => ds.openProperty(pid, { replace: true, from });
   const configure = () => {
-    if (!isDemo) { router.push(`/sms-rules?property=${encodeURIComponent(s.property.id)}`); return; }
     const el = smsRef.current;
     if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 24, behavior: 'smooth' });
   };
 
-  if (mobile) return <MobilePropertyDetail d={d} onSwitch={switchTo} />;
+  if (mobile) return <MobilePropertyDetail d={d} onSwitch={switchTo} target={target} smsHref={smsHref} />;
 
   return (
     <div className="fr-desktop-dashboard-view" data-screen-label="02 Property Detail" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 20, animation: 'frFade .45s ease both' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
         <div style={{ minWidth: 0 }}>
           <nav aria-label="Brödsmulor" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.text4 }}>
-            <a
-              href="/overview"
-              onClick={(e) => {
-                e.preventDefault();
-                ds.goOverview();
-              }}
-              style={{ color: C.text3 }}
-            >
-              Alla fastigheter
-            </a>
-            <span>/</span>
+            <DashboardBackLink target={target} />
+            <span aria-hidden="true">/</span>
             <span style={{ color: C.ink }} aria-current="page">{d.name}</span>
           </nav>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 8, flexWrap: 'wrap' }}>
@@ -101,21 +95,10 @@ export function PropertyDetail() {
               Redigera fastighet
             </button>
           )}
-          <button
-            onClick={ds.goOverview}
-            style={{ height: 44, display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px', borderRadius: 22, background: C.white, border: '1px solid rgba(20,23,26,0.08)', fontSize: 13.5, cursor: 'pointer', color: C.ink }}
-          >
-            <IconArrowLeft />
-            Tillbaka till portföljen
-          </button>
-          <button
-            onClick={configure}
-            className="fr-hover-dark"
-            style={{ height: 44, display: 'flex', alignItems: 'center', gap: 8, padding: '0 18px', borderRadius: 22, background: C.ink, color: '#fff', border: 'none', fontSize: 13.5, fontWeight: 500, cursor: 'pointer' }}
-          >
-            <IconSliders size={15} sw={1.8} />
-            Konfigurera larm
-          </button>
+
+          {isDemo
+            ? <button onClick={configure} className="fr-dashboard-action"><IconSliders size={15} />Konfigurera larm</button>
+            : <DashboardLink href={smsHref} className="fr-dashboard-action"><IconSliders size={15} />Konfigurera larm</DashboardLink>}
         </div>
       </div>
 
@@ -145,7 +128,7 @@ export function PropertyDetail() {
 
       <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         <PropertyTimeline d={d} />
-        <SMSRulesPanel ref={smsRef} d={d} onToggleSms={() => ds.toggleSms(s)} onToggleRule={ds.toggleRule} />
+        <SMSRulesPanel ref={smsRef} d={d} smsHref={smsHref} onToggleSms={() => ds.toggleSms(s)} onToggleRule={ds.toggleRule} />
       </div>
     </div>
   );

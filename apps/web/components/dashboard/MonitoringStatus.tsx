@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { propertyHref } from '@/lib/navigation/dashboard';
 import type { OverviewVM } from '@/lib/view-models/overview';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { C, FONT_MONO, card, cardSub, cardTitle } from '@/lib/design/tokens';
@@ -35,7 +36,7 @@ export function MonitoringStatus({ vm, onOpen, expanded, onToggleFull }: {
           {vm.rows.map((r) => (
             <div key={r.id} role="row" className={`${styles.statusRow} fr-hover-row`}>
               <div role="cell" style={{ minWidth: 0 }}>
-                <Link href={`${basePath}/properties/${encodeURIComponent(r.id)}`} className={styles.propertyLink} onClick={(e) => {
+                <Link href={propertyHref(basePath, r.id, 'overview')} className={styles.propertyLink} onClick={(e) => {
                   if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) { e.preventDefault(); onOpen(r.id); }
                 }}>
                   <div className={styles.propertyName}>

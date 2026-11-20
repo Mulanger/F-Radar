@@ -1,4 +1,5 @@
-import Link from 'next/link';
+import { DashboardLink } from '../shell/DashboardLink';
+import { propertyHref } from '@/lib/navigation/dashboard';
 import type { UtilityCoverageReport } from '@fastighetsradar/domain';
 import { C } from '@/lib/design/tokens';
 
@@ -20,7 +21,7 @@ export function UtilityCoverage({ reports, properties, basePath }: {
       <p>{r.approximatePosition} med ungefärlig position. Kontrollera kartnålen för dessa adresser.</p>
       {r.gaps.length > 0 && <ul>{r.gaps.map((g) => <li key={`${g.operatorId}:${g.reason}`}>{g.operatorName}: {g.count} adresser – {g.reason === 'stale' ? 'källan kunde inte kontrolleras' : 'bevakas inte ännu'}</li>)}</ul>}
       <ul>{r.properties.filter((p) => p.coverage !== 'monitored' || p.approximatePosition).map((p) => <li key={p.propertyId}>
-        <Link href={`${basePath}/properties/${encodeURIComponent(p.propertyId)}`}>{names.get(p.propertyId) ?? 'Fastighet'}</Link>
+        <DashboardLink href={propertyHref(basePath, p.propertyId, 'overview')}>{names.get(p.propertyId) ?? 'Fastighet'}</DashboardLink>
         {': '}{COVERAGE[p.coverage]}{p.operatorName ? ` – ${p.operatorName}` : ''}{p.approximatePosition ? ' · ungefärlig position' : ''}
       </li>)}</ul>
       {!!r.sources?.length && <details><summary>Källhälsa för {LABEL[r.utility].toLocaleLowerCase('sv')}</summary><ul>{r.sources.map((s) => <li key={s.operatorId}>

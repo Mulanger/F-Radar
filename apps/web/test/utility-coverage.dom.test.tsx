@@ -20,7 +20,7 @@ describe('coverage disclosure', () => {
     const report = buildUtilityCoverageReport([{ id: 'p', geocodePrecision: 'street', positionSource: 'geocoded', statuses: [status] }], 'electricity');
     render(<UtilityCoverage reports={[report]} properties={[{ id: 'p', name: 'Testfastighet' }]} basePath="" />);
     expect(screen.getByText('El bevakas för 0 av 1 adresser')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Testfastighet', hidden: true }).getAttribute('href')).toBe('/properties/p');
+    expect(screen.getByRole('link', { name: 'Testfastighet', hidden: true }).getAttribute('href')).toBe('/properties/p?via=overview');
     expect(screen.getByText(/Testnät: 1 adresser/)).toBeTruthy();
     expect(screen.queryByText(/Inga registrerade/)).toBeNull();
   });

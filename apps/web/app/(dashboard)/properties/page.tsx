@@ -1,3 +1,3 @@
-import { MobilePropertyIndex } from '@/components/mobile/MobilePropertyIndex';
+import { PropertyIndex } from '@/components/properties/PropertyIndex';
 
-export default function PropertiesIndex() { return <MobilePropertyIndex />; }
+export default function PropertiesIndex() { return <PropertyIndex />; }

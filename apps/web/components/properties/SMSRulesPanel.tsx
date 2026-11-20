@@ -4,7 +4,7 @@ import { forwardRef } from 'react';
 import type { DetailVM } from '@/lib/view-models/detail';
 import { C, FONT_MONO, card, cardSub, cardTitle } from '@/lib/design/tokens';
 import { Toggle } from '../ui/Toggle';
-import { useRouter } from 'next/navigation';
+import { DashboardLink } from '../shell/DashboardLink';
 import { useDashboard } from '@/lib/state/dashboard-state';
 
 /**
@@ -12,9 +12,8 @@ import { useDashboard } from '@/lib/state/dashboard-state';
  */
 export const SMSRulesPanel = forwardRef<
   HTMLDivElement,
-  { d: DetailVM; onToggleSms: () => void; onToggleRule: (ruleId: string, current: boolean) => void }
->(function SMSRulesPanel({ d, onToggleSms, onToggleRule }, ref) {
-  const router=useRouter();
+  { d: DetailVM; smsHref: string; onToggleSms: () => void; onToggleRule: (ruleId: string, current: boolean) => void }
+>(function SMSRulesPanel({ d, smsHref, onToggleSms, onToggleRule }, ref) {
   const {smsInteractive}=useDashboard();
   const sms = d.sms;
   return (
@@ -27,13 +26,11 @@ export const SMSRulesPanel = forwardRef<
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 13, color: C.text2 }}>{sms.label}</span>
           <Toggle size="lg" on={sms.on} disabled={!smsInteractive} onToggle={onToggleSms} label={`SMS-larm för ${d.name}`} />
-          <button
-            title="Konfigurera SMS-regler"
-            onClick={()=>router.push(`/sms-rules?property=${encodeURIComponent(d.id)}`)}
-            style={{ height: 36, padding: '0 14px', borderRadius: 18, background: C.white, border: '1px solid rgba(20,23,26,0.1)', fontSize: 13, cursor: 'pointer', color: C.ink }}
+          {d.live && <DashboardLink title="Konfigurera SMS-regler" href={smsHref}
+            style={{ display: 'inline-flex', alignItems: 'center', height: 36, padding: '0 14px', borderRadius: 18, background: C.white, border: '1px solid rgba(20,23,26,0.1)', fontSize: 13, cursor: 'pointer', color: C.ink }}
           >
             Redigera regler
-          </button>
+          </DashboardLink>}
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', opacity: sms.op, transition: 'opacity .3s' }}>

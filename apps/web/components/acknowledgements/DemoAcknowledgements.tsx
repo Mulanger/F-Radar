@@ -55,7 +55,7 @@ export function DemoAcknowledgementProvider({ portfolio, children }: { portfolio
   return <DemoAcknowledgementContext.Provider value={{ entries, overrides, toggle, undo }}>{children}</DemoAcknowledgementContext.Provider>;
 }
 
-export function DemoAcknowledgementHistory() {
+export function DemoAcknowledgementHistory({ back }: { back?: React.ReactNode }) {
   const history = useDemoAcknowledgements();
-  return <AcknowledgementHistory demoEntries={history?.entries ?? demoAcknowledgements} onDemoUndo={history?.undo} />;
+  return <AcknowledgementHistory back={back} demoEntries={history?.entries ?? demoAcknowledgements} onDemoUndo={history?.undo} />;
 }

@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import { DashboardLink } from '../shell/DashboardLink';
+import { useViewScroll } from '@/lib/navigation/view-state';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { buildOverviewVM } from '@/lib/view-models/overview';
 import { FeedAckCount, useFeedAcks } from '../dashboard/FeedAck';
@@ -10,6 +11,7 @@ import styles from './mobile.module.css';
 
 export function MobileAlerts() {
   const ds = useDashboard();
+  useViewScroll(`${ds.basePath}:${ds.portfolio.organizationId}:alerts:scroll`);
   const acks = useFeedAcks();
   const map = useFeedEventMap();
   const alarms = ds.portfolio.activeAlarms ?? [];
@@ -20,9 +22,9 @@ export function MobileAlerts() {
     <div className={styles.heading}>
       <div className={styles.date}>{ds.mode === 'demo' ? 'Demodata · ' : ''}Händelser från offentliga källor</div>
       <h1>Larm och händelser</h1>
-      <Link className={styles.alertHistory} href={`${ds.basePath}/acknowledgements`}>Visa kvitteringar</Link>
+      <DashboardLink className={styles.alertHistory} href={`${ds.basePath}/acknowledgements?via=alerts`}>Visa kvitteringar</DashboardLink>
     </div>
-    <MobileSection title="Händelseflöde" subtitle={`${vm.feed.length} händelser i portföljen`} meta={<FeedAckCount n={acks.pending(vm.feed)} />}><div className={`${styles.surface} ${styles.list}`}><MobileFeedRows feed={vm.feed} basePath={ds.basePath} onMap={map.open} isUnread={map.isUnread} acks={acks} />{!vm.feed.length && <div className={styles.empty}>Inga händelser att visa just nu.</div>}</div></MobileSection>
+    <MobileSection title="Händelseflöde" subtitle={`${vm.feed.length} händelser i portföljen`} meta={<FeedAckCount n={acks.pending(vm.feed)} />}><div className={`${styles.surface} ${styles.list}`}><MobileFeedRows feed={vm.feed} basePath={ds.basePath} from="alerts" onMap={map.open} isUnread={map.isUnread} acks={acks} />{!vm.feed.length && <div className={styles.empty}>Inga händelser att visa just nu.</div>}</div></MobileSection>
     {map.view}
   </div>;
 }

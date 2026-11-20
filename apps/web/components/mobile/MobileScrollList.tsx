@@ -1,17 +1,19 @@
 'use client';
 
 import { useLayoutEffect, useRef, useState } from 'react';
+import { useViewScroll } from '@/lib/navigation/view-state';
 import styles from './mobile.module.css';
 
 /**
  * Keeps a long mobile list at the height of its first `visible` rows and scrolls the rest inside
  * the card, so the page below (e.g. Portföljkarta) stays close instead of being pushed far down.
  */
-export function MobileScrollList({ visible, count, label, children }: { visible: number; count: number; label: string; children: React.ReactNode }) {
+export function MobileScrollList({ visible, count, label, children, scrollKey }: { scrollKey: string; visible: number; count: number; label: string; children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [max, setMax] = useState<number | null>(null);
   const [atEnd, setAtEnd] = useState(false);
   const scrolls = count > visible;
+  useViewScroll(scrollKey, scrolls && max !== null, ref);
 
   useLayoutEffect(() => {
     const el = ref.current;
