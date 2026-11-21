@@ -2,6 +2,7 @@
 
 import type { DetailVM } from '@/lib/view-models/detail';
 import { C, FONT_MONO, card, cardSub, cardTitle } from '@/lib/design/tokens';
+import { RISK_INDEX_DISCLAIMER } from '@/lib/legal/copy';
 
 /**
  * "Samlad fastighetsrisk" – riskindex v1 (docs/decisions/0003-riskindex.md). Conservative by design:
@@ -60,6 +61,7 @@ export function PropertyRiskPanel({ d }: { d: DetailVM; isDemo?: boolean }) {
           Förhöjd eller Hög – karterade scenarier, prognoser, trafik och utomhusluft ger högst Låg. Indexet bygger på offentliga källor och är
           inte en försäkrings- eller besiktningsbedömning.
         </p>
+        <p style={{ margin: '8px 0 0', lineHeight: 1.45 }}>{RISK_INDEX_DISCLAIMER}</p>
       </details>
     </div>
   );

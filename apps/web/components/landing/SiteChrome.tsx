@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { NAV_LINKS } from '@/lib/landing/content';
+import { LEGAL_COMPANY, legalText } from '@/lib/legal/company';
 import { container, eyebrow } from './styles';
 import css from './landing.module.css';
 
 /** Public pages that share the marketing header and footer. */
-export type SitePage = 'landing' | 'pricing';
+export type SitePage = 'landing' | 'pricing' | 'legal';
 
 /** In-page anchors ("#funktioner") live on the start page; from other pages they need the "/" prefix. */
 const resolveHref = (href: string, page: SitePage) => (page !== 'landing' && href.startsWith('#') ? `/${href}` : href);
@@ -79,15 +80,30 @@ export function SiteHeader({ signedIn, page }: { signedIn: boolean; page: SitePa
 }
 
 const PRODUCT_LINKS = [
-  { href: '#sa-fungerar-det', label: 'Så fungerar det' },
   { href: '#funktioner', label: 'Funktioner' },
   { href: '#sms', label: 'SMS-larm' },
-  { href: '#data', label: 'Datakällor' },
+  { href: '/datakallor', label: 'Datakällor' },
   { href: '/priser', label: 'Priser' },
 ] as const;
 
-/** Legal documents are not published yet; listed (not linked) so the footer matches the pricing design. */
-const LEGAL_DOCUMENTS = ['Användarvillkor', 'Integritetspolicy', 'Cookies', 'PUB-avtal'] as const;
+const LEGAL_LINKS = [
+  { href: '/villkor', label: 'Användarvillkor' },
+  { href: '/integritetspolicy', label: 'Integritetspolicy' },
+  { href: '/cookies', label: 'Cookies' },
+  { href: '/pub-avtal', label: 'PUB-avtal' },
+] as const;
+
+/** Company line required on Swedish business websites (name, org.nr, address, e-mail) – lib/legal/company.ts. */
+function companyLine(): string {
+  const parts = [
+    `© ${new Date().getFullYear()} ${legalText('companyName')}`,
+    `Org.nr ${legalText('orgNumber')}`,
+    `${legalText('streetAddress')}, ${legalText('postalTown')}`,
+    legalText('supportEmail'),
+  ];
+  if (LEGAL_COMPANY.fSkatt) parts.push('Godkänd för F-skatt');
+  return parts.join(' · ');
+}
 
 export function SiteFooter({ page }: { page: SitePage }) {
   const col = { display: 'flex', flexDirection: 'column' as const, gap: 12, fontSize: 14.5 };
@@ -109,21 +125,23 @@ export function SiteFooter({ page }: { page: SitePage }) {
               ))}
             </div>
             <div style={col}>
+              <span style={eyebrow}>Juridik</span>
+              {LEGAL_LINKS.map((l) => (
+                <Link key={l.href} href={l.href} className={css.footerLink}>{l.label}</Link>
+              ))}
+            </div>
+            <div style={col}>
               <span style={eyebrow}>Konto</span>
               <Link href="/sign-up" className={css.footerLink}>Skapa konto</Link>
               <Link href="/sign-in" className={css.footerLink}>Logga in</Link>
             </div>
-            <div style={col}>
-              <span style={eyebrow}>Juridik</span>
-              {LEGAL_DOCUMENTS.map((d) => (
-                <span key={d} title="Publiceras snart">{d}</span>
-              ))}
-            </div>
           </nav>
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12, paddingTop: 22, borderTop: '1px solid rgba(20,23,26,0.08)', fontSize: 13, color: '#6B737B' }}>
-          <span>© {new Date().getFullYear()} FastighetsRadar{page === 'pricing' ? ' · Alla priser anges exkl. moms' : ''}</span>
-          <span>Data: SMHI, Krisinformation, Trafikverket, SGU, MCF, SCB · Kartdata © OpenStreetMap-bidragsgivare</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingTop: 22, borderTop: '1px solid rgba(20,23,26,0.08)', fontSize: 13, lineHeight: 1.5, color: '#6B737B' }}>
+          <span>{companyLine()}{page === 'pricing' ? ' · Alla priser anges exkl. moms' : ''}</span>
+          <span>
+            Data: SMHI, Krisinformation, Trafikverket, SGU, MCF, SCB, MET Norway (CC BY 4.0). Kartdata © OpenStreetMap-bidragsgivare, drivs av Geoapify.
+          </span>
         </div>
       </div>
     </footer>

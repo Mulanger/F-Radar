@@ -18,3 +18,4 @@ export * from './organization-settings';
 export * from './feed-acknowledgement';
 export * from './acknowledgement-history';
 export * from './night-work';
+export * from './legal';

@@ -425,13 +425,25 @@ export function SmsManagement({
                   style={inputStyle}
                 />
               </label>
-              <label style={{ ...row, fontSize: 13, flex: "2 1 300px" }}>
+              <label
+                style={{
+                  ...row,
+                  alignItems: "flex-start",
+                  flexWrap: "nowrap",
+                  fontSize: 13,
+                  lineHeight: 1.45,
+                  flex: "2 1 300px",
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={consent}
                   onChange={(e) => setConsent(e.target.checked)}
+                  style={{ marginTop: 2, flex: "none" }}
                 />
-                Jag godkänner aviseringar för detta nummer.
+                Jag bekräftar att mottagaren är informerad och behörig att ta
+                emot arbetsrelaterade SMS-aviseringar från FastighetsRadar för
+                organisationens räkning.
               </label>
               <button style={primary}>
                 {recipientEdit ? "Spara nummer" : "Lägg till"}
@@ -449,6 +461,11 @@ export function SmsManagement({
                 </button>
               )}
             </div>
+            <p style={{ margin: "8px 0 0", fontSize: 12, lineHeight: 1.45, color: C.text3 }}>
+              SMS-leverans är beroende av externa operatörer och kan inte
+              garanteras till 100 %. Aviseringsloggen gallras automatiskt efter
+              30 dagar.
+            </p>
           </fieldset>
         </form>
         {verificationId && (

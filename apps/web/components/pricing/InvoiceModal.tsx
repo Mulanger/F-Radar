@@ -239,8 +239,10 @@ export function InvoiceModal({ initialPlan, initialInterval, onClose, orderingEn
                     <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
                     <span className={css.checkbox}><CheckIcon size={12} strokeWidth={2.2} color="#FFFFFF" /></span>
                     <span>
-                      Jag har behörighet att beställa för {company} och godkänner att abonnemanget faktureras i förskott (30 dagars betalningstid) enligt{' '}
-                      <span className={css.underline}>Användarvillkoren</span> och <span className={css.underline}>PUB-avtalet</span>.
+                      Jag har behörighet att beställa för {company}{org ? ` (org.nr ${formatOrgNumber(digits)})` : ''} och godkänner att abonnemanget
+                      faktureras i förskott (30 dagars betalningstid) samt förlängs automatiskt om det inte sägs upp senast 30 dagar före
+                      avtalsperiodens slut, enligt{' '}
+                      <a href="/villkor" target="_blank" rel="noopener noreferrer" className={css.underline}>Användarvillkoren</a>.
                     </span>
                   </label>
 

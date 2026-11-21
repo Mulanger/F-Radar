@@ -411,6 +411,9 @@ function DataSection() {
               </span>
               <span style={{ fontSize: 14, color: '#4A5157' }}>Visas när underlag saknas</span>
             </div>
+            <Link href="/datakallor" className={css.footerLink} style={{ alignSelf: 'flex-start', fontSize: 15, fontWeight: 500 }}>
+              Alla datakällor och licenser <span aria-hidden="true">→</span>
+            </Link>
           </div>
           <dl style={{ flex: '1.4 1 420px', minWidth: 0, display: 'flex', flexDirection: 'column', margin: 0 }}>
             {DATA_CLASSES.map((d, i) => (

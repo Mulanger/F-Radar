@@ -57,8 +57,8 @@ export function AuthShell({ children }: { children: ReactNode }) {
           <footer className={s.footer}>
             <span>Säker inloggning via Clerk</span>
             <nav aria-label="Juridiskt och datakällor">
-              {AUTH_LINKS.terms ? <Link href={AUTH_LINKS.terms}>Villkor</Link> : <span>Villkor</span>}
-              {AUTH_LINKS.privacy ? <Link href={AUTH_LINKS.privacy}>Integritet</Link> : <span>Integritet</span>}
+              <Link href={AUTH_LINKS.terms}>Villkor</Link>
+              <Link href={AUTH_LINKS.privacy}>Integritet</Link>
               <Link href={AUTH_LINKS.dataSources}>Datakällor</Link>
             </nav>
           </footer>

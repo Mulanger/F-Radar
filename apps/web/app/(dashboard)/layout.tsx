@@ -1,7 +1,10 @@
 import { redirect } from 'next/navigation';
 import type { Viewport } from 'next';
 import { auth, currentUser } from '@clerk/nextjs/server';
+import { currentSignupConsent, type LegalAcceptanceStatus } from '@fastighetsradar/domain';
+import { LegalAcceptanceGate } from '@/components/legal/LegalAcceptanceGate';
 import { AppShell } from '@/components/shell/AppShell';
+import { internalApiJson } from '@/lib/server/internal-api';
 import { LiveUnavailable } from '@/components/shell/LiveUnavailable';
 import { loadLivePortfolio } from '@/lib/data/portfolio';
 
@@ -28,9 +31,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ...result.portfolio,
     viewer: { displayName, role: orgRole ?? '', initials: displayName.slice(0, 2).toUpperCase() },
   };
+  // Terms acceptance is a separate, non-blocking request: if it fails the dashboard still opens.
+  const legal = await internalApiJson<LegalAcceptanceStatus>('/v1/legal/acceptance').catch(() => null);
   return (
     <AppShell mode="live" basePath="" portfolio={portfolio}>
       {children}
+      <LegalAcceptanceGate status={legal} signupAcceptedAt={currentSignupConsent(user?.unsafeMetadata)} />
     </AppShell>
   );
 }

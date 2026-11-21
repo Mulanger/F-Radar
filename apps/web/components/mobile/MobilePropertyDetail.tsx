@@ -6,6 +6,7 @@ import type { ReturnTarget } from '@/lib/navigation/dashboard';
 import type { DetailVM } from '@/lib/view-models/detail';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { C } from '@/lib/design/tokens';
+import { RISK_INDEX_DISCLAIMER } from '@/lib/legal/copy';
 import { usePropertyEditor } from '../properties/PropertyEditorHost';
 import { detailSceneConfig } from '../three/property-scene';
 import { IconChevronLeft, IconChevronRight, IconRain, IconThermometer, IconWind, IconDrop, IconMessage } from '../ui/icons';
@@ -39,7 +40,7 @@ export function MobilePropertyDetail({ d, onSwitch, target, smsHref }: { d: Deta
       </div>
     </section>
     <>
-      <MobileSection title="Riskfaktorer" subtitle={d.riskMeta}><div className={`${styles.surface} ${styles.health}`}>{d.factors.map(f => <div className={styles.detailFactor} key={f.label} title={f.title}><div className={styles.detailFactorLabel}><span style={{ color: C.text2 }}>{f.label}</span><span style={{ fontFamily: 'var(--font-geist-mono),monospace' }}>{f.v}</span></div><div className={styles.factorTrack} style={{ height: 6 }}><div style={{ background: f.c, width: f.w }} /></div><div className={styles.small}>{f.title}</div></div>)}<details className={styles.sectionSub}><summary>Så räknas poängen</summary><p>Poängen styrs av den tyngsta faktorn. Bara aktuella officiella varningar kan ge Förhöjd eller Hög. Indexet bygger på offentliga källor och är inte en besiktning eller försäkringsbedömning.</p></details></div></MobileSection>
+      <MobileSection title="Riskfaktorer" subtitle={d.riskMeta}><div className={`${styles.surface} ${styles.health}`}>{d.factors.map(f => <div className={styles.detailFactor} key={f.label} title={f.title}><div className={styles.detailFactorLabel}><span style={{ color: C.text2 }}>{f.label}</span><span style={{ fontFamily: 'var(--font-geist-mono),monospace' }}>{f.v}</span></div><div className={styles.factorTrack} style={{ height: 6 }}><div style={{ background: f.c, width: f.w }} /></div><div className={styles.small}>{f.title}</div></div>)}<details className={styles.sectionSub}><summary>Så räknas poängen</summary><p>Poängen styrs av den tyngsta faktorn. Bara aktuella officiella varningar kan ge Förhöjd eller Hög. Indexet bygger på offentliga källor och är inte en besiktning eller försäkringsbedömning.</p><p>{RISK_INDEX_DISCLAIMER}</p></details></div></MobileSection>
       <MobileSection title="Officiella varningar" subtitle="SMHI · Krisinformation" meta={<span className={styles.meta}>{d.avail.warnings ? d.warnN : 'Ej ansluten'}</span>}>
         {(!d.avail.warnings || (!d.warnings.length && !d.noWarnings)) && <div className={`${styles.surface} ${styles.empty}`}>Varningar otillgängliga. Det betyder inte att varningar saknas.</div>}
         {d.avail.warnings && d.noWarnings && <div className={`${styles.surface} ${styles.empty}`} style={{ background: 'oklch(.97 .02 155)' }}><strong style={{ color: 'oklch(.45 .11 155)' }}>Inga aktiva officiella varningar</strong><div>Inget utfärdat som omfattar fastighetens läge.</div></div>}

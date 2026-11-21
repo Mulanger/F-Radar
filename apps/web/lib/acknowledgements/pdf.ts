@@ -1,5 +1,7 @@
 import type { Content, ContentTable, TDocumentDefinitions } from 'pdfmake/interfaces';
 import type { AcknowledgementHistoryEntry } from '@fastighetsradar/domain';
+import { legalDomain } from '@/lib/legal/company';
+import { pdfLegalFooter } from '@/lib/legal/copy';
 import { acknowledgementDay, acknowledgementTime, importedText, severityLabel } from './presentation';
 
 export type AcknowledgementReportFormat = 'compact' | 'full';
@@ -53,17 +55,22 @@ export function acknowledgementReport(
   demo: boolean,
   exportedAt: string,
   format: AcknowledgementReportFormat,
+  /** Host shown in the legal footer ("… Se <domän>/villkor."). */
+  domain = legalDomain(),
 ): TDocumentDefinitions {
   const compact = format === 'compact';
   const formatLabel = compact ? 'Kort lista' : 'Fullständig rapport';
   return {
     info: { title: `Kvitteringar - ${formatLabel}`, author: 'FastighetsRadar' },
     pageSize: 'A4',
-    pageMargins: [42, 44, 42, 48],
+    pageMargins: [42, 44, 42, 58],
     defaultStyle: { font: 'Roboto', fontSize: 10, color: '#1A231F', lineHeight: 1.22 },
     footer: (page, total) => ({
-      columns: [{ text: demo ? 'FastighetsRadar · Demodata' : 'FastighetsRadar' }, { text: `Sida ${page} av ${total}`, alignment: 'right' }],
-      margin: [42, 12, 42, 0], fontSize: 9, color: '#54645B',
+      columns: [
+        { text: `${demo ? 'Demodata · ' : ''}${pdfLegalFooter(domain)}`, width: '*' },
+        { text: `Sida ${page} av ${total}`, alignment: 'right', width: 'auto' },
+      ],
+      columnGap: 16, margin: [42, 14, 42, 0], fontSize: 8, color: '#54645B',
     }),
     content: [
       { text: 'Kvitteringar', fontSize: 28, bold: true, margin: [0, 0, 0, 5] },
@@ -88,6 +95,6 @@ export async function downloadAcknowledgementReport(
   pdfMake.addVirtualFileSystem(fonts.default ?? fonts);
   const exportedAt = new Date().toISOString();
   const formatSlug = format === 'compact' ? 'kort-lista' : 'fullstandig-rapport';
-  await pdfMake.createPdf(acknowledgementReport(entries, organizationName, selection, demo, exportedAt, format))
+  await pdfMake.createPdf(acknowledgementReport(entries, organizationName, selection, demo, exportedAt, format, legalDomain(window.location.origin)))
     .download(`kvitteringar-${formatSlug}-${acknowledgementDay(exportedAt)}.pdf`);
 }

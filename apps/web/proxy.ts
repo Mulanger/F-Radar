@@ -6,7 +6,10 @@ import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server
  * allowlist require a signed-in user. `/` is the public landing page and `/priser` the public pricing page. Organization
  * checks happen server-side in the dashboard layout and again in the Fastify API.
  */
-const PUBLIC_ROUTES = ['/', '/priser', '/sign-in(.*)', '/sign-up(.*)', '/onboarding(.*)'];
+const PUBLIC_ROUTES = [
+  '/', '/priser', '/villkor', '/integritetspolicy', '/cookies', '/pub-avtal', '/datakallor',
+  '/sign-in(.*)', '/sign-up(.*)', '/onboarding(.*)',
+];
 const isPublicRoute = createRouteMatcher(PUBLIC_ROUTES);
 // API route handlers enforce auth themselves and answer 401 JSON instead of an HTML redirect.
 const isApiRoute = createRouteMatcher(['/api(.*)']);

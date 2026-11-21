@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useSignUp } from '@clerk/nextjs';
+import { signupLegalConsent } from '@fastighetsradar/domain';
+import { LegalConsentText } from '@/components/legal/LegalConsentText';
 import { authErrors, hasCode, NETWORK_ERROR, type AuthErrors } from '@/lib/auth/clerk-errors';
-import { AUTH_LINKS } from '@/lib/auth/links';
 import { EMAIL_RE } from '@/lib/auth/password';
 import { destinationFor } from '@/lib/auth/redirect';
 import { useClerkSettings } from '@/lib/auth/use-clerk-settings';
@@ -18,9 +19,6 @@ type Errors = AuthErrors & { terms?: string };
 
 const Steps = () => <AuthSteps current={1} />;
 
-function LegalLink({ href, children }: { href: string | null; children: ReactNode }) {
-  return href ? <Link href={href} className={f.link} target="_blank">{children}</Link> : <span style={{ fontWeight: 500 }}>{children}</span>;
-}
 
 /**
  * Custom sign-up built on Clerk's sign-up API so the screen matches the approved design.
@@ -101,7 +99,7 @@ export function SignUpForm() {
     if (!last.trim()) errs.lastName = 'Obligatoriskt.';
     if (!EMAIL_RE.test(mail)) errs.email = mail ? 'Ange en giltig e-postadress.' : 'Ange din jobbmejl.';
     if (pw.length < passwordMinLength) errs.password = `Lösenordet behöver minst ${passwordMinLength} tecken.`;
-    if (!terms) errs.terms = 'Du behöver godkänna villkoren.';
+    if (!terms) errs.terms = 'Kryssa i rutan för att skapa kontot.';
     setErrors(errs);
     if (Object.keys(errs).length) return;
     void guarded(async () => {
@@ -110,6 +108,8 @@ export function SignUpForm() {
         password: pw,
         firstName: first.trim(),
         lastName: last.trim(),
+        // Copied to the organization (version, time, user) once it exists – see LegalAcceptanceGate.
+        unsafeMetadata: { legal: signupLegalConsent() },
         ...(legalConsent ? { legalAccepted: true } : {}),
       });
       if (error) {
@@ -209,7 +209,7 @@ export function SignUpForm() {
           meter={{ minLength: passwordMinLength }}
         />
         <Checkbox checked={terms} onChange={(v) => { setTerms(v); clearError('terms'); }} error={errors.terms} top>
-          Jag godkänner <LegalLink href={AUTH_LINKS.terms}>villkoren</LegalLink> och <LegalLink href={AUTH_LINKS.privacy}>integritetspolicyn</LegalLink>.
+          <LegalConsentText linkClassName={f.link} />
         </Checkbox>
         {/* Clerk bot protection renders its (usually invisible) challenge here when enabled. */}
         <div id="clerk-captcha" />

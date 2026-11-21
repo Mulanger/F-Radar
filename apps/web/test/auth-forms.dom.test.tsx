@@ -28,6 +28,7 @@ vi.mock('@clerk/nextjs', () => ({
   useClerk: () => ({ loaded: true, environment: { userSettings: { passwordSettings: { min_length: 12 }, signUp: { legal_consent_enabled: false } } } }),
 }));
 
+import { LEGAL_VERSIONS } from '@fastighetsradar/domain';
 import { SignInForm } from '@/components/auth/SignInForm';
 import { SignUpForm } from '@/components/auth/SignUpForm';
 
@@ -104,8 +105,23 @@ describe('SignUpForm', () => {
     expect(screen.getAllByText('Obligatoriskt.')).toHaveLength(2);
     expect(screen.getByText('Ange din jobbmejl.')).toBeTruthy();
     expect(screen.getByText('Lösenordet behöver minst 12 tecken.')).toBeTruthy();
-    expect(screen.getByText('Du behöver godkänna villkoren.')).toBeTruthy();
+    expect(screen.getByText('Kryssa i rutan för att skapa kontot.')).toBeTruthy();
     expect(signUp.password).not.toHaveBeenCalled();
+  });
+
+  it('asks for the B2B declaration and links the terms, DPA and privacy policy in a new tab', () => {
+    render(<SignUpForm />);
+    const box = screen.getByRole('checkbox');
+    const label = box.closest('label')!;
+    expect(label.textContent).toContain('Jag intygar att jag registrerar kontot för ett företag, en bostadsrättsförening eller annan organisation (ej privatperson)');
+    const links = Object.fromEntries([...label.querySelectorAll('a')].map((a) => [a.textContent, a]));
+    expect(links['Användarvillkor']!.getAttribute('href')).toBe('/villkor');
+    expect(links['PUB-avtal']!.getAttribute('href')).toBe('/pub-avtal');
+    expect(links['Integritetspolicyn']!.getAttribute('href')).toBe('/integritetspolicy');
+    for (const a of Object.values(links)) {
+      expect(a.getAttribute('target')).toBe('_blank');
+      expect(a.getAttribute('rel')).toBe('noopener noreferrer');
+    }
   });
 
   it('prefills the e-mail typed on the landing page', async () => {
@@ -128,6 +144,10 @@ describe('SignUpForm', () => {
     fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(screen.getByRole('button', { name: /Skapa konto/ }));
     expect(await screen.findByRole('heading', { name: 'Bekräfta din e-post' })).toBeTruthy();
-    expect(signUp.password).toHaveBeenCalledWith({ emailAddress: 'elin@foretag.se', password: 'ett-langt-losenord', firstName: 'Elin', lastName: 'Lindqvist' });
+    expect(signUp.password).toHaveBeenCalledWith({
+      emailAddress: 'elin@foretag.se', password: 'ett-langt-losenord', firstName: 'Elin', lastName: 'Lindqvist',
+      // The accepted versions and time travel with the user until the organization exists.
+      unsafeMetadata: { legal: { termsVersion: LEGAL_VERSIONS.terms, privacyVersion: LEGAL_VERSIONS.privacy, acceptedAt: expect.any(String) } },
+    });
   });
 });
