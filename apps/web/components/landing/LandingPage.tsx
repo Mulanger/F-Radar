@@ -2,7 +2,6 @@ import Link from 'next/link';
 import {
   DATA_CLASSES,
   DATA_SOURCES,
-  NAV_LINKS,
   NEARBY_EVENTS,
   OFFICIAL_WARNINGS,
   PORTFOLIO_ROWS,
@@ -13,6 +12,7 @@ import { LandingHero } from './LandingHero';
 import { ForecastPanel, GetStartedForm, SmsRuleDemo, WaterCanvas } from './LandingInteractive';
 import { Badge, Bullets, StatusPill } from './Primitives';
 import { Reveal } from './Reveal';
+import { SiteFooter, SiteHeader } from './SiteChrome';
 import { StepsCarousel } from './StepsCarousel';
 import {
   card, cardHead, cardSub, cardTitle, container, eyebrow, featureRow, h2, lead, MONO, smallCard, sourceChip, textBlock, visualBlock,
@@ -27,7 +27,7 @@ export function LandingPage({ signedIn }: { signedIn: boolean }) {
   return (
     <div className={css.root}>
       <a href="#innehall" className="fr-sr-only">Hoppa till innehållet</a>
-      <LandingHeader signedIn={signedIn} />
+      <SiteHeader signedIn={signedIn} page="landing" />
       <main id="innehall">
         <LandingHero signedIn={signedIn} />
         <HowItWorks />
@@ -44,54 +44,8 @@ export function LandingPage({ signedIn }: { signedIn: boolean }) {
         <DataSection />
         <GetStarted signedIn={signedIn} />
       </main>
-      <LandingFooter />
+      <SiteFooter page="landing" />
     </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-
-function LandingHeader({ signedIn }: { signedIn: boolean }) {
-  return (
-    <header className={css.header} style={{ position: 'sticky', top: 0, zIndex: 50, padding: '12px clamp(12px,2vw,24px) 0' }}>
-      <nav
-        aria-label="Huvudmeny"
-        className={css.navigation}
-        style={{
-          maxWidth: 1320, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 16, padding: '8px 8px 8px 14px', borderRadius: 999,
-          background: 'rgba(247,248,246,0.78)', backdropFilter: 'blur(18px) saturate(1.4)', WebkitBackdropFilter: 'blur(18px) saturate(1.4)',
-          border: '1px solid rgba(20,23,26,0.06)', boxShadow: '0 8px 24px -16px rgba(20,23,26,0.18)',
-        }}
-      >
-        <a href="#top" className={css.navBrand} aria-label="FastighetsRadar – till toppen" style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
-          <span style={{ fontWeight: 600, fontSize: 17, letterSpacing: '-0.02em' }}>FastighetsRadar</span>
-        </a>
-        {/* Links that do not fit wrap onto a hidden second row (design behaviour on narrow screens). */}
-        <div className={css.navLinks} style={{ flex: '1 1 auto', minWidth: 0, height: 36, overflow: 'hidden', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 2 }}>
-          {NAV_LINKS.map((l) => (
-            <a key={l.href} href={l.href} className={css.navLink} style={{ height: 36, display: 'flex', alignItems: 'center', padding: '0 14px', borderRadius: 999, fontSize: 14.5 }}>
-              {l.label}
-            </a>
-          ))}
-        </div>
-        <div className={css.navAuthActions} style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
-          {signedIn ? (
-            <Link href="/overview" className={css.primary} style={{ height: 40, display: 'flex', alignItems: 'center', padding: '0 18px', borderRadius: 999, fontSize: 14.5, fontWeight: 500, background: '#14171A' }}>
-              Öppna översikten
-            </Link>
-          ) : (
-            <>
-              <Link href="/sign-in" className={`${css.ghost} ${css.navSignIn}`} style={{ height: 40, display: 'flex', alignItems: 'center', padding: '0 16px', borderRadius: 999, fontSize: 14.5, fontWeight: 500 }}>
-                Logga in
-              </Link>
-              <Link href="/sign-up" className={`${css.primary} ${css.navSignUp}`} style={{ height: 40, display: 'flex', alignItems: 'center', padding: '0 18px', borderRadius: 999, fontSize: 14.5, fontWeight: 500, background: '#14171A' }}>
-                Skapa konto
-              </Link>
-            </>
-          )}
-        </div>
-      </nav>
-    </header>
   );
 }
 
@@ -502,40 +456,5 @@ function GetStarted({ signedIn }: { signedIn: boolean }) {
         )}
       </Reveal>
     </section>
-  );
-}
-
-function LandingFooter() {
-  const col = { display: 'flex', flexDirection: 'column' as const, gap: 12, fontSize: 14.5 };
-  return (
-    <footer className={css.footer} style={{ padding: '72px 0 40px' }}>
-      <div style={{ ...container, display: 'flex', flexDirection: 'column', gap: 48 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 40 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 320 }}>
-            <a href="#top" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontWeight: 600, fontSize: 16, letterSpacing: '-0.02em' }}>FastighetsRadar</span>
-            </a>
-            <span style={{ fontSize: 14.5, lineHeight: 1.55, color: '#6B737B' }}>Miljö- och samhällsbevakning för fastigheter, byggd på svensk offentlig data.</span>
-          </div>
-          <nav aria-label="Sidfot" style={{ display: 'flex', flexWrap: 'wrap', gap: 56 }}>
-            <div style={col}>
-              <span style={eyebrow}>Produkt</span>
-              <a href="#funktioner" className={css.footerLink}>Funktioner</a>
-              <a href="#sms" className={css.footerLink}>SMS-larm</a>
-              <a href="#data" className={css.footerLink}>Datakällor</a>
-            </div>
-            <div style={col}>
-              <span style={eyebrow}>Konto</span>
-              <Link href="/sign-up" className={css.footerLink}>Skapa konto</Link>
-              <Link href="/sign-in" className={css.footerLink}>Logga in</Link>
-            </div>
-          </nav>
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12, paddingTop: 22, borderTop: '1px solid rgba(20,23,26,0.08)', fontSize: 13, color: '#6B737B' }}>
-          <span>© {new Date().getFullYear()} FastighetsRadar</span>
-          <span>Data: SMHI, Krisinformation, Trafikverket, SGU, MCF, SCB · Kartdata © OpenStreetMap-bidragsgivare</span>
-        </div>
-      </div>
-    </footer>
   );
 }

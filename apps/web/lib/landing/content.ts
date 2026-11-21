@@ -21,6 +21,7 @@ export const NAV_LINKS = [
   { href: '#funktioner', label: 'Funktioner' },
   { href: '#sms', label: 'SMS-larm' },
   { href: '#data', label: 'Datakällor' },
+  { href: '/priser', label: 'Priser' },
 ] as const;
 
 export const HERO_SOURCES = ['SMHI', 'Krisinformation', 'Trafikverket', 'SGU', 'MCF', 'SCB'] as const;

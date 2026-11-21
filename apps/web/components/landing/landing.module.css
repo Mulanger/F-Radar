@@ -16,6 +16,7 @@
 .navBrand { margin-inline-start: 4px; }
 .navLink { color: #4a5157 !important; transition: background 0.2s, color 0.2s; }
 .navLink:hover { background: rgba(20, 23, 26, 0.05); color: #14171a !important; }
+.navLinkCurrent, .navLinkCurrent:hover { background: #e8e8e5; color: #14171a !important; font-weight: 500; }
 .ghost { transition: background 0.2s; }
 .ghost:hover { background: rgba(20, 23, 26, 0.05); }
 .primary { color: #ffffff !important; transition: background 0.2s; }
