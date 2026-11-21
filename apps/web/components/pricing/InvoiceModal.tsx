@@ -5,7 +5,7 @@ import { useUser } from '@clerk/nextjs';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  formatOrgNumber, formatSek, intervalOptions, isValidOrgNumber, orderSummary, orgDigits, PAID_PLAN_ORDER, PAID_PLANS,
+  formatOrgNumber, formatSek, intervalOptions, isValidOrgNumber, ORDERING_ENABLED, orderSummary, orgDigits, PAID_PLAN_ORDER, PAID_PLANS,
   type OrderInterval, type PaidPlanId,
 } from '@/lib/pricing/plans';
 import { lookupOrganization, type OrganizationInfo } from '@/lib/pricing/org-lookup';
@@ -25,8 +25,8 @@ const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),[tabinde
  * Front end only: the lookup is a placeholder and submitting shows the confirmation without creating
  * an order or an invoice.
  */
-export function InvoiceModal({ initialPlan, initialInterval, onClose }: {
-  initialPlan: PaidPlanId; initialInterval: OrderInterval; onClose: () => void;
+export function InvoiceModal({ initialPlan, initialInterval, onClose, orderingEnabled = ORDERING_ENABLED }: {
+  initialPlan: PaidPlanId; initialInterval: OrderInterval; onClose: () => void; orderingEnabled?: boolean;
 }) {
   const { user } = useUser();
   const id = useId();
@@ -110,7 +110,7 @@ export function InvoiceModal({ initialPlan, initialInterval, onClose }: {
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (valid) setDone(true);
+    if (valid && orderingEnabled) setDone(true);
   };
   const clearOrg = () => {
     setDigits('');
@@ -244,7 +244,14 @@ export function InvoiceModal({ initialPlan, initialInterval, onClose }: {
                     </span>
                   </label>
 
-                  <button type="submit" className={`${css.btnPrimary} ${css.submit}`} disabled={!valid}>Aktivera {plans.name} mot faktura</button>
+                  {orderingEnabled ? (
+                    <button type="submit" className={`${css.btnPrimary} ${css.submit}`} disabled={!valid}>Aktivera {plans.name} mot faktura</button>
+                  ) : (
+                    <div className={css.field}>
+                      <button type="submit" className={`${css.btnPrimary} ${css.submit}`} disabled aria-describedby={`${id}-soon`}>Beställning öppnar snart</button>
+                      <span id={`${id}-soon`} className={css.help} style={{ textAlign: 'center' }}>Beställning mot faktura öppnar inom kort – inget skickas eller faktureras nu.</span>
+                    </div>
+                  )}
                 </form>
               )}
             </div>

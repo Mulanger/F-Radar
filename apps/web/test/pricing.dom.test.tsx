@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ user: null as null | { fullName: string; primaryEmailAddress: { emailAddress: string } } }));
 vi.mock('@clerk/nextjs', () => ({ useUser: () => ({ user: mocks.user }) }));
 
+import { InvoiceModal } from '@/components/pricing/InvoiceModal';
 import { PricingPage } from '@/components/pricing/PricingPage';
 import { LOOKUP_DELAY_MS } from '@/lib/pricing/org-lookup';
 
@@ -90,10 +91,18 @@ describe('InvoiceModal', () => {
     expect(document.body.style.overflow).toBe('');
   });
 
+  it('keeps ordering locked on the page until checkout exists', () => {
+    const dialog = openPro();
+    expect(within(dialog).queryByRole('button', { name: 'Aktivera Pro mot faktura' })).toBeNull();
+    expect((within(dialog).getByRole('button', { name: 'Beställning öppnar snart' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(within(dialog).getByText(/inget skickas eller faktureras nu/)).toBeTruthy();
+  });
+
   it('looks up the organisation, prefills Peppol and enables ordering once everything is filled in', async () => {
     vi.useFakeTimers();
     mocks.user = { fullName: 'Elin Lindqvist', primaryEmailAddress: { emailAddress: 'elin@example.com' } };
-    const dialog = openPro();
+    render(<InvoiceModal initialPlan="pro" initialInterval="year" onClose={() => undefined} orderingEnabled />);
+    const dialog = screen.getByRole('dialog', { name: 'Beställ Pro mot faktura' });
     const submit = within(dialog).getByRole('button', { name: 'Aktivera Pro mot faktura' }) as HTMLButtonElement;
     expect((within(dialog).getByLabelText('Namn') as HTMLInputElement).value).toBe('Elin Lindqvist');
 
