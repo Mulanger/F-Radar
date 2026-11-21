@@ -177,7 +177,6 @@
   .mobileWeather > div { display: flex; gap: 3px; }
   .mobileWeather dt { color: #59636b; font-weight: 400; }
   .mobileWeather dd { margin: 0; }
-  .dragHint { display: none; }
 }
 
 /* The complete mobile landing reference: copy, illustration, then supporting details.

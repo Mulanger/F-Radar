@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useOrganization, useUser } from '@clerk/nextjs';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { C } from '@/lib/design/tokens';
-import { IconAcknowledgements, IconAlert, IconBuilding, IconDashboard, IconMessage, IconSliders, IconBell, IconUser } from '../ui/icons';
+import { IconAcknowledgements, IconAlert, IconBuilding, IconDashboard, IconMessage, IconSliders, IconUser } from '../ui/icons';
 import { MobileNavigation } from '../mobile/MobileNavigation';
 
 const navItem: React.CSSProperties = {
@@ -47,9 +47,6 @@ export function Sidebar() {
     <>
       <div className={`fr-mobilebar${pathname.startsWith(`${basePath}/properties/`) ? ' fr-mobilebar-detail' : ''}`}>
         <Link href={`${basePath}/overview`} className="fr-mobile-brand" aria-label="FastighetsRadar – översikt"><span>FastighetsRadar</span></Link>
-        <div className="fr-mobilebar-actions">
-          <Link href={`${basePath}/alerts`} className="fr-mobilebar-bell" aria-label={unseenAlarmCount > 0 ? `Aviseringar, ${unseenAlarmCount} olästa larm` : 'Aviseringar'}><IconBell size={19} />{unseenAlarmCount > 0 && <span className="fr-mobilebar-bell-dot" />}</Link>
-        </div>
       </div>
       <aside
         className="fr-sidebar"
