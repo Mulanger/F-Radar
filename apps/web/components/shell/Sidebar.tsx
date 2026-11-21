@@ -55,7 +55,7 @@ export function Sidebar() {
           display: 'flex', flexDirection: 'column', gap: 28, borderRight: '1px solid rgba(20,23,26,0.06)', background: C.sidebar,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 8px', paddingInlineStart: 12 }}>
           <Logo />
         </div>
   

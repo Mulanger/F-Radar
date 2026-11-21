@@ -13,6 +13,7 @@
 .root a { color: #14171a; text-decoration: none; }
 .root a:hover { color: #4a5157; }
 
+.navBrand { margin-inline-start: 4px; }
 .navLink { color: #4a5157 !important; transition: background 0.2s, color 0.2s; }
 .navLink:hover { background: rgba(20, 23, 26, 0.05); color: #14171a !important; }
 .ghost { transition: background 0.2s; }
