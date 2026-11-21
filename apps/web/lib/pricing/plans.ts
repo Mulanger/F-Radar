@@ -11,6 +11,12 @@ export type OrderInterval = BillingInterval | 'month';
 export type PaidPlanId = 'start' | 'pro' | 'business';
 
 export const VAT_RATE = 0.25;
+
+/**
+ * Invoice ordering has no backend yet. While false the order modal can be filled in but not submitted,
+ * so no visitor believes an order was placed. Turn on together with the checkout logic.
+ */
+export const ORDERING_ENABLED = false;
 export const ENTERPRISE_FROM_SEK = 2990;
 
 export interface PaidPlan {
