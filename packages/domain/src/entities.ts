@@ -376,6 +376,8 @@ export const FeedItemSchema = z.object({
   propertyId: z.string(),
   /** The source event behind the row, when there is one (lets the dashboard open it on the map). */
   eventId: z.string().optional(),
+  /** Identifies a source event revision and change type across property matches. */
+  eventGroupId: z.string().optional(),
   /** The event has ended but its stretch is still stored: it can be shown on the map, greyed out. */
   eventEndedOnMap: z.boolean().optional(),
   /** A current utility outage with a drawable area: it can be shown on the map. */

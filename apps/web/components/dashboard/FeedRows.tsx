@@ -3,12 +3,14 @@ import { groupFeedRows, type OverviewFeedRow } from '@/lib/view-models/overview'
 import { IconChevronDown } from '../ui/icons';
 import { FeedAckButton, type FeedAcks } from './FeedAck';
 import { FeedMapButton, FeedUpdatedBadge } from './FeedEventMap';
+import { NightMoon } from './NightMoon';
 import styles from './FeedRows.module.css';
 
-export function FeedRows({ feed, acks, onMap, property, children }: {
+export function FeedRows({ feed, acks, onMap, isUnread, property, children }: {
   feed: OverviewFeedRow[];
   acks?: FeedAcks;
   onMap?: (row: OverviewFeedRow) => void;
+  isUnread?: (row: OverviewFeedRow) => boolean;
   property: (row: OverviewFeedRow) => ReactNode;
   children: (row: OverviewFeedRow) => ReactNode;
 }) {
@@ -17,9 +19,10 @@ export function FeedRows({ feed, acks, onMap, property, children }: {
     if (rows.length === 1) return children(first);
     const pending = acks?.pending(rows) ?? 0;
     const confirmed = acks ? rows.filter((row) => row.ackRequired && acks.ackedAt(row)).length : 0;
+    const updated = rows.some((row) => row.acknowledgementUpdate || (isUnread?.(row) ?? !!row.unreadUpdateId));
 
     return (
-      <details key={first.updateGroupKey} className={styles.group} style={pending ? { background: `color-mix(in oklch, ${first.bg} 75%, white)` } : undefined}>
+      <details key={first.eventGroupKey} className={styles.group} style={pending ? { background: `color-mix(in oklch, ${first.bg} 75%, white)` } : undefined}>
         <summary className={styles.summary}>
           <span className={styles.icon} style={{ background: first.bg }}><span style={{ background: first.c }} /></span>
           <span className={styles.main}>
@@ -32,8 +35,8 @@ export function FeedRows({ feed, acks, onMap, property, children }: {
             </span>
           </span>
           <span className={styles.side}>
-            <FeedUpdatedBadge />
-            <time className={styles.time}>{first.t}</time>
+            {updated && <FeedUpdatedBadge />}
+            <span className={styles.time}>{first.nightWork && <NightMoon label={first.nightWork} />}<time>{first.t}</time></span>
             {pending > 0 && <span className={styles.pending}>{pending} att kvittera</span>}
             {pending === 0 && confirmed > 0 && <span className={styles.confirmed}>{confirmed} av {rows.length} kvitterade</span>}
           </span>

@@ -60,6 +60,26 @@ describe('traffic updates in the feed', () => {
 });
 
 describe('kvittering i händelseflödet', () => {
+  it.each(['desktop', 'mobile'])('groups new outages without an update badge on %s', (device) => {
+    const properties = demoPortfolio.properties.slice(0, 3);
+    const publishedAt = demoPortfolio.generatedAt;
+    const row: Portfolio['feed'][number] = {
+      id: 'chg-71', propertyId: properties[0]!.property.id, eventId: 'one-power-outage', eventGroupId: 'outage:1:v1',
+      sourceId: 'utility_outages', sourceLabel: 'Ellevio', title: 'Strömavbrott', severity: 'warning',
+      origin: 'live', publishedAt, ackRequired: true,
+    };
+    const same = { ...row, id: 'chg-72', propertyId: properties[1]!.property.id, publishedAt: new Date(Date.parse(publishedAt) - 60_000).toISOString() };
+    const separate = { ...row, id: 'chg-73', propertyId: properties[2]!.property.id, eventId: undefined, eventGroupId: undefined };
+    activePortfolio = { ...demoPortfolio, properties, feed: [row, same, separate] };
+    mocks.mode = 'live';
+    const { container } = render(device === 'mobile' ? <MobileAlerts /> : <AlertFeed vm={buildOverviewVM(activePortfolio, ui)} isDemo={false} onOpen={mocks.openProperty} />);
+    expect(screen.getAllByText('Strömavbrott')).toHaveLength(2);
+    expect(screen.queryByText('Uppdaterad')).toBeNull();
+    const group = container.querySelector('details')!;
+    expect(group.querySelector('summary')?.textContent).toContain('2 berörda fastigheter');
+    expect(group.querySelectorAll('li')).toHaveLength(2);
+  });
+
   it.each(['desktop', 'mobile'])('groups one SMHI revision and saves only the chosen property on %s', async (device) => {
     const properties = demoPortfolio.properties.slice(0, 4);
     expect(properties).toHaveLength(4);

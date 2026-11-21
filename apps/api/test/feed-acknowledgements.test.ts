@@ -202,4 +202,19 @@ describe('which feed rows must be acknowledged', () => {
     expect(superseded).toMatchObject({ acknowledgementUpdate: true });
     expect(superseded).not.toHaveProperty('ackRequired');
   });
+
+  it('identifies the same source revision across property matches made at different times', () => {
+    const base = { event_id: 'event-1', source_id: 'utility_outages', change_type: 'new', severity: 'warning', headline: 'Strömavbrott' };
+    const rows = buildFeed([
+      { ...base, id: '1', property_id: 'p1', dedup_key: 'p1:event-1:v2:inside', created_at: new Date('2026-11-20T10:00:00Z') },
+      { ...base, id: '2', property_id: 'p2', dedup_key: 'p2:event-1:v2:inside', created_at: new Date('2026-11-20T10:05:00Z') },
+      { ...base, id: '3', property_id: 'p2', dedup_key: 'p2:event-1:v3:inside', created_at: new Date('2026-11-20T10:05:00Z') },
+      { ...base, id: '4', property_id: 'p2', dedup_key: 'p2:event-1:v2:gone', created_at: new Date('2026-11-20T10:05:00Z'), change_type: 'ended' },
+    ], new Set(['p1', 'p2']));
+    const groups = new Map(rows.map((item) => [item.id, item.eventGroupId]));
+    expect(groups.get('chg-1')).toBeTruthy();
+    expect(groups.get('chg-1')).toBe(groups.get('chg-2'));
+    expect(groups.get('chg-1')).not.toBe(groups.get('chg-3'));
+    expect(groups.get('chg-1')).not.toBe(groups.get('chg-4'));
+  });
 });

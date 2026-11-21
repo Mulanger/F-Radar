@@ -11,6 +11,7 @@ import { NightMoon } from './NightMoon';
 export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: boolean; onOpen: (id: string) => void }) {
   const map = useFeedEventMap();
   const acks = useFeedAcks();
+  const open = (row: OverviewVM['feed'][number]) => row.opensTrafficDetails ? map.open(row) : onOpen(row.propertyId);
   return (
     <div className={styles.feed} style={{ ...card, boxSizing: 'border-box', padding: '20px 8px 8px 20px', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 12, marginBottom: 12 }}>
@@ -38,9 +39,8 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
             {vm.avail.warnings || vm.avail.events ? 'Inga händelser för valda fastigheter' : 'Händelsekällorna är inte anslutna. Händelser visas här när SMHI, Krisinformation och Trafikverket levererar data.'}
           </div>
         )}
-        <FeedRows feed={vm.feed} acks={acks} onMap={map.open} property={(row) => <button type="button" onClick={() => onOpen(row.propertyId)}>{row.prop}</button>}>{(f) => {
+        <FeedRows feed={vm.feed} acks={acks} onMap={map.open} isUnread={map.isUnread} property={(row) => <button type="button" onClick={() => open(row)}>{row.prop}</button>}>{(f) => {
           const waiting = f.ackRequired && !acks.ackedAt(f);
-          const open = () => f.opensTrafficDetails ? map.open(f) : onOpen(f.propertyId);
           return (
           <div
             key={f.rowKey}
@@ -48,11 +48,11 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
             tabIndex={0}
             className="fr-hover-row"
             data-ack={waiting ? 'waiting' : undefined}
-            onClick={open}
+            onClick={() => open(f)}
             onKeyDown={(e) => {
               if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
               e.preventDefault();
-              open();
+              open(f);
             }}
             style={{ display: 'flex', gap: 12, padding: '12px 10px', margin: '0 -10px', borderRadius: 14, cursor: 'pointer', transition: 'background .2s', background: waiting ? `color-mix(in oklch, ${f.bg} 70%, transparent)` : undefined }}
           >

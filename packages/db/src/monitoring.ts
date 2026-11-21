@@ -788,10 +788,11 @@ export async function listRecentChangesForOrg(db: Queryable, organizationId: str
   const { rows } = await db.query<{
     id: string; property_id: string; event_id: string | null; source_id: string; change_type: string; data_class: string; severity: string; headline: string; created_at: Date;
     event_ended_on_map: boolean; outage_on_map: boolean; event_active: boolean; superseded: boolean; acknowledged_at: Date | null; update_read?: boolean;
+    dedup_key: string;
     event_type: string | null; situation_id: string | null; event_valid_from: Date | null; event_valid_to: Date | null; event_description: string | null;
   }>(
     `${forPortfolio ? portfolioRows : ''}
-     SELECT c.id::text, c.property_id, c.event_id::text AS event_id, c.source_id, c.change_type, c.data_class, c.severity, c.headline, c.created_at,
+     SELECT c.id::text, c.property_id, c.event_id::text AS event_id, c.source_id, c.change_type, c.data_class, c.severity, c.headline, c.created_at, c.dedup_key,
             COALESCE(e.status <> 'active' AND e.geom IS NOT NULL AND e.source_id IN ${FEED_MAP_SOURCES_SQL}, false) AS event_ended_on_map,
             COALESCE(e.status = 'active' AND e.geom IS NOT NULL AND e.source_id = 'utility_outages', false) AS outage_on_map,
             COALESCE(e.status = 'active', false) AS event_active,
@@ -830,12 +831,14 @@ export async function listActiveAlarmChangesForOrg(db: Queryable, organizationId
     id: string; event_id: string; property_id: string; source_id: string; change_type: string;
     severity: string; headline: string; created_at: Date; event_active: boolean; outage_on_map: boolean;
     acknowledged_at: Date | null; unread_alarm_id: string | null;
+    dedup_key: string | null;
   }>(
     `SELECT COALESCE(latest.id::text, 'alarm-' || m.property_id || ':' || e.id) AS id,
             e.id::text AS event_id, m.property_id, e.source_id,
             COALESCE(latest.change_type, 'active') AS change_type,
             COALESCE(m.effective_severity, e.severity) AS severity, COALESCE(latest.headline, e.headline) AS headline,
             COALESCE(latest.created_at, m.first_matched_at) AS created_at, true AS event_active,
+            latest.dedup_key,
             e.source_id = 'utility_outages' AND e.geom IS NOT NULL AS outage_on_map,
             CASE WHEN seen.change_id IS NULL THEN notification.id::text END AS unread_alarm_id,
             ack.acknowledged_at
@@ -843,7 +846,7 @@ export async function listActiveAlarmChangesForOrg(db: Queryable, organizationId
        JOIN source_events e ON e.id = m.event_id AND e.status = 'active'
        JOIN properties p ON p.id = m.property_id AND p.organization_id = m.organization_id AND p.status <> 'paused'
        LEFT JOIN LATERAL (
-         SELECT c.id, c.created_at, c.change_type, c.severity, c.headline FROM monitoring_changes c
+         SELECT c.id, c.created_at, c.change_type, c.severity, c.headline, c.dedup_key FROM monitoring_changes c
          WHERE c.organization_id = m.organization_id AND c.event_id = m.event_id AND c.property_id = m.property_id
            AND c.created_at >= m.first_matched_at
          ORDER BY c.created_at DESC, c.id DESC LIMIT 1

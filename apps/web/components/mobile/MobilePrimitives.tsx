@@ -33,7 +33,11 @@ export function MobileWeatherCard({ icon, label, value, sub }: { icon: React.Rea
  * button; with `acks`, a row that must be acknowledged gets "Kvittera" beside it, in the lower right corner.
  */
 export function MobileFeedRows({ feed, basePath, from = 'overview', onMap, isUnread, acks }: { feed: OverviewVM['feed']; basePath: string; from?: DashboardSection; onMap?: (row: FeedMapTarget) => void; isUnread?: (row: FeedMapTarget) => boolean; acks?: FeedAcks }) {
-  return <FeedRows feed={feed} acks={acks} onMap={onMap} property={(row) => <DashboardLink href={propertyHref(basePath, row.propertyId, from)}>{row.prop}</DashboardLink>}>{(f) => {
+  return <FeedRows feed={feed} acks={acks} onMap={onMap} isUnread={isUnread} property={(row) => (
+    onMap && row.opensTrafficDetails
+      ? <button type="button" onClick={() => onMap(row)}>{row.prop}</button>
+      : <DashboardLink href={propertyHref(basePath, row.propertyId, from)}>{row.prop}</DashboardLink>
+  )}>{(f) => {
     const map = onMap && f.mapEventId;
     const ack = acks && f.ackRequired;
     const content = <>
