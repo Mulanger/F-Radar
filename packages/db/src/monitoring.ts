@@ -800,12 +800,10 @@ export async function listRecentChangesForOrg(db: Queryable, organizationId: str
             EXISTS (SELECT 1 FROM monitoring_changes l
                      WHERE l.event_id = c.event_id AND l.property_id = c.property_id AND l.organization_id = c.organization_id
                        AND (l.created_at, l.id) > (c.created_at, c.id)) AS superseded,
-            (SELECT max(a.acknowledged_at) FROM feed_acknowledgements a JOIN monitoring_changes p ON p.id = a.change_id
-              WHERE a.organization_id = c.organization_id
-                AND (p.id = c.id OR (p.event_id = c.event_id AND p.property_id = c.property_id AND (p.created_at, p.id) < (c.created_at, c.id)
-                                     AND ${severityRankSql('p')} >= ${severityRankSql('c')}))) AS acknowledged_at
+            ack.acknowledged_at
        FROM ${forPortfolio ? 'feed_changes' : 'monitoring_changes'} c
        LEFT JOIN source_events e ON e.id = c.event_id
+       LEFT JOIN feed_acknowledgements ack ON ack.organization_id = c.organization_id AND ack.change_id = c.id
       WHERE c.organization_id = $1 ORDER BY c.created_at DESC, c.id DESC ${forPortfolio ? '' : 'LIMIT $2'}`,
     forPortfolio ? [organizationId, limit, viewerId] : [organizationId, limit],
   );
@@ -840,12 +838,7 @@ export async function listActiveAlarmChangesForOrg(db: Queryable, organizationId
             COALESCE(latest.created_at, m.first_matched_at) AS created_at, true AS event_active,
             e.source_id = 'utility_outages' AND e.geom IS NOT NULL AS outage_on_map,
             CASE WHEN seen.change_id IS NULL THEN notification.id::text END AS unread_alarm_id,
-            (SELECT max(a.acknowledged_at)
-             FROM feed_acknowledgements a JOIN monitoring_changes p ON a.change_id = p.id
-             WHERE a.organization_id = m.organization_id AND p.organization_id = a.organization_id
-               AND p.property_id = m.property_id AND p.event_id = m.event_id
-               AND (p.created_at, p.id) <= (latest.created_at, latest.id)
-               AND p.created_at >= m.first_matched_at AND ${severityRankSql('p')} >= ${severityRankSql('latest')}) AS acknowledged_at
+            ack.acknowledged_at
        FROM property_event_matches m
        JOIN source_events e ON e.id = m.event_id AND e.status = 'active'
        JOIN properties p ON p.id = m.property_id AND p.organization_id = m.organization_id AND p.status <> 'paused'
@@ -855,6 +848,7 @@ export async function listActiveAlarmChangesForOrg(db: Queryable, organizationId
            AND c.created_at >= m.first_matched_at
          ORDER BY c.created_at DESC, c.id DESC LIMIT 1
        ) latest ON true
+       LEFT JOIN feed_acknowledgements ack ON ack.organization_id = m.organization_id AND ack.change_id = latest.id
        LEFT JOIN LATERAL (
          SELECT ranked.id FROM (
            SELECT c.id, c.created_at, c.change_type, ${severityRankSql('c')} AS rank,
@@ -908,17 +902,13 @@ export async function acknowledgeFeedChange(db: Queryable, organizationId: strin
 }
 
 /**
- * TENANT write: undo. Removes the acknowledgement of this row and of earlier rows of the same event
- * for the same property (the ones that covered it), so the row asks for acknowledgement again.
+ * TENANT write: undo the acknowledgement of this feed row.
  */
 export async function unacknowledgeFeedChange(db: Queryable, organizationId: string, changeId: string, userId: string): Promise<void> {
   await db.query(
     `WITH removed AS (
        DELETE FROM feed_acknowledgements a
-       USING monitoring_changes c, monitoring_changes p
-       WHERE c.id = $2::bigint AND c.organization_id = $1
-         AND a.organization_id = $1 AND p.id = a.change_id
-         AND (p.id = c.id OR (p.event_id = c.event_id AND p.property_id = c.property_id AND (p.created_at, p.id) < (c.created_at, c.id)))
+       WHERE a.organization_id = $1 AND a.change_id = $2::bigint
        RETURNING a.change_id, a.acknowledged_at
      )
      UPDATE feed_acknowledgement_history h

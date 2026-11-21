@@ -589,11 +589,14 @@ export function buildFeed(changes: FeedChange[], propertyIds: Set<string>): Feed
 }
 
 function toFeedItem(c: FeedChange): FeedItem {
+  const ack = { sourceId: c.source_id, changeType: c.change_type, severity: c.severity };
+  const acknowledgementUpdate = c.change_type === 'updated' && feedNeedsAck({ ...ack, eventActive: true });
   return {
       id: c.id.startsWith('alarm-') ? c.id : `chg-${c.id}`,
       publishedAt: c.created_at.toISOString(),
       ...(c.revision ? { updatedAt: c.revision.at.toISOString() } : {}),
       ...(c.revision && !c.revision.read ? { unreadUpdateId: `chg-${c.revision.id}` } : {}),
+      ...(acknowledgementUpdate ? { acknowledgementUpdate: true } : {}),
       ...(c.revision?.eventId && c.revision.eventId !== c.event_id ? { updatedEventId: c.revision.eventId } : {}),
       // Outage rows already carry a complete, state-specific title ("Strömmen är tillbaka …").
       title: c.source_id === 'utility_outages' || c.change_type === 'active' ? c.headline : `${CHANGE_SV[c.change_type] ?? c.change_type}: ${c.headline}`,
@@ -605,7 +608,7 @@ function toFeedItem(c: FeedChange): FeedItem {
       ...(c.event_id && c.event_ended_on_map ? { eventEndedOnMap: true } : {}),
       ...(c.event_id && c.outage_on_map ? { outageOnMap: true } : {}),
       ...(c.source_id === 'trafikverket' && nightWorkLabel(c.event_valid_from, c.event_valid_to, c.event_description) ? { nightWork: nightWorkLabel(c.event_valid_from, c.event_valid_to, c.event_description) } : {}),
-      ...(feedNeedsAck({ sourceId: c.source_id, changeType: c.change_type, severity: c.severity, eventActive: c.event_active === true, superseded: c.superseded === true })
+      ...(feedNeedsAck({ ...ack, eventActive: c.event_active === true, superseded: c.superseded === true })
         ? { ackRequired: true, acknowledgedAt: c.acknowledged_at ? c.acknowledged_at.toISOString() : null }
         : {}),
       origin: 'live',

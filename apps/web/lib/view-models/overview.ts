@@ -253,7 +253,11 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
         rowKey: opensTrafficDetails ? `${f.propertyId}:${f.eventId}` : f.id,
         t: feedTime(f.publishedAt, portfolio.generatedAt),
         unreadUpdateId: f.unreadUpdateId ?? null,
-        title: f.title,
+        acknowledgementUpdate: f.acknowledgementUpdate === true,
+        updateGroupKey: f.acknowledgementUpdate && f.eventId
+          ? JSON.stringify([f.sourceId, f.eventId, f.publishedAt, f.title, f.severity])
+          : null,
+        title: f.acknowledgementUpdate ? f.title.replace(/^Uppdaterad: /, '') : f.title,
         src: f.sourceLabel,
         c: sev(f.severity).c,
         bg: sev(f.severity).bg,
@@ -351,3 +355,22 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
 }
 
 export type OverviewVM = ReturnType<typeof buildOverviewVM>;
+export type OverviewFeedRow = OverviewVM['feed'][number];
+
+/** One source revision can create several property rows in the same matching batch. */
+export function groupFeedRows(feed: OverviewVM['feed']): OverviewFeedRow[][] {
+  const groups: OverviewFeedRow[][] = [];
+  const updates = new Map<string, OverviewFeedRow[]>();
+  for (const row of feed) {
+    const key = row.updateGroupKey;
+    const group = key ? updates.get(key) : undefined;
+    if (group) {
+      group.push(row);
+    } else {
+      const rows = [row];
+      groups.push(rows);
+      if (key) updates.set(key, rows);
+    }
+  }
+  return groups;
+}

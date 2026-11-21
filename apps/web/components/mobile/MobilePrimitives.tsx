@@ -5,6 +5,7 @@ import { IconChevronRight } from '../ui/icons';
 import type { OverviewVM } from '@/lib/view-models/overview';
 import { FeedMapButton, FeedUpdatedBadge, type FeedMapTarget } from '../dashboard/FeedEventMap';
 import { FeedAckButton, type FeedAcks } from '../dashboard/FeedAck';
+import { FeedRows } from '../dashboard/FeedRows';
 import { NightMoon } from '../dashboard/NightMoon';
 import styles from './mobile.module.css';
 
@@ -32,14 +33,14 @@ export function MobileWeatherCard({ icon, label, value, sub }: { icon: React.Rea
  * button; with `acks`, a row that must be acknowledged gets "Kvittera" beside it, in the lower right corner.
  */
 export function MobileFeedRows({ feed, basePath, from = 'overview', onMap, isUnread, acks }: { feed: OverviewVM['feed']; basePath: string; from?: DashboardSection; onMap?: (row: FeedMapTarget) => void; isUnread?: (row: FeedMapTarget) => boolean; acks?: FeedAcks }) {
-  return feed.map((f) => {
+  return <FeedRows feed={feed} acks={acks} onMap={onMap} property={(row) => <DashboardLink href={propertyHref(basePath, row.propertyId, from)}>{row.prop}</DashboardLink>}>{(f) => {
     const map = onMap && f.mapEventId;
     const ack = acks && f.ackRequired;
     const content = <>
       <span className={styles.feedIcon} style={{ background: f.bg }}><span className={styles.dot} style={{ background: f.c, width: 8, height: 8 }} /></span>
       <span className={styles.feedMain}><span className={styles.feedTitle}>{f.title}</span><span className={styles.feedMeta}><span className={styles.source}>{f.src}</span><span>{f.prop}</span></span></span>
       <span className={styles.feedTime}>
-        {(isUnread?.(f) ?? !!f.unreadUpdateId) && <FeedUpdatedBadge />}
+        {(f.acknowledgementUpdate || (isUnread?.(f) ?? !!f.unreadUpdateId)) && <FeedUpdatedBadge />}
         <span className={styles.time} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: 5 }}>{f.nightWork && <NightMoon label={f.nightWork} />}<time>{f.t}</time></span>
       </span>
     </>;
@@ -54,7 +55,7 @@ export function MobileFeedRows({ feed, basePath, from = 'overview', onMap, isUnr
         </div>}
       </div>
     );
-  });
+  }}</FeedRows>;
 }
 
 export function MobileStatusRows({ rows, basePath }: { rows: OverviewVM['rows']; basePath: string }) {

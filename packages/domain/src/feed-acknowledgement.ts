@@ -25,5 +25,5 @@ export function feedNeedsAck(x: FeedAckInput): boolean {
   return false;
 }
 
-/** Severity rank for "an acknowledgement covers later rows of the same event at the same or a lower level". */
+/** Severity rank used to identify an escalation in the alarm notification list. */
 export const FEED_ACK_SEVERITY_RANK: Record<string, number> = { critical: 3, warning: 2, monitor: 1 };

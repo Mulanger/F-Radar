@@ -61,6 +61,7 @@ export function registerFeedAcknowledgementRoutes(app: FastifyInstance, deps: De
         acknowledgedAt: entry.acknowledged_at.toISOString(),
         undoneAt: entry.undone_at?.toISOString() ?? null,
         imported: entry.imported,
+        isUpdate: entry.is_update,
       })),
     };
   });

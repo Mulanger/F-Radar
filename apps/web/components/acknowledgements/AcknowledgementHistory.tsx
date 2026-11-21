@@ -229,7 +229,7 @@ function HistoryRow({ entry, onUndo, disabled, undoing }: {
     <div className={styles.record} data-open={open}>
       <div className={styles.recordHeader}>
         <button type="button" className={styles.recordSummary} aria-expanded={open} aria-controls={detailsId} onClick={() => setOpen((value) => !value)}>
-          <span className={styles.recordTitle}><strong>{entry.title}</strong><span>{entry.source}</span></span>
+          <span className={styles.recordTitle}><strong>{entry.title}</strong><span>{entry.source}{entry.isUpdate && ' · Uppdaterad'}</span></span>
           <span className={styles.recordProperty}>{entry.propertyName}</span>
           <time className={styles.recordTime} dateTime={entry.acknowledgedAt}>{acknowledgementTime(entry.acknowledgedAt)}</time>
           <span className={styles.recordStatus}>

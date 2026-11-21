@@ -16,12 +16,13 @@ interface HistoryRow {
   acknowledged_at: Date;
   undone_at: Date | null;
   imported: boolean;
+  is_update: boolean;
 }
 
 export async function listAcknowledgementHistory(db: Queryable, organizationId: string, filters: AcknowledgementHistoryFilters) {
   const { rows } = await db.query<HistoryRow>(
     `SELECT h.id, h.property_id, h.property_name, h.property_address, h.source_id, h.operator_name,
-            h.title, h.description, h.area, h.severity, h.event_at, h.acknowledged_at, h.undone_at, h.imported
+            h.title, h.description, h.area, h.severity, h.event_at, h.acknowledged_at, h.undone_at, h.imported, h.is_update
      FROM feed_acknowledgement_history h
      WHERE h.organization_id = $1
        AND ($2::date IS NULL OR h.acknowledged_at >= ($2::date::timestamp AT TIME ZONE 'Europe/Stockholm'))

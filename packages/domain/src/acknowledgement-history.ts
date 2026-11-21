@@ -12,6 +12,7 @@ export interface AcknowledgementHistoryEntry {
   acknowledgedAt: string;
   undoneAt: string | null;
   imported: boolean;
+  isUpdate?: boolean;
 }
 
 export interface AcknowledgementHistoryFilters {
