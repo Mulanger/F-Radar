@@ -509,6 +509,7 @@ const CHANGE_SV: Record<string, string> = { new: 'Ny', updated: 'Uppdaterad', en
 type FeedChange = {
   id: string; property_id: string; event_id?: string | null; event_ended_on_map?: boolean; outage_on_map?: boolean; event_active?: boolean; superseded?: boolean;
   acknowledged_at?: Date | null; source_id: string; change_type: string; severity: string; headline: string; created_at: Date;
+  dedup_key?: string | null;
   event_type?: string | null; situation_id?: string | null; event_valid_from?: Date | null; event_valid_to?: Date | null; event_description?: string | null;
   update_read?: boolean;
   revision?: { id: string; at: Date; eventId: string | null | undefined; read: boolean };
@@ -589,11 +590,16 @@ export function buildFeed(changes: FeedChange[], propertyIds: Set<string>): Feed
 }
 
 function toFeedItem(c: FeedChange): FeedItem {
+  const ack = { sourceId: c.source_id, changeType: c.change_type, severity: c.severity };
+  const acknowledgementUpdate = c.change_type === 'updated' && feedNeedsAck({ ...ack, eventActive: true });
+  // Monitoring deduplication keys store the source revision after the event UUID.
+  const revision = c.dedup_key?.match(/:v(\d+)(?::|$)/)?.[1] ?? (c.revision?.at ?? c.created_at).toISOString();
   return {
       id: c.id.startsWith('alarm-') ? c.id : `chg-${c.id}`,
       publishedAt: c.created_at.toISOString(),
       ...(c.revision ? { updatedAt: c.revision.at.toISOString() } : {}),
       ...(c.revision && !c.revision.read ? { unreadUpdateId: `chg-${c.revision.id}` } : {}),
+      ...(acknowledgementUpdate ? { acknowledgementUpdate: true } : {}),
       ...(c.revision?.eventId && c.revision.eventId !== c.event_id ? { updatedEventId: c.revision.eventId } : {}),
       // Outage rows already carry a complete, state-specific title ("Strömmen är tillbaka …").
       title: c.source_id === 'utility_outages' || c.change_type === 'active' ? c.headline : `${CHANGE_SV[c.change_type] ?? c.change_type}: ${c.headline}`,
@@ -602,10 +608,11 @@ function toFeedItem(c: FeedChange): FeedItem {
       severity: c.change_type === 'ended' || c.change_type === 'cancelled' ? 'normal' : c.source_id === 'utility_outages' && c.severity === 'info' ? 'monitor' : (SEV_STATUS[c.severity] ?? 'unknown'),
       propertyId: c.property_id,
       ...(c.event_id ? { eventId: c.event_id } : {}),
+      ...(c.event_id ? { eventGroupId: JSON.stringify([c.source_id, c.event_id, c.change_type, revision, c.revision?.eventId ?? null]) } : {}),
       ...(c.event_id && c.event_ended_on_map ? { eventEndedOnMap: true } : {}),
       ...(c.event_id && c.outage_on_map ? { outageOnMap: true } : {}),
       ...(c.source_id === 'trafikverket' && nightWorkLabel(c.event_valid_from, c.event_valid_to, c.event_description) ? { nightWork: nightWorkLabel(c.event_valid_from, c.event_valid_to, c.event_description) } : {}),
-      ...(feedNeedsAck({ sourceId: c.source_id, changeType: c.change_type, severity: c.severity, eventActive: c.event_active === true, superseded: c.superseded === true })
+      ...(feedNeedsAck({ ...ack, eventActive: c.event_active === true, superseded: c.superseded === true })
         ? { ackRequired: true, acknowledgedAt: c.acknowledged_at ? c.acknowledged_at.toISOString() : null }
         : {}),
       origin: 'live',

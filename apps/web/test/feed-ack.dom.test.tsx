@@ -60,6 +60,84 @@ describe('traffic updates in the feed', () => {
 });
 
 describe('kvittering i händelseflödet', () => {
+  it.each(['desktop', 'mobile'])('groups new outages without an update badge on %s', (device) => {
+    const properties = demoPortfolio.properties.slice(0, 3);
+    const publishedAt = demoPortfolio.generatedAt;
+    const row: Portfolio['feed'][number] = {
+      id: 'chg-71', propertyId: properties[0]!.property.id, eventId: 'one-power-outage', eventGroupId: 'outage:1:v1',
+      sourceId: 'utility_outages', sourceLabel: 'Ellevio', title: 'Strömavbrott', severity: 'warning',
+      origin: 'live', publishedAt, ackRequired: true,
+    };
+    const same = { ...row, id: 'chg-72', propertyId: properties[1]!.property.id, publishedAt: new Date(Date.parse(publishedAt) - 60_000).toISOString() };
+    const separate = { ...row, id: 'chg-73', propertyId: properties[2]!.property.id, eventId: undefined, eventGroupId: undefined };
+    activePortfolio = { ...demoPortfolio, properties, feed: [row, same, separate] };
+    mocks.mode = 'live';
+    const { container } = render(device === 'mobile' ? <MobileAlerts /> : <AlertFeed vm={buildOverviewVM(activePortfolio, ui)} isDemo={false} onOpen={mocks.openProperty} />);
+    expect(screen.getAllByText('Strömavbrott')).toHaveLength(2);
+    expect(screen.queryByText('Uppdaterad')).toBeNull();
+    const group = container.querySelector('details')!;
+    expect(group.querySelector('summary')?.textContent).toContain('2 berörda fastigheter');
+    expect(group.querySelectorAll('li')).toHaveLength(2);
+  });
+
+  it.each(['desktop', 'mobile'])('groups one SMHI revision and saves only the chosen property on %s', async (device) => {
+    const properties = demoPortfolio.properties.slice(0, 4);
+    expect(properties).toHaveLength(4);
+    const publishedAt = demoPortfolio.generatedAt;
+    const rows: Portfolio['feed'] = properties.map(({ property }, i) => ({
+      id: `chg-${51 + i}`, propertyId: property.id, eventId: 'one-snow-warning', sourceId: 'smhi_warnings',
+      sourceLabel: 'SMHI', title: 'Uppdaterad: Snöfall', severity: 'monitor', origin: 'live',
+      publishedAt, acknowledgementUpdate: true, ackRequired: true, acknowledgedAt: i >= 2 ? publishedAt : null,
+    }));
+    const older = { ...rows[0]!, id: 'chg-49', publishedAt: new Date(Date.parse(publishedAt) - 60_000).toISOString(), ackRequired: false };
+    const separate = { ...rows[0]!, id: 'chg-50', eventId: 'another-snow-warning', ackRequired: false };
+    activePortfolio = { ...demoPortfolio, properties, feed: [...rows, older, separate] };
+    mocks.mode = 'live';
+    const save = vi.fn().mockResolvedValue(Response.json({ changeId: 'chg-51', at: publishedAt }));
+    vi.stubGlobal('fetch', save);
+    const { container } = render(device === 'mobile' ? <MobileAlerts /> : <AlertFeed vm={buildOverviewVM(activePortfolio, ui)} isDemo={false} onOpen={mocks.openProperty} />);
+    const group = container.querySelector('details')!;
+    const summary = group.querySelector('summary')!;
+    expect(container.querySelectorAll('details')).toHaveLength(1);
+    expect(screen.getAllByText('Snöfall')).toHaveLength(3);
+    expect(group.open).toBe(false);
+    expect(summary.textContent).toContain('4 berörda fastigheter');
+    expect(summary.textContent).toContain('2 att kvittera');
+    fireEvent.click(summary);
+    expect(group.open).toBe(true);
+    expect(group.querySelectorAll('li')).toHaveLength(4);
+    fireEvent.click(within(group).getByRole('button', { name: `Kvittera: Snöfall · ${properties[0]!.property.name}` }));
+    await vi.waitFor(() => expect(within(summary).getByText('1 att kvittera')).toBeTruthy());
+    expect(save).toHaveBeenCalledWith('/api/app/feed/acknowledgements', expect.objectContaining({
+      body: JSON.stringify({ changeId: 'chg-51', acknowledged: true }),
+    }));
+    expect(within(summary).getByText('Uppdaterad')).toBeTruthy();
+  });
+
+  it.each(['desktop', 'mobile'])('keeps the update label after opening and acknowledging a warning on %s', async (device) => {
+    const propertyId = demoPortfolio.properties[0]!.property.id;
+    activePortfolio = { ...demoPortfolio, feed: [{
+      id: 'chg-51', propertyId, eventId: 'snow-warning', sourceId: 'smhi_warnings', sourceLabel: 'SMHI',
+      title: 'Uppdaterad: Snöfall', severity: 'monitor', origin: 'live', publishedAt: demoPortfolio.generatedAt,
+      acknowledgementUpdate: true, ackRequired: true, acknowledgedAt: null,
+    }] };
+    mocks.mode = 'live';
+    const save = vi.fn().mockResolvedValue(Response.json({ changeId: 'chg-51', at: '2026-11-18T08:00:00.000Z' }));
+    vi.stubGlobal('fetch', save);
+    render(device === 'mobile' ? <MobileAlerts /> : <AlertFeed vm={buildOverviewVM(activePortfolio, ui)} isDemo={false} onOpen={mocks.openProperty} />);
+    const headline = screen.getByText('Snöfall');
+    headline.closest('a')?.addEventListener('click', (event) => event.preventDefault());
+    fireEvent.click(headline);
+    expect(screen.getByText('Uppdaterad')).toBeTruthy();
+    expect(save).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Kvittera: Snöfall' }));
+    await screen.findByText('Kvitterad');
+    expect(save).toHaveBeenCalledWith('/api/app/feed/acknowledgements', expect.objectContaining({
+      body: JSON.stringify({ changeId: 'chg-51', acknowledged: true }),
+    }));
+    expect(screen.getByText('Uppdaterad')).toBeTruthy();
+  });
+
   it('asks to acknowledge warnings, VMA and outages only, and counts what is left', () => {
     expect(vm.feed.filter((f) => f.ackRequired).map((f) => f.src)).toEqual(['SMHI', 'Krisinformation', 'Ellevio']);
     render(<AlertFeed vm={vm} isDemo onOpen={mocks.openProperty} />);

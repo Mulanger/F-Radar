@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { C, FONT_MONO } from '@/lib/design/tokens';
-import { IconBell, IconBuildingSimple, IconCalendar, IconChevronDown, IconPlus, IconSearch } from '../ui/icons';
+import { IconBuildingSimple, IconCalendar, IconChevronDown, IconPlus, IconSearch } from '../ui/icons';
 import { PropertyList } from '../properties/PropertyList';
 import { Popover } from '../ui/Popover';
 import { usePropertyEditor } from '../properties/PropertyEditorHost';
@@ -69,13 +69,6 @@ export function Header() {
       {!isDemo && <LiveStatus generatedAt={portfolio.generatedAt} />}
 
       <div className="fr-header-actions" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <button
-          aria-label="Aviseringar"
-          style={{ width: 44, height: 44, borderRadius: '50%', background: C.white, border: '1px solid rgba(20,23,26,0.06)', display: 'grid', placeItems: 'center', position: 'relative', cursor: 'pointer', color: C.ink }}
-        >
-          <IconBell />
-          {isDemo && <span style={{ position: 'absolute', top: 10, right: 11, width: 8, height: 8, borderRadius: '50%', background: 'oklch(0.62 0.19 28)', border: '2px solid #fff' }} />}
-        </button>
         <button
           className="fr-hover-dark"
           onClick={editor.openCreate}

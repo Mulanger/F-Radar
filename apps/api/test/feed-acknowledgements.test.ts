@@ -102,7 +102,8 @@ describe('feed acknowledgements (kvittering i händelseflödet)', () => {
     await a.inject({ method: 'POST', url: '/v1/feed/acknowledgements', payload: { changeId: '7', acknowledged: true } });
     await a.inject({ method: 'POST', url: '/v1/feed/acknowledgements', payload: { changeId: '7', acknowledged: false } });
     expect(calls).toHaveLength(2);
-    for (const sql of calls) expect(sql).toMatch(/c\.organization_id = \$1/);
+    expect(calls[0]).toContain('c.organization_id = $1');
+    expect(calls[1]).toContain('a.organization_id = $1');
   });
 
   it('rejects malformed row ids', async () => {
@@ -125,7 +126,7 @@ describe('feed acknowledgements (kvittering i händelseflödet)', () => {
             id: '12', property_id: property, property_name: 'Strandhuset', property_address: 'Åvägen 2',
             source_id: 'smhi_warnings', operator_name: null, title: 'Snövarning', description: 'Hela texten',
             area: 'Stockholm', severity: 'warning', event_at: at, acknowledged_at: at,
-            acknowledged_by: 'user_a', undone_at: at, undone_by: 'user_b', imported: false,
+            acknowledged_by: 'user_a', undone_at: at, undone_by: 'user_b', imported: false, is_update: true,
           }] as R[] };
         }
         return { rows: [{ id: property, name: 'Strandhuset', address: 'Åvägen 2' }] as R[] };
@@ -135,7 +136,7 @@ describe('feed acknowledgements (kvittering i händelseflödet)', () => {
     const res = await a.inject(`/v1/feed/acknowledgements?from=2026-11-18&to=2026-11-19&property=${property}&organizationId=org-b`);
     expect(res.statusCode).toBe(200);
     expect(res.json()).toMatchObject({
-      entries: [{ description: 'Hela texten', source: 'SMHI', acknowledgedAt: at.toISOString(), undoneAt: at.toISOString() }],
+      entries: [{ description: 'Hela texten', source: 'SMHI', acknowledgedAt: at.toISOString(), undoneAt: at.toISOString(), isUpdate: true }],
       properties: [{ id: property }],
       nextCursor: null,
     });
@@ -189,13 +190,31 @@ describe('which feed rows must be acknowledged', () => {
     const NOW = new Date('2026-11-18T07:00:00Z');
     const PID = 'p1';
     const base = { property_id: PID, source_id: 'smhi_warnings', change_type: 'new', severity: 'monitor', headline: 'Gul varning: vind', created_at: NOW, event_active: true, superseded: false };
-    const [open, done, info] = buildFeed([
-      { ...base, id: '1', acknowledged_at: null },
+    const [open, done, info, superseded] = buildFeed([
+      { ...base, id: '1', change_type: 'updated', acknowledged_at: null },
       { ...base, id: '2', acknowledged_at: new Date('2026-11-18T07:30:00Z') },
       { ...base, id: '3', source_id: 'trafikverket', severity: 'warning' },
+      { ...base, id: '4', change_type: 'updated', superseded: true },
     ], new Set([PID]));
-    expect(open).toMatchObject({ ackRequired: true, acknowledgedAt: null });
+    expect(open).toMatchObject({ acknowledgementUpdate: true, ackRequired: true, acknowledgedAt: null });
     expect(done).toMatchObject({ ackRequired: true, acknowledgedAt: '2026-11-18T07:30:00.000Z' });
     expect(info).not.toHaveProperty('ackRequired');
+    expect(superseded).toMatchObject({ acknowledgementUpdate: true });
+    expect(superseded).not.toHaveProperty('ackRequired');
+  });
+
+  it('identifies the same source revision across property matches made at different times', () => {
+    const base = { event_id: 'event-1', source_id: 'utility_outages', change_type: 'new', severity: 'warning', headline: 'Strömavbrott' };
+    const rows = buildFeed([
+      { ...base, id: '1', property_id: 'p1', dedup_key: 'p1:event-1:v2:inside', created_at: new Date('2026-11-20T10:00:00Z') },
+      { ...base, id: '2', property_id: 'p2', dedup_key: 'p2:event-1:v2:inside', created_at: new Date('2026-11-20T10:05:00Z') },
+      { ...base, id: '3', property_id: 'p2', dedup_key: 'p2:event-1:v3:inside', created_at: new Date('2026-11-20T10:05:00Z') },
+      { ...base, id: '4', property_id: 'p2', dedup_key: 'p2:event-1:v2:gone', created_at: new Date('2026-11-20T10:05:00Z'), change_type: 'ended' },
+    ], new Set(['p1', 'p2']));
+    const groups = new Map(rows.map((item) => [item.id, item.eventGroupId]));
+    expect(groups.get('chg-1')).toBeTruthy();
+    expect(groups.get('chg-1')).toBe(groups.get('chg-2'));
+    expect(groups.get('chg-1')).not.toBe(groups.get('chg-3'));
+    expect(groups.get('chg-1')).not.toBe(groups.get('chg-4'));
   });
 });

@@ -33,7 +33,7 @@ export function DemoAcknowledgementProvider({ portfolio, children }: { portfolio
         id: `${changeId}-${next}`, changeId, propertyId: property.id, propertyName: property.name, propertyAddress: property.address,
         title: feed.title, description: warning?.summary ?? null, area: warning?.region ?? property.area,
         source: feed.sourceLabel, severity: feed.severity, eventAt: feed.publishedAt, acknowledgedAt: next,
-        undoneAt: null, imported: false,
+        undoneAt: null, imported: false, isUpdate: feed.acknowledgementUpdate,
       }, ...current.entries] : current.entries.map((entry) => entry.changeId === changeId && !entry.undoneAt
         ? { ...entry, undoneAt } : entry),
     }));

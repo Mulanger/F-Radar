@@ -363,6 +363,8 @@ export const FeedItemSchema = z.object({
   updatedAt: IsoDateTimeSchema.optional(),
   /** The newest traffic revision, present only until this viewer opens it. */
   unreadUpdateId: z.string().optional(),
+  /** A revision in the acknowledgement workflow. The update label also applies after it is opened. */
+  acknowledgementUpdate: z.boolean().optional(),
   /** The start or escalation of an active alarm that this viewer has yet to see. */
   unreadAlarmId: z.string().optional(),
   /** A merged traffic card opens the member containing the most recent revision. */
@@ -374,6 +376,8 @@ export const FeedItemSchema = z.object({
   propertyId: z.string(),
   /** The source event behind the row, when there is one (lets the dashboard open it on the map). */
   eventId: z.string().optional(),
+  /** Identifies a source event revision and change type across property matches. */
+  eventGroupId: z.string().optional(),
   /** The event has ended but its stretch is still stored: it can be shown on the map, greyed out. */
   eventEndedOnMap: z.boolean().optional(),
   /** A current utility outage with a drawable area: it can be shown on the map. */
@@ -382,7 +386,7 @@ export const FeedItemSchema = z.object({
   nightWork: z.string().nullable().optional(),
   /** Someone in the organization must acknowledge this row (warnings, VMA, critical, outages). */
   ackRequired: z.boolean().optional(),
-  /** When it was acknowledged (this row, or an earlier row of the same event at the same or a higher level). */
+  /** When this specific feed row was acknowledged. */
   acknowledgedAt: IsoDateTimeSchema.nullable().optional(),
   origin: DataOriginSchema,
 });

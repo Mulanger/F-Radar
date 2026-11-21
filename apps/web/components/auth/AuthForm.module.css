@@ -264,7 +264,9 @@
 .meterLabel { font-size: 12px; white-space: nowrap; }
 
 @media (max-width: 819.98px) {
-  .title { font-size: 30px; }
+  .title { font-size: 32px; }
+  .input:not(.code) { font-size: 16px; }
+  .lead, .alt { color: #60686f; }
 }
 
 @media (prefers-reduced-motion: reduce) {

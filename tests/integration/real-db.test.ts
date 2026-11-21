@@ -19,12 +19,15 @@ import {
   ensureOrganization,
   getProperty,
   listProperties,
+  listActiveAlarmChangesForOrg,
+  listRecentChangesForOrg,
   listAcknowledgementHistory,
   undoAcknowledgementHistory,
   migrateUp,
   migrationStatus,
   updateProperty,
   applyRetention,
+  endEventsById,
   endMissingEvents,
   ensureJobs,
   finishJob,
@@ -289,6 +292,49 @@ describe('real PostgreSQL / PostGIS', () => {
     sourceUpdatedAt: null, validFrom: null, validTo: null, status: 'active', sourceUrl: null, attribution: 'Källa: test', extra: {}, ...over,
   });
   const goteborg = { ...sveavagen, name: 'Avenyn 1', address: 'Kungsportsavenyen 1, Göteborg', location: { lat: 57.7037, lon: 11.9746 }, geocode: { ...sveavagen.geocode, municipality: 'Göteborgs kommun' } };
+
+  it('keeps acknowledgements and the history label specific to each official warning revision', async () => {
+    const a = { organizationId: await ensureOrganization(pool, ORG_A, 'org-a'), userId: 'user_testA' };
+    const property = await createProperty(pool, a, sveavagen);
+    const warning = ev({ externalId: 'ack-revisions', geometry: box(18.06, 59.33, 0.03) });
+    const feed = async () => (await listRecentChangesForOrg(pool, a.organizationId, 20, a.userId))
+      .filter((row) => row.property_id === property.id && row.source_id === 'smhi_warnings');
+    const alarms = async () => (await listActiveAlarmChangesForOrg(pool, a.organizationId, a.userId))
+      .find((row) => row.property_id === property.id && row.source_id === 'smhi_warnings');
+    try {
+      await upsertSourceEvents(pool, 'smhi_warnings', [warning]);
+      await rematchEvents(pool);
+      const [original] = await feed();
+      assert.equal(original?.change_type, 'new');
+      const originalAck = await acknowledgeFeedChange(pool, a.organizationId, original!.id, a.userId);
+      assert.ok(originalAck);
+
+      await upsertSourceEvents(pool, 'smhi_warnings', [{ ...warning, description: 'Ändrad varningstext' }]);
+      await rematchEvents(pool);
+      const [revision, previous] = await feed();
+      assert.equal(revision?.change_type, 'updated');
+      assert.equal(revision?.acknowledged_at, null);
+      assert.deepEqual(previous?.acknowledged_at, originalAck);
+      assert.equal((await alarms())?.acknowledged_at, null);
+
+      const revisionAck = await acknowledgeFeedChange(pool, a.organizationId, revision!.id, a.userId);
+      assert.ok(revisionAck);
+      assert.deepEqual((await alarms())?.acknowledged_at, revisionAck);
+      const history = await listAcknowledgementHistory(pool, a.organizationId, { property: property.id });
+      assert.deepEqual(history.entries.map(({ is_update }) => is_update), [true, false]);
+      assert.ok(await undoAcknowledgementHistory(pool, a.organizationId, history.entries[0]!.id, a.userId));
+      const [reopened, unchanged] = await feed();
+      assert.equal(reopened?.acknowledged_at, null);
+      assert.deepEqual(unchanged?.acknowledged_at, originalAck);
+
+      await pool.query('DELETE FROM monitoring_changes WHERE id = $1', [revision!.id]);
+      const archived = await listAcknowledgementHistory(pool, a.organizationId, { property: property.id });
+      assert.equal(archived.entries.find(({ id }) => id === history.entries[0]!.id)?.is_update, true);
+    } finally {
+      await endEventsById(pool, 'smhi_warnings', [warning.externalId], 'test_finished');
+      await deleteProperty(pool, a, property.id);
+    }
+  });
 
   it('migration 0003 creates monitoring tables and seeds the source catalog', async () => {
     const { rows } = await pool.query<{ t: string }>(`SELECT tablename AS t FROM pg_tables WHERE schemaname = 'public'`);

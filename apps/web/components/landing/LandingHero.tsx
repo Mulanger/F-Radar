@@ -146,10 +146,6 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
                 </div>
               ))}
             </dl>
-
-            <div aria-hidden="true" className={css.dragHint} style={{ position: 'absolute', right: 24, bottom: 30, fontFamily: MONO, fontSize: 11.5, color: '#6B737B', letterSpacing: '0.02em' }}>
-              ← dra för att rotera →
-            </div>
           </div>
         </div>
 

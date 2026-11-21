@@ -13,6 +13,7 @@
 .root a { color: #14171a; text-decoration: none; }
 .root a:hover { color: #4a5157; }
 
+.navBrand { margin-inline-start: 4px; }
 .navLink { color: #4a5157 !important; transition: background 0.2s, color 0.2s; }
 .navLink:hover { background: rgba(20, 23, 26, 0.05); color: #14171a !important; }
 .navLinkCurrent, .navLinkCurrent:hover { background: #e8e8e5; color: #14171a !important; font-weight: 500; }
@@ -178,7 +179,6 @@
   .mobileWeather > div { display: flex; gap: 3px; }
   .mobileWeather dt { color: #59636b; font-weight: 400; }
   .mobileWeather dd { margin: 0; }
-  .dragHint { display: none; }
 }
 
 /* The complete mobile landing reference: copy, illustration, then supporting details.

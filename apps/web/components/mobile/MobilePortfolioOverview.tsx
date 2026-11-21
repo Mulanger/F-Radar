@@ -2,7 +2,7 @@
 
 import { useViewScroll } from '@/lib/navigation/view-state';
 import { useMemo } from 'react';
-import type { OverviewVM } from '@/lib/view-models/overview';
+import { groupFeedRows, type OverviewVM } from '@/lib/view-models/overview';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { C } from '@/lib/design/tokens';
 import { portfolioSceneConfig } from '../three/property-scene';
@@ -44,7 +44,7 @@ export function MobilePortfolioOverview({ vm }: { vm: OverviewVM }) {
         {acks.pending(vm.feed) > 0 && <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '-4px 4px 10px' }}><FeedAckCount n={acks.pending(vm.feed)} /></div>}
         <div className={`${styles.surface} ${styles.list}`}>
           {!vm.feed.length && <div className={styles.empty}>{hasFeed ? 'Inga händelser för valda fastigheter.' : 'Händelser visas när de offentliga datakällorna levererar data.'}</div>}
-          <MobileScrollList scrollKey={`${scrollKey}:feed`} visible={4} count={vm.feed.length} label="Händelser"><MobileFeedRows feed={vm.feed} basePath={ds.basePath} onMap={map.open} isUnread={map.isUnread} acks={acks} /></MobileScrollList>
+          <MobileScrollList scrollKey={`${scrollKey}:feed`} visible={4} count={groupFeedRows(vm.feed).length} label="Händelser"><MobileFeedRows feed={vm.feed} basePath={ds.basePath} onMap={map.open} isUnread={map.isUnread} acks={acks} /></MobileScrollList>
         </div>
       </MobileSection>
       <MobileSection title="Bevakningsstatus" subtitle="Sorterat efter risk" meta={<span className={styles.meta}>Risk</span>}>

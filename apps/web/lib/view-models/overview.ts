@@ -253,7 +253,11 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
         rowKey: opensTrafficDetails ? `${f.propertyId}:${f.eventId}` : f.id,
         t: feedTime(f.publishedAt, portfolio.generatedAt),
         unreadUpdateId: f.unreadUpdateId ?? null,
-        title: f.title,
+        acknowledgementUpdate: f.acknowledgementUpdate === true,
+        eventGroupKey: f.eventId
+          ? JSON.stringify([f.eventGroupId ?? [f.sourceId, f.eventId, f.updatedEventId, f.updatedAt ?? f.publishedAt], f.title, f.severity, f.nightWork])
+          : null,
+        title: f.acknowledgementUpdate ? f.title.replace(/^Uppdaterad: /, '') : f.title,
         src: f.sourceLabel,
         c: sev(f.severity).c,
         bg: sev(f.severity).bg,
@@ -351,3 +355,22 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
 }
 
 export type OverviewVM = ReturnType<typeof buildOverviewVM>;
+export type OverviewFeedRow = OverviewVM['feed'][number];
+
+/** Collect matching properties under one card for the same source revision. */
+export function groupFeedRows(feed: OverviewVM['feed']): OverviewFeedRow[][] {
+  const groups: OverviewFeedRow[][] = [];
+  const events = new Map<string, OverviewFeedRow[]>();
+  for (const row of feed) {
+    const key = row.eventGroupKey;
+    const group = key ? events.get(key) : undefined;
+    if (group && !group.some((member) => member.propertyId === row.propertyId)) {
+      group.push(row);
+    } else {
+      const rows = [row];
+      groups.push(rows);
+      if (key && !group) events.set(key, rows);
+    }
+  }
+  return groups;
+}
