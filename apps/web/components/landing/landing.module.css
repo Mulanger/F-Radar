@@ -45,6 +45,8 @@
 }
 
 .mobileOnly, .mobileHeroDescription, .mobileIllustration { display: none; }
+/* The phone hero swaps "Se hur det fungerar" for a link to the pricing page. */
+.heroPricing { display: none !important; }
 .mobileFeatureDetails, .stepsPagination { display: none; }
 .stepsList { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,320px),1fr)); gap: 20px; }
 
@@ -58,6 +60,7 @@
 @media (max-width: 640px) {
   .desktopOnly { display: none !important; }
   .mobileOnly { display: inline; }
+  .heroPricing { display: flex !important; }
   .header { padding: 8px 8px 0 !important; }
   .navigation {
     height: 52px;

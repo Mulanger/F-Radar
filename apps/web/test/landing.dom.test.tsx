@@ -63,6 +63,14 @@ describe('LandingPage (signed out)', () => {
     expect(within(hero).getByRole('link', { name: /Skapa konto/ }).getAttribute('href')).toBe('/sign-up');
   });
 
+  it('offers the price list next to sign-up on phones and the walkthrough on desktop', () => {
+    render(<LandingPage signedIn={false} />);
+    const hero = screen.getByRole('region', { name: 'Introduktion' });
+    expect(within(hero).getByRole('link', { name: 'Prislista' }).getAttribute('href')).toBe('/priser');
+    expect(within(hero).getByRole('link', { name: 'Se hur det fungerar' }).getAttribute('href')).toBe('#sa-fungerar-det');
+    expect(within(hero).queryByText('Så fungerar det')).toBeNull();
+  });
+
   it('has no dead links', () => {
     render(<LandingPage signedIn={false} />);
     for (const link of screen.getAllByRole('link')) {

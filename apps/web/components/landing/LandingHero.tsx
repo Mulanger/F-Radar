@@ -8,6 +8,11 @@ import { LogoMark, MonoChip } from './Primitives';
 import { glass, MONO } from './styles';
 import css from './landing.module.css';
 
+const secondaryAction = {
+  height: 52, display: 'flex', alignItems: 'center', padding: '0 24px', borderRadius: 999,
+  background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(20,23,26,0.07)', fontSize: 16, fontWeight: 500,
+} as const;
+
 /**
  * Hero with the interactive 3D property island (drag to rotate). three.js is loaded lazily after
  * first paint; if WebGL is unavailable the hero keeps its gradient background and all text.
@@ -94,10 +99,12 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
                 {signedIn ? 'Öppna översikten' : 'Skapa konto'}
                 <span aria-hidden="true" style={{ fontSize: 15, opacity: 0.7 }}>→</span>
               </Link>
-              <a href="#sa-fungerar-det" className={css.secondary} style={{ height: 52, display: 'flex', alignItems: 'center', padding: '0 24px', borderRadius: 999, background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(20,23,26,0.07)', fontSize: 16, fontWeight: 500 }}>
-                <span className={css.desktopOnly}>Se hur det fungerar</span>
-                <span className={css.mobileOnly}>Så fungerar det</span>
+              <a href="#sa-fungerar-det" className={`${css.secondary} ${css.desktopOnly}`} style={secondaryAction}>
+                Se hur det fungerar
               </a>
+              <Link href="/priser" className={`${css.secondary} ${css.heroPricing}`} style={secondaryAction}>
+                Prislista
+              </Link>
             </div>
             <div className={css.desktopOnly} style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 6 }}>
               <span style={{ fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6B737B' }}>Källor</span>
