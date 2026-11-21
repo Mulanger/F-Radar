@@ -58,15 +58,13 @@ export interface HeroAnnotation {
   severity: SeverityKey;
 }
 export const HERO_ANNOTATIONS: HeroAnnotation[] = [
-  { source: 'SMHI', time: '14:32', badge: { label: 'Orange', ...BADGE.orange }, title: 'Kraftig vind', detail: 'Byar upp till 25 m/s längs kusten', dot: '#E08A2E', severity: 'warning' },
-  { source: 'SMHI', time: '10:00', badge: { label: 'Observation', ...BADGE.grey }, title: 'Havsvattenstånd +41 cm', detail: 'SMHI Skeppsholmen · 4,4 km · relativt medel', dot: '#9AA1A8', severity: 'normal' },
-  { source: 'Krisinformation', time: '13:20', badge: { label: 'VMA', ...BADGE.red }, title: 'Industribrand', detail: 'Håll fönster och ventilation stängda', dot: '#D8473A', severity: 'critical' },
-  { source: 'Trafikverket', time: '13:10', badge: { label: 'Info', ...BADGE.blue }, title: 'Vägarbete på Värmdövägen', detail: 'Trafikhändelse · 0,9 km från adressen', dot: '#4A7FD0', severity: 'normal' },
+  { source: 'SMHI', time: '14:32', badge: { label: 'Orange', ...BADGE.orange }, title: 'Kraftig vind', detail: 'Byar upp till 25 m/s', dot: '#E08A2E', severity: 'warning' },
+  { source: 'SMHI', time: '10:00', badge: { label: 'Mätning', ...BADGE.grey }, title: 'Havsnivå +41 cm', detail: 'Skeppsholmen · 4,4 km', dot: '#9AA1A8', severity: 'normal' },
+  { source: 'Krisinformation', time: '13:20', badge: { label: 'VMA', ...BADGE.red }, title: 'Industribrand', detail: 'Håll fönster stängda', dot: '#D8473A', severity: 'critical' },
+  { source: 'Trafikverket', time: '13:10', badge: { label: 'Info', ...BADGE.blue }, title: 'Vägarbete', detail: 'Värmdövägen · 0,9 km', dot: '#4A7FD0', severity: 'normal' },
   { source: 'SMHI', time: '12:50', badge: { label: 'Gul', ...BADGE.yellow }, title: 'Kraftigt regn', detail: '20–30 mm inom 12 timmar', dot: '#D9B21F', severity: 'monitor' },
-  { source: 'SMHI / Naturvårdsverket', time: '12:00', badge: { label: 'Observation', ...BADGE.grey }, title: 'PM2,5 1,5 µg/m³ · NO₂ 10,8 µg/m³', detail: 'Hornsgatan · 6,3 km · 14 nov · timhalter', dot: '#3FA66B', severity: 'normal' },
+  { source: 'Naturvårdsverket', time: '12:00', badge: { label: 'Mätning', ...BADGE.grey }, title: 'Luftkvalitet god', detail: 'PM2,5 1,5 µg/m³ · 6,3 km', dot: '#3FA66B', severity: 'normal' },
 ];
-
-export const HERO_SMS = 'Orange varning: kraftig vind vid Augustendal Brygga. Byar upp till 25 m/s, ons 16:00–tors 10:00. Källa: SMHI';
 
 export const PORTFOLIO_ROWS = [
   { name: 'Augustendal Brygga', area: 'Nacka Strand', severity: 'critical' as const, temp: '3,9°', warning: { label: 'Orange · Kraftig vind', ...BADGE.orange } },

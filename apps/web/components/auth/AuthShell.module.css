@@ -119,7 +119,8 @@
   inset: 0;
 }
 
-.mobileBrand { display: none; }
+.mobileBrand,
+.mobileBack { display: none; }
 
 /* Between the design's two sizes (tablets, small laptops): same layout, tighter gutters. */
 @media (min-width: 820px) and (max-width: 1099.98px) {
@@ -200,6 +201,36 @@
 
   .panel[data-mode='signup'] .mobileBrand {
     top: calc(18px + env(safe-area-inset-top));
+  }
+
+  /* Back to the start page; muted so it sits quietly next to the centred brand. */
+  .mobileBack {
+    position: absolute;
+    z-index: 2;
+    top: calc(14px + env(safe-area-inset-top));
+    left: 10px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    color: rgba(20, 23, 26, 0.42);
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.15s ease, background-color 0.15s ease;
+  }
+  .mobileBack:hover,
+  .mobileBack:active {
+    color: rgba(20, 23, 26, 0.75);
+    background: rgba(255, 255, 255, 0.55);
+  }
+  .mobileBack:focus-visible {
+    outline: 2px solid rgba(20, 23, 26, 0.35);
+    outline-offset: 2px;
+  }
+
+  .panel[data-mode='signup'] .mobileBack {
+    top: calc(6px + env(safe-area-inset-top));
   }
 }
 

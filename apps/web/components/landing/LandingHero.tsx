@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { HERO_ANNOTATIONS, HERO_SMS, HERO_SOURCES, HERO_STATS, SEVERITY, type SeverityKey } from '@/lib/landing/content';
+import { HERO_ANNOTATIONS, HERO_SOURCES, HERO_STATS, SEVERITY, type SeverityKey } from '@/lib/landing/content';
 import type { AnnotationEls, LandingSceneHandle } from './hero-scene';
-import { LogoMark, MonoChip } from './Primitives';
+import { MonoChip } from './Primitives';
 import { glass, MONO } from './styles';
 import css from './landing.module.css';
 
@@ -17,11 +17,13 @@ const secondaryAction = {
  * Hero with the interactive 3D property island (drag to rotate). three.js is loaded lazily after
  * first paint; if WebGL is unavailable the hero keeps its gradient background and all text.
  */
+/** Scene cards stay compact: every row is a single line. */
+const oneLine = { minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } as const;
+
 export function LandingHero({ signedIn }: { signedIn: boolean }) {
   const heroRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const colRef = useRef<HTMLDivElement>(null);
-  const smsRef = useRef<HTMLDivElement>(null);
   const annRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [sev, setSev] = useState<SeverityKey>('warning');
 
@@ -43,7 +45,7 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
         });
         try {
           handle = createLandingScene({
-            hero, canvas, col, annotations, sms: smsRef.current,
+            hero, canvas, col, annotations, sms: null,
             severities: HERO_ANNOTATIONS.map((a) => a.severity),
             onSeverity: setSev,
           });
@@ -130,20 +132,6 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
               </span>
             </div>
 
-            <div
-              ref={smsRef}
-              className={css.desktopOnly}
-              aria-hidden="true"
-              style={{ position: 'absolute', top: 18, right: 18, width: 300, maxWidth: 'calc(100% - 36px)', opacity: 0, zIndex: 4, padding: '14px 16px', borderRadius: 20, background: 'rgba(255,255,255,0.86)', border: '1px solid rgba(255,255,255,0.95)', backdropFilter: 'blur(18px) saturate(1.5)', WebkitBackdropFilter: 'blur(18px) saturate(1.5)', boxShadow: '0 18px 40px -18px rgba(20,23,26,0.35)' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                <LogoMark size={26} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#14171A' }}>SMS · FastighetsRadar</span>
-                <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 11.5, color: '#6B737B' }}>nu</span>
-              </div>
-              <div style={{ fontSize: 13.5, lineHeight: 1.45, color: '#14171A' }}>{HERO_SMS}</div>
-            </div>
-
             <div className={css.desktopOnly} style={{ position: 'absolute', left: 22, bottom: 110, fontSize: 11, color: '#4A5157' }}>Illustration · exempelvärden. Väder: modell, SMHI.</div>
             <dl className={css.desktopOnly} style={{ position: 'absolute', left: 22, bottom: 22, margin: 0, display: 'flex', flexWrap: 'wrap', gap: '4px 26px', padding: '14px 22px', borderRadius: 20, ...glass(0.72, 14), boxShadow: '0 10px 30px -18px rgba(20,23,26,0.25)', maxWidth: 'calc(100% - 44px)', boxSizing: 'border-box' }}>
               {HERO_STATS.map((st) => (
@@ -168,10 +156,10 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
                   <span style={{ fontFamily: MONO, fontSize: 11.5, color: '#6B737B' }}>{a.time}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 500, padding: '3px 8px', borderRadius: 7, background: a.badge.bg, color: a.badge.fg }}>{a.badge.label}</span>
-                  <span style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em' }}>{a.title}</span>
+                  <span style={{ flex: 'none', fontSize: 12.5, fontWeight: 500, padding: '3px 8px', borderRadius: 7, background: a.badge.bg, color: a.badge.fg }}>{a.badge.label}</span>
+                  <span style={{ ...oneLine, fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em' }}>{a.title}</span>
                 </div>
-                <div style={{ fontSize: 13, lineHeight: 1.4, color: '#6B737B', marginTop: 6 }}>{a.detail}</div>
+                <div style={{ ...oneLine, fontSize: 13, lineHeight: 1.4, color: '#6B737B', marginTop: 6 }}>{a.detail}</div>
               </div>
             </div>
           ))}
