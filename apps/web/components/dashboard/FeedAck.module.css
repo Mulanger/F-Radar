@@ -33,6 +33,25 @@
 }
 .ack:disabled { opacity: .6; cursor: default; }
 
+/* "Ångra" right after "Kvittera alla" on an event card. */
+.undo {
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 11px;
+  border: 1px solid rgba(20, 23, 26, 0.18);
+  border-radius: 14px;
+  background: #ffffff;
+  color: #14171a;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.undo:hover { background: #f2f3f4; }
+.undo:focus-visible { outline: 2px solid #4a86c5; outline-offset: 2px; }
+.undo:disabled { opacity: .6; cursor: default; }
+
 .count {
   display: inline-flex;
   align-items: center;

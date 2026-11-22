@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { groupFeedRows, type OverviewFeedRow } from '@/lib/view-models/overview';
 import { IconChevronDown } from '../ui/icons';
-import { FeedAckButton, type FeedAcks } from './FeedAck';
+import { FeedAckAllButton, FeedAckButton, type FeedAcks } from './FeedAck';
 import { FeedMapButton, FeedUpdatedBadge } from './FeedEventMap';
 import { NightMoon } from './NightMoon';
 import styles from './FeedRows.module.css';
@@ -45,6 +45,7 @@ export function FeedRows({ feed, acks, onMap, isUnread, property, children }: {
             <span className={styles.time}>{first.nightWork && <NightMoon label={first.nightWork} />}<time>{first.t}</time></span>
             {pending > 0 && <span className={styles.pending}>{pending} att kvittera</span>}
             {pending === 0 && confirmed > 0 && <span className={styles.confirmed}>{confirmed} av {rows.length} kvitterade</span>}
+            {acks && <FeedAckAllButton rows={rows} acks={acks} title={first.title} />}
           </span>
         </summary>
       </FeedGroup>

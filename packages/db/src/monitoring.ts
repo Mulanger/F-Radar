@@ -994,6 +994,45 @@ export async function unacknowledgeFeedChange(db: Queryable, organizationId: str
   );
 }
 
+/** At most this many feed rows per batch acknowledgement (a county warning over 1000 properties). */
+export const FEED_ACK_BATCH_MAX = 1_000;
+
+/**
+ * TENANT write: acknowledge many feed rows at once – "Kvittera alla" on an event over many properties
+ * (docs/plans/skalning.md, Fas 2 / S-05). One statement, so all or none; only rows of the organization.
+ * The history trigger still writes one row per property (the report needs them). Rows already
+ * acknowledged keep their time. Returns each acknowledged row's time.
+ */
+export async function acknowledgeFeedChanges(db: Queryable, organizationId: string, changeIds: string[], userId: string): Promise<Array<{ change_id: string; acknowledged_at: Date }>> {
+  const { rows } = await db.query<{ change_id: string; acknowledged_at: Date }>(
+    `INSERT INTO feed_acknowledgements (organization_id, change_id, acknowledged_by)
+     SELECT c.organization_id, c.id, $3 FROM monitoring_changes c WHERE c.organization_id = $1 AND c.id = ANY($2::bigint[])
+     ON CONFLICT (organization_id, change_id) DO UPDATE SET change_id = EXCLUDED.change_id
+     RETURNING change_id::text, acknowledged_at`,
+    [organizationId, changeIds, userId],
+  );
+  return rows;
+}
+
+/** TENANT write: undo the acknowledgement of many feed rows ("Ångra" for a whole event), in one statement. */
+export async function unacknowledgeFeedChanges(db: Queryable, organizationId: string, changeIds: string[], userId: string): Promise<string[]> {
+  const { rows } = await db.query<{ change_id: string }>(
+    `WITH removed AS (
+       DELETE FROM feed_acknowledgements a
+       WHERE a.organization_id = $1 AND a.change_id = ANY($2::bigint[])
+       RETURNING a.change_id, a.acknowledged_at
+     ), archived AS (
+       UPDATE feed_acknowledgement_history h
+       SET undone_at = GREATEST(clock_timestamp(), h.acknowledged_at), undone_by = $3
+       FROM removed r
+       WHERE h.organization_id = $1 AND h.change_id = r.change_id AND h.acknowledged_at = r.acknowledged_at AND h.undone_at IS NULL
+     )
+     SELECT change_id::text FROM removed`,
+    [organizationId, changeIds, userId],
+  );
+  return rows.map((r) => r.change_id);
+}
+
 /**
  * TENANT read: a property's short activity log ("Tidslinje") – stored monitoring changes plus SMS
  * alerts that named the property, newest first. Traffic (several changes a day, already listed under

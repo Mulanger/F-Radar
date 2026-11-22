@@ -712,6 +712,22 @@ laddas ner. Visat på localhost:3000 och godkänt.
 - **Öppen fråga:** översiktens nyckeltal "Aktiva larm" räknar varning × fastighet (872 i demo vid 500);
   rutan "Officiella varningar" visar redan antalet varningar.
 
+**Genomfört steg 2 – "Kvittera alla" (gren `claude/skalning-fas0`):**
+- `POST /v1/feed/acknowledgements/batch` med `changeIds` (högst 1 000) och `acknowledged`: en SQL-sats,
+  så allt eller inget; bara organisationens egna rader; redan kvitterade rader behåller sin tid.
+  Historiken får fortfarande en rad per fastighet (triggern), som rapporten behöver. Hastighetsgränsen
+  räknar anrop: 60 batchar à 1 000 rader går, inte 60 rader. Ny rutt i BFF:ens allowlista.
+- Gruppkortet har "Kvittera alla (N)"; direkt efter visas "Ångra", som ångrar exakt de rader knappen
+  kvitterade (i samma anrop). Ångra per kvittering finns kvar på kvitteringssidan. Samma i demoläget
+  (`toggleMany`) och på mobilen.
+- **Test:** API (bara egna rader, 1 001 avvisas, ogiltiga id avvisas, ångra, en token per anrop); riktig
+  PostgreSQL med 300 fastigheter (en sats kvitterar alla 300, en annan organisation kvitterar inget,
+  ny kvittering behåller tiden, 300 historikrader en per fastighet, ångra markerar alla 300); DOM-test
+  på dator och mobil (ett anrop med de väntande raderna, kortet öppnas inte, "Ångra" först när
+  sparningen är klar och bara för knappens rader).
+- **Visat på localhost** (`/demo/alerts?n=500`): ett klick på "Kvittera alla (500)" → "500 av 500
+  kvitterade" och "Ångra"; chippet 126 → 125 att kvittera; kvitteringssidan har en rad per fastighet.
+
 ### Fas 3 – Lättare dataflöde
 
 **Mål:** Sidladdning, fastighetsbyte och live-uppdatering kostar lika lite vid 500 fastigheter som i
@@ -978,4 +994,6 @@ fastigheter (siffror i Fasloggen).
 | Fas 3 steg 2 | 2026-11-22 | `claude/skalning-fas0` / `b335ecf`, driftsatt 2026-11-22 15:45 UTC | Live-uppdatering vid 500 (testdatabas): hela listan 1,6 s / 6,0 MB / +115 MB heap → en prognoskörning som radvis uppdatering 0,26 s / 0,65 MB / +27 MB heap; lappad lista identisk med hel lista. Hela omladdningar per timme och flik: ~20 (~40 vid 1000) → ~3 (uppskattat). | Live-strömmen i webbläsaren (demoläget har ingen ström; DOM-test med falsk ström). I produktion efter driftsättning: loggraderna `portfolio rows built` / `portfolio nowcast built` mot `portfolio built` |
 | Fas 3 steg 3 | 2026-11-22 | `claude/skalning-fas0` / `158dc43`, driftsatt 2026-11-22 16:59 UTC | `/v1/portfolio` (testdatabas, median): 1,6 → 0,33 s vid 500, 3,3 → 0,69 s vid 1000; tre samtidiga 0,49 / 0,87 s. Minsta heap för tre samtidiga: 256 → 128 MB (500), 384 → 192 MB (1000). Radvis uppdatering 0,26 → 0,06 s. Listan identisk med `listSnapshot` av hela bygget vid 500 och 1000. EXPLAIN i Fas 3, "Genomfört steg 3". | Datamängd (6,0 MB vid 500, mål ≤ 0,5 MB) och heaptopp (mål ≤ 30 MB) ej uppfyllda – kräver kompaktare listkontrakt. JIT av ej mätt på andra frågor än portföljens (omatchning, inserts) |
 | Fas 3 steg 4 | 2026-11-22 | `claude/skalning-fas0` / `ebf7da8`, driftsatt 2026-11-22 17:48 UTC | `buildOverviewVM` (dator): 145 → 30 ms vid 500, 289 → 56 ms vid 1000. Listan över nätet med gzip: 337 KB vid 500 (demo) – målet 0,5 MB nått utan nytt format. | Mobilens tid för vymodellen (bara dator mätt); listans okomprimerade storlek (6,0 MB vid 500) och minnet i webbläsaren är oförändrade |
-| Fas 2 steg 1 | 2026-11-22 | `claude/skalning-fas0` | Flödet vid 500 (testdatabas, länsvarning över 320 + Krisinformation över 500): 1 kort med "30 berörda" → 30 kort, Krisinformation med 500, länsvarningen med 320, trafiken kvar. Menyns larmräknare i demo vid 500: 625 → 126. | Flödet blir 848 rader (~0,5 MB okomprimerat) vid två stora händelser; nyckeltalet "Aktiva larm" räknar fortfarande varning × fastighet |
+| Fas 2 steg 1 | 2026-11-22 | `claude/skalning-fas0` / `8138410`, driftsatt 2026-11-22 18:32 UTC | Flödet vid 500 (testdatabas, länsvarning över 320 + Krisinformation över 500): 1 kort med "30 berörda" → 30 kort, Krisinformation med 500, länsvarningen med 320, trafiken kvar. Menyns larmräknare i demo vid 500: 625 → 126. | Flödet blir 848 rader (~0,5 MB okomprimerat) vid två stora händelser; nyckeltalet "Aktiva larm" räknar fortfarande varning × fastighet |
+| Fas 2 steg 2 | 2026-11-22 | `claude/skalning-fas0` | Kvittera en varning över 500 fastigheter (demo): 500 klick, spärr efter 60 → 1 klick, ett anrop. Riktig PostgreSQL: 300 rader i en sats, 300 historikrader. | "Ångra" efter "Kvittera alla" finns bara tills sidan lämnas (sedan per rad på kvitteringssidan); kvitteringssidan visar 30 rader åt gången (steg 4) |
+

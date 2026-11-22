@@ -69,7 +69,50 @@ export function useFeedAcks() {
     [ackedAt, demo, live, ds],
   );
 
-  return { ackedAt, pending, pendingEvents, save, live, isSaving: (id: string) => inFlight.current.has(id) };
+  // The rows the last "Kvittera alla" acknowledged, so the card can offer "Ångra" for exactly those.
+  const [lastBatch, setLastBatch] = useState<Set<string> | null>(null);
+
+  /**
+   * "Kvittera alla" / "Ångra" for an event over many properties (docs/plans/skalning.md, Fas 2 / S-05):
+   * one request for all rows (POST /api/app/feed/acknowledgements/batch), all or none.
+   */
+  const saveMany = useCallback(
+    (rows: FeedAckRow[], acknowledged: boolean) => {
+      const targets = rows.filter((f) => f.ackRequired && !inFlight.current.has(f.id) && !!ackedAt(f) !== acknowledged);
+      if (!targets.length) return;
+      const ids = targets.map((f) => f.id);
+      const next = acknowledged ? new Date().toISOString() : null;
+      setLastBatch(acknowledged ? new Set(ids) : null);
+      if (demo) return demo.toggleMany(ids, next);
+      const previous = Object.fromEntries(targets.map((f) => [f.id, ackedAt(f)]));
+      setOver((o) => ({ ...o, ...Object.fromEntries(ids.map((id) => [id, next])) }));
+      if (!live) return;
+      for (const id of ids) inFlight.current.add(id);
+      fetch('/api/app/feed/acknowledgements/batch', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({ changeIds: ids, acknowledged }),
+      })
+        .then(async (r) => {
+          if (!r.ok) throw new Error();
+          const j = (await r.json()) as { changes: Array<{ changeId: string; at: string | null }> };
+          const saved = new Map(j.changes.map((c) => [c.changeId, c.at]));
+          for (const id of ids) inFlight.current.delete(id);
+          // A row the server did not change keeps its previous state.
+          setOver((o) => ({ ...o, ...Object.fromEntries(ids.map((id) => [id, saved.has(id) ? saved.get(id)! : previous[id]!])) }));
+          ds.refresh();
+        })
+        .catch(() => {
+          for (const id of ids) inFlight.current.delete(id);
+          setOver((o) => ({ ...o, ...previous }));
+          setLastBatch(null);
+          window.alert(acknowledged ? 'Kvitteringen kunde inte sparas. Försök igen.' : 'Kvitteringen kunde inte ångras. Försök igen.');
+        });
+    },
+    [ackedAt, demo, live, ds],
+  );
+
+  return { ackedAt, pending, pendingEvents, save, saveMany, lastBatch, live, isSaving: (id: string) => inFlight.current.has(id) };
 }
 export type FeedAcks = ReturnType<typeof useFeedAcks>;
 
@@ -95,6 +138,34 @@ export function FeedAckButton({ f, acks }: { f: FeedAckRow; acks: FeedAcks }) {
         <path d={CHECK} />
       </svg>
       Kvittera
+    </button>
+  );
+}
+
+/** "Kvittera alla (300)" and, right after, "Ångra" on the card of an event over many properties. */
+export function FeedAckAllButton({ rows, acks, title }: { rows: FeedAckRow[]; acks: FeedAcks; title: string }) {
+  const waiting = rows.filter((f) => f.ackRequired && !acks.ackedAt(f));
+  const undoable = acks.lastBatch ? rows.filter((f) => acks.lastBatch!.has(f.id) && acks.ackedAt(f)) : [];
+  const stop = (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  if (waiting.length) {
+    return (
+      <button type="button" className={styles.ack} aria-label={`Kvittera alla ${waiting.length}: ${title}`} disabled={waiting.some((f) => acks.isSaving(f.id))}
+        onClick={(e) => { stop(e); acks.saveMany(waiting, true); }} onKeyDown={(e) => e.stopPropagation()}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d={CHECK} />
+        </svg>
+        Kvittera alla ({waiting.length})
+      </button>
+    );
+  }
+  if (!undoable.length) return null;
+  return (
+    <button type="button" className={styles.undo} aria-label={`Ångra kvitteringen av ${undoable.length}: ${title}`} disabled={undoable.some((f) => acks.isSaving(f.id))}
+      onClick={(e) => { stop(e); acks.saveMany(undoable, false); }} onKeyDown={(e) => e.stopPropagation()}>
+      Ångra
     </button>
   );
 }

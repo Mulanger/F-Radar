@@ -21,6 +21,8 @@ import {
   listProperties,
   listActiveAlarmChangesForOrg,
   listRecentChangesForOrg,
+  acknowledgeFeedChanges,
+  unacknowledgeFeedChanges,
   listAcknowledgementHistory,
   undoAcknowledgementHistory,
   migrateUp,
@@ -361,6 +363,24 @@ describe('real PostgreSQL / PostGIS', () => {
       // A smaller limit keeps the newest events – still whole.
       const three = new Set((await listRecentChangesForOrg(pool, a.organizationId, 3, a.userId)).map((row) => row.headline));
       assert.deepEqual(three, new Set(['Länsvarning', 'Lokal varning 3', 'Lokal varning 4']));
+
+      // "Kvittera alla" (S-05): one statement acknowledges every property of the county warning.
+      const countyIds = feed.filter((row) => row.headline === 'Länsvarning').map((row) => row.id);
+      const b = { organizationId: await ensureOrganization(pool, ORG_B, 'org-b'), userId: 'user_testB' };
+      assert.deepEqual(await acknowledgeFeedChanges(pool, b.organizationId, countyIds, b.userId), [], 'another organization acknowledges nothing');
+      const acked = await acknowledgeFeedChanges(pool, a.organizationId, countyIds, a.userId);
+      assert.equal(acked.length, 300);
+      const again = await acknowledgeFeedChanges(pool, a.organizationId, countyIds, a.userId);
+      const times = (rows: Array<{ change_id: string; acknowledged_at: Date }>) => rows.map((r) => `${r.change_id}:${r.acknowledged_at.toISOString()}`).sort();
+      assert.deepEqual(times(again), times(acked), 'acknowledging again keeps the first time');
+      const history = async () => (await pool.query<{ n: number; properties: number; undone: number }>(
+        `SELECT count(*)::int AS n, count(DISTINCT property_id)::int AS properties, count(undone_at)::int AS undone
+           FROM feed_acknowledgement_history WHERE organization_id = $1 AND change_id = ANY($2::bigint[])`, [a.organizationId, countyIds])).rows[0];
+      assert.deepEqual(await history(), { n: 300, properties: 300, undone: 0 }, 'one history row per property');
+      assert.equal((await unacknowledgeFeedChanges(pool, a.organizationId, countyIds, a.userId)).length, 300);
+      assert.deepEqual(await history(), { n: 300, properties: 300, undone: 300 });
+      const reopened = (await listRecentChangesForOrg(pool, a.organizationId, 6, a.userId)).filter((row) => row.headline === 'Länsvarning');
+      assert.ok(reopened.every((row) => row.acknowledged_at === null));
     } finally {
       await endEventsById(pool, 'smhi_warnings', [county.externalId, ...small.map((w) => w.externalId)], 'test_finished');
       for (const id of ids) await deleteProperty(pool, a, id);

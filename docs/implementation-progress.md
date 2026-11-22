@@ -150,4 +150,7 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
 - Steg 1: flödet begränsas per händelse i stället för per rad (en länsvarning över 320 fastigheter är ett
   kort med alla 320, och andra händelser finns kvar); larmräknaren räknar händelser. Kortets
   fastighetslista renderas när kortet öppnas.
+- Steg 2: "Kvittera alla (N)" på ett händelsekort – ett anrop (`POST /v1/feed/acknowledgements/batch`,
+  högst 1 000 rader, en SQL-sats) i stället för ett klick per fastighet; "Ångra" direkt efteråt.
+  Historiken har kvar en rad per fastighet.
 

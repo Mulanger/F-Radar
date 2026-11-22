@@ -22,6 +22,16 @@ function fakeDb() {
         }
         return { rows: [] as R[] };
       }
+      if (sql.trimStart().startsWith('INSERT') && Array.isArray(id)) {
+        // Batch: INSERT … WHERE organization_id = $1 AND id = ANY($2) RETURNING change_id, acknowledged_at
+        const own = (id as string[]).filter((x) => changes.get(x) === org);
+        for (const x of own) if (!acks.has(x)) acks.set(x, { org: org!, by: by!, at: new Date('2026-11-18T08:00:00Z') });
+        return { rows: own.map((x) => ({ change_id: x, acknowledged_at: acks.get(x)!.at })) as R[] };
+      }
+      if (sql.includes('DELETE FROM feed_acknowledgements') && Array.isArray(id)) {
+        const removed = (id as string[]).filter((x) => changes.get(x) === org && acks.delete(x));
+        return { rows: removed.map((x) => ({ change_id: x })) as R[] };
+      }
       if (sql.trimStart().startsWith('INSERT')) {
         // INSERT … SELECT FROM monitoring_changes WHERE id = $2 AND organization_id = $1
         if (changes.get(id!) !== org) return { rows: [] as R[] };
@@ -73,6 +83,33 @@ describe('feed acknowledgements (kvittering i händelseflödet)', () => {
     expect([...reads]).toEqual(['org-a:7:user_a', 'org-a:7:user_b']);
     expect(acks.size).toBe(0);
     expect(calls[0]).toContain('c.organization_id = $1');
+  });
+
+  it('acknowledges all rows of an event in one call, only the own organization’s, with one rate-limit token (Fas 2 / S-05)', async () => {
+    const { db, acks } = fakeDb();
+    const a = await app(db);
+    const batch = (changeIds: string[], acknowledged = true) => a.inject({ method: 'POST', url: '/v1/feed/acknowledgements/batch', payload: { changeIds, acknowledged } });
+    const r = await batch(['chg-7', 'chg-8', '7']);
+    expect(r.statusCode).toBe(200);
+    expect(r.json()).toEqual({ changes: [{ changeId: 'chg-7', at: '2026-11-18T08:00:00.000Z' }] });
+    expect([...acks.keys()]).toEqual(['7']);
+    expect((await batch(['chg-8'])).statusCode).toBe(404);
+    expect((await batch([])).statusCode).toBe(400);
+    expect((await batch(Array.from({ length: 1_001 }, (_, i) => `chg-${i + 1}`))).statusCode).toBe(400);
+    expect((await batch(['not-an-id'])).statusCode).toBe(400);
+    const undo = await batch(['chg-7', 'chg-8'], false);
+    expect(undo.json()).toEqual({ changes: [{ changeId: 'chg-7', at: null }] });
+    expect(acks.size).toBe(0);
+  });
+
+  it('counts a batch of 1000 rows as one change for the rate limit', async () => {
+    const { db } = fakeDb();
+    const a = await app(db);
+    const ids = Array.from({ length: 1_000 }, (_, i) => `chg-${i + 1}`);
+    let ok = 0;
+    for (let i = 0; i < 60; i++) if ((await a.inject({ method: 'POST', url: '/v1/feed/acknowledgements/batch', payload: { changeIds: ids, acknowledged: true } })).statusCode !== 429) ok++;
+    expect(ok).toBe(60);
+    expect((await a.inject({ method: 'POST', url: '/v1/feed/acknowledgements/batch', payload: { changeIds: ids, acknowledged: true } })).statusCode).toBe(429);
   });
 
   it('acknowledges and undoes a feed row of the own organization', async () => {

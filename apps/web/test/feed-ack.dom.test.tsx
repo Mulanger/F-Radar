@@ -83,6 +83,44 @@ describe('kvittering i händelseflödet', () => {
     await vi.waitFor(() => expect(group.querySelectorAll('li')).toHaveLength(2));
   });
 
+  it.each(['desktop', 'mobile'])('acknowledges every property of an event in one call and can undo it on %s (Fas 2 / S-05)', async (device) => {
+    const properties = demoPortfolio.properties.slice(0, 4);
+    const publishedAt = demoPortfolio.generatedAt;
+    const rows: Portfolio['feed'] = properties.map(({ property }, i) => ({
+      id: `chg-${61 + i}`, propertyId: property.id, eventId: 'county-wind', eventGroupId: 'smhi:county-wind:new:1', sourceId: 'smhi_warnings',
+      sourceLabel: 'SMHI', title: 'Orange varning: Vind', severity: 'warning', origin: 'live',
+      publishedAt, ackRequired: true, acknowledgedAt: i === 3 ? publishedAt : null,
+    }));
+    activePortfolio = { ...demoPortfolio, properties, feed: rows };
+    mocks.mode = 'live';
+    const save = vi.fn(async (_url: string, init: RequestInit) => {
+      const { changeIds, acknowledged } = JSON.parse(String(init.body)) as { changeIds: string[]; acknowledged: boolean };
+      return Response.json({ changes: changeIds.map((changeId) => ({ changeId, at: acknowledged ? publishedAt : null })) });
+    });
+    vi.stubGlobal('fetch', save);
+    const { container } = render(device === 'mobile' ? <MobileAlerts /> : <AlertFeed vm={buildOverviewVM(activePortfolio, ui)} isDemo={false} onOpen={mocks.openProperty} />);
+    const group = container.querySelector('details')!;
+    const summary = group.querySelector('summary')!;
+    expect(summary.textContent).toContain('3 att kvittera');
+    fireEvent.click(within(summary).getByRole('button', { name: 'Kvittera alla 3: Orange varning: Vind' }));
+    expect(group.open).toBe(false); // the button does not toggle the card
+    await vi.waitFor(() => expect(summary.textContent).toContain('4 av 4 kvitterade'));
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledWith('/api/app/feed/acknowledgements/batch', expect.objectContaining({
+      method: 'POST', body: JSON.stringify({ changeIds: ['chg-61', 'chg-62', 'chg-63'], acknowledged: true }),
+    }));
+    // While saving, "Ångra" waits; once saved it undoes exactly what the button acknowledged – not the
+    // row acknowledged earlier.
+    await vi.waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+    const undo = within(summary).getByRole('button', { name: 'Ångra kvitteringen av 3: Orange varning: Vind' }) as HTMLButtonElement;
+    await vi.waitFor(() => expect(undo.disabled).toBe(false));
+    fireEvent.click(undo);
+    await vi.waitFor(() => expect(summary.textContent).toContain('3 att kvittera'));
+    expect(save).toHaveBeenLastCalledWith('/api/app/feed/acknowledgements/batch', expect.objectContaining({
+      body: JSON.stringify({ changeIds: ['chg-61', 'chg-62', 'chg-63'], acknowledged: false }),
+    }));
+  });
+
   it.each(['desktop', 'mobile'])('groups one SMHI revision and saves only the chosen property on %s', async (device) => {
     const properties = demoPortfolio.properties.slice(0, 4);
     expect(properties).toHaveLength(4);

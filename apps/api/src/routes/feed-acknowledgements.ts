@@ -1,6 +1,6 @@
 import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
 import { z } from 'zod';
-import { acknowledgeFeedChange, listAcknowledgementHistory, listAcknowledgementProperties, markAlarmChangesRead, markFeedUpdateRead, unacknowledgeFeedChange, undoAcknowledgementHistory, type Queryable } from '@fastighetsradar/db';
+import { FEED_ACK_BATCH_MAX, acknowledgeFeedChange, acknowledgeFeedChanges, unacknowledgeFeedChanges, listAcknowledgementHistory, listAcknowledgementProperties, markAlarmChangesRead, markFeedUpdateRead, unacknowledgeFeedChange, undoAcknowledgementHistory, type Queryable } from '@fastighetsradar/db';
 import type { AcknowledgementHistoryPage } from '@fastighetsradar/domain';
 import { orgContext } from '../auth';
 import { HttpProblem } from '../errors';
@@ -10,6 +10,7 @@ import { SOURCE_LABEL } from '../monitoring/snapshot';
 /** Feed row ids as the feed shows them ("chg-123") or bare ("123"). */
 const ChangeId = z.string().regex(/^(chg-)?\d{1,18}$/, 'Ogiltig rad').transform((s) => s.replace(/^chg-/, ''));
 const AckBody = z.object({ changeId: ChangeId, acknowledged: z.boolean() });
+const AckBatchBody = z.object({ changeIds: z.array(ChangeId).min(1).max(FEED_ACK_BATCH_MAX), acknowledged: z.boolean() });
 const ReadBody = z.object({ changeId: ChangeId });
 const AlarmReadsBody = z.object({ changeIds: z.array(ChangeId).min(1).max(500) });
 const HistoryId = z.string().regex(/^[1-9]\d{0,17}$/);
@@ -89,6 +90,22 @@ export function registerFeedAcknowledgementRoutes(app: FastifyInstance, deps: De
     const { changeId } = ReadBody.parse(req.body);
     await markFeedUpdateRead(db(), ctx.organizationId, changeId, ctx.userId);
     return reply.code(204).send();
+  });
+
+  // "Kvittera alla" (docs/plans/skalning.md, Fas 2 / S-05): one call, one write token, all rows or none.
+  app.post('/v1/feed/acknowledgements/batch', { preHandler: deps.requireOrg }, async (req) => {
+    const ctx = orgContext(req);
+    if (!writes.take(ctx.userId)) throw new HttpProblem(429, 'För många ändringar. Försök senare.');
+    const { changeIds, acknowledged } = AckBatchBody.parse(req.body);
+    const ids = [...new Set(changeIds)];
+    if (!acknowledged) {
+      const undone = new Set(await unacknowledgeFeedChanges(db(), ctx.organizationId, ids, ctx.userId));
+      return { changes: ids.filter((id) => undone.has(id)).map((id) => ({ changeId: `chg-${id}`, at: null })) };
+    }
+    const done = await acknowledgeFeedChanges(db(), ctx.organizationId, ids, ctx.userId);
+    if (!done.length) throw new HttpProblem(404, 'Händelsen finns inte i flödet');
+    req.log.info({ acknowledged: done.length, requested: ids.length }, 'feed acknowledged in batch');
+    return { changes: done.map((r) => ({ changeId: `chg-${r.change_id}`, at: r.acknowledged_at.toISOString() })) };
   });
 
   app.post('/v1/feed/acknowledgements', { preHandler: deps.requireOrg }, async (req) => {
