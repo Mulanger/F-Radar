@@ -4,7 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { PropertySnapshot } from '@fastighetsradar/domain';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { C, FONT_MONO, SEV } from '@/lib/design/tokens';
-import { nowcastVM } from '@/lib/view-models/nowcast';
+import { nowcastBadge } from '@/lib/view-models/nowcast';
 import { riskScore, show } from '@/lib/view-models/snapshot';
 import { IconSearch } from '../ui/icons';
 
@@ -105,10 +105,10 @@ export function PropertyPicker({
   const sorted = useMemo(() => sortForPicker(portfolio.properties), [portfolio.properties]);
   const texts = useMemo(() => new Map(portfolio.properties.map((s) => [s.property.id, pickerSearchText(s)])), [portfolio.properties]);
   // Keyed by snapshot object: a refreshed portfolio has new snapshots, so stale entries never hit.
-  const radar = useRef(new WeakMap<PropertySnapshot, ReturnType<typeof nowcastVM>>()).current;
+  const radar = useRef(new WeakMap<PropertySnapshot, ReturnType<typeof nowcastBadge>>()).current;
   const radarOf = (s: PropertySnapshot) => {
     let vm = radar.get(s);
-    if (!vm) radar.set(s, (vm = nowcastVM(s, portfolio.generatedAt)));
+    if (!vm) radar.set(s, (vm = nowcastBadge(s, portfolio.generatedAt)));
     return vm;
   };
 

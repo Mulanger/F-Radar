@@ -830,6 +830,26 @@ som listan aldrig läser. Därför **ingen packning av formatet**; i stället sk
   hunnit uppdatera statistiken (därefter 0,69 s). Gäller också en stor kund som importerar allt på en
   gång – se Fas 6.
 
+**Genomfört steg 4 – listans kostnad (gren `claude/skalning-fas0`):**
+- **Beslut: inget kompakt listkontrakt.** Mätt vid 500 (testdatabasen, `run-portfolio-scale.mjs --fields`
+  med underfält): 12,1 KB per fastighet – mätvärden 4,2 KB (varav upprepad `geo`-text 1,0 KB), händelser
+  2,0 KB, riskindexets faktorer 1,1 KB, varningstexter 0,4 KB; på portföljnivå täckningsrapporten 374 KB.
+  Med demolistan vid 500: som den är 5,8 MB / **337 KB med gzip**; utan texter listan inte läser 5,7 MB /
+  313 KB; förlustfritt packad (strängtabell, kolumner) 1,9 MB / 96 KB. Produktionen gzippar svaren, så
+  **det som går över nätet är redan under målet 0,5 MB**, och webbläsaren tolkar de 6 MB på 29 ms. En
+  packning minskar inte minnet efter uppackning, och 1 KB per fastighet kräver en ny radmodell och att
+  alla listvyer skrivs om – för liten märkbar vinst. Målet i avsnitt 5 läses därför som överfört (gzip).
+- **Det som märktes var `buildOverviewVM`:** 145 ms vid 500 och 289 ms vid 1000 (dator), och sedan steg 2
+  körs den vid varje live-uppdatering. CPU-profil: ~120 av 169 ms gick till nowcast – 24 radarstaplar
+  med klockslag per fastighet, fast bara fastighetssidan visar dem.
+- **Åtgärder:** listraderna och Snabbväxla räknar bara märket och källraden (`nowcastBadge`); staplarna
+  bara på fastighetssidan (`nowcastVM`). `summarizeNowcast` sorterar bara osorterade punkter och tolkar
+  varje punkts tid en gång. Flödets tidsetiketter räknar dagens och gårdagens datum en gång per flöde.
+- **Efter:** `buildOverviewVM` 145 → 30 ms vid 500, 289 → 56 ms vid 1000 (`npm run measure:portfolio`).
+  Test: märket och källraden är identiska med den fullständiga vymodellen för 60 fastigheter vid nio
+  tidpunkter; osorterade radarpunkter ger samma sammanfattning. Visat på localhost: 312 regnmärken i
+  översikten vid `?n=500`, märken i Snabbväxla, fastighetssidans radarpanel med 24 staplar.
+
 ### Fas 4 – Listor, karta och grupper
 
 **Mål:** Översikt över hundratals fastigheter på karta och i tabell, uppdelat så som kunden
@@ -928,4 +948,5 @@ fastigheter (siffror i Fasloggen).
 | Fas 3 steg 1 | 2026-11-22 | `claude/skalning-fas0` / `6582b7b`, driftsatt 2026-11-22 | `/v1/portfolio` vid 500 (testdatabas): 14,4 → 6,0 MB, 28,7 → 12,1 KB per fastighet. Fastighetsbyte: hela portföljen i API:t → en fastighet (22 KB RSC i demo). | API:ts heap och tid (bygger fortfarande hela portföljen innan listan skärs – steg 3); målet ≤ 1 KB per fastighet (kvar: mätvärden 4,2 KB, händelser 2,0 KB) |
 | Lindring S-33 + Fas 5 steg 0 (S-34) | 2026-11-22 | `f216613`, driftsatt 2026-11-22 11:44 UTC | API-heap 192 → 512 MB (`deploy/pod/index.js`), räcker för 1000 × 3 enligt avsnitt 2.4. Schemaläggaren i tre köer: SMS, larmkällor, övrigt. Före: `sms_notifications` väntade upp till 284 s bakom luftkvalitet (200–430 s per körning, avsnitt 2.3). Efter: enhetstest visar att SMS och avbrottskällor körs medan ett tungt jobb pågår. | Efter driftsättning: API:t kör med `--max-old-space-size=512`, köerna `sms` 1 / `alerts` 50 / `background` 17 jobb, `sms_notifications` var 30:e s med `waitedMs` 5–8 ms. Under luftkvalitetskörningen 12:10:54 (pågick fortfarande 12:12:32) körde `sms_notifications` var 30:e s med `waitedMs` 8–10 ms och `krisinformation` med 9,8 s (bakom avbrottskällorna i larmkön) – med den gamla kön hade båda väntat tills luftkvalitet var klar. Inte gjort: tidsbudget per varv för tunga jobb ej gjord (S-35, Fas 7) |
 | Fas 3 steg 2 | 2026-11-22 | `claude/skalning-fas0` / `b335ecf`, driftsatt 2026-11-22 15:45 UTC | Live-uppdatering vid 500 (testdatabas): hela listan 1,6 s / 6,0 MB / +115 MB heap → en prognoskörning som radvis uppdatering 0,26 s / 0,65 MB / +27 MB heap; lappad lista identisk med hel lista. Hela omladdningar per timme och flik: ~20 (~40 vid 1000) → ~3 (uppskattat). | Live-strömmen i webbläsaren (demoläget har ingen ström; DOM-test med falsk ström). I produktion efter driftsättning: loggraderna `portfolio rows built` / `portfolio nowcast built` mot `portfolio built` |
-| Fas 3 steg 3 | 2026-11-22 | `claude/skalning-fas0` | `/v1/portfolio` (testdatabas, median): 1,6 → 0,33 s vid 500, 3,3 → 0,69 s vid 1000; tre samtidiga 0,49 / 0,87 s. Minsta heap för tre samtidiga: 256 → 128 MB (500), 384 → 192 MB (1000). Radvis uppdatering 0,26 → 0,06 s. Listan identisk med `listSnapshot` av hela bygget vid 500 och 1000. EXPLAIN i Fas 3, "Genomfört steg 3". | Datamängd (6,0 MB vid 500, mål ≤ 0,5 MB) och heaptopp (mål ≤ 30 MB) ej uppfyllda – kräver kompaktare listkontrakt. JIT av ej mätt på andra frågor än portföljens (omatchning, inserts) |
+| Fas 3 steg 3 | 2026-11-22 | `claude/skalning-fas0` / `158dc43`, driftsatt 2026-11-22 16:59 UTC | `/v1/portfolio` (testdatabas, median): 1,6 → 0,33 s vid 500, 3,3 → 0,69 s vid 1000; tre samtidiga 0,49 / 0,87 s. Minsta heap för tre samtidiga: 256 → 128 MB (500), 384 → 192 MB (1000). Radvis uppdatering 0,26 → 0,06 s. Listan identisk med `listSnapshot` av hela bygget vid 500 och 1000. EXPLAIN i Fas 3, "Genomfört steg 3". | Datamängd (6,0 MB vid 500, mål ≤ 0,5 MB) och heaptopp (mål ≤ 30 MB) ej uppfyllda – kräver kompaktare listkontrakt. JIT av ej mätt på andra frågor än portföljens (omatchning, inserts) |
+| Fas 3 steg 4 | 2026-11-22 | `claude/skalning-fas0` | `buildOverviewVM` (dator): 145 → 30 ms vid 500, 289 → 56 ms vid 1000. Listan över nätet med gzip: 337 KB vid 500 (demo) – målet 0,5 MB nått utan nytt format. | Mobilens tid för vymodellen (bara dator mätt); listans okomprimerade storlek (6,0 MB vid 500) och minnet i webbläsaren är oförändrade |

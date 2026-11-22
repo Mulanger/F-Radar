@@ -299,6 +299,17 @@ async function fields(n: number) {
     forecastAvgBytes: avg(props.map((s) => s.forecast as Record<string, unknown> | null)),
     monitoringAvgBytes: avg(props.map((s) => s.monitoring as Record<string, unknown> | null)),
     nowcastAvgBytes: avg(props.map((s) => s.nowcast as Record<string, unknown> | null)),
+    // Per property: bytes per sub-field of the list's heavy parts (arrays summed over their items).
+    nestedAvgBytes: Object.fromEntries(['metrics', 'events', 'warnings', 'riskIndex', 'property', 'alertRules', 'utilityOutages', 'sms', 'flood'].map((key) => {
+      const sums: Record<string, number> = {};
+      for (const s of props) {
+        const v = s[key];
+        for (const item of (Array.isArray(v) ? v : v ? [v] : []) as Array<Record<string, unknown>>) {
+          for (const [k, x] of Object.entries(item ?? {})) sums[k] = (sums[k] ?? 0) + size(x);
+        }
+      }
+      return [key, Object.fromEntries(Object.entries(sums).sort((a, b) => b[1] - a[1]).map(([k, x]) => [k, Math.round(x / count)]))];
+    })),
     counts: {
       events: Math.round(props.reduce((a, s) => a + ((s.events as unknown[] | undefined)?.length ?? 0), 0) / count * 10) / 10,
       warnings: Math.round(props.reduce((a, s) => a + ((s.warnings as unknown[] | undefined)?.length ?? 0), 0) / count * 10) / 10,

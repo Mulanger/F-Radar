@@ -1,4 +1,4 @@
-import { nowcastVM } from './nowcast';
+import { nowcastBadge } from './nowcast';
 import type { OfficialWarning, Portfolio, PropertySnapshot, PropertyStatus } from '@fastighetsradar/domain';
 import { formatClock, formatLongDate, formatNumber, formatShortDate, swedishDateKey, type RiskFactorKey } from '@fastighetsradar/domain';
 import { C, EXPOSURE_SV, SEV, STATUS_ORDER, WL, riskStyle } from '../design/tokens';
@@ -64,11 +64,14 @@ export function filterByGroup(p: Portfolio, group: string) {
  * Feed time: "22:00" today, "igår 22:00" yesterday, otherwise "17 nov 22:00" – a recurring night
  * closure must not make yesterday's "Ny 22:00" look like tonight's.
  */
+// Today and yesterday of the last `nowIso`: the same for every row of one feed.
+let days: { nowIso: string; today: string; yesterday: string } | null = null;
+
 export function feedTime(iso: string, nowIso: string): string {
+  if (days?.nowIso !== nowIso) days = { nowIso, today: swedishDateKey(nowIso), yesterday: swedishDateKey(new Date(Date.parse(nowIso) - 86_400_000)) };
   const day = swedishDateKey(iso);
-  if (day === swedishDateKey(nowIso)) return formatClock(iso);
-  const yesterday = swedishDateKey(new Date(Date.parse(nowIso) - 86_400_000));
-  return `${day === yesterday ? 'igår' : formatShortDate(iso).replace(/\.$/, '')} ${formatClock(iso)}`;
+  if (day === days.today) return formatClock(iso);
+  return `${day === days.yesterday ? 'igår' : formatShortDate(iso).replace(/\.$/, '')} ${formatClock(iso)}`;
 }
 
 /** Same published warning may reach several properties or be split into separate SMHI areas. */
@@ -207,7 +210,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     return {
       id: p.id,
       name: p.name,
-      nowcast: nowcastVM(s, portfolio.generatedAt),
+      nowcast: nowcastBadge(s, portfolio.generatedAt),
       address: p.address,
       status: st.label,
       c: st.c,

@@ -20,23 +20,32 @@ export const NowcastSchema = z.object({
 });
 export type Nowcast = z.infer<typeof NowcastSchema>;
 
+/** Stored points already are in time order: then no copy and no sort (once per list row; Fas 3 steg 4). */
+function inTimeOrder(points: NowcastPoint[]): NowcastPoint[] {
+  for (let i = 1; i < points.length; i++) if (points[i - 1]!.validAt > points[i]!.validAt) return [...points].sort((a,b)=>a.validAt.localeCompare(b.validAt));
+  return points;
+}
+
 /** Points describe five-minute rate intervals. Missing intervals are never dry intervals. */
 export function summarizeNowcast(points: NowcastPoint[], now: Date, temperature: number | null,
   options: { coverage?: z.infer<typeof RadarCoverageSchema>; fetchedAt?: string } = {}): z.infer<typeof NowcastSummarySchema> {
   const empty: z.infer<typeof NowcastSummarySchema> = { state:'unavailable', startsAt:null, endsAt:null, peakRateMmH:null, peakAt:null, totalNext60Mm:null, intensity:null, phase:'unknown' };
   const age = options.fetchedAt ? +now - Date.parse(options.fetchedAt) : 0;
   if ((options.coverage && options.coverage !== 'ok') || age > T.nowcastUsableMinutes * 60_000 || age < 0) return empty;
-  const sorted = [...points].sort((a,b)=>a.validAt.localeCompare(b.validAt));
-  const p = sorted.filter(x => Date.parse(x.validAt) + 300_000 > +now && Date.parse(x.validAt) < +now + 7_200_000);
-  if (p.length < 2 || Date.parse(p[0]!.validAt) > +now + 300_000 || p.some((x,i) => x.rateMmH == null || (i > 0 && Date.parse(x.validAt) - Date.parse(p[i-1]!.validAt) !== 300_000))) return empty;
+  const sorted = inTimeOrder(points);
+  // Each point's time parsed once (this runs for every list row).
+  const at = new Map(sorted.map((x) => [x, Date.parse(x.validAt)] as const));
+  const ms = (x: NowcastPoint) => at.get(x)!;
+  const p = sorted.filter(x => ms(x) + 300_000 > +now && ms(x) < +now + 7_200_000);
+  if (p.length < 2 || ms(p[0]!) > +now + 300_000 || p.some((x,i) => x.rateMmH == null || (i > 0 && ms(x) - ms(p[i-1]!) !== 300_000))) return empty;
   const wet = p.filter(x => x.rateMmH! >= T.nowcastNoiseMmH), first = wet[0];
-  const currentlyWet = p[0]!.rateMmH! >= T.nowcastNoiseMmH && Date.parse(p[0]!.validAt) <= +now;
+  const currentlyWet = p[0]!.rateMmH! >= T.nowcastNoiseMmH && ms(p[0]!) <= +now;
   // First end of the first contiguous precipitation spell; a later shower is not merged into it.
   const firstIndex = first ? p.indexOf(first) : -1;
   const end = firstIndex >= 0 ? p.slice(firstIndex + 1).find(x=>x.rateMmH! < T.nowcastNoiseMmH) : null;
   let total = 0, covered = 0;
   for (const x of p) {
-    const overlap = Math.min(+now+3_600_000, Date.parse(x.validAt)+300_000) - Math.max(+now, Date.parse(x.validAt));
+    const overlap = Math.min(+now+3_600_000, ms(x)+300_000) - Math.max(+now, ms(x));
     if (overlap > 0) { covered += overlap; total += (x.rateMmH! >= T.nowcastNoiseMmH ? x.rateMmH! : 0) * overlap / 3_600_000; }
   }
   const spell=firstIndex<0?[]:p.slice(firstIndex,end?p.indexOf(end):undefined);

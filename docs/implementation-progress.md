@@ -140,4 +140,7 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
   databasanslutningar, ett bygge åt gången per organisation och summary från listan. `/v1/portfolio`
   vid 500: 1,6 → 0,33 s; vid 1000: 3,3 → 0,69 s; listan identisk med tidigare. Kvar: datamängden
   (6,0 MB vid 500) kräver ett kompaktare listkontrakt.
+- Steg 4: inget kompakt listkontrakt – med gzip är listan redan 0,34 MB över nätet vid 500. I stället
+  räknar listvyerna bara nowcast-märket (inte fastighetssidans radarstaplar): `buildOverviewVM`
+  145 → 30 ms vid 500 och 289 → 56 ms vid 1000.
 
