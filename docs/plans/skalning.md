@@ -317,6 +317,7 @@ Fasen anger var fyndet åtgärdas.
   - Klienten hämtar bara ändrade rader (`GET /v1/portfolio?ids=…`) och lappar in dem i stället för
     `router.refresh()` när färre än t.ex. 50 fastigheter ändrats.
   - `ETag` på portföljlistan så att en uppdatering utan ändringar blir `304`.
+- **Gjort 2026-11-22 (Fas 3 steg 2)**, med avvikelser (egna endpoints, ingen `ETag`) – se Fas 3, "Genomfört steg 2".
 
 **S-13 Kartan zoomar ut vid varje live-uppdatering** · P1 · Fas 1
 - **Var:** [`PortfolioMap.tsx:47–72`](../../apps/web/components/maps/PortfolioMap.tsx), `mapList` i [`PortfolioOverview.tsx:31`](../../apps/web/components/dashboard/PortfolioOverview.tsx).
@@ -721,6 +722,50 @@ som listan aldrig läser. Därför **ingen packning av formatet**; i stället sk
   Fastighetsbyte i demoläget: en begäran på 22 KB (6 KB över nätet) i stället för att API:t bygger hela
   portföljen.
 
+**Genomfört steg 2 (gren `claude/skalning-fas0`):**
+- **Signaler per fastighet.** Prognosen, nowcast (bara punkter som faktiskt hämtades) och SGU/MCF/SCB
+  publicerar organisation + fastighets-id i stället för `'all'` (`JobResult.changed.properties`).
+  Centrala källor (stationer: observationer, luftkvalitet, vattenföring, havsvattenstånd; länsområden)
+  slås ihop i bussen till högst en signal per 5 minuter med alla källor som ändrats
+  (`CENTRAL_SIGNAL_GAP_MS`); signalen har `all: true` och inga fastighets-id.
+- **Nya läsvägar.** `GET /v1/portfolio/rows?ids=…` (högst 50): listraderna för de fastigheterna plus
+  flödet, larmkandidaterna, deras kommande förhållanden och källstatus – byggt med samma funktioner som
+  listan, men övervakningsdata hämtas bara för de fastigheterna (`loadOrgMonitoring` tar flera id).
+  `GET /v1/portfolio/nowcast[?ids=…]`: bara radarprognosen (en fråga).
+- **Klienten** (`lib/live/use-live-updates.ts`, `lib/live/patch.ts`): samlar signaler och hämtar minst
+  15 s isär plus slumpad 0–5 s (S-33); dolda flikar väntar tills de visas. Ändrade rader (data eller
+  händelser) lappas in med flöde, aktiva larm och kommande förhållanden; nowcast lappas separat;
+  observationer (visas bara på fastighetssidan) laddar bara om den öppna fastigheten. Den öppna
+  fastighetens fulla snapshot hämtas om när den berörs. **Hel omladdning** (`router.refresh()`) bara
+  vid: central källa som listan visar, signal utan fastighet (fastighet tillagd/flyttad/borttagen),
+  avbrott (`utility_outages` – täckningsrapporten), fler än 50 fastigheter, en källa som bytt status,
+  och när listan är äldre än 30 minuter (rader byggs med tidpunkten: aktuell prognostimme, färskhet).
+- **Avvikelser från planen:**
+  - Egna endpoints i stället för `GET /v1/portfolio?ids=…`, eftersom svaren har ett annat format än listan.
+  - **Ingen `ETag`.** Listans svar ändras vid varje jobbkörning (källstatus, `generatedAt`), och hela
+    omladdningar går via serverrenderingen, där ett `304` bara kan återanvändas om webbservern sparar
+    varje användares portfölj. Radvisa uppdateringar ger samma besparing.
+  - Även händelsesignaler (Trafikverket, varningar) lappas radvis med flödet. I produktion kom de 1,2
+    gånger per timme för organisationen med 11 fastigheter, nästan bara från Trafikverket; vid 500
+    fastigheter blir det nära var 5:e minut (en per trafikkörning).
+  - "Kommande förhållanden": de lappade fastigheternas förhållanden byts ut. Ett förhållande för en
+    annan fastighet som låg under plats 8 är okänt för klienten, så en ledig plats fylls av det näst
+    bästa kända fram till nästa hela omladdning (högst 30 minuter). Fas 4 (S-21) gör om listan.
+- **Mätning (testdatabasen, 500 fastigheter, `run-portfolio-scale.mjs --live 500`):** hela listan 1,6 s,
+  6,0 MB, +115 MB heap. En prognoskörning (40 fastigheter) som radvis uppdatering: 0,26 s, 0,65 MB,
+  +27 MB heap. Den lappade listan är identisk med hela listan för rader, flöde, aktiva larm och kommande
+  förhållanden. Nowcast: 1,3 KB per punkt i produktion (23 värden), alltså ~0,9 MB för alla 500 mot
+  6,0 MB för listan. Av de 0,65 MB är ~0,15 MB larmkandidater (länsvarningen över 60 % av fastigheterna)
+  och tiden domineras av organisationsövergripande frågor (flöde, larm) – steg 3 (S-16).
+- **Per timme och öppen flik vid 500 (uppskattat från uppmätta frekvenser):** i dag ~20 hela
+  omladdningar (~40 vid 1000). Efter: nowcast ~12 smala uppdateringar, prognos ~13 radvisa
+  (40 fastigheter var), händelser upp till ~12 radvisa, observationer ~4 bara på fastighetssidan,
+  luftkvalitet ~1 hel och en hel var 30:e minut – alltså ~3 hela omladdningar per timme.
+- **Test:** prognos- och nowcastjobben publicerar fastighets-id och inte `'all'`; bussen slår ihop
+  centrala signaler; schemaläggaren skickar varje organisation bara dess fastigheter; endpoints validerar
+  id och svarar bara för organisationens fastigheter; signal → rätt hämtning, lappning, dold flik och
+  fastighetssida (DOM-test med falsk ström).
+
 ### Fas 4 – Listor, karta och grupper
 
 **Mål:** Översikt över hundratals fastigheter på karta och i tabell, uppdelat så som kunden
@@ -814,5 +859,6 @@ fastigheter (siffror i Fasloggen).
 | Mätning i produktion | 2026-11-22 | – (ingen kod, bara läsning) | Avsnitt 2.3; nya fynd S-33–S-35 | Heap och svarstid vid 200+ (ingen så stor kund) |
 | Fas 0 | 2026-11-22 | `claude/skalning-fas0` / `304d8c2` | Klient: avsnitt 2.1 bekräftat (`npm run measure:portfolio`). API mot testdatabas: avsnitt 2.4 – **OOM vid 500 fastigheter × 3 samtidiga anrop** med 192 MB heap. Snabbväxla vid `?n=500`: 32 322 px hög. | Grundförbrukning i riktiga API:t; webbserverns minne; fastighetskontext ej seedad |
 | Fas 1 | 2026-11-22 | `claude/skalning-fas0` | Snabbväxla vid `?n=500`: 32 322 px → 460,8 px (60 % av 768 px), 100 rader i stället för 500. Sök i fastighetslistan: `buildOverviewVM` per tangent → 0. | SMS-regelns fastighetsval i webbläsaren (bara DOM-test); kartans zoom vid live-uppdatering (bara DOM-test, demoläget uppdateras inte live) |
-| Fas 3 steg 1 | 2026-11-22 | `claude/skalning-fas0` | `/v1/portfolio` vid 500 (testdatabas): 14,4 → 6,0 MB, 28,7 → 12,1 KB per fastighet. Fastighetsbyte: hela portföljen i API:t → en fastighet (22 KB RSC i demo). | API:ts heap och tid (bygger fortfarande hela portföljen innan listan skärs – steg 3); målet ≤ 1 KB per fastighet (kvar: mätvärden 4,2 KB, händelser 2,0 KB) |
+| Fas 3 steg 1 | 2026-11-22 | `claude/skalning-fas0` / `6582b7b`, driftsatt 2026-11-22 | `/v1/portfolio` vid 500 (testdatabas): 14,4 → 6,0 MB, 28,7 → 12,1 KB per fastighet. Fastighetsbyte: hela portföljen i API:t → en fastighet (22 KB RSC i demo). | API:ts heap och tid (bygger fortfarande hela portföljen innan listan skärs – steg 3); målet ≤ 1 KB per fastighet (kvar: mätvärden 4,2 KB, händelser 2,0 KB) |
 | Lindring S-33 + Fas 5 steg 0 (S-34) | 2026-11-22 | `f216613`, driftsatt 2026-11-22 11:44 UTC | API-heap 192 → 512 MB (`deploy/pod/index.js`), räcker för 1000 × 3 enligt avsnitt 2.4. Schemaläggaren i tre köer: SMS, larmkällor, övrigt. Före: `sms_notifications` väntade upp till 284 s bakom luftkvalitet (200–430 s per körning, avsnitt 2.3). Efter: enhetstest visar att SMS och avbrottskällor körs medan ett tungt jobb pågår. | Efter driftsättning: API:t kör med `--max-old-space-size=512`, köerna `sms` 1 / `alerts` 50 / `background` 17 jobb, `sms_notifications` var 30:e s med `waitedMs` 5–8 ms. Under luftkvalitetskörningen 12:10:54 (pågick fortfarande 12:12:32) körde `sms_notifications` var 30:e s med `waitedMs` 8–10 ms och `krisinformation` med 9,8 s (bakom avbrottskällorna i larmkön) – med den gamla kön hade båda väntat tills luftkvalitet var klar. Inte gjort: tidsbudget per varv för tunga jobb ej gjord (S-35, Fas 7) |
+| Fas 3 steg 2 | 2026-11-22 | `claude/skalning-fas0` | Live-uppdatering vid 500 (testdatabas): hela listan 1,6 s / 6,0 MB / +115 MB heap → en prognoskörning som radvis uppdatering 0,26 s / 0,65 MB / +27 MB heap; lappad lista identisk med hel lista. Hela omladdningar per timme och flik: ~20 (~40 vid 1000) → ~3 (uppskattat). | Live-strömmen i webbläsaren (demoläget har ingen ström; DOM-test med falsk ström). I produktion efter driftsättning: loggraderna `portfolio rows built` / `portfolio nowcast built` mot `portfolio built` |

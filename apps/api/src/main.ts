@@ -42,6 +42,7 @@ async function main() {
   const shutdown = async (signal: string) => {
     app.log.info({ signal }, 'Shutting down');
     await scheduler?.stop();
+    bus.close();
     await app.close();
     await pool?.end();
     process.exit(0);

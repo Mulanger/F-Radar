@@ -1,6 +1,6 @@
 import type { ServerEnv } from '@fastighetsradar/config';
-import type { DataSourceStatus, Portfolio, PropertyRecord, PropertySnapshot } from '@fastighetsradar/domain';
-import { buildUtilityCoverageReport, utilityCoverageLogEntries, UTILITY_KINDS } from '@fastighetsradar/domain';
+import type { DataSourceStatus, Portfolio, PortfolioNowcastPatch, PortfolioRowsPatch, PropertyRecord, PropertySnapshot } from '@fastighetsradar/domain';
+import { buildUtilityCoverageReport, listSnapshot, utilityCoverageLogEntries, UTILITY_KINDS } from '@fastighetsradar/domain';
 import {
   getProperty,
   recordUtilityCoverageGaps,
@@ -15,6 +15,7 @@ import {
   getPropertyEventMapEvent,
   getOrganizationSettings,
   loadOrgMonitoring,
+  loadOrgNowcasts,
   rematchEvents,
   rematchUtilityOutages,
   requestJobRun,
@@ -25,7 +26,7 @@ import { isWaterOutageEnabled, operatorById, resolveSourceStatuses } from '@fast
 import { buildLivePortfolio } from '../portfolio';
 import type { MonitoringBus } from './bus';
 import { PER_PROPERTY_JOBS } from './jobs';
-import { buildActiveAlarmFeed, buildFeed, buildPropertySnapshot, buildUpcoming } from './snapshot';
+import { alarmFeedItems, buildActiveAlarmFeed, buildFeed, buildNowcast, buildPropertySnapshot, buildUpcoming } from './snapshot';
 import { resolveRuntimeStatuses } from './status';
 import { notificationSnapshots } from '../notifications/snapshots';
 import { propertyUtilityStatus, resolveOperatorStatuses, withUtilityOutages, type OperatorStatus, type UtilityInputs } from './utility-outages';
@@ -137,6 +138,49 @@ export class MonitoringService {
     };
   }
 
+  /**
+   * List rows of some properties, plus the portfolio parts that change with them (feed, alarm
+   * candidates, their upcoming conditions, source status). The live stream patches these into an
+   * open dashboard instead of reloading the portfolio (docs/plans/skalning.md, Fas 3 / S-12).
+   * Built exactly like `portfolio()`, but monitoring data is loaded for these properties only.
+   */
+  async rows(t: TenantContext, ids: string[], now = new Date()): Promise<PortfolioRowsPatch> {
+    const [properties, data, statuses, changes, alarmChanges, utility] = await Promise.all([
+      listProperties(this.db, t),
+      loadOrgMonitoring(this.db, t.organizationId, ids),
+      this.statuses(now),
+      listRecentChangesForOrg(this.db, t.organizationId, 60, t.userId),
+      listActiveAlarmChangesForOrg(this.db, t.organizationId, t.userId),
+      this.utilityInputs(t.organizationId, now),
+    ]);
+    const wanted = new Set(ids);
+    const records = properties.filter((p) => wanted.has(p.id));
+    const snapshots = await notificationSnapshots(this.db, t.organizationId, records.map((p) => {
+      const s = buildPropertySnapshot(p, t.clerkOrgId, data, statuses, now);
+      return utility ? withUtilityOutages(s, utility) : s;
+    }));
+    const found = new Set(records.map((p) => p.id));
+    return {
+      generatedAt: now.toISOString(),
+      properties: snapshots.map(listSnapshot),
+      missing: ids.filter((id) => !found.has(id)),
+      feed: buildFeed(changes, new Set(properties.map((p) => p.id))),
+      alarmCandidates: alarmFeedItems(alarmChanges),
+      upcoming: buildUpcoming(snapshots, data.forecasts, now, this.env.UTILITY_OUTAGE_UPCOMING_ENABLED, Number.POSITIVE_INFINITY),
+      sources: statuses,
+    };
+  }
+
+  /** Only the radar nowcast (refreshed every few minutes for most properties): one small query. */
+  async nowcasts(t: TenantContext, ids: string[] | undefined, now = new Date()): Promise<PortfolioNowcastPatch> {
+    const [rows, statuses] = await Promise.all([loadOrgNowcasts(this.db, t.organizationId, ids), this.statuses(now)]);
+    return {
+      generatedAt: now.toISOString(),
+      nowcasts: rows.map((r) => ({ propertyId: r.property_id, nowcast: buildNowcast(r, now) })),
+      sources: statuses,
+    };
+  }
+
   async property(t: TenantContext, id: string, now = new Date()): Promise<{ record: PropertyRecord; snapshot: PropertySnapshot; statuses: DataSourceStatus[] } | null> {
     const record = await getProperty(this.db, t, id);
     if (!record) return null;
@@ -179,7 +223,9 @@ export class MonitoringService {
       await requestJobRun(this.db, PER_PROPERTY_JOBS);
       const changes = [...(await rematchEvents(this.db)), ...(await rematchUtilityOutages(this.db).catch(() => []))];
       const props = changes.filter((c) => c.organizationId === organizationId).map((c) => c.propertyId);
-      this.bus.publish({ at: new Date().toISOString(), sources: ['smhi_warnings'], organizationIds: [organizationId], propertyIds: props, changes: props.length });
+      // No property ids: the property list itself changed (added, moved, removed), so open dashboards
+      // reload the portfolio instead of patching rows (docs/plans/skalning.md, S-12).
+      this.bus.publish({ at: new Date().toISOString(), sources: ['smhi_warnings'], organizationIds: [organizationId], propertyIds: [], changes: props.length });
     } catch {
       /* monitoring tables missing or DB hiccup – the next scheduled run re-matches */
     }

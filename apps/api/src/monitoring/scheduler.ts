@@ -199,18 +199,22 @@ export class MonitoringScheduler {
     this.publish(job, result);
   }
 
+  /** One live hint per organization (its changed properties), plus one central hint (coalesced by the bus). */
   private publish(job: MonitoringJob, result: JobResult) {
     if (result.status === 'error' || result.status === 'skipped') return;
     const source = (job.sourceId ?? 'smhi_warnings') as SourceId;
     const at = new Date().toISOString();
-    const changes = result.changed?.changes ?? [];
-    const byOrg = new Map<string, Set<string>>();
-    for (const c of changes) {
-      if (!byOrg.has(c.organizationId)) byOrg.set(c.organizationId, new Set());
-      byOrg.get(c.organizationId)!.add(c.propertyId);
-    }
-    for (const [org, props] of byOrg) {
-      this.o.bus.publish({ at, sources: [source], organizationIds: [org], propertyIds: [...props], changes: changes.filter((c) => c.organizationId === org).length });
+    const byOrg = new Map<string, { properties: Set<string>; changes: number }>();
+    const add = (organizationId: string, propertyId: string, change: boolean) => {
+      let e = byOrg.get(organizationId);
+      if (!e) byOrg.set(organizationId, (e = { properties: new Set(), changes: 0 }));
+      e.properties.add(propertyId);
+      if (change) e.changes++;
+    };
+    for (const c of result.changed?.changes ?? []) add(c.organizationId, c.propertyId, true);
+    for (const p of result.changed?.properties ?? []) add(p.organizationId, p.propertyId, false);
+    for (const [org, e] of byOrg) {
+      this.o.bus.publish({ at, sources: [source], organizationIds: [org], propertyIds: [...e.properties], changes: e.changes });
     }
     if (result.changed?.all && result.items > 0) this.o.bus.publish({ at, sources: [source], organizationIds: 'all', propertyIds: [], changes: 0 });
   }

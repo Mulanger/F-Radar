@@ -7,6 +7,7 @@
  *   node portfolio-scale.mjs matrix 200 500 1000   # measure in child processes (heap limits, concurrency)
  *   node --expose-gc --max-old-space-size=512 portfolio-scale.mjs measure 500 3
  *   node portfolio-scale.mjs fields 500             # bytes per field of one real response
+ *   node --expose-gc portfolio-scale.mjs live 500   # a live row patch vs the full list (Fas 3 / S-12)
  *   node portfolio-scale.mjs cleanup
  *
  * Everything it writes is tagged: organizations `org_perfscale<n>`, events `perf:…`, stations
@@ -32,6 +33,7 @@ import {
   type SourceEventInput,
   type StationObservationInput,
 } from '../../packages/db/src';
+import { filterActiveAlarms, mergeUpcoming, type Portfolio, type PortfolioNowcastPatch, type PortfolioRowsPatch } from '../../packages/domain/src';
 import { buildApp } from '../../apps/api/src/app';
 import type { AuthVerifier } from '../../apps/api/src/auth';
 import { MonitoringBus } from '../../apps/api/src/monitoring/bus';
@@ -303,6 +305,60 @@ async function fields(n: number) {
   };
 }
 
+/**
+ * A live update (docs/plans/skalning.md, Fas 3 / S-12): what one forecast run (40 properties) costs
+ * as a row patch compared with reloading the list, and whether patching the list with it gives
+ * exactly the list (rows, feed, active alarms, upcoming conditions). Sizes and times only.
+ */
+async function live(n: number) {
+  const app = await perfApp();
+  const headers = { authorization: `Bearer ${token(n)}` };
+  const mb = (b: number) => Math.round((b / 1_048_576) * 10) / 10;
+  const gc = () => (globalThis as { gc?: () => void }).gc?.();
+  const timed = async (url: string, rounds = 3) => {
+    gc();
+    const base = process.memoryUsage().heapUsed;
+    let peak = base;
+    const sampler = setInterval(() => { peak = Math.max(peak, process.memoryUsage().heapUsed); }, 2);
+    const times: number[] = [];
+    let last = null as Awaited<ReturnType<typeof app.inject>> | null;
+    for (let i = 0; i < rounds; i++) {
+      const t0 = performance.now();
+      last = await app.inject({ method: 'GET', url, headers });
+      times.push(performance.now() - t0);
+      peak = Math.max(peak, process.memoryUsage().heapUsed);
+      if (last.statusCode !== 200) throw new Error(`${url.split('?')[0]} ${last.statusCode}`);
+    }
+    clearInterval(sampler);
+    times.sort((a, b) => a - b);
+    return { medianMs: Math.round(times[Math.floor(times.length / 2)]!), bytes: last!.rawPayload.length, heapDeltaMb: mb(peak - base), json: last!.json() };
+  };
+  try {
+    const full = await timed('/v1/portfolio');
+    const list = full.json as Portfolio;
+    const ids = list.properties.filter((_, i) => i % Math.max(1, Math.floor(list.properties.length / 40)) === 0).slice(0, 40).map((s) => s.property.id);
+    const rows = await timed(`/v1/portfolio/rows?ids=${ids.join(',')}`);
+    const patch = rows.json as PortfolioRowsPatch;
+    const nowcast = await timed('/v1/portfolio/nowcast');
+    const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+    const byId = new Map(patch.properties.map((s) => [s.property.id, s]));
+    return {
+      n,
+      full: { medianMs: full.medianMs, bytes: full.bytes, heapDeltaMb: full.heapDeltaMb },
+      rows: { properties: patch.properties.length, medianMs: rows.medianMs, bytes: rows.bytes, heapDeltaMb: rows.heapDeltaMb },
+      nowcast: { properties: (nowcast.json as PortfolioNowcastPatch).nowcasts.length, medianMs: nowcast.medianMs, bytes: nowcast.bytes },
+      patchEqualsList: {
+        rows: patch.missing.length === 0 && ids.every((id) => same(byId.get(id), list.properties.find((s) => s.property.id === id))),
+        feed: same(patch.feed, list.feed),
+        activeAlarms: same(filterActiveAlarms(patch.alarmCandidates, list.properties), list.activeAlarms),
+        upcoming: same(mergeUpcoming(list.upcoming, patch.upcoming, ids), list.upcoming),
+      },
+    };
+  } finally {
+    await app.close();
+  }
+}
+
 /** The API's heap ceiling in production (deploy/pod/index.js); it was 192 MB until Fas 0 measured it. */
 const PROD_HEAP_MB = 512;
 
@@ -349,6 +405,8 @@ try {
     console.log(JSON.stringify(await measure(sizes[0]!, sizes[1] ?? 1)));
   } else if (mode === 'fields') {
     for (const n of sizes) console.log(JSON.stringify(await fields(n)));
+  } else if (mode === 'live') {
+    for (const n of sizes) console.log(JSON.stringify(await live(n)));
   } else if (mode === 'matrix') {
     await pool.end();
     matrix(sizes);
@@ -356,7 +414,7 @@ try {
     await cleanup();
     console.log(JSON.stringify({ cleanup: 'done' }));
   } else {
-    throw new Error('usage: seed|matrix|measure|fields|cleanup <sizes…>');
+    throw new Error('usage: seed|matrix|measure|fields|live|cleanup <sizes…>');
   }
 } finally {
   if (mode !== 'matrix') await pool.end();

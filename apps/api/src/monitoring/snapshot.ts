@@ -1,5 +1,6 @@
 import type {
   DataSourceStatus,
+  Nowcast,
   EnvironmentalMetric,
   FeedItem,
   Freshness,
@@ -17,8 +18,8 @@ import type {
   WarningLevel,
   WeatherForecast,
 } from '@fastighetsradar/domain';
-import { assessPropertyRisk, feedNeedsAck, nightWorkLabel, formatWeekdayClock, swedishDayWindows, forecastInformation, WEATHER_WATER, summarizeNowcast, measurementTrend, type TimedReading, classifyFlow, measuredPrecipitation, outageHeadline } from '@fastighetsradar/domain';
-import type { OrgContextRow, OrgEventRow, OrgForecastRow, OrgMonitoringData, OrgObservationRow } from '@fastighetsradar/db';
+import { activeAlarmKeys, compareUpcoming, UPCOMING_LIMIT, assessPropertyRisk, feedNeedsAck, nightWorkLabel, formatWeekdayClock, swedishDayWindows, forecastInformation, WEATHER_WATER, summarizeNowcast, measurementTrend, type TimedReading, classifyFlow, measuredPrecipitation, outageHeadline } from '@fastighetsradar/domain';
+import type { NowcastRow, OrgContextRow, OrgEventRow, OrgForecastRow, OrgMonitoringData, OrgObservationRow } from '@fastighetsradar/db';
 import {
   AIR_PHENOMENA,
   AIR_QUALITY_ATTRIBUTION,
@@ -407,6 +408,12 @@ function observedGroundwater(c: OrgContextRow | undefined, now: Date): NearbyObs
     provenance: provenance('sgu_observed_groundwater', 'OBSERVATION', p.observedAt, c.fetched_at, 'Källa: SGU (CC0)', p.sourceUrl, now) };
 }
 
+/** The radar nowcast of one stored point, as the snapshot shows it (also patched alone by the live stream). */
+export function buildNowcast(radar: NowcastRow, now: Date): Nowcast {
+  const radarAge = (now.getTime()-radar.fetched_at.getTime())/60_000;
+  return { sourceId:'met_nowcast', coverage:radar.radar_coverage, updatedAt:iso(radar.source_updated_at), fetchedAt:radar.fetched_at.toISOString(), freshness:radarAge<=WEATHER_WATER.nowcastFreshMinutes?'fresh':radarAge<=WEATHER_WATER.nowcastUsableMinutes?'stale':'expired', points:radar.series.points, summary:summarizeNowcast(radar.series.points,now,radar.series.temperature,{coverage:radar.radar_coverage,fetchedAt:radar.fetched_at.toISOString()}), attribution:'Data från MET Norway · bearbetad av FastighetsRadar (CC BY 4.0)', origin:'live' };
+}
+
 export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, data: OrgMonitoringData, statuses: DataSourceStatus[], now: Date): PropertySnapshot {
   const base = propertyToSnapshot(p, clerkOrgId);
   const forecastRow = data.forecasts.find((f) => f.property_id === p.id);
@@ -462,7 +469,6 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
 
   const rainStation=obs.find(o=>o.source_id==='smhi_observations'&&o.parameter==='precipitation_15min'&&o.distance_m<=WEATHER_WATER.observationDistanceM);
   const radar = data.nowcasts?.find(x => x.property_id === p.id);
-  const radarAge = radar ? (now.getTime()-radar.fetched_at.getTime())/60_000 : Infinity;
   const snapshot: PropertySnapshot = {
     ...base,
     property: { ...base.property, countyCode: county?.code ?? null, status, statusReason: reason },
@@ -476,7 +482,7 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
     }] : [])],
     forecast: buildForecast(p.id, forecastRow, now),
     measuredRain:rainStation?{sourceId:'smhi_observations',stationName:rainStation.name,distanceMeters:Math.round(rainStation.distance_m),observedAt:iso(rainStation.observed_at),fetchedAt:rainStation.fetched_at.toISOString(),qualityNote:'Stationsmätningar; senaste värden kan vara preliminära eller grovt kontrollerade',totals:[1,24,72].map(h=>measuredPrecipitation(history('smhi_observations',rainStation.station_id,'precipitation_15min'),now,h))}:null,
-    nowcast: radar ? { sourceId:'met_nowcast', coverage:radar.radar_coverage, updatedAt:iso(radar.source_updated_at), fetchedAt:radar.fetched_at.toISOString(), freshness:radarAge<=WEATHER_WATER.nowcastFreshMinutes?'fresh':radarAge<=WEATHER_WATER.nowcastUsableMinutes?'stale':'expired', points:radar.series.points, summary:summarizeNowcast(radar.series.points,now,radar.series.temperature,{coverage:radar.radar_coverage,fetchedAt:radar.fetched_at.toISOString()}), attribution:'Data från MET Norway · bearbetad av FastighetsRadar (CC BY 4.0)', origin:'live' } : null,
+    nowcast: radar ? buildNowcast(radar, now) : null,
     warnings,
     events: publicEvents,
     flood: floodParts.flood,
@@ -619,30 +625,25 @@ function toFeedItem(c: FeedChange): FeedItem {
   };
 }
 
-/** Use the same active alarms and source settings as the property snapshots. */
-export function buildActiveAlarmFeed(changes: Array<FeedChange & { unread_alarm_id: string | null }>, snapshots: PropertySnapshot[]): FeedItem[] {
-  const active = new Set<string>();
-  for (const snapshot of snapshots) {
-    for (const warning of snapshot.warnings) {
-      if (warning.level !== 'Info') active.add(`${snapshot.property.id}:${warning.id}`);
-    }
-    for (const section of snapshot.utilityOutages ?? []) {
-      for (const outage of section.current) {
-        if (outage.severity === 'warning' || outage.severity === 'critical') active.add(`${snapshot.property.id}:${outage.id}`);
-      }
-    }
-  }
-  return changes.filter((c) => active.has(`${c.property_id}:${c.event_id}`)).map((c) => ({
+/** Every alarm row of the organization, before keeping those still active in the snapshots. */
+export function alarmFeedItems(changes: Array<FeedChange & { unread_alarm_id: string | null }>): FeedItem[] {
+  return changes.map((c) => ({
     ...toFeedItem(c),
     ...(c.unread_alarm_id ? { unreadAlarmId: `chg-${c.unread_alarm_id}` } : {}),
   }));
+}
+
+/** Use the same active alarms and source settings as the property snapshots. */
+export function buildActiveAlarmFeed(changes: Array<FeedChange & { unread_alarm_id: string | null }>, snapshots: PropertySnapshot[]): FeedItem[] {
+  const active = activeAlarmKeys(snapshots);
+  return alarmFeedItems(changes.filter((c) => active.has(`${c.property_id}:${c.event_id}`)));
 }
 
 /**
  * Forecast-derived upcoming conditions (next 24 h). Plain thresholds on the SMHI point forecast,
  * shown as forecast facts – not alerts and not a risk assessment.
  */
-export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForecastRow[], now: Date, outagesEnabled = false): UpcomingCondition[] {
+export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForecastRow[], now: Date, outagesEnabled = false, limit = UPCOMING_LIMIT): UpcomingCondition[] {
   const out: UpcomingCondition[] = [];
   for (const s of snapshots) {
     if (outagesEnabled) for (const section of s.utilityOutages ?? []) for (const o of section.upcoming) {
@@ -690,6 +691,5 @@ export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForec
       out.push({ id: `frost-${s.property.id}`, label: 'Minusgrader (prognos)', where: s.property.name, propertyId: s.property.id, when: formatWeekdayClock(from), validAt: from, validTo: spell.at(-1)!.time, sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${lowest.toFixed(0)}°`, tone: 'cold', origin: 'live' });
     }
   }
-  const rank = { critical: 0, warning: 1, monitor: 2, cold: 3 };
-  return out.sort((a,b) => Number(!!b.official)-Number(!!a.official) || rank[a.tone] - rank[b.tone] || (a.validAt ?? '').localeCompare(b.validAt ?? '')).slice(0, 8);
+  return out.sort(compareUpcoming).slice(0, limit);
 }

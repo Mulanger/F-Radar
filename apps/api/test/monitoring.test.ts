@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { AddressInfo } from 'node:net';
 import type { FastifyInstance } from 'fastify';
 import { loadServerEnv } from '@fastighetsradar/config';
-import { PortfolioSchema, PropertySnapshotSchema, type PropertyRecord } from '@fastighetsradar/domain';
+import { PortfolioNowcastPatchSchema, PortfolioRowsPatchSchema, PortfolioSchema, PropertySnapshotSchema, ROWS_PATCH_MAX, type PropertyRecord } from '@fastighetsradar/domain';
 import type { JobRow, OrgMonitoringData, Queryable } from '@fastighetsradar/db';
 import { buildApp } from '../src/app';
 import { MonitoringBus } from '../src/monitoring/bus';
@@ -336,7 +336,7 @@ describe('monitoring HTTP endpoints', () => {
   afterAll(() => app.close());
 
   it('require a verified user AND organization', async () => {
-    for (const url of ['/v1/portfolio', '/v1/portfolio/summary', `/v1/properties/${PID}/snapshot`, `/v1/properties/${PID}/forecast`, `/v1/properties/${PID}/warnings`, `/v1/properties/${PID}/events`, `/v1/properties/${PID}/environment`, `/v1/properties/${PID}/flood`, `/v1/properties/${PID}/activity`, `/v1/properties/${PID}/event-map`, '/v1/settings', '/v1/changes', '/v1/stream']) {
+    for (const url of ['/v1/portfolio', '/v1/portfolio/summary', `/v1/portfolio/rows?ids=${PID}`, '/v1/portfolio/nowcast', `/v1/properties/${PID}/snapshot`, `/v1/properties/${PID}/forecast`, `/v1/properties/${PID}/warnings`, `/v1/properties/${PID}/events`, `/v1/properties/${PID}/environment`, `/v1/properties/${PID}/flood`, `/v1/properties/${PID}/activity`, `/v1/properties/${PID}/event-map`, '/v1/settings', '/v1/changes', '/v1/stream']) {
       expect((await app.inject({ method: 'GET', url })).statusCode, url).toBe(401);
       expect((await app.inject({ method: 'GET', url, headers: { authorization: 'Bearer noorg' } })).statusCode, url).toBe(403);
     }
@@ -353,6 +353,20 @@ describe('monitoring HTTP endpoints', () => {
     PortfolioSchema.parse(p.json());
     const sum = await app.inject({ method: 'GET', url: '/v1/portfolio/summary', headers: { authorization: 'Bearer org' } });
     expect(sum.json()).toMatchObject({ properties: 0, riskScore: null, statusMethod: 'highest_official_warning' });
+  });
+
+  it('patches rows and nowcasts only for valid ids of the organization (S-12)', async () => {
+    const get = (url: string) => app.inject({ method: 'GET', url, headers: { authorization: 'Bearer org' } });
+    for (const bad of ['/v1/portfolio/rows', '/v1/portfolio/rows?ids=', '/v1/portfolio/rows?ids=not-a-uuid', `/v1/portfolio/rows?ids=${Array.from({ length: ROWS_PATCH_MAX + 1 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`).join(',')}`]) {
+      expect((await get(bad)).statusCode, bad).toBe(400);
+    }
+    const rows = await get(`/v1/portfolio/rows?ids=${PID},${PID}`);
+    expect(rows.statusCode).toBe(200);
+    // A property outside the organization is reported missing, never built.
+    expect(PortfolioRowsPatchSchema.parse(rows.json())).toMatchObject({ properties: [], missing: [PID], upcoming: [], alarmCandidates: [] });
+    const nowcast = await get('/v1/portfolio/nowcast');
+    expect(nowcast.statusCode).toBe(200);
+    expect(PortfolioNowcastPatchSchema.parse(nowcast.json()).nowcasts).toEqual([]);
   });
 
   it('coverage requires an active organization and uses only that tenant', async () => {

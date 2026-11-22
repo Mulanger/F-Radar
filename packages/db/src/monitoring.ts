@@ -699,13 +699,17 @@ export const NEAREST_PARAMETERS: Array<[string, string, number]> = [
  * Loads every monitoring record for an organization (optionally one property) with 5 queries.
  * No external API is called on this path.
  */
-export async function loadOrgMonitoring(db: Queryable, organizationId: string, propertyId?: string): Promise<OrgMonitoringData> {
-  const pid = propertyId ?? null;
+/**
+ * Everything the snapshot builder needs for an organization – or for some of its properties
+ * (one property page, or the rows a live update patches: docs/plans/skalning.md, S-12).
+ */
+export async function loadOrgMonitoring(db: Queryable, organizationId: string, propertyIds?: string | string[]): Promise<OrgMonitoringData> {
+  const pid = propertyIds === undefined ? null : Array.isArray(propertyIds) ? propertyIds : [propertyIds];
   const [forecasts, events, contexts, observations, counties, nowcasts, hydrologyReferences, history, airHistory] = await Promise.all([
     db.query<OrgForecastRow>(
       `SELECT f.property_id, f.source_id, f.reference_time, f.created_time, ST_Y(f.grid_point::geometry) AS grid_lat, ST_X(f.grid_point::geometry) AS grid_lon,
               f.distance_m, f.series, f.fetched_at
-         FROM property_forecasts f WHERE f.organization_id = $1 AND ($2::uuid IS NULL OR f.property_id = $2)`,
+         FROM property_forecasts f WHERE f.organization_id = $1 AND ($2::uuid[] IS NULL OR f.property_id = ANY($2::uuid[]))`,
       [organizationId, pid],
     ),
     db.query<OrgEventRow>(
@@ -717,13 +721,13 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
          FROM property_event_matches m
          JOIN source_events e ON e.id = m.event_id AND e.status = 'active'
          JOIN properties p ON p.id = m.property_id AND p.organization_id = $1
-        WHERE m.organization_id = $1 AND ($2::uuid IS NULL OR m.property_id = $2)
+        WHERE m.organization_id = $1 AND ($2::uuid[] IS NULL OR m.property_id = ANY($2::uuid[]))
         ORDER BY e.severity DESC, m.distance_m NULLS LAST, e.published_at DESC NULLS LAST`,
       [organizationId, pid],
     ),
     db.query<OrgContextRow>(
       `SELECT property_id, source_id, context_key, data_class, status, payload, source_timestamp, fetched_at
-         FROM property_context WHERE organization_id = $1 AND ($2::uuid IS NULL OR property_id = $2)`,
+         FROM property_context WHERE organization_id = $1 AND ($2::uuid[] IS NULL OR property_id = ANY($2::uuid[]))`,
       [organizationId, pid],
     ),
     db.query<OrgObservationRow>(
@@ -738,24 +742,21 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
              AND s.observed_at > now() - make_interval(hours => par.max_age_h)
            ORDER BY s.location <-> p.location
            LIMIT 1) o
-        WHERE p.organization_id = $1 AND ($2::uuid IS NULL OR p.id = $2)`,
+        WHERE p.organization_id = $1 AND ($2::uuid[] IS NULL OR p.id = ANY($2::uuid[]))`,
       [organizationId, pid, JSON.stringify(NEAREST_PARAMETERS.map(([source_id, parameter, max_age_h]) => ({ source_id, parameter, max_age_h })))],
     ),
     db.query<{ property_id: string; code: string; name: string }>(
       `SELECT p.id AS property_id, a.code, a.name
          FROM properties p JOIN admin_areas a ON a.kind = 'county' AND ST_Covers(a.geom, p.location::geometry)
-        WHERE p.organization_id = $1 AND ($2::uuid IS NULL OR p.id = $2)`,
+        WHERE p.organization_id = $1 AND ($2::uuid[] IS NULL OR p.id = ANY($2::uuid[]))`,
       [organizationId, pid],
     ),
-    db.query<NowcastRow & { property_id: string }>(
-      `SELECT p.id AS property_id, n.* FROM properties p JOIN nowcast_points n ON n.point_key =
-        round(ST_Y(p.location::geometry)::numeric,2)::text || ',' || round(ST_X(p.location::geometry)::numeric,2)::text
-        WHERE p.organization_id = $1 AND ($2::uuid IS NULL OR p.id = $2)`, [organizationId, pid]),
+    loadOrgNowcasts(db, organizationId, pid ?? undefined),
     db.query<HydrologyReferenceRow>(`SELECT r.* FROM hydrology_references r JOIN observation_stations s ON s.source_id=r.source_id AND s.station_id=r.station_id AND s.parameter='water_flow'
-      WHERE EXISTS(SELECT 1 FROM properties p WHERE p.organization_id=$1 AND ($2::uuid IS NULL OR p.id=$2) AND ST_DWithin(s.location,p.location,$3))`,[organizationId,pid,WEATHER_WATER.flowDistanceM]),
+      WHERE EXISTS(SELECT 1 FROM properties p WHERE p.organization_id=$1 AND ($2::uuid[] IS NULL OR p.id = ANY($2::uuid[])) AND ST_DWithin(s.location,p.location,$3))`,[organizationId,pid,WEATHER_WATER.flowDistanceM]),
     db.query<ObservationHistoryRow>(`SELECT h.* FROM observation_history h JOIN observation_stations s ON s.source_id=h.source_id AND s.station_id=h.station_id AND s.parameter=h.parameter
       WHERE h.parameter IN ('sea_level','water_flow','precipitation_15min') AND h.observed_at > now()-interval '73 hours'
-        AND EXISTS(SELECT 1 FROM properties p WHERE p.organization_id=$1 AND ($2::uuid IS NULL OR p.id=$2)
+        AND EXISTS(SELECT 1 FROM properties p WHERE p.organization_id=$1 AND ($2::uuid[] IS NULL OR p.id = ANY($2::uuid[]))
           AND ST_DWithin(p.location,s.location,CASE h.source_id WHEN 'smhi_oceanography' THEN $3::double precision WHEN 'smhi_hydrology' THEN $4::double precision ELSE $5::double precision END))
       ORDER BY h.source_id,h.station_id,h.parameter,h.observed_at`,[organizationId,pid,WEATHER_WATER.seaDistanceM,WEATHER_WATER.flowDistanceM,WEATHER_WATER.observationDistanceM]),
     db.query<OrgObservationRow>(
@@ -764,12 +765,21 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
          FROM properties p JOIN observation_stations s ON s.source_id = 'air_quality'
           AND ST_DWithin(s.location, p.location, 25000)
          JOIN station_observation_history h ON h.source_id = s.source_id AND h.station_id = s.station_id AND h.parameter = s.parameter
-        WHERE p.organization_id = $1 AND ($2::uuid IS NULL OR p.id = $2)
+        WHERE p.organization_id = $1 AND ($2::uuid[] IS NULL OR p.id = ANY($2::uuid[]))
           AND h.observed_at >= now() - interval '3 hours' AND h.observed_at <= now()`,
       [organizationId, pid],
     ),
   ]);
-  return { history:history.rows, hydrologyReferences:hydrologyReferences.rows, nowcasts: nowcasts.rows, forecasts: forecasts.rows, events: events.rows, contexts: contexts.rows, observations: observations.rows, counties: counties.rows, airHistory: airHistory.rows };
+  return { history:history.rows, hydrologyReferences:hydrologyReferences.rows, nowcasts, forecasts: forecasts.rows, events: events.rows, contexts: contexts.rows, observations: observations.rows, counties: counties.rows, airHistory: airHistory.rows };
+}
+
+/** The stored radar nowcast of an organization's properties (all, or the given ones). */
+export async function loadOrgNowcasts(db: Queryable, organizationId: string, propertyIds?: string[]): Promise<Array<NowcastRow & { property_id: string }>> {
+  const { rows } = await db.query<NowcastRow & { property_id: string }>(
+    `SELECT p.id AS property_id, n.* FROM properties p JOIN nowcast_points n ON n.point_key =
+      round(ST_Y(p.location::geometry)::numeric,2)::text || ',' || round(ST_X(p.location::geometry)::numeric,2)::text
+      WHERE p.organization_id = $1 AND ($2::uuid[] IS NULL OR p.id = ANY($2::uuid[]))`, [organizationId, propertyIds ?? null]);
+  return rows;
 }
 
 export async function listRecentChangesForOrg(db: Queryable, organizationId: string, limit = 50, viewerId?: string) {

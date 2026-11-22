@@ -158,5 +158,7 @@ export const StreamUpdateSchema = z.object({
   sources: z.array(SourceIdSchema),
   propertyIds: z.array(z.string()),
   changes: z.number().int().nonnegative(),
+  /** A central source changed (every property may be affected); `propertyIds` is then empty. */
+  all: z.boolean().optional(),
 });
 export type StreamUpdate = z.infer<typeof StreamUpdateSchema>;

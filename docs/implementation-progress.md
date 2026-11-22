@@ -126,3 +126,13 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
   med sök och "Markera alla", aktivitetsloggen förkortar långa namnlistor.
 - Tester: 86 filer / 634 godkända / 6 överhoppade; typer och lint gröna.
 
+# Skalning – Fas 3: lättare dataflöde (2026-11-22)
+
+- Plan: [`plans/skalning.md`](plans/skalning.md), Fas 3 (S-10, S-11, S-12, S-14). Gren `claude/skalning-fas0`.
+- Steg 1 (`6582b7b`, driftsatt): `/v1/portfolio` skickar listan (detaljdelar tömda, 14,4 → 6,0 MB vid 500);
+  fastighetssidan hämtar en fastighet via `/v1/properties/:id/snapshot`; SMS-kortlänken utanför dashboarden.
+- Steg 2: live-signaler per fastighet (prognos, nowcast, SGU/MCF/SCB), centrala signaler högst var 5:e
+  minut, `GET /v1/portfolio/rows` och `/v1/portfolio/nowcast`; klienten lappar in ändrade rader i stället
+  för att ladda om hela portföljen. Vid 500: en prognoskörning 0,26 s / 0,65 MB mot 1,6 s / 6,0 MB.
+  Ingen `ETag` (se planen).
+

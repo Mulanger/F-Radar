@@ -25,8 +25,13 @@ describe('station observation persistence', () => {
     const { db, calls } = recordingDb();
     await loadOrgMonitoring(db, 'org-id', 'property-id');
     const history = calls.find((c) => c.sql.includes('JOIN station_observation_history'))!;
-    expect(history.params).toEqual(['org-id', 'property-id']);
+    expect(history.params).toEqual(['org-id', ['property-id']]);
     expect(history.sql).toContain('p.organization_id = $1');
+    expect(history.sql).toContain('p.id = ANY($2::uuid[])');
+    // Several properties (the rows a live update patches, S-12) use the same bound.
+    calls.length = 0;
+    await loadOrgMonitoring(db, 'org-id', ['p1', 'p2']);
+    expect(calls.every((c) => c.params?.[1] === null || (Array.isArray(c.params?.[1]) && (c.params[1] as string[]).join() === 'p1,p2'))).toBe(true);
     expect(history.sql).toContain('ST_DWithin(s.location, p.location, 25000)');
     expect(history.sql).toContain("interval '3 hours'");
   });

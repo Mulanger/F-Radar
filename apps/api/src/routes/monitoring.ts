@@ -1,10 +1,12 @@
-import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
-import { ACTIVITY, portfolioRisk, EventIdParamSchema, PropertyIdParamSchema, type StreamUpdate } from '@fastighetsradar/domain';
+import type { FastifyInstance, FastifyReply, FastifyRequest, preHandlerHookHandler } from 'fastify';
+import { z } from 'zod';
+import { ACTIVITY, portfolioRisk, EventIdParamSchema, PropertyIdParamSchema, ROWS_PATCH_MAX, type StreamUpdate } from '@fastighetsradar/domain';
 import { resolveSmsMode, type ServerEnv } from '@fastighetsradar/config';
 import { resolveSourceStatuses } from '@fastighetsradar/integrations';
 import { orgContext } from '../auth';
 import { HttpProblem } from '../errors';
 import type { MonitoringService } from '../monitoring/service';
+import { portfolioTelemetry } from './customer';
 
 export interface MonitoringRouteDeps {
   env: ServerEnv;
@@ -18,6 +20,14 @@ export const STREAM_MAX_PER_ORG = 20;
 export const STREAM_MAX_TOTAL = 200;
 export const STREAM_MAX_DURATION_MS = 60_000;
 const HEARTBEAT_MS = 25_000;
+
+/** `?ids=a,b,c` – property UUIDs, at most `ROWS_PATCH_MAX`. */
+const IdsQuerySchema = z.object({
+  ids: z.string().max(ROWS_PATCH_MAX * 37)
+    .transform((v) => [...new Set(v.split(',').filter(Boolean))])
+    .pipe(z.array(z.string().uuid()).min(1).max(ROWS_PATCH_MAX))
+    .optional(),
+});
 
 /**
  * Versioned, authenticated, tenant-isolated monitoring endpoints (all under /v1).
@@ -52,6 +62,29 @@ export function registerMonitoringRoutes(app: FastifyInstance, deps: MonitoringR
       publicEvents: p.properties.reduce((a, s) => a + s.events.length, 0),
       sources: p.sources.map((s) => ({ sourceId: s.sourceId, status: s.status, freshness: s.freshness, lastSuccessAt: s.lastSuccessAt })),
     };
+  });
+
+  /* ---------------- live patches (docs/plans/skalning.md, Fas 3 / S-12) ---------------- */
+
+  const sendTimed = (req: FastifyRequest, reply: FastifyReply, started: number, properties: number, value: unknown, message: string) => {
+    const body = JSON.stringify(value);
+    req.log.info(portfolioTelemetry(properties, body, started), message);
+    return reply.type('application/json; charset=utf-8').send(body);
+  };
+
+  app.get('/v1/portfolio/rows', { preHandler: deps.requireOrg }, async (req, reply) => {
+    const { ids } = IdsQuerySchema.parse(req.query);
+    if (!ids) throw new HttpProblem(400, 'ids required');
+    const started = performance.now();
+    const patch = await svc().rows(orgContext(req), ids);
+    return sendTimed(req, reply, started, patch.properties.length, patch, 'portfolio rows built');
+  });
+
+  app.get('/v1/portfolio/nowcast', { preHandler: deps.requireOrg }, async (req, reply) => {
+    const { ids } = IdsQuerySchema.parse(req.query);
+    const started = performance.now();
+    const patch = await svc().nowcasts(orgContext(req), ids);
+    return sendTimed(req, reply, started, patch.nowcasts.length, patch, 'portfolio nowcast built');
   });
 
   app.get('/v1/properties/:id/snapshot', { preHandler: deps.requireOrg }, async (req) => {
@@ -171,7 +204,7 @@ export function registerMonitoringRoutes(app: FastifyInstance, deps: MonitoringR
 
     let closed = false;
     const unsubscribe = service.bus.subscribe(ctx.organizationId, (u) => {
-      const payload: StreamUpdate = { at: u.at, sources: u.sources, propertyIds: u.propertyIds, changes: u.changes };
+      const payload: StreamUpdate = { at: u.at, sources: u.sources, propertyIds: u.propertyIds, changes: u.changes, ...(u.all ? { all: true } : {}) };
       send('update', payload);
     });
     const heartbeat = setInterval(() => { if (!res.write(`: hb ${Date.now()}\n\n`)) res.destroy(); }, HEARTBEAT_MS);

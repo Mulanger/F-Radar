@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { dashboardSection, propertyHref, propertySmsHref, recordDashboardDeparture, type DashboardSection } from '@/lib/navigation/dashboard';
 import type { Portfolio, PropertySnapshot } from '@fastighetsradar/domain';
@@ -23,7 +23,13 @@ interface DashboardState {
   smsInteractive: boolean;
   /** Re-fetches server data after a mutation. */
   refresh: () => void;
+  /** The portfolio list: the server's, with any live row patches applied since it was loaded. */
   portfolio: Portfolio;
+  /**
+   * Replaces the shown portfolio with a live patch of it (docs/plans/skalning.md, S-12). The patch
+   * is dropped when the server sends a newer portfolio (navigation refresh, mutation, full reload).
+   */
+  patchPortfolio: (next: Portfolio) => void;
   unseenAlarmCount: number;
   /** Becomes true shortly after mount so bars/gauges animate in (prototype `ready`). */
   ready: boolean;
@@ -47,7 +53,7 @@ const Ctx = createContext<DashboardState | null>(null);
 export function DashboardStateProvider({
   mode,
   basePath,
-  portfolio,
+  portfolio: serverPortfolio,
   children,
 }: {
   mode: DataMode;
@@ -57,6 +63,13 @@ export function DashboardStateProvider({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [patched, setPatched] = useState<{ from: Portfolio; value: Portfolio } | null>(null);
+  const portfolio = patched && patched.from === serverPortfolio ? patched.value : serverPortfolio;
+  const serverRef = useRef(serverPortfolio);
+  useLayoutEffect(() => {
+    serverRef.current = serverPortfolio;
+  }, [serverPortfolio]);
+  const patchPortfolio = useCallback((next: Portfolio) => setPatched({ from: serverRef.current, value: next }), []);
   const [ready, setReady] = useState(false);
   const [group, setGroup] = useState('all');
   const [layers, setLayers] = useState({ weather: false, flood: true });
@@ -157,6 +170,7 @@ export function DashboardStateProvider({
     smsInteractive,
     refresh,
     portfolio,
+    patchPortfolio,
     unseenAlarmCount,
     ready,
     group,
@@ -172,7 +186,7 @@ export function DashboardStateProvider({
     openProperty,
     goProperties,
     property,
-  }), [mode, basePath, smsInteractive, refresh, portfolio, unseenAlarmCount, ready, group, layers, toggleLayer, metric, isSmsOn, toggleSms, isRuleOn, toggleRule, openProperty, goProperties, property]);
+  }), [mode, basePath, smsInteractive, refresh, portfolio, patchPortfolio, unseenAlarmCount, ready, group, layers, toggleLayer, metric, isSmsOn, toggleSms, isRuleOn, toggleRule, openProperty, goProperties, property]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

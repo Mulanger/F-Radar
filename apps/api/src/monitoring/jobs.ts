@@ -79,11 +79,24 @@ export interface JobResult {
   errorDetail?: string;
   retryAfterSeconds?: number;
   sourceUpdatedAt?: string | null;
-  /** Organizations/properties whose data changed (for the live stream). `all` = every org. */
-  changed?: { all?: boolean; changes?: MatchChange[] };
+  /**
+   * What changed, for the live stream (docs/plans/skalning.md, S-12): `changes` = matched events,
+   * `properties` = per-property data (forecast, nowcast, context) of these properties only,
+   * `all` = a central source every property may read (stations, areas).
+   */
+  changed?: { all?: boolean; changes?: MatchChange[]; properties?: ChangedProperty[] };
   /** Ask for another run soon (more properties pending). */
   moreWork?: boolean;
 }
+
+/** A property whose stored per-property data a job replaced. */
+export interface ChangedProperty {
+  organizationId: string;
+  propertyId: string;
+}
+
+const changedOf = (targets: Array<{ organizationId: string; propertyId: string }>): ChangedProperty[] =>
+  targets.map((t) => ({ organizationId: t.organizationId, propertyId: t.propertyId }));
 
 export interface JobContext {
   db: Queryable;
@@ -223,6 +236,7 @@ async function runForecasts(ctx: JobContext): Promise<JobResult> {
   let ok = 0;
   let lastErr: JobResult | null = null;
   let ref: string | null = null;
+  const updated: MonitoringTarget[] = [];
   for (const t of targets) {
     const key = `${t.lat.toFixed(3)},${t.lon.toFixed(3)}`;
     let f = cache.get(key);
@@ -247,6 +261,7 @@ async function runForecasts(ctx: JobContext): Promise<JobResult> {
     });
     ref = f.referenceTime;
     ok++;
+    updated.push(t);
   }
   if (!ok && lastErr) return lastErr;
   return {
@@ -255,7 +270,7 @@ async function runForecasts(ctx: JobContext): Promise<JobResult> {
     errorCode: lastErr?.errorCode,
     errorDetail: lastErr?.errorDetail,
     sourceUpdatedAt: ref,
-    changed: { all: true },
+    changed: { properties: changedOf(updated) },
     moreWork: targets.length === PER_RUN.forecast,
   };
 }
@@ -320,17 +335,20 @@ async function runPerProperty(
   const targets = await propertiesNeedingContext(ctx.db, sourceId, contextKey, maxAgeS, limit);
   let ok = 0;
   let lastErr: JobResult | null = null;
+  const updated: MonitoringTarget[] = [];
   for (const t of targets) {
     const r = await each(t);
-    if (r.ok) ok++;
-    else {
+    if (r.ok) {
+      ok++;
+      updated.push(t);
+    } else {
       lastErr = r.result;
       if (r.abort) break;
     }
   }
   if (!targets.length) return { status: 'ok', items: 0 };
   if (!ok && lastErr) return lastErr;
-  return { status: lastErr ? 'partial' : 'ok', items: ok, errorCode: lastErr?.errorCode, errorDetail: lastErr?.errorDetail, changed: { all: ok > 0 }, moreWork: targets.length === limit };
+  return { status: lastErr ? 'partial' : 'ok', items: ok, errorCode: lastErr?.errorCode, errorDetail: lastErr?.errorDetail, changed: { properties: changedOf(updated) }, moreWork: targets.length === limit };
 }
 
 const abortOn = (e: AdapterErrorCode) => e === 'rate_limited' || e === 'unauthorized' || e === 'timeout';
@@ -478,6 +496,7 @@ export async function runNowcast(ctx: JobContext): Promise<JobResult> {
   const keys=[...new Set(targets.map(t=>t.lat.toFixed(2)+','+t.lon.toFixed(2)))];
   const due=keys.filter(k=>!cache.has(k)||cache.get(k)!.expires_at<=ctx.adapter.now());
   let items=0, failure: JobResult | null=null;
+  const done=new Set<string>();
   for(let i=0;i<due.length;i+=4) {
     if(i) await sleep(1000,ctx.adapter.signal);
     const results=await Promise.all(due.slice(i,i+4).map(async key=>{
@@ -488,12 +507,16 @@ export async function runNowcast(ctx: JobContext): Promise<JobResult> {
         if(!old)return {status:'error' as const,items:0,errorCode:'invalid_payload'};
         await revalidateNowcastPoint(ctx.db,key,r.fetchedAt,r.data.expiresAt,r.data.lastModified);
       } else if(r.data.data) await saveNowcastPoint(ctx.db,key,lat!,lon!,r.data.data,r.fetchedAt,r.data.expiresAt,r.data.lastModified);
+      // A revalidated point changes too: the list shows the nowcast only while its fetch time is recent.
+      done.add(key);
       return {status:'ok' as const,items:1};
     }));
     for(const r of results) {items+=r.items;if(r.status==='error')failure=r;}
     if(results.some(r=>'errorCode' in r && (r.errorCode==='rate_limited'||r.errorCode==='unauthorized')))break;
   }
-  return failure ? {...failure,status:items?'partial':'error',items} : {status:'ok',items,changed:{all:true}};
+  // Only the properties at the refreshed points (docs/plans/skalning.md, S-12) – not every organization.
+  const changed = { properties: changedOf(targets.filter((t) => done.has(t.lat.toFixed(2)+','+t.lon.toFixed(2)))) };
+  return failure ? {...failure,status:items?'partial':'error',items,...(items?{changed}:{})} : {status:'ok',items,changed};
 }
 
 export async function runOceanography(ctx:JobContext):Promise<JobResult> {

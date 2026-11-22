@@ -20,3 +20,4 @@ export * from './acknowledgement-history';
 export * from './night-work';
 export * from './legal';
 export * from './portfolio-list';
+export * from './portfolio-live';

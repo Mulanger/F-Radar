@@ -27,7 +27,7 @@ const ROUTES: Array<{ pattern: RegExp; methods: string[] }> = [
   { pattern: /^legal\/acceptance$/, methods: ['GET', 'POST'] },
   { pattern: /^me$/, methods: ['GET'] },
   { pattern: /^portfolio$/, methods: ['GET'] },
-  { pattern: /^portfolio\/summary$/, methods: ['GET'] },
+  { pattern: /^portfolio\/(summary|rows|nowcast)$/, methods: ['GET'] },
   { pattern: new RegExp(`^properties/${UUID}/(snapshot|forecast|warnings|events|environment|flood|activity|event-map)$`), methods: ['GET'] },
   { pattern: new RegExp(`^properties/${UUID}/event-map/${UUID}$`), methods: ['GET'] },
   { pattern: /^sources\/status$/, methods: ['GET'] },

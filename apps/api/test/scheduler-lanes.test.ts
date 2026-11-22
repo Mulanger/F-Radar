@@ -153,3 +153,27 @@ describe('scheduler lanes (S-34)', () => {
     expect((await scheduler.health()).status).toBe('degraded');
   });
 });
+
+describe('live hints from the scheduler (S-12)', () => {
+  it('sends each organization only its own changed properties, and one central hint', async () => {
+    const bus = new MonitoringBus();
+    const got: Record<string, unknown[]> = { a: [], b: [] };
+    bus.subscribe('org-a', (u) => got.a!.push(u));
+    bus.subscribe('org-b', (u) => got.b!.push(u));
+    const { store } = memoryStore();
+    const run = async (): Promise<JobResult> => ({
+      status: 'ok', items: 3,
+      changed: {
+        changes: [{ organizationId: 'org-a', propertyId: 'p1', sourceId: 'smhi_warnings', changeType: 'new' }],
+        properties: [{ organizationId: 'org-a', propertyId: 'p1' }, { organizationId: 'org-a', propertyId: 'p2' }, { organizationId: 'org-b', propertyId: 'p9' }],
+      },
+    });
+    scheduler = new MonitoringScheduler({ db, env, store, logger: logger().log, bus, jobs: [{ ...job('smhi_forecast', run), sourceId: 'smhi_forecast' }] });
+    await store.ensure([{ jobId: 'smhi_forecast', sourceId: 'smhi_forecast', intervalSeconds: 0, enabled: true }]);
+    await scheduler.tick();
+    expect(got.a).toEqual([expect.objectContaining({ sources: ['smhi_forecast'], propertyIds: ['p1', 'p2'], changes: 1 })]);
+    expect(got.b).toEqual([expect.objectContaining({ propertyIds: ['p9'], changes: 0 })]);
+    expect(JSON.stringify(got.b)).not.toContain('p1');
+    bus.close();
+  });
+});
