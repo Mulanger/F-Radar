@@ -19,7 +19,7 @@ import type {
   WeatherForecast,
 } from '@fastighetsradar/domain';
 import { activeAlarmKeys, compareUpcoming, UPCOMING_LIMIT, assessPropertyRisk, feedNeedsAck, nightWorkLabel, formatWeekdayClock, swedishDayWindows, forecastInformation, WEATHER_WATER, summarizeNowcast, measurementTrend, type TimedReading, classifyFlow, measuredPrecipitation, outageHeadline } from '@fastighetsradar/domain';
-import type { NowcastRow, OrgContextRow, OrgEventRow, OrgForecastRow, OrgMonitoringData, OrgObservationRow } from '@fastighetsradar/db';
+import type { NowcastRow, ObservationHistoryRow, OrgContextRow, OrgEventRow, OrgForecastRow, OrgMonitoringData, OrgObservationRow } from '@fastighetsradar/db';
 import {
   AIR_PHENOMENA,
   AIR_QUALITY_ATTRIBUTION,
@@ -91,9 +91,21 @@ function provenance(sourceId: SourceId, dataClass: Provenance['dataClass'], sour
 /* Forecast                                                            */
 /* ------------------------------------------------------------------ */
 
+const STEPS = new WeakMap<object, ForecastStep[]>();
+
+/**
+ * The stored forecast as steps, converted once per stored series and shared by every caller (six
+ * per property in a portfolio: metrics, forecast, upcoming conditions – Fas 3 steg 3). Read only:
+ * callers filter or copy before sorting.
+ */
 export function forecastSteps(row: OrgForecastRow | undefined): ForecastStep[] {
   const s = row?.series as { v?: number; steps?: ForecastStep[] } | undefined;
-  return Array.isArray(s?.steps) ? s.steps.map(x => ({ ...x, precipitationMin: x.precipitationMin ?? null, precipitationMedian: x.precipitationMedian ?? null, frozenPartPercent: x.frozenPartPercent ?? null, frozenProbability: x.frozenProbability ?? null, precipitationType: x.precipitationType ?? null })) : [];
+  if (!s || !Array.isArray(s.steps)) return [];
+  const known = STEPS.get(s);
+  if (known) return known;
+  const steps = s.steps.map(x => ({ ...x, precipitationMin: x.precipitationMin ?? null, precipitationMedian: x.precipitationMedian ?? null, frozenPartPercent: x.frozenPartPercent ?? null, frozenProbability: x.frozenProbability ?? null, precipitationType: x.precipitationType ?? null }));
+  STEPS.set(s, steps);
+  return steps;
 }
 
 function forecastMetrics(propertyId: string, row: OrgForecastRow | undefined, now: Date): EnvironmentalMetric[] {
@@ -134,7 +146,8 @@ function forecastMetrics(propertyId: string, row: OrgForecastRow | undefined, no
   ].filter((x) => x.value !== null);
 }
 
-export function buildForecast(propertyId: string, row: OrgForecastRow | undefined, now: Date): WeatherForecast | null {
+/** `days: false` for the portfolio list, which never shows the day summaries (they are most of the work). */
+export function buildForecast(propertyId: string, row: OrgForecastRow | undefined, now: Date, options: { days?: boolean } = {}): WeatherForecast | null {
   if (!row) return null;
   const steps = forecastSteps(row);
   const from = now.getTime() - 3_600_000;
@@ -144,6 +157,14 @@ export function buildForecast(propertyId: string, row: OrgForecastRow | undefine
   const age = (now.getTime() - row.fetched_at.getTime()) / 1000;
   const freshness = freshnessOf(row.fetched_at, FRESHNESS_WINDOW_S.smhi_forecast, now);
   const pts = (pick: (s: ForecastStep) => number | null) => window.map((s) => ({ validAt: s.time, value: pick(s) }));
+  // Each precipitation measure as a step series ONCE, not per day and measure (docs/plans/skalning.md, Fas 3 steg 3).
+  const asMean = (pick: (s: ForecastStep) => number | null) => steps.map((s) => ({ ...s, precipitationMean: pick(s) }));
+  const measures = {
+    precipitationMean: steps,
+    precipitationMin: asMean((s) => s.precipitationMin),
+    precipitationMax: asMean((s) => s.precipitationMax),
+    frozen: asMean((s) => (s.precipitationMean === 0 ? 0 : s.precipitationMean != null && s.frozenPartPercent != null ? s.precipitationMean * s.frozenPartPercent / 100 : null)),
+  };
   return {
     propertyId,
     sourceId: 'smhi_forecast',
@@ -154,15 +175,15 @@ export function buildForecast(propertyId: string, row: OrgForecastRow | undefine
     geo: { match: 'point_grid', distanceMeters: n(row.distance_m), note: 'SMHI SNOW1gv1 modellpunkt' },
     origin: 'live',
     // Calendar days in Swedish time ("Idag", "Imorgon", …); the first window is the rest of today.
-    days: swedishDayWindows(now, 5).map(({ from: start, to: end }) => {
+    days: options.days === false ? [] : swedishDayWindows(now, 5).map(({ from: start, to: end }) => {
       const hours = (end.getTime() - start.getTime()) / 3_600_000;
       const day = steps.filter(s => Date.parse(s.time) > start.getTime() && Date.parse(s.intervalStart ?? s.time) < end.getTime());
-      const total = (key: 'precipitationMean' | 'precipitationMin' | 'precipitationMax') => precipitationTotal(steps.map(s => ({ ...s, precipitationMean: s[key] })), start, hours);
-      const complete = total('precipitationMean') !== null;
+      const total = (key: keyof typeof measures) => precipitationTotal(measures[key], start, hours);
+      const mean = total('precipitationMean');
+      const complete = mean !== null;
       const samples = day.filter(s => Date.parse(s.time) <= end.getTime());
       const extreme = (key: 'airTemperature' | 'windGust', max: boolean) => complete && samples.length && samples.every(s => s[key] != null) ? (max ? Math.max : Math.min)(...samples.map(s => s[key]!)) : null;
-      const mean = total('precipitationMean');
-      const frozen = precipitationTotal(steps.map(s => ({ ...s, precipitationMean: s.precipitationMean === 0 ? 0 : s.precipitationMean != null && s.frozenPartPercent != null ? s.precipitationMean * s.frozenPartPercent / 100 : null })), start, hours);
+      const frozen = total('frozen');
       return { from: start.toISOString(), to: end.toISOString(), temperatureMin: extreme('airTemperature', false), temperatureMax: extreme('airTemperature', true), precipitationMean: mean, precipitationMin: total('precipitationMin'), precipitationMax: total('precipitationMax'), windGustMax: extreme('windGust', true), snowPercent: mean != null && mean > 0 && frozen != null ? Math.round(frozen / mean * 100) : null };
     }),
     series: [
@@ -408,19 +429,77 @@ function observedGroundwater(c: OrgContextRow | undefined, now: Date): NearbyObs
     provenance: provenance('sgu_observed_groundwater', 'OBSERVATION', p.observedAt, c.fetched_at, 'Källa: SGU (CC0)', p.sourceUrl, now) };
 }
 
+/**
+ * The organization's monitoring rows grouped by property (and history by station), built ONCE per
+ * portfolio (docs/plans/skalning.md, S-15). Each property used to search all of the organization's
+ * rows – tens of millions of comparisons per portfolio at 500 properties. Order within a group is
+ * the query order, so the snapshots are the same as before.
+ */
+export interface MonitoringIndex {
+  forecasts: Map<string, OrgForecastRow>;
+  events: Map<string, OrgEventRow[]>;
+  observations: Map<string, OrgObservationRow[]>;
+  contexts: Map<string, OrgContextRow[]>;
+  counties: Map<string, { code: string; name: string }>;
+  nowcasts: Map<string, NowcastRow & { property_id: string }>;
+  airHistory: Map<string, OrgObservationRow[]>;
+  history: Map<string, ObservationHistoryRow[]>;
+  /** A station's history as readings, converted once and shared by the properties near it (read only). */
+  readings: Map<string, TimedReading[]>;
+}
+
+function groupBy<T>(rows: readonly T[] | undefined, key: (r: T) => string): Map<string, T[]> {
+  const out = new Map<string, T[]>();
+  for (const r of rows ?? []) {
+    const k = key(r);
+    const list = out.get(k);
+    if (list) list.push(r);
+    else out.set(k, [r]);
+  }
+  return out;
+}
+
+function firstBy<T>(rows: readonly T[] | undefined, key: (r: T) => string): Map<string, T> {
+  const out = new Map<string, T>();
+  for (const r of rows ?? []) if (!out.has(key(r))) out.set(key(r), r);
+  return out;
+}
+
+const historyKey = (source: string, station: string, parameter: string) => `${source}|${station}|${parameter}`;
+
+export function indexMonitoring(data: OrgMonitoringData): MonitoringIndex {
+  return {
+    forecasts: firstBy(data.forecasts, (f) => f.property_id),
+    events: groupBy(data.events, (e) => e.property_id),
+    observations: groupBy(data.observations, (o) => o.property_id),
+    contexts: groupBy(data.contexts, (c) => c.property_id),
+    counties: firstBy(data.counties, (c) => c.property_id),
+    nowcasts: firstBy(data.nowcasts, (n) => n.property_id),
+    airHistory: groupBy(data.airHistory, (o) => o.property_id),
+    history: groupBy(data.history, (h) => historyKey(h.source_id, h.station_id, h.parameter)),
+    readings: new Map(),
+  };
+}
+
 /** The radar nowcast of one stored point, as the snapshot shows it (also patched alone by the live stream). */
 export function buildNowcast(radar: NowcastRow, now: Date): Nowcast {
   const radarAge = (now.getTime()-radar.fetched_at.getTime())/60_000;
   return { sourceId:'met_nowcast', coverage:radar.radar_coverage, updatedAt:iso(radar.source_updated_at), fetchedAt:radar.fetched_at.toISOString(), freshness:radarAge<=WEATHER_WATER.nowcastFreshMinutes?'fresh':radarAge<=WEATHER_WATER.nowcastUsableMinutes?'stale':'expired', points:radar.series.points, summary:summarizeNowcast(radar.series.points,now,radar.series.temperature,{coverage:radar.radar_coverage,fetchedAt:radar.fetched_at.toISOString()}), attribution:'Data från MET Norway · bearbetad av FastighetsRadar (CC BY 4.0)', origin:'live' };
 }
 
-export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, data: OrgMonitoringData, statuses: DataSourceStatus[], now: Date): PropertySnapshot {
+/**
+ * Pass one `index` (`indexMonitoring(data)`) when building many properties from the same data, and
+ * `list: true` for the portfolio list (data loaded with `LoadMonitoringOptions.list`): parts the list
+ * leaves out (`listSnapshot`) are then not computed.
+ */
+export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, data: OrgMonitoringData, statuses: DataSourceStatus[], now: Date, index: MonitoringIndex = indexMonitoring(data), options: { list?: boolean } = {}): PropertySnapshot {
   const base = propertyToSnapshot(p, clerkOrgId);
-  const forecastRow = data.forecasts.find((f) => f.property_id === p.id);
-  const events = data.events.filter((e) => e.property_id === p.id);
-  const obs = data.observations.filter((o) => o.property_id === p.id);
-  const contexts = data.contexts.filter((c) => c.property_id === p.id);
-  const county = data.counties.find((c) => c.property_id === p.id) ?? null;
+  const forecastRow = index.forecasts.get(p.id);
+  const events = index.events.get(p.id) ?? [];
+  const obs = index.observations.get(p.id) ?? [];
+  const contexts = index.contexts.get(p.id) ?? [];
+  const county = index.counties.get(p.id) ?? null;
+  const airRows = index.airHistory.get(p.id) ?? [];
 
   const warnings = events.filter((e) => e.data_class === 'OFFICIAL_WARNING').map(toWarning);
   const publicEvents = mergeTrafficDuplicates(events.filter((e) => e.data_class === 'PUBLIC_EVENT'));
@@ -443,7 +522,12 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
     reason = 'Inga aktiva officiella varningar för fastighetens läge';
   }
 
-  const history=(source:string,station:string,parameter:string):TimedReading[] => (data.history??[]).filter(x=>x.source_id===source&&x.station_id===station&&x.parameter===parameter).map(x=>({observedAt:x.observed_at.toISOString(),value:x.value}));
+  const history=(source:string,station:string,parameter:string):TimedReading[] => {
+    const key=historyKey(source,station,parameter);
+    let r=index.readings.get(key);
+    if(!r)index.readings.set(key,r=(index.history.get(key)??[]).map(x=>({observedAt:x.observed_at.toISOString(),value:x.value})));
+    return r;
+  };
   const floodParts = floodFromContext(p.id, ctxOf(contexts, 'mcf_flood', 'flood_scenarios'), now);
   const sea=obs.find(o=>o.source_id==='smhi_oceanography'&&o.parameter==='sea_level'&&o.distance_m<=WEATHER_WATER.seaDistanceM&&o.extra.referenceSystem==='RW');
   if(sea) floodParts.flood.waterBody={name:'Havsvattenstånd · '+sea.name,stationName:sea.name,referenceSystem:'RW',level:{value:sea.value,unit:'cm',sourceId:'smhi_oceanography',kind:'observation',sourceTimestamp:iso(sea.observed_at),fetchedAt:sea.fetched_at.toISOString(),freshness:freshnessOf(sea.observed_at,WEATHER_WATER.stationMeasurementFreshSeconds,now),availability:'ok',geo:{match:'nearest_station',distanceMeters:Math.round(sea.distance_m),note:sea.name},origin:'live',qualityFlags:sea.quality?[sea.quality]:[]},trendLabel:measurementTrend(history('smhi_oceanography',sea.station_id,'sea_level'),now,6,'cm',WEATHER_WATER.seaTrendDeadbandCm)??measurementTrend((sea.extra.points??[]) as TimedReading[],now,1,'cm',WEATHER_WATER.seaTrendDeadbandCm)};
@@ -451,7 +535,7 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
   const reference=flow?data.hydrologyReferences?.find(r=>r.station_id===flow.station_id&&r.month===now.getUTCMonth()+1&&now.getTime()-r.fetched_at.getTime()<=WEATHER_WATER.referenceUsableDays*86_400_000):null;
   if(flow)floodParts.flood.watercourse={stationId:flow.station_id,stationName:flow.name,distanceMeters:Math.round(flow.distance_m),measurement:{value:flow.value,unit:'m³/s',sourceId:'smhi_hydrology',kind:'observation',sourceTimestamp:iso(flow.observed_at),fetchedAt:flow.fetched_at.toISOString(),freshness:freshnessOf(flow.observed_at,WEATHER_WATER.stationMeasurementFreshSeconds,now),availability:'ok',geo:{match:'nearest_station',distanceMeters:Math.round(flow.distance_m),note:flow.name},origin:'live',qualityFlags:flow.quality?[flow.quality]:[]},classification:classifyFlow(flow.value,reference??null),trendLabel:measurementTrend(history('smhi_hydrology',flow.station_id,'water_flow'),now,24,'m³/s'),note:'Närmaste mätstation – kan ligga i ett annat vattendrag än det närmast fastigheten',reference:reference?{p75:reference.p75,p95:reference.p95,samples:reference.samples,years:reference.years,month:reference.month,fetchedAt:reference.fetched_at.toISOString()}:null};
   const nearby = obs.map((o) => toNearby(o, now));
-  const airIndex = stationAirIndex((data.airHistory ?? []).filter((x) => x.property_id === p.id).map((o) => ({
+  const airIndex = stationAirIndex(airRows.map((o) => ({
     stationId: o.station_id, stationName: o.name, distanceMeters: Math.round(o.distance_m), parameter: o.parameter,
     value: o.value, observedAt: iso(o.observed_at), resolution: o.extra.resolution, classification: o.extra.classification,
   })), now);
@@ -468,19 +552,19 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
   ];
 
   const rainStation=obs.find(o=>o.source_id==='smhi_observations'&&o.parameter==='precipitation_15min'&&o.distance_m<=WEATHER_WATER.observationDistanceM);
-  const radar = data.nowcasts?.find(x => x.property_id === p.id);
+  const radar = index.nowcasts.get(p.id);
   const snapshot: PropertySnapshot = {
     ...base,
     property: { ...base.property, countyCode: county?.code ?? null, status, statusReason: reason },
     metrics: [...forecastMetrics(p.id, forecastRow, now), ...airMetrics(p.id, obs, now), ...(airIndex ? [{
       propertyId: p.id, metricKey: 'air_quality.index' as const, value: airIndex.band, unit: 'EEA nivå 1–6', sourceId: 'air_quality' as const,
       kind: 'observation' as const, sourceTimestamp: airIndex.observedAt,
-      fetchedAt: (data.airHistory ?? []).filter((o) => o.property_id === p.id && o.station_id === airIndex.stationId && iso(o.observed_at) === airIndex.observedAt).sort((a, b) => b.fetched_at.getTime() - a.fetched_at.getTime())[0]?.fetched_at.toISOString() ?? null,
+      fetchedAt: airRows.filter((o) => o.station_id === airIndex.stationId && iso(o.observed_at) === airIndex.observedAt).sort((a, b) => b.fetched_at.getTime() - a.fetched_at.getTime())[0]?.fetched_at.toISOString() ?? null,
       freshness: 'fresh' as const, availability: 'ok' as const,
       origin: 'live' as const, qualityFlags: ['derived', 'preliminary', airIndex.method],
       geo: { match: 'nearest_station' as const, distanceMeters: airIndex.distanceMeters, note: `Mätstation: ${airIndex.stationName}; härlett EEA-baserat stationsindex, inte byggnadens luft.` },
     }] : [])],
-    forecast: buildForecast(p.id, forecastRow, now),
+    forecast: buildForecast(p.id, forecastRow, now, { days: !options.list }),
     measuredRain:rainStation?{sourceId:'smhi_observations',stationName:rainStation.name,distanceMeters:Math.round(rainStation.distance_m),observedAt:iso(rainStation.observed_at),fetchedAt:rainStation.fetched_at.toISOString(),qualityNote:'Stationsmätningar; senaste värden kan vara preliminära eller grovt kontrollerade',totals:[1,24,72].map(h=>measuredPrecipitation(history('smhi_observations',rainStation.station_id,'precipitation_15min'),now,h))}:null,
     nowcast: radar ? buildNowcast(radar, now) : null,
     warnings,
@@ -645,6 +729,7 @@ export function buildActiveAlarmFeed(changes: Array<FeedChange & { unread_alarm_
  */
 export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForecastRow[], now: Date, outagesEnabled = false, limit = UPCOMING_LIMIT): UpcomingCondition[] {
   const out: UpcomingCondition[] = [];
+  const forecastById = firstBy(forecasts, (f) => f.property_id);
   for (const s of snapshots) {
     if (outagesEnabled) for (const section of s.utilityOutages ?? []) for (const o of section.upcoming) {
       if (o.kind !== 'planned' || o.state !== 'upcoming' || o.noticeKind && o.noticeKind !== 'outage' || !['water', 'district_heating', 'district_cooling'].includes(o.utility) || !['high', 'medium'].includes(o.precisionLevel)) continue;
@@ -659,10 +744,10 @@ export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForec
         ...(o.operatorText ? { explanation: o.operatorText } : {}), value: 'Planerad avstängning', tone: 'monitor', origin: 'live', official: false });
     }
     for (const w of s.warnings) if(w.validFrom && Date.parse(w.validFrom)>now.getTime() && Date.parse(w.validFrom)<=now.getTime()+48*3600000) out.push({id:'official-'+s.property.id+'-'+w.id,label:w.type,where:s.property.name,propertyId:s.property.id,when:formatWeekdayClock(w.validFrom),validAt:w.validFrom,...(w.validTo?{validTo:w.validTo}:{}),sourceId:w.sourceId,sourceUpdatedAt:w.issuedAt,official:true,value:LEVEL_SV[w.level],tone:w.level==='Red'||w.level==='VMA'?'critical':w.level==='Orange'?'warning':'monitor',origin:w.origin});
-    const row = forecasts.find(f => f.property_id === s.property.id);
+    const row = forecastById.get(s.property.id);
     if (!row || now.getTime() - row.fetched_at.getTime() > WEATHER_WATER.forecastUsableHours * 3_600_000) continue;
     for (const info of forecastInformation(forecastSteps(row), now)) out.push({ id: info.key + '-' + s.property.id, label: info.label, where: s.property.name, propertyId: s.property.id, when: formatWeekdayClock(info.at), validAt: info.at, validTo: info.until, sourceId: 'smhi_forecast', sourceUpdatedAt:iso(row.reference_time), value: info.value, explanation: info.explanation, tone: info.tone, origin: 'live' });
-    const steps = forecastSteps(forecasts.find((f) => f.property_id === s.property.id)).filter((x) => Date.parse(x.time) > now.getTime() && Date.parse(x.time) <= now.getTime() + 24 * 3_600_000);
+    const steps = forecastSteps(forecastById.get(s.property.id)).filter((x) => Date.parse(x.time) > now.getTime() && Date.parse(x.time) <= now.getTime() + 24 * 3_600_000);
     if (!steps.length) continue;
     const gust = steps.reduce<ForecastStep | null>((a, b) => ((b.windGust ?? -1) > (a?.windGust ?? -1) ? b : a), null);
     if (gust?.windGust !== null && gust && gust.windGust >= 15) {
@@ -671,7 +756,7 @@ export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForec
       const from = hard[0]!.intervalStart ?? hard[0]!.time;
       out.push({ id: `gust-${s.property.id}`, label: 'Hårda vindbyar (prognos)', where: s.property.name, propertyId: s.property.id, when: formatWeekdayClock(from), validAt: from, validTo: hard.at(-1)!.time, sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${gust.windGust.toFixed(0)} m/s`, tone: gust.windGust >= 21 ? 'warning' : 'monitor', origin: 'live' });
     }
-    const rain = precipitationTotal(forecastSteps(forecasts.find((f) => f.property_id === s.property.id)), now, 24);
+    const rain = precipitationTotal(forecastSteps(forecastById.get(s.property.id)), now, 24);
     if (rain !== null && rain >= 15) {
       out.push({ id: `rain-${s.property.id}`, label: 'Kraftig nederbörd (prognos, 24 h)', where: s.property.name, propertyId: s.property.id, when: 'Närmaste 24 h', validAt:now.toISOString(), validTo: new Date(now.getTime() + 24 * 3_600_000).toISOString(),sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${rain.toFixed(0)} mm`, tone: rain >= 30 ? 'warning' : 'monitor', origin: 'live' });
     }
@@ -679,7 +764,7 @@ export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForec
     if (cold && cold.airTemperature !== null) {
       // The cold spell: consecutive hours below 0° from the first one (up to 48 h ahead); the value is its lowest temperature.
       const all48 = forecastSteps(row).filter((x) => Date.parse(x.time) > now.getTime() && Date.parse(x.time) <= now.getTime() + 48 * 3_600_000).sort((x, y) => x.time.localeCompare(y.time));
-      // forecastSteps() returns fresh objects on every call: find the first cold hour by its time.
+      // `all48` is a filtered, sorted copy: find the first cold hour in it by its time.
       const first = all48.findIndex((x) => x.time === cold.time);
       const spell: ForecastStep[] = [cold];
       for (const x of first < 0 ? [] : all48.slice(first + 1)) {

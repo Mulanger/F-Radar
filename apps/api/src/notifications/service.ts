@@ -230,8 +230,9 @@ export class NotificationService {
         [rule.organization_id, rule.id, rows.at(-1)!.id],
       );
     const grouped = new Map<string, Trigger>();
+    const byId = new Map(props.map((p) => [p.id, p])); // S-15: up to 5 000 rows × 500 properties
     for (const e of rows) {
-      const p = props.find((p) => p.id === e.property_id)!;
+      const p = byId.get(e.property_id)!;
       const key = `${e.source_id}:${e.external_id}:${e.dedup_key.replace(`${e.property_id}:`, "")}${rule.config.groupProperties ? "" : `:${p.id}`}`;
       const eligible = eventEligible(
         rule.config.condition,
@@ -309,6 +310,7 @@ export class NotificationService {
       [r.organization_id, props.map((p) => p.id)],
     );
     const triggers: Trigger[] = [];
+    const byId = new Map(props.map((p) => [p.id, p]));
     for (const f of forecasts.rows) {
       if (
         !f.reference_time ||
@@ -317,7 +319,7 @@ export class NotificationService {
         !Array.isArray(f.series.steps)
       )
         continue;
-      const p = props.find((p) => p.id === f.property_id)!;
+      const p = byId.get(f.property_id)!;
       const state = (
         await tx.query<{
           latched: boolean;
@@ -464,8 +466,9 @@ export class NotificationService {
       }
     };
     const grouped = new Map<string, Trigger>();
+    const byId = new Map(props.map((p) => [p.id, p]));
     const add = (x: Row, phase: OutageSmsPhase | "reminder" | null) => {
-      const p = props.find((p) => p.id === x.property_id);
+      const p = byId.get(x.property_id);
       if (!p) return;
       const suffix = r.config.groupProperties ? "" : `:${p.id}`;
       const tag = phase === "change" ? `change:v${x.version}` : (phase ?? `none:${x.id}`);

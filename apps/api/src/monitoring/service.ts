@@ -26,7 +26,7 @@ import { isWaterOutageEnabled, operatorById, resolveSourceStatuses } from '@fast
 import { buildLivePortfolio } from '../portfolio';
 import type { MonitoringBus } from './bus';
 import { PER_PROPERTY_JOBS } from './jobs';
-import { alarmFeedItems, buildActiveAlarmFeed, buildFeed, buildNowcast, buildPropertySnapshot, buildUpcoming } from './snapshot';
+import { alarmFeedItems, buildActiveAlarmFeed, buildFeed, buildNowcast, buildPropertySnapshot, buildUpcoming, indexMonitoring } from './snapshot';
 import { resolveRuntimeStatuses } from './status';
 import { notificationSnapshots } from '../notifications/snapshots';
 import { propertyUtilityStatus, resolveOperatorStatuses, withUtilityOutages, type OperatorStatus, type UtilityInputs } from './utility-outages';
@@ -40,9 +40,22 @@ export interface TenantContext extends OrgContext {
  * Read side of monitoring: assembles tenant-scoped snapshots from stored data.
  * Never calls an external provider (the dashboard may be opened as often as users like).
  */
+/** The organization-wide part of the portfolio list: the same for every user of the organization. */
+export interface OrganizationList {
+  base: ReturnType<typeof buildLivePortfolio>;
+  propertyIds: Set<string>;
+  /** List rows (`listSnapshot`). */
+  properties: PropertySnapshot[];
+  utilityCoverage: Portfolio['utilityCoverage'];
+  upcoming: Portfolio['upcoming'];
+  settings: Portfolio['settings'];
+}
+
 export class MonitoringService {
   private statusCache: { at: number; value: DataSourceStatus[] } | null = null;
   private operatorCache: { at: number; value: OperatorStatus[] } | null = null;
+  /** Organization lists being built: concurrent requests share one build (docs/plans/skalning.md, S-33). */
+  private readonly building = new Map<string, Promise<OrganizationList>>();
 
   constructor(
     private readonly db: Queryable,
@@ -111,6 +124,63 @@ export class MonitoringService {
     }
   }
 
+  /**
+   * The portfolio LIST (docs/plans/skalning.md, Fas 3): what `/v1/portfolio` serves. Only the data the
+   * list reads is loaded (`LoadMonitoringOptions.list`), the organization-wide part is built at most
+   * once at a time per organization, and only the feed and alarms (read state) are per user.
+   * Equals `listPortfolio(portfolio())`.
+   */
+  async list(t: TenantContext, now = new Date()): Promise<Portfolio> {
+    const [org, changes, alarmChanges] = await Promise.all([
+      this.organizationList(t, now),
+      listRecentChangesForOrg(this.db, t.organizationId, 60, t.userId),
+      listActiveAlarmChangesForOrg(this.db, t.organizationId, t.userId),
+    ]);
+    return {
+      ...org.base,
+      regionLabel: 'Sverige',
+      properties: org.properties,
+      utilityCoverage: org.utilityCoverage,
+      feed: buildFeed(changes, org.propertyIds),
+      activeAlarms: buildActiveAlarmFeed(alarmChanges, org.properties),
+      upcoming: org.upcoming,
+      settings: org.settings,
+    };
+  }
+
+  /** The organization-wide part of the list; a request during a build waits for that build. */
+  organizationList(t: TenantContext, now = new Date()): Promise<OrganizationList> {
+    const running = this.building.get(t.organizationId);
+    if (running) return running;
+    const build = this.buildOrganizationList(t, now).finally(() => this.building.delete(t.organizationId));
+    this.building.set(t.organizationId, build);
+    return build;
+  }
+
+  private async buildOrganizationList(t: TenantContext, now: Date): Promise<OrganizationList> {
+    const [properties, data, statuses, utility, settings] = await Promise.all([
+      listProperties(this.db, t),
+      loadOrgMonitoring(this.db, t.organizationId, undefined, { list: { now } }),
+      this.statuses(now),
+      this.utilityInputs(t.organizationId, now),
+      getOrganizationSettings(this.db, t.organizationId),
+    ]);
+    const index = indexMonitoring(data);
+    const snapshots = await notificationSnapshots(this.db, t.organizationId, properties.map((p) => {
+      const s = buildPropertySnapshot(p, t.clerkOrgId, data, statuses, now, index, { list: true });
+      return utility ? withUtilityOutages(s, utility) : s;
+    }));
+    return {
+      base: buildLivePortfolio({ clerkOrgId: t.clerkOrgId, orgSlug: t.orgSlug, properties, sources: statuses, now }),
+      propertyIds: new Set(properties.map((p) => p.id)),
+      properties: snapshots.map(listSnapshot),
+      utilityCoverage: this.coverageReports(properties, utility),
+      upcoming: buildUpcoming(snapshots, data.forecasts, now, this.env.UTILITY_OUTAGE_UPCOMING_ENABLED),
+      settings: { trafficRadiusM: settings.trafficRadiusM },
+    };
+  }
+
+  /** The FULL portfolio (every property's full snapshot). Not served; the reference for `list()` in tests and measurements. */
   async portfolio(t: TenantContext, now = new Date()): Promise<Portfolio> {
     const [properties, data, statuses, changes, activeAlarms, utility, settings] = await Promise.all([
       listProperties(this.db, t),
@@ -122,8 +192,9 @@ export class MonitoringService {
       getOrganizationSettings(this.db, t.organizationId),
     ]);
     const base = buildLivePortfolio({ clerkOrgId: t.clerkOrgId, orgSlug: t.orgSlug, properties, sources: statuses, now });
+    const index = indexMonitoring(data);
     const snapshots = await notificationSnapshots(this.db,t.organizationId,properties.map((p) => {
-      const s = buildPropertySnapshot(p, t.clerkOrgId, data, statuses, now);
+      const s = buildPropertySnapshot(p, t.clerkOrgId, data, statuses, now, index);
       return utility ? withUtilityOutages(s, utility) : s;
     }));
     return {
@@ -147,7 +218,7 @@ export class MonitoringService {
   async rows(t: TenantContext, ids: string[], now = new Date()): Promise<PortfolioRowsPatch> {
     const [properties, data, statuses, changes, alarmChanges, utility] = await Promise.all([
       listProperties(this.db, t),
-      loadOrgMonitoring(this.db, t.organizationId, ids),
+      loadOrgMonitoring(this.db, t.organizationId, ids, { list: { now } }),
       this.statuses(now),
       listRecentChangesForOrg(this.db, t.organizationId, 60, t.userId),
       listActiveAlarmChangesForOrg(this.db, t.organizationId, t.userId),
@@ -155,8 +226,9 @@ export class MonitoringService {
     ]);
     const wanted = new Set(ids);
     const records = properties.filter((p) => wanted.has(p.id));
+    const index = indexMonitoring(data);
     const snapshots = await notificationSnapshots(this.db, t.organizationId, records.map((p) => {
-      const s = buildPropertySnapshot(p, t.clerkOrgId, data, statuses, now);
+      const s = buildPropertySnapshot(p, t.clerkOrgId, data, statuses, now, index, { list: true });
       return utility ? withUtilityOutages(s, utility) : s;
     }));
     const found = new Set(records.map((p) => p.id));

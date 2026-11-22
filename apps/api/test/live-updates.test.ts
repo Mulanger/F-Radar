@@ -99,3 +99,27 @@ describe('a changed property list', () => {
   });
 });
 
+describe('one portfolio build per organization at a time (S-33)', () => {
+  it('lets concurrent requests share one build, per organization, and builds again afterwards', async () => {
+    const builds: string[] = [];
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const db = { async query<R>(sql: string, params: unknown[] = []) {
+      if (sql.includes('SELECT traffic_radius_m FROM organizations')) {
+        builds.push(String(params[0]));
+        await gate;
+      }
+      return { rows: [] as R[], rowCount: 0 };
+    } };
+    const service = new MonitoringService(db, loadServerEnv({ NODE_ENV: 'test' }), new MonitoringBus());
+    const ctx = (organizationId: string, userId: string) => ({ organizationId, userId, clerkOrgId: `org_${organizationId}`, orgSlug: null });
+    const pending = [service.list(ctx('a', 'u1')), service.list(ctx('a', 'u2')), service.list(ctx('a', 'u1')), service.list(ctx('b', 'u3'))];
+    await vi.waitFor(() => expect(builds).toEqual(['a', 'b']));
+    release();
+    const [a1, a2] = await Promise.all(pending);
+    expect(a1!.properties).toBe(a2!.properties); // the same build
+    await service.list(ctx('a', 'u1'));
+    expect(builds).toEqual(['a', 'b', 'a']);
+  });
+});
+

@@ -47,8 +47,10 @@ export function registerMonitoringRoutes(app: FastifyInstance, deps: MonitoringR
   };
   const gen = () => new Date().toISOString();
 
+  // Counts from the organization's list (S-17): no full snapshots, no per-user feed.
   app.get('/v1/portfolio/summary', { preHandler: deps.requireOrg }, async (req) => {
-    const p = await svc().portfolio(orgContext(req));
+    const org = await svc().organizationList(orgContext(req));
+    const p = { generatedAt: org.base.generatedAt, properties: org.properties, sources: org.base.sources };
     const byStatus = { normal: 0, monitor: 0, warning: 0, critical: 0, unknown: 0 };
     for (const s of p.properties) byStatus[s.property.status]++;
     return {

@@ -103,8 +103,9 @@ export function registerCustomerRoutes(app: FastifyInstance, deps: CustomerRoute
     const ctx = orgContext(req);
     const started = performance.now();
     // The list: detail-only parts emptied; the property page loads /v1/properties/:id/snapshot (S-10).
+    // `list()` already is the list; `listPortfolio` again is cheap and keeps the contract if it changes.
     const portfolio = deps.monitoring
-      ? listPortfolio(await deps.monitoring.portfolio(ctx))
+      ? listPortfolio(await deps.monitoring.list(ctx))
       : buildLivePortfolio({
         clerkOrgId: ctx.clerkOrgId,
         orgSlug: ctx.orgSlug,

@@ -22,11 +22,16 @@ export async function notificationSnapshots(
       [org],
     )
   ).rows;
+  // Sets once per portfolio (docs/plans/skalning.md, S-15): a rule can list all 500 properties.
+  const ruleProperties = new Map(
+    rules.map((r) => [r.id, new Set(r.config.propertyIds)]),
+  );
+  const pausedIds = new Set(paused.map((p) => p.id));
   return snapshots.map((s) => {
     const matching = rules.filter(
       (r) =>
         r.config.scope === "all_future" ||
-        r.config.propertyIds.includes(s.property.id),
+        ruleProperties.get(r.id)!.has(s.property.id),
     );
     const ids = new Set(matching.flatMap((r) => r.config.recipientIds));
     const numbers = recipients.filter((r) => ids.has(r.id));
@@ -34,8 +39,7 @@ export async function notificationSnapshots(
       ...s,
       sms: {
         enabled:
-          matching.some((r) => r.enabled) &&
-          !paused.some((p) => p.id === s.property.id),
+          matching.some((r) => r.enabled) && !pausedIds.has(s.property.id),
         recipientsLabel: numbers.length
           ? numbers.map((r) => maskPhone(r.phone_e164)).join(", ") +
             " · Testläge"

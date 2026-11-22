@@ -9,6 +9,7 @@
  *   node scripts/run-portfolio-scale.mjs --keep 500   # keep the synthetic data afterwards
  *   node scripts/run-portfolio-scale.mjs --fields 500 # only where the bytes go (no heap matrix)
  *   node scripts/run-portfolio-scale.mjs --live 500   # a live row patch vs the full list (Fas 3 / S-12)
+ *   node scripts/run-portfolio-scale.mjs --profile 500 # SQL/build/JSON time of one build + EXPLAIN (Fas 3 steg 3)
  *
  * Steps: build dist-perf/portfolio-scale.mjs, upload it with the migrations to /home/instapod/fr-perf,
  * seed synthetic organizations, run the measurement matrix in the background (child processes with
@@ -25,7 +26,8 @@ const root = resolve(import.meta.dirname, '..');
 const keep = process.argv.includes('--keep');
 const fieldsOnly = process.argv.includes('--fields');
 const liveOnly = process.argv.includes('--live');
-const runMode = liveOnly ? '--expose-gc portfolio-scale.mjs live' : fieldsOnly ? 'portfolio-scale.mjs fields' : 'portfolio-scale.mjs matrix';
+const profileOnly = process.argv.includes('--profile');
+const runMode = profileOnly ? '--expose-gc portfolio-scale.mjs profile' : liveOnly ? '--expose-gc portfolio-scale.mjs live' : fieldsOnly ? 'portfolio-scale.mjs fields' : 'portfolio-scale.mjs matrix';
 const sizes = process.argv.slice(2).filter((a) => /^\d+$/.test(a));
 const sizeArgs = (sizes.length ? sizes : ['200', '500', '1000']).join(' ');
 const dir = '/home/instapod/fr-perf';
@@ -36,7 +38,8 @@ async function exec(command, timeoutMs = 60_000) {
   return { code: r.data?.exit_code, out: String(r.data?.output ?? '') };
 }
 
-execSync('node node_modules/tsup/dist/cli-default.js --config tsup.perf.config.ts', { cwd: root, stdio: 'inherit' });
+// --skip-build: reuse dist-perf/ (e.g. a bundle built from another commit for a before/after comparison).
+if (!process.argv.includes('--skip-build')) execSync('node node_modules/tsup/dist/cli-default.js --config tsup.perf.config.ts', { cwd: root, stdio: 'inherit' });
 const staging = join(root, '.perf');
 rmSync(staging, { recursive: true, force: true });
 mkdirSync(join(staging, 'migrations'), { recursive: true });
@@ -64,7 +67,7 @@ try {
     }
   }
 
-  console.log(liveOnly ? 'live …' : fieldsOnly ? 'fields …' : 'measure …');
+  console.log(profileOnly ? 'profile …' : liveOnly ? 'live …' : fieldsOnly ? 'fields …' : 'measure …');
   await exec(`cd ${dir} && (${envVars} nohup node ${runMode} ${sizeArgs} > matrix.txt 2>&1; echo "exit=$?" >> matrix.txt) > /dev/null 2>&1 &`);
   let shown = 0;
   for (;;) {

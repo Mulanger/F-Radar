@@ -8,6 +8,7 @@
  *   node --expose-gc --max-old-space-size=512 portfolio-scale.mjs measure 500 3
  *   node portfolio-scale.mjs fields 500             # bytes per field of one real response
  *   node --expose-gc portfolio-scale.mjs live 500   # a live row patch vs the full list (Fas 3 / S-12)
+ *   node --expose-gc portfolio-scale.mjs profile 500 # where one portfolio build spends time (SQL, build, JSON) + EXPLAIN
  *   node portfolio-scale.mjs cleanup
  *
  * Everything it writes is tagged: organizations `org_perfscale<n>`, events `perf:…`, stations
@@ -19,11 +20,13 @@
 import { spawnSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
 import { getHeapStatistics } from 'node:v8';
+import { Session } from 'node:inspector/promises';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { loadServerEnv } from '../../packages/config/src';
 import {
   NEAREST_PARAMETERS,
+  SESSION_OPTIONS,
   createProperty,
   ensureOrganization,
   migrateUp,
@@ -33,7 +36,7 @@ import {
   type SourceEventInput,
   type StationObservationInput,
 } from '../../packages/db/src';
-import { filterActiveAlarms, mergeUpcoming, type Portfolio, type PortfolioNowcastPatch, type PortfolioRowsPatch } from '../../packages/domain/src';
+import { filterActiveAlarms, listPortfolio, mergeUpcoming, type Portfolio, type PortfolioNowcastPatch, type PortfolioRowsPatch } from '../../packages/domain/src';
 import { buildApp } from '../../apps/api/src/app';
 import type { AuthVerifier } from '../../apps/api/src/auth';
 import { MonitoringBus } from '../../apps/api/src/monitoring/bus';
@@ -44,7 +47,7 @@ if (!url) throw new Error('TEST_DATABASE_URL is required');
 const dbName = new URL(url).pathname.replace(/^\//, '');
 if (!/_test$/.test(dbName)) throw new Error(`Refusing to write to "${dbName}" (must end with _test)`);
 
-const pool = new pg.Pool({ connectionString: url, max: 6 });
+const pool = new pg.Pool({ connectionString: url, max: 6, options: SESSION_OPTIONS });
 const quiet = () => {};
 /** Clerk-style id (`org_` + 8–64 alphanumerics, enforced by the database). */
 const orgClerkId = (n: number) => `org_perfscale${n}`;
@@ -359,6 +362,117 @@ async function live(n: number) {
   }
 }
 
+/**
+ * Where one `/v1/portfolio` build spends its time (Fas 3 steg 3): every SQL query timed alone on one
+ * connection (rows and JSON size), the build in JS, the list cut and serializing; then
+ * `EXPLAIN (ANALYZE, BUFFERS)` of the slowest queries. Timings, sizes and plans only – no content.
+ */
+async function profile(n: number) {
+  const one = new pg.Pool({ connectionString: url, max: 1, options: SESSION_OPTIONS });
+  const queries: Array<{ label: string; ms: number; rows: number; bytes: number; sql: string; params: unknown[] }> = [];
+  const label = (sql: string) => {
+    const flat = sql.replace(/\s+/g, ' ').trim();
+    const from = /FROM ([a-z_]+)/i.exec(flat)?.[1] ?? '?';
+    return `${from}: ${flat.slice(0, 70)}`;
+  };
+  // One query at a time, so each time is the query's own (the service runs them in parallel).
+  let chain: Promise<unknown> = Promise.resolve();
+  const db = {
+    query<R>(sql: string, params: unknown[] = []) {
+      const run = chain.then(async () => {
+        const t0 = performance.now();
+        const r = await one.query(sql, params);
+        queries.push({ label: label(sql), ms: performance.now() - t0, rows: r.rows.length, bytes: Buffer.byteLength(JSON.stringify(r.rows)), sql, params });
+        return { rows: r.rows as R[], rowCount: r.rowCount ?? r.rows.length };
+      });
+      chain = run.catch(() => undefined);
+      return run;
+    },
+  };
+  const env = loadServerEnv({ NODE_ENV: 'test' });
+  const { rows } = await pool.query<{ id: string }>('SELECT id FROM organizations WHERE clerk_org_id = $1', [orgClerkId(n)]);
+  const t = { organizationId: rows[0]!.id, userId: 'user_perf', clerkOrgId: orgClerkId(n), orgSlug: `perf-${n}` };
+  const service = new MonitoringService(db, env, new MonitoringBus());
+  await service.list(t); // warm caches (status cache, JIT)
+  queries.length = 0;
+  (globalThis as { gc?: () => void }).gc?.();
+  const heap0 = process.memoryUsage().heapUsed;
+  const t0 = performance.now();
+  const served = await service.list(t);
+  const built = performance.now();
+  const heapBuilt = process.memoryUsage().heapUsed;
+  const list = listPortfolio(served);
+  const cut = performance.now();
+  const body = JSON.stringify(list);
+  const done = performance.now();
+  const sqlMs = queries.reduce((a, q) => a + q.ms, 0);
+  const slow = [...queries].sort((a, b) => b.ms - a.ms);
+  // The slowest query again, three times (is it the query or its first run?).
+  const again: number[] = [];
+  for (let i = 0; i < 3; i++) {
+    const a0 = performance.now();
+    await one.query(slow[0]!.sql, slow[0]!.params);
+    again.push(Math.round(performance.now() - a0));
+  }
+  const plans = [];
+  for (const q of slow.slice(0, 4)) {
+    const r = await one.query(`EXPLAIN (ANALYZE, BUFFERS) ${q.sql}`, q.params);
+    plans.push({ label: q.label, ms: Math.round(q.ms), plan: r.rows.map((x: Record<string, string>) => x['QUERY PLAN']) });
+  }
+  await one.end();
+  // The list must equal the list cut from the FULL build (same time, same user).
+  const real = new MonitoringService(pool, env, new MonitoringBus());
+  const at = new Date();
+  const reference = listPortfolio(await real.portfolio(t, at));
+  const candidate = await real.list(t, at);
+  const differs = (a: unknown, b: unknown) => JSON.stringify(a) !== JSON.stringify(b);
+  const rowFields = new Set<string>();
+  reference.properties.forEach((s, i) => {
+    const c = candidate.properties[i] as unknown as Record<string, unknown> | undefined;
+    for (const [k, v] of Object.entries(s)) if (!c || differs(v, c[k])) rowFields.add(k);
+  });
+  const equalsFullList = {
+    equal: !differs(reference, candidate),
+    portfolioFields: Object.keys(reference).filter((k) => differs((reference as Record<string, unknown>)[k], (candidate as unknown as Record<string, unknown>)[k])),
+    rowFields: [...rowFields],
+  };
+  // The full build in parallel, as the API ran it before Fas 3 steg 3.
+  const f0 = performance.now();
+  await real.portfolio(t);
+  const fullParallelMs = performance.now() - f0;
+  // The list with the normal pool (queries in parallel), as the API runs it – CPU-profiled.
+  await real.list(t);
+  const session = new Session();
+  session.connect();
+  await session.post('Profiler.enable');
+  await session.post('Profiler.setSamplingInterval', { interval: 200 });
+  await session.post('Profiler.start');
+  const r0 = performance.now();
+  await real.list(t);
+  const parallelMs = performance.now() - r0;
+  const { profile: cpu } = await session.post('Profiler.stop');
+  session.disconnect();
+  // Self time per function (bundle line), from the sampled call tree.
+  const dt = new Map<number, number>();
+  cpu.samples?.forEach((id, i) => dt.set(id, (dt.get(id) ?? 0) + (cpu.timeDeltas?.[i] ?? 0)));
+  const self = new Map<string, number>();
+  for (const node of cpu.nodes) {
+    const f = node.callFrame;
+    const key = `${f.functionName || '(anonymous)'} ${f.url.split('/').pop()}:${f.lineNumber + 1}`;
+    self.set(key, (self.get(key) ?? 0) + (dt.get(node.id) ?? 0) / 1000);
+  }
+  const hot = [...self].sort((a, b) => b[1] - a[1]).slice(0, 25).map(([fn, ms]) => ({ fn, ms: Math.round(ms) }));
+  const round = (x: number) => Math.round(x);
+  return {
+    n, properties: served.properties.length, slowestAgainMs: again, parallelMs: round(parallelMs), fullParallelMs: round(fullParallelMs), equalsFullList,
+    totalMs: round(done - t0), sqlMs: round(sqlMs), buildMs: round(built - t0 - sqlMs), listMs: round(cut - built), stringifyMs: round(done - cut),
+    bytes: Buffer.byteLength(body), heapAfterBuildMb: Math.round((heapBuilt - heap0) / 1_048_576),
+    queries: slow.map((q) => ({ label: q.label, ms: round(q.ms), rows: q.rows, kb: round(q.bytes / 1024) })),
+    hot,
+    plans,
+  };
+}
+
 /** The API's heap ceiling in production (deploy/pod/index.js); it was 192 MB until Fas 0 measured it. */
 const PROD_HEAP_MB = 512;
 
@@ -405,6 +519,8 @@ try {
     console.log(JSON.stringify(await measure(sizes[0]!, sizes[1] ?? 1)));
   } else if (mode === 'fields') {
     for (const n of sizes) console.log(JSON.stringify(await fields(n)));
+  } else if (mode === 'profile') {
+    for (const n of sizes) console.log(JSON.stringify(await profile(n)));
   } else if (mode === 'live') {
     for (const n of sizes) console.log(JSON.stringify(await live(n)));
   } else if (mode === 'matrix') {
@@ -414,7 +530,7 @@ try {
     await cleanup();
     console.log(JSON.stringify({ cleanup: 'done' }));
   } else {
-    throw new Error('usage: seed|matrix|measure|fields|live|cleanup <sizes…>');
+    throw new Error('usage: seed|matrix|measure|fields|live|profile|cleanup <sizes…>');
   }
 } finally {
   if (mode !== 'matrix') await pool.end();

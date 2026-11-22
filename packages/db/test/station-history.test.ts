@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { applyRetention, loadOrgMonitoring, upsertPropertyContext, upsertStationObservations } from '../src/monitoring';
+import { LIST_NEAREST_PARAMETERS, NEAREST_PARAMETERS, applyRetention, loadOrgMonitoring, upsertPropertyContext, upsertStationObservations } from '../src/monitoring';
 import { migrationStatus } from '../src/migrations';
 import type { Queryable } from '../src/migrations';
 
@@ -34,6 +34,24 @@ describe('station observation persistence', () => {
     expect(calls.every((c) => c.params?.[1] === null || (Array.isArray(c.params?.[1]) && (c.params[1] as string[]).join() === 'p1,p2'))).toBe(true);
     expect(history.sql).toContain('ST_DWithin(s.location, p.location, 25000)');
     expect(history.sql).toContain("interval '3 hours'");
+  });
+  it('loads only what the portfolio list reads in list mode, and everything for the property page (Fas 3 steg 3)', async () => {
+    const { db, calls } = recordingDb();
+    const now = new Date('2026-11-22T12:00:00Z');
+    await loadOrgMonitoring(db, 'org-id', undefined, { list: { now } });
+    const forecast = calls.find((c) => c.sql.includes('FROM property_forecasts'))!;
+    expect(forecast.params).toEqual(['org-id', null, '2026-11-22T09:00:00.000Z', '2026-11-24T18:00:00.000Z']);
+    expect(forecast.sql).toContain('jsonb_path_query_array');
+    const nearest = calls.find((c) => c.sql.includes('jsonb_to_recordset'))!;
+    expect(JSON.parse(nearest.params[2] as string).map((p: { parameter: string }) => p.parameter).sort()).toEqual(['no2', 'pm10', 'pm25', 'sea_level', 'water_flow']);
+    expect(LIST_NEAREST_PARAMETERS.length).toBeLessThan(NEAREST_PARAMETERS.length);
+    expect(calls.find((c) => c.sql.includes('FROM observation_history'))!.params[5]).toEqual(['sea_level', 'water_flow']);
+
+    calls.length = 0;
+    await loadOrgMonitoring(db, 'org-id', 'property-id');
+    expect(calls.find((c) => c.sql.includes('FROM property_forecasts'))!.params.slice(2)).toEqual([null, null]);
+    expect(JSON.parse(calls.find((c) => c.sql.includes('jsonb_to_recordset'))!.params[2] as string)).toHaveLength(NEAREST_PARAMETERS.length);
+    expect(calls.find((c) => c.sql.includes('FROM observation_history'))!.params[5]).toEqual(['sea_level', 'water_flow', 'precipitation_15min']);
   });
   it('bounds observation history retention to seven days', async () => {
     const { db, calls } = recordingDb();

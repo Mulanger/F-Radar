@@ -14,7 +14,7 @@ describe('GET /v1/portfolio returns the portfolio list', () => {
   const db: Queryable = { async query<R>(sql: string) { return { rows: (sql.includes('INSERT INTO organizations') ? [{ id: ORG_UUID }] : []) as R[] }; } };
   const verify: AuthVerifier = async () => ({ userId: 'user_a', sessionId: 's', clerkOrgId: 'org_testAAAAAAAA', orgRole: 'org:admin', orgSlug: 'a' });
   const full = demoPortfolio;
-  const monitoring = { portfolio: async () => full } as unknown as MonitoringService;
+  const monitoring = { list: async () => full } as unknown as MonitoringService;
   let app: FastifyInstance;
   beforeAll(async () => {
     app = await buildApp(loadServerEnv({ NODE_ENV: 'test' }), { logger: false, db, verifyAuth: verify, monitoring });

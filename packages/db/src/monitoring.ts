@@ -700,17 +700,48 @@ export const NEAREST_PARAMETERS: Array<[string, string, number]> = [
  * No external API is called on this path.
  */
 /**
+ * What the portfolio LIST reads (docs/plans/skalning.md, Fas 3 steg 3 / S-16). The list leaves out the
+ * forecast series beyond the next day, measured rain and nearby observations (`listSnapshot`), so
+ * it does not need to load them:
+ *  - nearest stations only for flood (water flow, sea level), the air-quality metrics and the risk index;
+ *  - station history only for the flood trends (not 15-minute rain);
+ *  - forecast steps from 3 h ago to 54 h ahead: the current hour, the next 24 h (metrics, risk) and
+ *    48 h (upcoming conditions, incl. a frost spell), with a margin for 6-hour steps.
+ * The list built this way equals `listSnapshot` of the full build (checked at 500 properties by
+ * tests/perf/portfolio-scale.ts `profile`).
+ */
+export const LIST_NEAREST_PARAMETERS = NEAREST_PARAMETERS.filter(([source, parameter]) =>
+  (source === 'smhi_hydrology' && parameter === 'water_flow') || (source === 'smhi_oceanography' && parameter === 'sea_level')
+  || (source === 'air_quality' && ['pm25', 'pm10', 'no2'].includes(parameter)));
+export const LIST_FORECAST_WINDOW_H = { before: 3, after: 54 } as const;
+
+export interface LoadMonitoringOptions {
+  /** Load only what the portfolio list reads, for the list at this time. */
+  list?: { now: Date };
+}
+
+/**
  * Everything the snapshot builder needs for an organization – or for some of its properties
  * (one property page, or the rows a live update patches: docs/plans/skalning.md, S-12).
  */
-export async function loadOrgMonitoring(db: Queryable, organizationId: string, propertyIds?: string | string[]): Promise<OrgMonitoringData> {
+export async function loadOrgMonitoring(db: Queryable, organizationId: string, propertyIds?: string | string[], options: LoadMonitoringOptions = {}): Promise<OrgMonitoringData> {
   const pid = propertyIds === undefined ? null : Array.isArray(propertyIds) ? propertyIds : [propertyIds];
+  const list = options.list;
+  const window = list ? [
+    new Date(list.now.getTime() - LIST_FORECAST_WINDOW_H.before * 3_600_000).toISOString(),
+    new Date(list.now.getTime() + LIST_FORECAST_WINDOW_H.after * 3_600_000).toISOString(),
+  ] : [null, null];
+  const nearest = list ? LIST_NEAREST_PARAMETERS : NEAREST_PARAMETERS;
+  const historyParameters = list ? ['sea_level', 'water_flow'] : ['sea_level', 'water_flow', 'precipitation_15min'];
   const [forecasts, events, contexts, observations, counties, nowcasts, hydrologyReferences, history, airHistory] = await Promise.all([
     db.query<OrgForecastRow>(
       `SELECT f.property_id, f.source_id, f.reference_time, f.created_time, ST_Y(f.grid_point::geometry) AS grid_lat, ST_X(f.grid_point::geometry) AS grid_lon,
-              f.distance_m, f.series, f.fetched_at
+              f.distance_m, f.fetched_at,
+              CASE WHEN $3::text IS NULL OR jsonb_typeof(f.series->'steps') IS DISTINCT FROM 'array' THEN f.series
+                   ELSE jsonb_set(f.series, '{steps}', jsonb_path_query_array(f.series->'steps', '$[*] ? (@.time >= $from && @.time <= $to)', jsonb_build_object('from', $3::text, 'to', $4::text)))
+              END AS series
          FROM property_forecasts f WHERE f.organization_id = $1 AND ($2::uuid[] IS NULL OR f.property_id = ANY($2::uuid[]))`,
-      [organizationId, pid],
+      [organizationId, pid, window[0], window[1]],
     ),
     db.query<OrgEventRow>(
       `SELECT m.property_id, m.match_method, m.distance_m, m.first_matched_at,
@@ -743,7 +774,7 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
            ORDER BY s.location <-> p.location
            LIMIT 1) o
         WHERE p.organization_id = $1 AND ($2::uuid[] IS NULL OR p.id = ANY($2::uuid[]))`,
-      [organizationId, pid, JSON.stringify(NEAREST_PARAMETERS.map(([source_id, parameter, max_age_h]) => ({ source_id, parameter, max_age_h })))],
+      [organizationId, pid, JSON.stringify(nearest.map(([source_id, parameter, max_age_h]) => ({ source_id, parameter, max_age_h })))],
     ),
     db.query<{ property_id: string; code: string; name: string }>(
       `SELECT p.id AS property_id, a.code, a.name
@@ -755,10 +786,10 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
     db.query<HydrologyReferenceRow>(`SELECT r.* FROM hydrology_references r JOIN observation_stations s ON s.source_id=r.source_id AND s.station_id=r.station_id AND s.parameter='water_flow'
       WHERE EXISTS(SELECT 1 FROM properties p WHERE p.organization_id=$1 AND ($2::uuid[] IS NULL OR p.id = ANY($2::uuid[])) AND ST_DWithin(s.location,p.location,$3))`,[organizationId,pid,WEATHER_WATER.flowDistanceM]),
     db.query<ObservationHistoryRow>(`SELECT h.* FROM observation_history h JOIN observation_stations s ON s.source_id=h.source_id AND s.station_id=h.station_id AND s.parameter=h.parameter
-      WHERE h.parameter IN ('sea_level','water_flow','precipitation_15min') AND h.observed_at > now()-interval '73 hours'
+      WHERE h.parameter = ANY($6::text[]) AND h.observed_at > now()-interval '73 hours'
         AND EXISTS(SELECT 1 FROM properties p WHERE p.organization_id=$1 AND ($2::uuid[] IS NULL OR p.id = ANY($2::uuid[]))
           AND ST_DWithin(p.location,s.location,CASE h.source_id WHEN 'smhi_oceanography' THEN $3::double precision WHEN 'smhi_hydrology' THEN $4::double precision ELSE $5::double precision END))
-      ORDER BY h.source_id,h.station_id,h.parameter,h.observed_at`,[organizationId,pid,WEATHER_WATER.seaDistanceM,WEATHER_WATER.flowDistanceM,WEATHER_WATER.observationDistanceM]),
+      ORDER BY h.source_id,h.station_id,h.parameter,h.observed_at`,[organizationId,pid,WEATHER_WATER.seaDistanceM,WEATHER_WATER.flowDistanceM,WEATHER_WATER.observationDistanceM,historyParameters]),
     db.query<OrgObservationRow>(
       `SELECT p.id AS property_id, h.source_id, h.station_id, h.parameter, s.name, h.value, h.unit,
               h.observed_at, h.quality, h.extra, h.fetched_at, ST_Distance(s.location, p.location) AS distance_m

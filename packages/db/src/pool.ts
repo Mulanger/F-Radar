@@ -1,5 +1,12 @@
 import pg from 'pg';
 
+/**
+ * Session settings for the application's connections. JIT off: the app runs many short queries, and
+ * PostgreSQL's JIT compiled the nearest-station lookup on every portfolio build from a few dozen
+ * properties – ~100 ms of a ~137 ms query at 500 properties (docs/plans/skalning.md, Fas 3 steg 3).
+ */
+export const SESSION_OPTIONS = '-c jit=off';
+
 /** Creates a pg pool. Callers own its lifecycle (`await pool.end()`). */
 export function createPool(databaseUrl: string, options: Partial<pg.PoolConfig> = {}): pg.Pool {
   return new pg.Pool({
@@ -8,6 +15,7 @@ export function createPool(databaseUrl: string, options: Partial<pg.PoolConfig> 
     connectionTimeoutMillis: 3_000,
     idleTimeoutMillis: 30_000,
     application_name: 'fastighetsradar',
+    options: SESSION_OPTIONS,
     ...options,
   });
 }

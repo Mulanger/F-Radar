@@ -121,12 +121,20 @@ const stepHours = (s: ForecastStep) => (s.intervalStart ? (Date.parse(s.time) - 
  * Sums interval precipitation totals over (from, from+hours]. Intervals partly inside the window
  * are pro-rated. Returns null when any overlapping interval is missing (never a silent 0).
  */
+const byTime = (x: ForecastStep, y: ForecastStep) => x.time.localeCompare(y.time);
+
+/** The steps in time order; stored series already are, so usually without copying or sorting. */
+function inTimeOrder(steps: ForecastStep[]): ForecastStep[] {
+  for (let i = 1; i < steps.length; i++) if (steps[i - 1]!.time > steps[i]!.time) return [...steps].sort(byTime);
+  return steps;
+}
+
 export function precipitationTotal(steps: ForecastStep[], from: Date, hours = 24): number | null {
   const a = from.getTime();
   const b = a + hours * 3_600_000;
   let total = 0;
   let cursor = a;
-  for (const s of [...steps].sort((x, y) => x.time.localeCompare(y.time))) {
+  for (const s of inTimeOrder(steps)) {
     const end = Date.parse(s.time);
     const start = end - stepHours(s) * 3_600_000;
     const overlap = Math.min(end, b) - Math.max(start, a);

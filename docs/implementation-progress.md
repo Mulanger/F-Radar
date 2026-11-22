@@ -135,4 +135,9 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
   minut, `GET /v1/portfolio/rows` och `/v1/portfolio/nowcast`; klienten lappar in ändrade rader i stället
   för att ladda om hela portföljen. Vid 500: en prognoskörning 0,26 s / 0,65 MB mot 1,6 s / 6,0 MB.
   Ingen `ETag` (se planen).
+- Steg 3: listläge i API:t (bara det listan läser: 5 av 14 stationsparametrar, prognos för drygt 2 dygn,
+  inga dygnssammanställningar), `Map`-indexering, snabbare nederbördssummering, JIT av för appens
+  databasanslutningar, ett bygge åt gången per organisation och summary från listan. `/v1/portfolio`
+  vid 500: 1,6 → 0,33 s; vid 1000: 3,3 → 0,69 s; listan identisk med tidigare. Kvar: datamängden
+  (6,0 MB vid 500) kräver ett kompaktare listkontrakt.
 

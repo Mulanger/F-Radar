@@ -343,6 +343,8 @@ Fasen anger var fyndet åtgärdas.
   också kör alla bakgrundsjobb.
 - **Åtgärd:** Indexera en gång till `Map` per `property_id` (och per station för historik) innan
   loopen. Ren refaktorering – samma utdata, testas med befintliga snapshot-tester.
+- **Gjort 2026-11-22 (Fas 3 steg 3).** Gav mindre än väntat (JS-bygget 1 080 → 930 ms vid 500); den
+  egentliga kostnaden var nederbördssummeringen – se Fas 3, "Genomfört steg 3".
 
 **S-16 SQL-frågorna för portföljen växer med antal träffar, inte antal händelser** · P2 · Fas 3
 - **Var:** [`loadOrgMonitoring`](../../packages/db/src/monitoring.ts) (rad 687), `listRecentChangesForOrg` (rad 760).
@@ -360,6 +362,10 @@ Fasen anger var fyndet åtgärdas.
   (nuvarande timme + 24 h-summor) i portföljlistan; hela serien bara i fastighetsdetaljen. Kortare
   tidsgräns (t.ex. 7 dagar) på flödesfrågan. Kör `EXPLAIN (ANALYZE, BUFFERS)` på testdatabasen med en
   syntetisk organisation på 500 fastigheter och spara planerna i Fasloggen.
+- **Gjort 2026-11-22 (Fas 3 steg 3), med avvikelser:** listan laddar bara det den läser (5 av 14
+  stationsparametrar, ingen regnhistorik, prognossteg för drygt 2 dygn) och JIT är avstängt – det tog
+  närmaste station från 289 till 38 ms utan en ny tabell. Händelsetexten skickas fortfarande per
+  fastighet och flödet har ingen kortare tidsgräns (11 ms vid 500). Se Fas 3, "Genomfört steg 3".
 
 **S-33 API:t har 192 MB minne, och en krasch tar ner hela appen** · P1 · Fas 3
 - **Var:** Processövervakaren på podden (`/home/instapod/app/index.js`, kommer från
@@ -379,10 +385,15 @@ Fasen anger var fyndet åtgärdas.
   slumpad fördröjning (0–5 s) på klientens refresh efter en signal, och logga `heapUsed` per
   portföljanrop. Höj heapen bara efter mätning – podden har 2 GB för webb, API och PostgreSQL. Överväg
   att köra schemaläggaren i en egen process så att ett tungt anrop inte stoppar larmjobben.
+- **Gjort 2026-11-22 (Fas 3 steg 2–3):** slumpad fördröjning i klienten (steg 2); organisationens del
+  av listan byggs högst en gång åt gången och delas av samtidiga anrop (steg 3). Tre samtidiga anrop
+  klarar sig nu med 128 MB heap vid 500 och 192 MB vid 1000 fastigheter (krävde 256 och 384 MB).
 
 **S-17 `/v1/portfolio/summary` bygger hela portföljen för att räkna** · P3 · Fas 3
 - **Var:** [`routes/monitoring.ts:40`](../../apps/api/src/routes/monitoring.ts).
 - **Åtgärd:** Räkna från portföljlistan (S-10) eller med en egen `count`-fråga.
+- **Gjort 2026-11-22 (Fas 3 steg 3):** räknar från organisationens lista (`organizationList`), utan
+  fullständiga snapshots och utan användarens flöde.
 
 ### 4.4 Listor, karta och grupper
 
@@ -766,6 +777,59 @@ som listan aldrig läser. Därför **ingen packning av formatet**; i stället sk
   id och svarar bara för organisationens fastigheter; signal → rätt hämtning, lappning, dold flik och
   fastighetssida (DOM-test med falsk ström).
 
+**Genomfört steg 3 (gren `claude/skalning-fas0`):**
+- **Profil före** (testdatabasen, 500 fastigheter, driftsatt kod `b335ecf`, `run-portfolio-scale.mjs
+  --profile`): 1,4 s med frågorna parallellt. Var för sig: SQL 0,58 s, bygget i JS 1,08 s, JSON 10 ms.
+  Tyngst i SQL: närmaste station 289 ms (varav ~100 ms JIT-kompilering), observationshistorik 169 ms,
+  prognoserna 22,6 MB JSON. Tyngst i JS (CPU-profil): `stepHours` 248 ms och `precipitationTotal`
+  145 ms – summeringen sorterade alla prognossteg med `localeCompare` vid varje anrop, ~22 anrop per
+  fastighet, varav 20 för dygnssammanställningen som listan aldrig visar.
+- **Åtgärder:**
+  - `Map`-indexering (S-15) i snapshot-byggaren, "Kommande", SMS-berikningen och SMS-utlösarna.
+  - Beräkning: summeringen sorterar bara osorterade serier; nederbördsmåtten byggs en gång per
+    fastighet i stället för per dygn och mått; stationshistorik och prognossteg konverteras en gång.
+  - **Listläge** (`MonitoringService.list`, `LoadMonitoringOptions.list`): `/v1/portfolio` och de
+    radvisa uppdateringarna laddar bara det listan läser – närmaste station för vattenföring,
+    havsvattenstånd, PM2,5, PM10 och NO₂ (5 av 14), stationshistorik utan 15-minutersregn, prognossteg
+    från 3 h bakåt till 54 h framåt (urval med `jsonb_path_query_array` i SQL) – och räknar inte
+    dygnssammanställningar. Kontrollerat vid 500 och 1000: listan är identisk med `listSnapshot` av
+    hela bygget (`profile` jämför dem).
+  - **JIT av** för appens databasanslutningar (`SESSION_OPTIONS` i `packages/db/src/pool.ts`).
+    PostgreSQL kompilerade närmaste-station-frågan vid varje portföljanrop från några tiotal
+    fastigheter: ~100 av 137 ms vid 500.
+  - Högst ett bygge av organisationens lista åt gången; samtidiga anrop delar resultatet, och bara
+    flöde och larm (läst/oläst) hämtas per användare (S-33). `/v1/portfolio/summary` räknar från samma
+    lista (S-17).
+- **Avvikelser från planen:** ingen tabell för närmaste station (listläge + JIT av räckte: 289 → 38
+  ms); ingen kortare tidsgräns för flödet (11 ms vid 500 med 30 dagars ändringar); händelsetexten
+  skickas fortfarande en gång per fastighet, eftersom det är en ändring av kontraktet som hör till
+  datamängden nedan.
+- **Mätning efter** (testdatabasen, `run-portfolio-scale.mjs`, matrisen i barnprocesser):
+
+  | | 500 före Fas 3 | 500 nu | 1000 före Fas 3 | 1000 nu |
+  |---|---:|---:|---:|---:|
+  | `/v1/portfolio`, ett anrop (median) | 1,6 s | 0,33 s | 3,3 s | 0,69 s |
+  | Tre samtidiga anrop (median) | – | 0,49 s | – | 0,87 s |
+  | Heaptopp i mätprocessen, ett anrop | 142–160 MB | 120 MB | 187–195 MB | 213 MB |
+  | Minsta heap för tre samtidiga | 256 MB | 128 MB | 384 MB | 192 MB |
+  | Svar | 14,4 MB | 6,0 MB | – | 12,0 MB |
+
+  En radvis live-uppdatering (40 fastigheter, steg 2) vid 500: 0,26 → 0,06 s, fortfarande identisk med
+  listan. Profilen vid 500: 0,26 s parallellt (bygget i JS 108 ms), vid 1000: 0,55 s. Heaptoppen mäts i
+  samma process som tolkar svaret, så den räknar med mätarens egen kopia; den följer listans storlek.
+- **EXPLAIN (ANALYZE, BUFFERS) vid 500, efter:** flödet 11,5 ms (sekventiell läsning av
+  `monitoring_changes`, 5 801 rader efter filtret, top-N-sortering, ett indexuppslag per visad rad
+  via `idx_monitoring_changes_event`); närmaste station 37 ms (2 500 uppslag via
+  `idx_observation_stations_param` + top-N-sortering; med JIT 137 ms, varav kompilering 99,6 ms);
+  prognoserna 38,8 ms (sekventiell läsning, 500 rader, urval i SQL); luftkvalitetshistoriken 10,5 ms
+  (merge join, index på fastighetens läge, 8 265 rader).
+- **Inte uppfyllt:** datamängden (6,0 MB vid 500 mot målet ≤ 0,5 MB) och heaptoppen (mål ≤ 30 MB).
+  Båda styrs av listans storlek, 12 KB per fastighet (mätvärden 4,2 KB, händelser 2,0 KB, riskindex
+  1,3 KB, varningar 1,1 KB). Det kräver ett kompaktare listkontrakt – nästa steg om målet ska nås.
+- **Iakttaget:** direkt efter att 1000 fastigheter lagts in tog ett anrop 6,1 s tills PostgreSQL
+  hunnit uppdatera statistiken (därefter 0,69 s). Gäller också en stor kund som importerar allt på en
+  gång – se Fas 6.
+
 ### Fas 4 – Listor, karta och grupper
 
 **Mål:** Översikt över hundratals fastigheter på karta och i tabell, uppdelat så som kunden
@@ -816,6 +880,8 @@ driftsättning (mäts på samma sätt som i avsnitt 2.3).
 2. CSV/Excel-import med bakgrundsgeokodning och granskningslista (S-28).
 3. Tak per organisation; höj till 1000+ när Fas 3 är klar (S-30). Uppdatera prissidans Enterprise-
    rad bara om produktägaren beslutar det.
+4. `ANALYZE` på de berörda tabellerna efter en import. I Fas 3 tog ett portföljanrop 6,1 s direkt
+   efter att 1000 fastigheter lagts in, tills PostgreSQL uppdaterat statistiken (sedan 0,69 s).
 
 **Test:** API-test för import (validering, dubbletter, tenant-isolering, tak); test att en import
 utlöser en omatchning; DOM-test för granskningslistan.
@@ -861,4 +927,5 @@ fastigheter (siffror i Fasloggen).
 | Fas 1 | 2026-11-22 | `claude/skalning-fas0` | Snabbväxla vid `?n=500`: 32 322 px → 460,8 px (60 % av 768 px), 100 rader i stället för 500. Sök i fastighetslistan: `buildOverviewVM` per tangent → 0. | SMS-regelns fastighetsval i webbläsaren (bara DOM-test); kartans zoom vid live-uppdatering (bara DOM-test, demoläget uppdateras inte live) |
 | Fas 3 steg 1 | 2026-11-22 | `claude/skalning-fas0` / `6582b7b`, driftsatt 2026-11-22 | `/v1/portfolio` vid 500 (testdatabas): 14,4 → 6,0 MB, 28,7 → 12,1 KB per fastighet. Fastighetsbyte: hela portföljen i API:t → en fastighet (22 KB RSC i demo). | API:ts heap och tid (bygger fortfarande hela portföljen innan listan skärs – steg 3); målet ≤ 1 KB per fastighet (kvar: mätvärden 4,2 KB, händelser 2,0 KB) |
 | Lindring S-33 + Fas 5 steg 0 (S-34) | 2026-11-22 | `f216613`, driftsatt 2026-11-22 11:44 UTC | API-heap 192 → 512 MB (`deploy/pod/index.js`), räcker för 1000 × 3 enligt avsnitt 2.4. Schemaläggaren i tre köer: SMS, larmkällor, övrigt. Före: `sms_notifications` väntade upp till 284 s bakom luftkvalitet (200–430 s per körning, avsnitt 2.3). Efter: enhetstest visar att SMS och avbrottskällor körs medan ett tungt jobb pågår. | Efter driftsättning: API:t kör med `--max-old-space-size=512`, köerna `sms` 1 / `alerts` 50 / `background` 17 jobb, `sms_notifications` var 30:e s med `waitedMs` 5–8 ms. Under luftkvalitetskörningen 12:10:54 (pågick fortfarande 12:12:32) körde `sms_notifications` var 30:e s med `waitedMs` 8–10 ms och `krisinformation` med 9,8 s (bakom avbrottskällorna i larmkön) – med den gamla kön hade båda väntat tills luftkvalitet var klar. Inte gjort: tidsbudget per varv för tunga jobb ej gjord (S-35, Fas 7) |
-| Fas 3 steg 2 | 2026-11-22 | `claude/skalning-fas0` | Live-uppdatering vid 500 (testdatabas): hela listan 1,6 s / 6,0 MB / +115 MB heap → en prognoskörning som radvis uppdatering 0,26 s / 0,65 MB / +27 MB heap; lappad lista identisk med hel lista. Hela omladdningar per timme och flik: ~20 (~40 vid 1000) → ~3 (uppskattat). | Live-strömmen i webbläsaren (demoläget har ingen ström; DOM-test med falsk ström). I produktion efter driftsättning: loggraderna `portfolio rows built` / `portfolio nowcast built` mot `portfolio built` |
+| Fas 3 steg 2 | 2026-11-22 | `claude/skalning-fas0` / `b335ecf`, driftsatt 2026-11-22 15:45 UTC | Live-uppdatering vid 500 (testdatabas): hela listan 1,6 s / 6,0 MB / +115 MB heap → en prognoskörning som radvis uppdatering 0,26 s / 0,65 MB / +27 MB heap; lappad lista identisk med hel lista. Hela omladdningar per timme och flik: ~20 (~40 vid 1000) → ~3 (uppskattat). | Live-strömmen i webbläsaren (demoläget har ingen ström; DOM-test med falsk ström). I produktion efter driftsättning: loggraderna `portfolio rows built` / `portfolio nowcast built` mot `portfolio built` |
+| Fas 3 steg 3 | 2026-11-22 | `claude/skalning-fas0` | `/v1/portfolio` (testdatabas, median): 1,6 → 0,33 s vid 500, 3,3 → 0,69 s vid 1000; tre samtidiga 0,49 / 0,87 s. Minsta heap för tre samtidiga: 256 → 128 MB (500), 384 → 192 MB (1000). Radvis uppdatering 0,26 → 0,06 s. Listan identisk med `listSnapshot` av hela bygget vid 500 och 1000. EXPLAIN i Fas 3, "Genomfört steg 3". | Datamängd (6,0 MB vid 500, mål ≤ 0,5 MB) och heaptopp (mål ≤ 30 MB) ej uppfyllda – kräver kompaktare listkontrakt. JIT av ej mätt på andra frågor än portföljens (omatchning, inserts) |
