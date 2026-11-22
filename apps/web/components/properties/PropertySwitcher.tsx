@@ -5,7 +5,7 @@ import type { DetailVM } from '@/lib/view-models/detail';
 import { C } from '@/lib/design/tokens';
 import { IconChevronDown, IconChevronLeft, IconChevronRight } from '../ui/icons';
 import { Popover } from '../ui/Popover';
-import { PropertyList } from './PropertyList';
+import { PropertyPicker } from './PropertyPicker';
 
 /** Prev / dropdown / next switcher – changes property without leaving the detail page. */
 export function PropertySwitcher({ d, onSwitch }: { d: DetailVM; onSwitch: (id: string) => void }) {
@@ -23,7 +23,7 @@ export function PropertySwitcher({ d, onSwitch }: { d: DetailVM; onSwitch: (id: 
       <button
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        aria-haspopup="listbox"
+        aria-haspopup="dialog"
         style={{ height: 36, display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', borderRadius: 18, border: 'none', background: C.page, cursor: 'pointer', fontSize: 13.5, color: C.ink, minWidth: 190 }}
       >
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: d.c }} />
@@ -34,8 +34,8 @@ export function PropertySwitcher({ d, onSwitch }: { d: DetailVM; onSwitch: (id: 
       <button className="fr-hover-soft" onClick={() => go(d.nextId)} aria-label="Nästa fastighet" style={round}>
         <IconChevronRight stroke={C.ink} />
       </button>
-      <Popover open={open} onClose={() => setOpen(false)} style={{ top: 52, right: 0, width: 320, background: 'rgba(255,255,255,0.94)' }}>
-        <PropertyList variant="risk" currentId={d.id} onSelect={go} />
+      <Popover open={open} onClose={() => setOpen(false)} style={{ top: 52, right: 0, width: 340, maxWidth: 'calc(100vw - 32px)', background: 'rgba(255,255,255,0.94)' }}>
+        <PropertyPicker variant="risk" currentId={d.id} onSelect={go} />
       </Popover>
     </div>
   );

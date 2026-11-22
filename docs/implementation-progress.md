@@ -114,3 +114,15 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
   `alert job delayed` och gör `/health/ready` `degraded` (HTTP 200; `ok` de första 5 minuterna efter start).
   Ny databasfunktion `listOverdueJobs`.
 - Tester: 84 filer / 619 godkända / 6 överhoppade; typer och lint gröna; PostGIS 39/39 på `fastighetsradar_test`.
+
+# Skalning – Fas 1: hitta rätt fastighet (2026-11-22)
+
+- Plan: [`plans/skalning.md`](plans/skalning.md), Fas 1 (S-01, S-02, S-03, S-13, S-22, S-27). Gren `claude/skalning-fas0`.
+- `PropertyPicker` (Snabbväxla, fastighetssidans växlare) och `CommandPalette` (sidhuvudets sök, ⌘K/Ctrl+K):
+  sök på namn/adress/område/kommun, piltangenter, högst 100 rader, senast besökta. Med 500 fastigheter
+  är Snabbväxla 60 % av fönstret (tidigare 32 322 px).
+- Memoiserade vymodeller och stabil kontext; sök i fastighetslistan bygger inte om översikten.
+- Kartan behåller zoom vid uppdatering; täckningslistan visar 10 + "Visa alla"; SMS-regelns fastighetsval
+  med sök och "Markera alla", aktivitetsloggen förkortar långa namnlistor.
+- Tester: 86 filer / 634 godkända / 6 överhoppade; typer och lint gröna.
+

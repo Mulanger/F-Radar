@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useDeferredValue, useMemo } from 'react';
 import { DashboardLink } from '../shell/DashboardLink';
 import { propertyHref } from '@/lib/navigation/dashboard';
 import { useSavedView, useViewScroll } from '@/lib/navigation/view-state';
@@ -25,19 +25,25 @@ export function PropertyIndex() {
   const [filtersState, setFilters, restored] = useSavedView(viewKey, initialFilters);
   const { query, status, sort } = filtersState;
   useViewScroll(`${viewKey}:scroll:${mobile ? 'mobile' : 'desktop'}`, restored);
-  const vm = buildOverviewVM(ds.portfolio, { ready: ds.ready, group: 'all', isSmsOn: ds.isSmsOn, isRuleOn: ds.isRuleOn });
+  // Built once per portfolio/override change, not per keystroke (docs/plans/skalning.md, S-03).
+  const { portfolio, ready, isSmsOn, isRuleOn } = ds;
+  const vm = useMemo(() => buildOverviewVM(portfolio, { ready, group: 'all', isSmsOn, isRuleOn }), [portfolio, ready, isSmsOn, isRuleOn]);
+  const searchText = useMemo(() => new Map(vm.rows.map(r => [r.id, `${r.name} ${r.address} ${r.snapshot.property.area} ${r.snapshot.property.municipality ?? ''}`.toLocaleLowerCase('sv-SE')])), [vm.rows]);
+  // The field updates at once; filtering 500 rows may lag a frame behind while typing.
+  const deferredQuery = useDeferredValue(query);
   const rows = useMemo(() => {
-    const q = query.trim().toLocaleLowerCase('sv-SE');
-    const filtered = vm.rows.filter(r => (status === 'all' || r.snapshot.property.status === status) && (!q || `${r.name} ${r.address} ${r.snapshot.property.area}`.toLocaleLowerCase('sv-SE').includes(q)));
+    const q = deferredQuery.trim().toLocaleLowerCase('sv-SE');
+    const filtered = vm.rows.filter(r => (status === 'all' || r.snapshot.property.status === status) && (!q || searchText.get(r.id)!.includes(q)));
     return sort === 'name' ? filtered.sort((a, b) => a.name.localeCompare(b.name, 'sv-SE')) : filtered;
-  }, [query, status, sort, vm.rows]);
+  }, [deferredQuery, status, sort, vm.rows, searchText]);
+  const tableVm = useMemo(() => ({ ...vm, rows }), [vm, rows]);
   const filters = [{ id: 'all', label: 'Alla', color: C.text3, count: vm.rows.length }, ...Object.entries(SEV).map(([id, style]) => ({ id, label: shortStatus(style.label), color: style.c, count: vm.rows.filter(r => r.snapshot.property.status === id).length })).filter(f => f.count > 0)];
   return <div className={`${styles.page} ${styles.listPage}`} data-screen-label="Fastighetslista">
     <div className={`${styles.heading} ${styles.listHeading}`}><div><div className={styles.date}>{ds.portfolio.properties.length} fastigheter{ds.mode === 'demo' ? ' · Demodata' : ''}</div><h1>Fastigheter</h1></div><button className={styles.iconButton} style={{ background: C.ink, color: '#fff' }} aria-label="Lägg till fastighet" title={editor.enabled ? 'Lägg till fastighet' : 'Demodata kan inte redigeras'} disabled={!editor.enabled} onClick={editor.openCreate}><IconPlus size={18} /></button></div>
     <label className={styles.search}><IconSearch /><span className="fr-sr-only">Sök fastighet, adress eller område</span><input value={query} onChange={e => setFilters({ ...filtersState, query: e.target.value })} placeholder="Sök fastighet, adress eller område" type="search" /></label>
     <div className={styles.filters} role="group" aria-label="Filtrera fastighetsstatus">{filters.map(f => <button key={f.id} className={styles.filter} aria-label={`${f.label} ${f.count}`} aria-pressed={status === f.id} onClick={() => setFilters({ ...filtersState, status: f.id })}><span className={styles.dot} style={{ color: f.color }} />{f.label}<span className={styles.count}>{f.count}</span></button>)}</div>
     <div className={styles.sortRow}><span role="status">{rows.length} {rows.length === 1 ? 'fastighet' : 'fastigheter'}</span><div className={styles.sort} role="group" aria-label="Sortera fastigheter"><button aria-pressed={sort === 'risk'} onClick={() => setFilters({ ...filtersState, sort: 'risk' })}>Risk</button><button aria-pressed={sort === 'name'} onClick={() => setFilters({ ...filtersState, sort: 'name' })}>Namn</button></div></div>
-    {!mobile && rows.length > 0 && <PropertyStatusTable vm={{ ...vm, rows }} onOpen={ds.openProperty} />}
+    {!mobile && rows.length > 0 && <PropertyStatusTable vm={tableVm} onOpen={ds.openProperty} />}
     <div className={styles.cards}>
       {mobile && rows.map(r => {
         const p = r.snapshot.property;

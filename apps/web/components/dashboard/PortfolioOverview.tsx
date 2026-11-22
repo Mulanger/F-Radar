@@ -26,8 +26,9 @@ export function PortfolioOverview() {
   const viewKey = `${ds.basePath}:${portfolio.organizationId}:overview:desktop`;
   const [statusFull, setStatusFull, restored] = useSavedView(`${viewKey}:full-table`, false);
   useViewScroll(viewKey, !mobile && restored);
-  const vm = buildOverviewVM(portfolio, { ready, group: mobile ? 'all' : group, isSmsOn, isRuleOn });
-  // Stable list identity so the map only refits when the filter actually changes.
+  const vmGroup = mobile ? 'all' : group;
+  const vm = useMemo(() => buildOverviewVM(portfolio, { ready, group: vmGroup, isSmsOn, isRuleOn }), [portfolio, ready, vmGroup, isSmsOn, isRuleOn]);
+  // The map refits only when the set of properties changes (group filter), not on a data refresh.
   const mapList = useMemo(() => filterByGroup(portfolio, group), [portfolio, group]);
   const isDemo = ds.mode === 'demo';
 

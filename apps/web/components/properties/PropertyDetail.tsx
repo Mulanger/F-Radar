@@ -4,7 +4,7 @@ import { MeasuredRainPanel } from './MeasuredRainPanel';
 import { NowcastPanel } from './NowcastPanel';
 import { ForecastDays } from './ForecastDays';
 
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { buildDetailVM } from '@/lib/view-models/detail';
@@ -42,10 +42,13 @@ export function PropertyDetail() {
   const mobile = useMobileDashboard();
   const id = params?.propertyId ? decodeURIComponent(params.propertyId) : undefined;
   const s = ds.property(id);
-  if (!s) return null;
+  const smsOn = s ? ds.isSmsOn(s) : false;
+  // buildDetailVM sorts the whole portfolio for prev/next; build it once per input change (S-03).
+  const { portfolio, ready, metric, isRuleOn } = ds;
+  const d = useMemo(() => (s ? buildDetailVM(portfolio, s, { ready, metric, smsOn, isRuleOn }) : null), [portfolio, s, ready, metric, smsOn, isRuleOn]);
+  if (!s || !d) return null;
 
   const isDemo = ds.mode === 'demo';
-  const d = buildDetailVM(ds.portfolio, s, { ready: ds.ready, metric: ds.metric, smsOn: ds.isSmsOn(s), isRuleOn: ds.isRuleOn });
   const target = sectionTarget(ds.basePath, from ?? 'properties');
   const smsHref = propertySmsHref(s.property.id, from);
   const switchTo = (pid: string) => ds.openProperty(pid, { replace: true, from });

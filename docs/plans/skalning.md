@@ -631,6 +631,24 @@ portfölj med samma grupp.
 en fastighet på namn och adress; att skriva i fastighetslistans sök startar inte `buildOverviewVM`
 (mätt med profiler eller räknare i test). Visat på localhost:3000 och godkänt.
 
+**Genomfört (gren `claude/skalning-fas0`, 2026-11-22):**
+- `PropertyPicker` ersätter `PropertyList` i Snabbväxla och i fastighetssidans växlare: sökfält med fokus
+  direkt (namn, adress, område, kommun; alla ord måste finnas, exakt namn och namn som börjar med sökningen
+  först), ↑/↓/PgUp/PgDn/Enter, Esc via popovern, högst 100 rader med "Visar 100 av 500 – skriv för att
+  söka", egen scroll, aktuell fastighet markerad ("Visas nu") och i vy, senast besökta (localStorage i
+  try/catch) överst. Uppmätt med `?n=500`: menyn är 460,8 px i ett 768 px fönster (60 %).
+- Sidhuvudets sök är en kommandopalett (`CommandPalette`, ⌘K/Ctrl+K eller klick) med samma väljare;
+  texten säger "Sök fastigheter" tills larm är sökbara. Fokus tillbaka till sökfältet vid Esc.
+- `DashboardStateProvider` har stabila callbacks och memoiserat värde; `buildOverviewVM`/`buildDetailVM`
+  memoiseras i översikt, fastighetslista, mobila larm och fastighetssida; fastighetslistans sök använder
+  `useDeferredValue`. Test: 0 extra `buildOverviewVM` medan man skriver (tidigare en per tangent).
+- Kartan uppdaterar nålar per id och kör `fitBounds` bara när mängden fastigheter ändras.
+- Täckningslistan visar 10 fastigheter och "Visa alla N". Vädrets KPI-kort hade redan tak (5 i kortet,
+  scrollbar ruta för "Visa alla"), så den är oförändrad.
+- SMS-regelns fastighetsval (`RulePropertySelect`): sök, "Markera alla (som syns)", "Avmarkera", "X av Y
+  valda"; aktivitetsloggen visar "A, B och 298 till" med "Visa alla". Inte visat i webbläsaren eftersom
+  SMS-regler inte finns i demoläget – täckt av DOM-test.
+
 ### Fas 2 – Larm och kvittering vid stora händelser
 
 **Mål:** En länsvarning över hundratals fastigheter är **ett** larm som kan förstås och kvitteras på
@@ -771,4 +789,5 @@ fastigheter (siffror i Fasloggen).
 | Granskning | 2026-11-22 | – (ingen kod) | Avsnitt 2.1–2.2 | API-tider, livesnapshotens storlek |
 | Mätning i produktion | 2026-11-22 | – (ingen kod, bara läsning) | Avsnitt 2.3; nya fynd S-33–S-35 | Heap och svarstid vid 200+ (ingen så stor kund) |
 | Fas 0 | 2026-11-22 | `claude/skalning-fas0` / `304d8c2` | Klient: avsnitt 2.1 bekräftat (`npm run measure:portfolio`). API mot testdatabas: avsnitt 2.4 – **OOM vid 500 fastigheter × 3 samtidiga anrop** med 192 MB heap. Snabbväxla vid `?n=500`: 32 322 px hög. | Grundförbrukning i riktiga API:t; webbserverns minne; fastighetskontext ej seedad |
-| Lindring S-33 + Fas 5 steg 0 (S-34) | 2026-11-22 | `claude/skalning-fas0` (ej committad i väntan på godkännande) | API-heap 192 → 512 MB (`deploy/pod/index.js`), räcker för 1000 × 3 enligt avsnitt 2.4. Schemaläggaren i tre köer: SMS, larmkällor, övrigt. Före: `sms_notifications` väntade upp till 284 s bakom luftkvalitet (200–430 s per körning, avsnitt 2.3). Efter: enhetstest visar att SMS och avbrottskällor körs medan ett tungt jobb pågår. | Ingen driftsättning: väntetiden i produktion (`waitedMs` i `collector run`) mäts först efter deploy; tidsbudget per varv för tunga jobb ej gjord (S-35, Fas 7) |
+| Fas 1 | 2026-11-22 | `claude/skalning-fas0` | Snabbväxla vid `?n=500`: 32 322 px → 460,8 px (60 % av 768 px), 100 rader i stället för 500. Sök i fastighetslistan: `buildOverviewVM` per tangent → 0. | SMS-regelns fastighetsval i webbläsaren (bara DOM-test); kartans zoom vid live-uppdatering (bara DOM-test, demoläget uppdateras inte live) |
+| Lindring S-33 + Fas 5 steg 0 (S-34) | 2026-11-22 | `f216613`, driftsatt 2026-11-22 11:44 UTC | API-heap 192 → 512 MB (`deploy/pod/index.js`), räcker för 1000 × 3 enligt avsnitt 2.4. Schemaläggaren i tre köer: SMS, larmkällor, övrigt. Före: `sms_notifications` väntade upp till 284 s bakom luftkvalitet (200–430 s per körning, avsnitt 2.3). Efter: enhetstest visar att SMS och avbrottskällor körs medan ett tungt jobb pågår. | Efter driftsättning: API:t kör med `--max-old-space-size=512`, köerna `sms` 1 / `alerts` 50 / `background` 17 jobb, `sms_notifications` var 30:e s med `waitedMs` 5–8 ms. Inte verifierat ännu: SMS under en luftkvalitetskörning i produktion; tidsbudget per varv för tunga jobb ej gjord (S-35, Fas 7) |

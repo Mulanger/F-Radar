@@ -124,44 +124,55 @@ export function DashboardStateProvider({
   }, [router, basePath]);
 
   const smsInteractive = mode === 'demo' || portfolio.viewer.role === 'org:admin';
-  const value: DashboardState = {
+  // Stable callbacks and a memoized value (docs/plans/skalning.md, S-03): view models built with
+  // `isSmsOn`/`isRuleOn` as memo dependencies are only rebuilt when the data or an override changes.
+  const refresh = useCallback(() => router.refresh(), [router]);
+  const toggleLayer = useCallback((k: 'weather' | 'flood') => setLayers((l) => ({ ...l, [k]: !l[k] })), []);
+  const isSmsOn = useCallback((s: PropertySnapshot) => (s.property.id in smsOff ? !smsOff[s.property.id] : s.sms.enabled), [smsOff]);
+  const toggleSms = useCallback((s: PropertySnapshot) => {
+    if (!smsInteractive) return;
+    if (mode === 'live') {
+      if (!s.alertRules.some(r=>r.enabled)) { const href = propertySmsHref(s.property.id, dashboardSection(new URLSearchParams(window.location.search).get('via'))); recordDashboardDeparture(href); router.push(href); return; }
+      void fetch(`/api/app/notifications/properties/${s.property.id}`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({enabled:!s.sms.enabled})}).then(async r=>{if(!r.ok)throw new Error((await r.json()).detail??'Inställningen kunde inte sparas');router.refresh();}).catch(e=>window.alert(e.message));
+      return;
+    }
+    setSmsOff((prev) => {
+      const on = s.property.id in prev ? !prev[s.property.id] : s.sms.enabled;
+      return { ...prev, [s.property.id]: on };
+    });
+  }, [mode, router, smsInteractive]);
+  const isRuleOn = useCallback((ruleId: string, fallback: boolean) => (ruleId in rules ? rules[ruleId]! : fallback), [rules]);
+  const toggleRule = useCallback((ruleId: string, current: boolean) => {
+    if (!smsInteractive) return;
+    if (mode === 'live') { void fetch(`/api/app/notifications/rules/${ruleId}`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({enabled:!current})}).then(async r=>{if(!r.ok)throw new Error((await r.json()).detail??'Regeln kunde inte sparas');router.refresh();}).catch(e=>window.alert(e.message)); }
+    else setRules((r) => ({ ...r, [ruleId]: !current }));
+  }, [mode, router, smsInteractive]);
+  const property = useCallback((id: string | undefined) => (id ? byId.get(id) : undefined), [byId]);
+  const unseenAlarmCount = useMemo(() => alarmIds.filter((id) => !seenAlarms.has(id)).length, [alarmIds, seenAlarms]);
+
+  const value = useMemo<DashboardState>(() => ({
     mode,
     basePath,
     canEdit: mode === 'live',
     smsInteractive,
-    refresh: () => router.refresh(),
+    refresh,
     portfolio,
-    unseenAlarmCount: alarmIds.filter((id) => !seenAlarms.has(id)).length,
+    unseenAlarmCount,
     ready,
     group,
     setGroup,
     layers,
-    toggleLayer: (k) => setLayers((l) => ({ ...l, [k]: !l[k] })),
+    toggleLayer,
     metric,
     setMetric,
-    isSmsOn: (s) => (s.property.id in smsOff ? !smsOff[s.property.id] : s.sms.enabled),
-    toggleSms: (s) => {
-      if (!smsInteractive) return;
-      if (mode === 'live') {
-        if (!s.alertRules.some(r=>r.enabled)) { const href = propertySmsHref(s.property.id, dashboardSection(new URLSearchParams(window.location.search).get('via'))); recordDashboardDeparture(href); router.push(href); return; }
-        void fetch(`/api/app/notifications/properties/${s.property.id}`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({enabled:!s.sms.enabled})}).then(async r=>{if(!r.ok)throw new Error((await r.json()).detail??'Inställningen kunde inte sparas');router.refresh();}).catch(e=>window.alert(e.message));
-        return;
-      }
-      setSmsOff((prev) => {
-        const on = s.property.id in prev ? !prev[s.property.id] : s.sms.enabled;
-        return { ...prev, [s.property.id]: on };
-      });
-    },
-    isRuleOn: (ruleId, fallback) => (ruleId in rules ? rules[ruleId]! : fallback),
-    toggleRule: (ruleId, current) => {
-      if (!smsInteractive) return;
-      if (mode === 'live') { void fetch(`/api/app/notifications/rules/${ruleId}`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({enabled:!current})}).then(async r=>{if(!r.ok)throw new Error((await r.json()).detail??'Regeln kunde inte sparas');router.refresh();}).catch(e=>window.alert(e.message)); }
-      else setRules((r) => ({ ...r, [ruleId]: !current }));
-    },
+    isSmsOn,
+    toggleSms,
+    isRuleOn,
+    toggleRule,
     openProperty,
     goProperties,
-    property: (id) => (id ? byId.get(id) : undefined),
-  };
+    property,
+  }), [mode, basePath, smsInteractive, refresh, portfolio, unseenAlarmCount, ready, group, layers, toggleLayer, metric, isSmsOn, toggleSms, isRuleOn, toggleRule, openProperty, goProperties, property]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

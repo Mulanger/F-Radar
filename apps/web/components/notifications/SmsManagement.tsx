@@ -11,6 +11,7 @@ import type {
 import { isOutageCondition, NOTIFICATION_STATUS_LABELS, TRAFFIC_RADIUS } from "@fastighetsradar/domain";
 import { C, card, cardSub, cardTitle } from "@/lib/design/tokens";
 import { Toggle } from "../ui/Toggle";
+import { PropertyNamesSummary, RulePropertySelect } from "./RulePropertySelect";
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -718,34 +719,11 @@ export function SmsManagement({
                   av regeln.
                 </p>
               ) : (
-                <div
-                  role="group"
-                  aria-label="Välj fastigheter"
-                  style={{ ...row, maxHeight: 180, overflowY: "auto" }}
-                >
-                  {data.properties.map((p) => (
-                    <label key={p.id} style={{ ...row, fontSize: 13 }}>
-                      <input
-                        type="checkbox"
-                        checked={draft.propertyIds.includes(p.id)}
-                        onChange={(e) =>
-                          update(
-                            "propertyIds",
-                            e.target.checked
-                              ? [...draft.propertyIds, p.id]
-                              : draft.propertyIds.filter((id) => id !== p.id),
-                          )
-                        }
-                      />
-                      {p.name}
-                    </label>
-                  ))}
-                  {!data.properties.length && (
-                    <span style={cardSub}>
-                      Lägg först till en fastighet i portföljen.
-                    </span>
-                  )}
-                </div>
+                <RulePropertySelect
+                  properties={data.properties}
+                  selected={draft.propertyIds}
+                  onChange={(ids) => update("propertyIds", ids)}
+                />
               )}
               <div role="group" aria-label="Välj mottagare" style={row}>
                 {data.recipients.map((r) => (
@@ -1275,7 +1253,7 @@ export function SmsManagement({
                 {a.isTest ? " · Regeltest" : ""}
               </div>
               <div style={cardSub}>
-                {a.propertyNames.join(", ")} · {a.maskedPhone} ·{" "}
+                <PropertyNamesSummary names={a.propertyNames} /> · {a.maskedPhone} ·{" "}
                 {fmt(a.createdAt)}
               </div>
               {a.detail && (

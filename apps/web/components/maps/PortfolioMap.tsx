@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type * as Leaflet from 'leaflet';
 import type { PropertySnapshot } from '@fastighetsradar/domain';
-import { C, SEV, card, glass } from '@/lib/design/tokens';
+import { C, SEV, card, glass, type SeverityStyle } from '@/lib/design/tokens';
 import { metricValue, riskScore, show } from '@/lib/view-models/snapshot';
 import { esc, loadLeaflet, newMap, pinIcon } from './leaflet-utils';
 
@@ -19,16 +19,27 @@ interface Props {
 
 type Groups = { markers: Leaflet.LayerGroup; flood: Leaflet.LayerGroup; weather: Leaflet.LayerGroup };
 
+function tooltipHtml(s: PropertySnapshot, st: SeverityStyle) {
+  const p = s.property;
+  const rain = metricValue(s, 'weather.precipitation_24h');
+  return `<div style="font-family:inherit;min-width:190px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><b style="font-size:13.5px;font-weight:600;color:#14171A">${esc(p.name)}</b><span style="font-size:11px;padding:2px 7px;border-radius:7px;background:${st.bg};color:${st.c}">${esc(st.label)}</span></div><div style="font-size:11.5px;color:#9AA1A8;margin:2px 0 8px">${esc(p.area)}</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px;color:#6B737B"><div>Temp<br><b style="font-size:13px;color:#14171A;font-weight:500">${esc(show(metricValue(s, 'weather.air_temperature')))}°</b></div><div>Nederbörd 24 h<br><b style="font-size:13px;color:#14171A;font-weight:500">${esc(show(rain))} mm</b></div><div>Risk<br><b style="font-size:13px;color:#14171A;font-weight:500">${esc(show(riskScore(s)))}</b></div></div></div>`;
+}
+
 export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen, compact = false, mobileControls = false }: Props) {
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<{ L: typeof Leaflet; map: Leaflet.Map; groups: Groups } | null>(null);
   const [loaded, setLoaded] = useState(false);
   const onOpenRef = useRef(onOpen);
   onOpenRef.current = onOpen;
+  /** Markers by property id with what they show, so a refresh only touches changed pins. */
+  const markersRef = useRef(new Map<string, { marker: Leaflet.Marker; sig: string }>());
+  /** Property set the view was last fitted to; a refresh with the same set keeps the user's zoom. */
+  const fittedRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     const el = elRef.current;
+    const markers = markersRef.current;
     loadLeaflet().then((L) => {
       if (cancelled || !el || !el.isConnected || mapRef.current) return;
       const map = newMap(L, el, [59.338, 18.055], 11);
@@ -40,35 +51,60 @@ export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen, comp
       cancelled = true;
       mapRef.current?.map.remove();
       mapRef.current = null;
+      markers.clear();
+      fittedRef.current = null;
     };
   }, []);
 
-  // Draw markers + decorative layers whenever the filtered list changes.
+  // Sync markers with the list (docs/plans/skalning.md, S-13): add new pins, replace changed ones,
+  // remove gone ones. Fit the view only on first draw and when the SET of properties changes (group
+  // filter, property added/removed) – a live refresh with the same properties keeps zoom and pan.
   useEffect(() => {
     const ctx = mapRef.current;
     if (!ctx) return;
     const { L, map, groups } = ctx;
-    Object.values(groups).forEach((g) => g.clearLayers());
+    const markers = markersRef.current;
+    const seen = new Set<string>();
     list.forEach((s) => {
       const p = s.property;
       const st = SEV[p.status] ?? SEV.unknown;
       const { lat, lon } = p.location;
-      const rain = metricValue(s, 'weather.precipitation_24h');
+      const tooltip = tooltipHtml(s, st);
+      const sig = `${lat},${lon}|${st.hx}|${p.name}|${tooltip}`;
+      seen.add(p.id);
+      const current = markers.get(p.id);
+      if (current?.sig === sig) return;
+      if (current) groups.markers.removeLayer(current.marker);
       const mk = L.marker([lat, lon], { icon: pinIcon(L, st.hx), keyboard: true, title: p.name });
-      mk.bindTooltip(
-        `<div style="font-family:inherit;min-width:190px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><b style="font-size:13.5px;font-weight:600;color:#14171A">${esc(p.name)}</b><span style="font-size:11px;padding:2px 7px;border-radius:7px;background:${st.bg};color:${st.c}">${esc(st.label)}</span></div><div style="font-size:11.5px;color:#9AA1A8;margin:2px 0 8px">${esc(p.area)}</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px;color:#6B737B"><div>Temp<br><b style="font-size:13px;color:#14171A;font-weight:500">${esc(show(metricValue(s, 'weather.air_temperature')))}°</b></div><div>Nederbörd 24 h<br><b style="font-size:13px;color:#14171A;font-weight:500">${esc(show(rain))} mm</b></div><div>Risk<br><b style="font-size:13px;color:#14171A;font-weight:500">${esc(show(riskScore(s)))}</b></div></div></div>`,
-        { direction: 'top', offset: [0, -12], opacity: 1 },
-      );
+      mk.bindTooltip(tooltip, { direction: 'top', offset: [0, -12], opacity: 1 });
       mk.on('click', () => onOpenRef.current(p.id));
       groups.markers.addLayer(mk);
+      markers.set(p.id, { marker: mk, sig });
+    });
+    for (const [id, m] of markers) {
+      if (seen.has(id)) continue;
+      groups.markers.removeLayer(m.marker);
+      markers.delete(id);
+    }
+    // Decorative indications only – not a mapped flood polygon (MCF layers are not imported yet).
+    groups.flood.clearLayers();
+    groups.weather.clearLayers();
+    list.forEach((s) => {
+      const p = s.property;
+      if (p.origin !== 'demo_fixture') return;
+      const { lat, lon } = p.location;
       const exposure = s.flood.mapped.exposureClass;
-      // Decorative indications only – not a mapped flood polygon (MCF layers are not imported yet).
-      if (p.origin === 'demo_fixture' && (exposure === 'High' || exposure === 'Medium'))
+      const rain = metricValue(s, 'weather.precipitation_24h');
+      if (exposure === 'High' || exposure === 'Medium')
         groups.flood.addLayer(L.circle([lat + 0.0012, lon + 0.002], { radius: exposure === 'High' ? 650 : 380, stroke: false, fillColor: '#5494B0', fillOpacity: 0.22 }));
-      if (p.origin === 'demo_fixture' && rain !== null && rain > 9)
+      if (rain !== null && rain > 9)
         groups.weather.addLayer(L.circle([lat, lon], { radius: rain * 150, stroke: false, fillColor: '#4A7FD0', fillOpacity: 0.08 + rain / 300 }));
     });
-    if (list.length) map.fitBounds(L.latLngBounds(list.map((s) => [s.property.location.lat, s.property.location.lon])), { padding: [70, 70], maxZoom: 13 });
+    const fitKey = list.map((s) => s.property.id).sort().join('|');
+    if (list.length && fittedRef.current !== fitKey) {
+      fittedRef.current = fitKey;
+      map.fitBounds(L.latLngBounds(list.map((s) => [s.property.location.lat, s.property.location.lon])), { padding: [70, 70], maxZoom: 13 });
+    }
   }, [list, loaded]);
 
   useEffect(() => {

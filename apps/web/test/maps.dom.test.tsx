@@ -104,6 +104,31 @@ describe('PortfolioMap', () => {
     await waitFor(() => expect(root.querySelectorAll('.leaflet-marker-icon')).toHaveLength(2));
     expect(root.querySelectorAll('.leaflet-map-pane')).toHaveLength(1);
   });
+
+  it('keeps the zoom on a live refresh of the same properties and refits only when the set changes (S-13)', async () => {
+    const L = await loadLeaflet();
+    const fit = vi.spyOn(L.Map.prototype, 'fitBounds');
+    const props = { legend, layers: { weather: false, flood: true }, onToggleLayer: () => {}, onOpen: () => {} };
+    const { container: root, rerender } = render(<PortfolioMap list={list} {...props} />);
+    await waitFor(() => expect(root.querySelectorAll('.leaflet-marker-icon')).toHaveLength(list.length));
+    expect(fit).toHaveBeenCalledTimes(1);
+    const untouched = root.querySelectorAll('.leaflet-marker-icon')[1];
+
+    // router.refresh(): a new portfolio object with the same properties, one of them now critical.
+    const refreshed = list.map((s, i) => ({ ...s, property: { ...s.property, status: i === 0 ? 'critical' as const : s.property.status } }));
+    rerender(<PortfolioMap list={refreshed} {...props} />);
+    const pin = (name: string) => [...root.querySelectorAll('.leaflet-marker-icon')].find((m) => m.getAttribute('title') === name)!;
+    expect(list[0]!.property.status).not.toBe('critical');
+    await waitFor(() => expect(pin(list[0]!.property.name).innerHTML).toContain('#D8473A'));
+    expect(fit).toHaveBeenCalledTimes(1);
+    expect(root.querySelectorAll('.leaflet-marker-icon')).toHaveLength(list.length);
+    expect([...root.querySelectorAll('.leaflet-marker-icon')]).toContain(untouched);
+
+    // A different group: new set of properties → fit once more.
+    rerender(<PortfolioMap list={refreshed.slice(2, 5)} {...props} />);
+    await waitFor(() => expect(root.querySelectorAll('.leaflet-marker-icon')).toHaveLength(3));
+    expect(fit).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('LocationPickerMap', () => {

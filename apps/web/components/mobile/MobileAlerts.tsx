@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { DashboardLink } from '../shell/DashboardLink';
 import { useViewScroll } from '@/lib/navigation/view-state';
 import { useDashboard } from '@/lib/state/dashboard-state';
@@ -14,11 +15,14 @@ export function MobileAlerts() {
   useViewScroll(`${ds.basePath}:${ds.portfolio.organizationId}:alerts:scroll`);
   const acks = useFeedAcks();
   const map = useFeedEventMap();
-  const alarms = ds.portfolio.activeAlarms ?? [];
-  const active = new Set(alarms.map((alarm) => `${alarm.propertyId}:${alarm.eventId}`));
-  const feed = [...alarms, ...ds.portfolio.feed.filter((item) => !active.has(`${item.propertyId}:${item.eventId}`))];
-  const vm = buildOverviewVM({ ...ds.portfolio, feed }, { ready: ds.ready, group: 'all', isSmsOn: ds.isSmsOn, isRuleOn: ds.isRuleOn });
-  const feedCount = groupFeedRows(vm.feed).length;
+  const { portfolio, ready, isSmsOn, isRuleOn } = ds;
+  const vm = useMemo(() => {
+    const alarms = portfolio.activeAlarms ?? [];
+    const active = new Set(alarms.map((alarm) => `${alarm.propertyId}:${alarm.eventId}`));
+    const feed = [...alarms, ...portfolio.feed.filter((item) => !active.has(`${item.propertyId}:${item.eventId}`))];
+    return buildOverviewVM({ ...portfolio, feed }, { ready, group: 'all', isSmsOn, isRuleOn });
+  }, [portfolio, ready, isSmsOn, isRuleOn]);
+  const feedCount = useMemo(() => groupFeedRows(vm.feed).length, [vm.feed]);
   return <div className={styles.page}>
     <div className={styles.heading}>
       <div className={styles.date}>{ds.mode === 'demo' ? 'Demodata · ' : ''}Händelser från offentliga källor</div>
