@@ -1,7 +1,9 @@
 import 'server-only';
 import { cache } from 'react';
+import { cookies } from 'next/headers';
 import { PortfolioSchema, type Portfolio } from '@fastighetsradar/domain';
-import { demoPortfolio } from '@fastighetsradar/domain/fixtures';
+import { demoPortfolio, demoScaleSize, scaleDemoPortfolio } from '@fastighetsradar/domain/fixtures';
+import { DEMO_SIZE_COOKIE } from '../demo/size';
 import { InternalApiError, internalApiJson } from '../server/internal-api';
 
 export type DataMode = 'demo' | 'live';
@@ -18,9 +20,32 @@ export function demoEnabled(): boolean {
   return process.env.FASTIGHETSRADAR_DEMO_ENABLED === 'true';
 }
 
-export async function loadDemoPortfolio(): Promise<PortfolioLoadResult> {
+/** Scaled test portfolios are deterministic; keep the last few sizes instead of rebuilding per request. */
+const scaledDemos = new Map<number, Portfolio>();
+function scaledDemo(size: number): Portfolio {
+  let portfolio = scaledDemos.get(size);
+  if (!portfolio) {
+    portfolio = scaleDemoPortfolio(demoPortfolio, size);
+    if (scaledDemos.size >= 3) scaledDemos.delete(scaledDemos.keys().next().value!);
+    scaledDemos.set(size, portfolio);
+  }
+  return portfolio;
+}
+
+/**
+ * Test-portfolio size chosen with `/demo?n=…` (docs/plans/skalning.md, Fas 0); null = the original demo.
+ * Development and tests only: a production build always serves the eight-property demo, so the size
+ * cookie can never make the server build (and hold) a portfolio of thousands of properties.
+ */
+export async function requestedDemoSize(): Promise<number | null> {
+  if (process.env.NODE_ENV === 'production') return null;
+  return demoScaleSize((await cookies()).get(DEMO_SIZE_COOKIE)?.value, demoPortfolio.properties.length);
+}
+
+export async function loadDemoPortfolio(size: number | null = null): Promise<PortfolioLoadResult> {
   if (!demoEnabled()) return { status: 'unavailable', mode: 'demo', reason: 'Demoläget är avstängt.' };
-  return { status: 'ok', mode: 'demo', portfolio: demoPortfolio };
+  const n = demoScaleSize(size, demoPortfolio.properties.length);
+  return { status: 'ok', mode: 'demo', portfolio: n === null ? demoPortfolio : scaledDemo(n) };
 }
 
 /**

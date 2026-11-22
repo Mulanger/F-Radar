@@ -231,6 +231,20 @@ describe('data loaders', () => {
     if (r.status === 'ok') expect(r.portfolio.origin).toBe('demo_fixture');
   });
 
+  it('serves the scaled test portfolio only in the demo, for valid sizes', async () => {
+    expect((await loadDemoPortfolio(500)).status).toBe('unavailable');
+    process.env.FASTIGHETSRADAR_DEMO_ENABLED = 'true';
+    const scaled = await loadDemoPortfolio(500);
+    expect(scaled.status === 'ok' && scaled.portfolio.properties.length).toBe(500);
+    // Same size → same (cached) object; invalid or small sizes → the original demo.
+    const again = await loadDemoPortfolio(500);
+    expect(again.status === 'ok' && scaled.status === 'ok' && again.portfolio === scaled.portfolio).toBe(true);
+    for (const n of [null, 0, 8, -3]) {
+      const r = await loadDemoPortfolio(n);
+      expect(r.status === 'ok' && r.portfolio.properties.length).toBe(8);
+    }
+  });
+
   it('live loader forwards the Clerk token and never falls back to fixtures', async () => {
     process.env.FASTIGHETSRADAR_DEMO_ENABLED = 'true'; // even with demo enabled
     authMock.mockResolvedValue({ userId: 'user_1', getToken: async () => 'tok' });

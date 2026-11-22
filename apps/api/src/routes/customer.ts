@@ -25,6 +25,18 @@ export interface CustomerRouteDeps {
   monitoring?: MonitoringService | null;
 }
 
+/** Log fields for one portfolio response: how many properties, how big, how long, heap after serializing. */
+export function portfolioTelemetry(properties: number, body: string, startedAt: number, now = performance.now()) {
+  return {
+    portfolio: {
+      properties,
+      bytes: Buffer.byteLength(body),
+      durationMs: Math.round(now - startedAt),
+      heapUsedMb: Math.round(process.memoryUsage().heapUsed / 1_048_576),
+    },
+  };
+}
+
 /** Max properties per organization (abuse guard, IMPLEMENTATION.md §16.1). */
 export const MAX_PROPERTIES_PER_ORG = 500;
 
@@ -86,15 +98,21 @@ export function registerCustomerRoutes(app: FastifyInstance, deps: CustomerRoute
 
   /* ---------------- portfolio snapshot ---------------- */
 
-  app.get('/v1/portfolio', { preHandler: deps.requireOrg }, async (req) => {
+  app.get('/v1/portfolio', { preHandler: deps.requireOrg }, async (req, reply) => {
     const ctx = orgContext(req);
-    if (deps.monitoring) return deps.monitoring.portfolio(ctx);
-    return buildLivePortfolio({
-      clerkOrgId: ctx.clerkOrgId,
-      orgSlug: ctx.orgSlug,
-      properties: await listProperties(db(), ctx),
-      sources: resolveSourceStatuses(deps.env),
-    });
+    const started = performance.now();
+    const portfolio = deps.monitoring
+      ? await deps.monitoring.portfolio(ctx)
+      : buildLivePortfolio({
+        clerkOrgId: ctx.clerkOrgId,
+        orgSlug: ctx.orgSlug,
+        properties: await listProperties(db(), ctx),
+        sources: resolveSourceStatuses(deps.env),
+      });
+    const body = JSON.stringify(portfolio);
+    // Scale telemetry (docs/plans/skalning.md, Fas 0 / S-33): counts, size, time and heap only – never content.
+    req.log.info(portfolioTelemetry(portfolio.properties.length, body, started), 'portfolio built');
+    return reply.type('application/json; charset=utf-8').send(body);
   });
 
   /* ---------------- geocoding (Geoapify proxy) ---------------- */

@@ -349,6 +349,7 @@ describe('monitoring HTTP endpoints', () => {
     expect((await app.inject({ method: 'GET', url: `/v1/properties/${PID}/event-map`, headers: { authorization: 'Bearer org' } })).statusCode).toBe(404);
     const p = await app.inject({ method: 'GET', url: '/v1/portfolio', headers: { authorization: 'Bearer org' } });
     expect(p.statusCode).toBe(200);
+    expect(p.headers['content-type']).toBe('application/json; charset=utf-8');
     PortfolioSchema.parse(p.json());
     const sum = await app.inject({ method: 'GET', url: '/v1/portfolio/summary', headers: { authorization: 'Bearer org' } });
     expect(sum.json()).toMatchObject({ properties: 0, riskScore: null, statusMethod: 'highest_official_warning' });

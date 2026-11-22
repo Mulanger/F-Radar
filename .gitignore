@@ -17,6 +17,9 @@ dist-deploy/
 ci-bundle.tar.gz
 .ci/
 .ci.tar.gz
+dist-perf/
+.perf/
+.perf.tar.gz
 
 # Local git worktrees used by agents (never committed)
 .worktrees/

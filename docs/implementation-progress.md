@@ -87,3 +87,16 @@ API- och webb-webpack-build gröna, lokal standalone-varning kvar. Ingen deploy/
 kopplad via publicerad id-relation (områdesprecision, inget SMS), Härryda timeout från podden.
 Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 %, produktion oförändrad.
 69 filer/513 godkända/6 överhoppade; typer/lint gröna, PostGIS 36/36, API/webpack-build gröna.
+
+# Skalning 200–1000 fastigheter – Fas 0 (2026-11-22)
+
+- Plan: [`plans/skalning.md`](plans/skalning.md). Gren `claude/skalning-fas0` från `deploy/live-stromavbrott` / `a421f3e`.
+- Testportfölj i demoläget: `/demo/overview?n=500` (cookie `fr_demo_size`, `?n=0` återställer, högst 2000,
+  bara utanför produktionsbyggen). Kloner över Stockholms län; en kvitteringspliktig länsvarning når alla.
+- `npm run measure:portfolio` – klientmätning (storlek, zod, vymodeller). Bekräftar planens avsnitt 2.1.
+- API loggar `portfolio built` med antal fastigheter, byte, tid och heap per `/v1/portfolio` (inga data).
+- `node scripts/run-portfolio-scale.mjs [200 500 1000]` – syntetiska organisationer i `fastighetsradar_test` på
+  podden, mätning med 192 MB heap och sökning av minsta heap, städar efteråt (kontrollerat: 0 `perf`-rader kvar,
+  0 i applikationsdatabasen). Resultat i planens avsnitt 2.4: ~28 KB per fastighet; **500 fastigheter × 3
+  samtidiga anrop ger minnesbrist vid 192 MB** (kräver 256 MB; 1000 × 3 kräver 384 MB).
+- Tester: 83 filer / 614 godkända / 6 överhoppade; typer och lint gröna för ändrade paket.

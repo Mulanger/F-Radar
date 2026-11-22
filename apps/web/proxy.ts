@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server';
+import { DEMO_SIZE_COOKIE, DEMO_SIZE_PARAM, demoSizeParam } from './lib/demo/size';
 
 /**
  * Next.js 16 proxy (formerly middleware). Clerk authenticates live routes; those outside the public
@@ -27,7 +28,18 @@ export default function proxy(req: NextRequest, event: NextFetchEvent) {
   const path = req.nextUrl.pathname;
   if (path === '/demo' || path.startsWith('/demo/')) {
     // The gated fixture dashboard has no customer data or Clerk session dependency.
-    return process.env.FASTIGHETSRADAR_DEMO_ENABLED === 'true' ? NextResponse.next() : new NextResponse('Not found', { status: 404 });
+    if (process.env.FASTIGHETSRADAR_DEMO_ENABLED !== 'true') return new NextResponse('Not found', { status: 404 });
+    // `?n=500`: remember the test-portfolio size for the demo pages, then drop it from the URL.
+    if (req.nextUrl.searchParams.has(DEMO_SIZE_PARAM)) {
+      const size = demoSizeParam(req.nextUrl.searchParams.get(DEMO_SIZE_PARAM));
+      const url = req.nextUrl.clone();
+      url.searchParams.delete(DEMO_SIZE_PARAM);
+      const res = NextResponse.redirect(url);
+      if (size) res.cookies.set(DEMO_SIZE_COOKIE, size, { path: '/demo', sameSite: 'lax', httpOnly: true });
+      else res.cookies.delete({ name: DEMO_SIZE_COOKIE, path: '/demo' });
+      return res;
+    }
+    return NextResponse.next();
   }
   return clerkProxy(req, event);
 }
