@@ -749,6 +749,28 @@ laddas ner. Visat på localhost:3000 och godkänt.
   listan, varningstexten en gång, sök, "Kvittera alla (500)" → alla rader "Kvitterad"; mobilbredd utan
   sidledsrullning.
 
+**Genomfört steg 4 – kvitteringsrapporten (gren `claude/skalning-fas0`):**
+- **En hämtning:** `GET /v1/feed/acknowledgements/export` ger hela urvalet i ett anrop (högst
+  10 000 kvitteringar, de senaste; `truncated` när fler matchar – rapporten säger det) i stället för
+  sida efter sida om 30.
+- **Grupperad per händelse** (`groupAcknowledgements`; källa, rubrik, händelsetid och text – historiken
+  har inget händelse-id): den korta listan har en rad per händelse ("300 fastigheter"); den fullständiga
+  rapporten skriver varningstexten en gång och fastigheterna i en kort tabell. En händelse med en
+  fastighet ser ut som förut.
+- **PDF:en byggs i en Web Worker** (`pdf.worker.ts`), med huvudtråden som reserv om workern inte
+  startar. **CSV** med en rad per fastighet (semikolon och BOM för svensk Excel). **Sökfält** i
+  fastighetsfiltret när det finns fler än 10 fastigheter.
+- **Mätning** (pdfmake i Node, 3 000 kvitteringar över 10 händelser à 300 fastigheter): fullständig
+  rapport som förut (ett avsnitt med text per rad) **113 s och 2,1 MB** – i huvudtråden, alltså en
+  frusen flik – nu **0,9 s och 388 KB**; kort lista 0,1 s, 21 KB. I webbläsaren (demo, 500+ kvitteringar):
+  fullständig rapport 0,76 s i workern, huvudtråden blockerad högst 72 ms; CSV 97 KB.
+- **Test:** riktig PostgreSQL (300 kvitteringar i ett anrop, taket markeras, annan organisation får
+  inget); API (filter och datumkontroll); rapporten med 3 000 kvitteringar (en rad per händelse,
+  texten en gång), taket i rapporten, CSV (citattecken, semikolon, BOM); kvitteringssidan hämtar
+  exporten med ett anrop.
+- **Inte ändrat:** kvitteringssidans lista på skärmen visar fortfarande en rad per fastighet, 30 åt
+  gången; "Ångrad av"/"Kvitterad av" namnges inte (historiken sparar användar-id, inga namn).
+
 ### Fas 3 – Lättare dataflöde
 
 **Mål:** Sidladdning, fastighetsbyte och live-uppdatering kostar lika lite vid 500 fastigheter som i
@@ -1017,5 +1039,6 @@ fastigheter (siffror i Fasloggen).
 | Fas 3 steg 4 | 2026-11-22 | `claude/skalning-fas0` / `ebf7da8`, driftsatt 2026-11-22 17:48 UTC | `buildOverviewVM` (dator): 145 → 30 ms vid 500, 289 → 56 ms vid 1000. Listan över nätet med gzip: 337 KB vid 500 (demo) – målet 0,5 MB nått utan nytt format. | Mobilens tid för vymodellen (bara dator mätt); listans okomprimerade storlek (6,0 MB vid 500) och minnet i webbläsaren är oförändrade |
 | Fas 2 steg 1 | 2026-11-22 | `claude/skalning-fas0` / `8138410`, driftsatt 2026-11-22 18:32 UTC | Flödet vid 500 (testdatabas, länsvarning över 320 + Krisinformation över 500): 1 kort med "30 berörda" → 30 kort, Krisinformation med 500, länsvarningen med 320, trafiken kvar. Menyns larmräknare i demo vid 500: 625 → 126. | Flödet blir 848 rader (~0,5 MB okomprimerat) vid två stora händelser; nyckeltalet "Aktiva larm" räknar fortfarande varning × fastighet |
 | Fas 2 steg 2 | 2026-11-22 | `claude/skalning-fas0` / `3d22f6f`, driftsatt 2026-11-22 19:32 UTC | Kvittera en varning över 500 fastigheter (demo): 500 klick, spärr efter 60 → 1 klick, ett anrop. Riktig PostgreSQL: 300 rader i en sats, 300 historikrader. | "Ångra" efter "Kvittera alla" finns bara tills sidan lämnas (sedan per rad på kvitteringssidan); kvitteringssidan visar 30 rader åt gången (steg 4) |
-| Fas 2 steg 3 | 2026-11-22 | `claude/skalning-fas0` | Händelse över 500 fastigheter (demo): en rad per fastighet i flödet → en egen sida med texten en gång, karta, sök och "Kvittera alla". Grupperat SMS: länk till första fastigheten → till händelsesidan. | SMS skickas fortfarande simulerat, så länken i ett riktigt SMS är bara testad via förhandsvisningen; kartans rubrik säger "Portföljkarta" även på händelsesidan |
+| Fas 2 steg 3 | 2026-11-22 | `claude/skalning-fas0` / `dbf4306`, driftsatt 2026-11-22 19:47 UTC | Händelse över 500 fastigheter (demo): en rad per fastighet i flödet → en egen sida med texten en gång, karta, sök och "Kvittera alla". Grupperat SMS: länk till första fastigheten → till händelsesidan. | SMS skickas fortfarande simulerat, så länken i ett riktigt SMS är bara testad via förhandsvisningen; kartans rubrik säger "Portföljkarta" även på händelsesidan |
+| Fas 2 steg 4 | 2026-11-22 | `claude/skalning-fas0` | Kvitteringsrapport för 3 000 kvitteringar (10 händelser à 300): fullständig 113 s / 2,1 MB i huvudtråden → 0,9 s / 388 KB i en Web Worker; hämtning 100 anrop à 30 → 1 anrop. CSV och sökbart fastighetsfilter. | Kvitteringssidans lista på skärmen är fortfarande en rad per fastighet; PDF i workern bara provad i Chromium (webbläsarpanelen) |
 

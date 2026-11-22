@@ -25,6 +25,7 @@ import {
   unacknowledgeFeedChanges,
   loadOrgEvent,
   findOrgEventByLinkKey,
+  listAcknowledgementExport,
   listAcknowledgementHistory,
   undoAcknowledgementHistory,
   migrateUp,
@@ -379,6 +380,12 @@ describe('real PostgreSQL / PostGIS', () => {
         `SELECT count(*)::int AS n, count(DISTINCT property_id)::int AS properties, count(undone_at)::int AS undone
            FROM feed_acknowledgement_history WHERE organization_id = $1 AND change_id = ANY($2::bigint[])`, [a.organizationId, countyIds])).rows[0];
       assert.deepEqual(await history(), { n: 300, properties: 300, undone: 0 }, 'one history row per property');
+      // The report reads the whole selection at once (S-08), and says when it was cut.
+      const report = await listAcknowledgementExport(pool, a.organizationId, {}, 10_000);
+      assert.equal(report.entries.filter((e) => e.title.includes('Länsvarning')).length, 300);
+      assert.equal(report.truncated, false);
+      assert.equal((await listAcknowledgementExport(pool, a.organizationId, {}, 100)).truncated, true);
+      assert.equal((await listAcknowledgementExport(pool, b.organizationId, {}, 10_000)).entries.length, 0);
       assert.equal((await unacknowledgeFeedChanges(pool, a.organizationId, countyIds, a.userId)).length, 300);
       assert.deepEqual(await history(), { n: 300, properties: 300, undone: 300 });
       const reopened = (await listRecentChangesForOrg(pool, a.organizationId, 6, a.userId)).filter((row) => row.headline === 'Länsvarning');

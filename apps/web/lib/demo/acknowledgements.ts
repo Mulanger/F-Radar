@@ -1,4 +1,4 @@
-import { ACKNOWLEDGEMENT_PAGE_SIZE, type AcknowledgementHistoryEntry, type AcknowledgementHistoryFilters, type AcknowledgementHistoryPage } from '@fastighetsradar/domain';
+import { ACKNOWLEDGEMENT_EXPORT_MAX, ACKNOWLEDGEMENT_PAGE_SIZE, type AcknowledgementExport, type AcknowledgementHistoryEntry, type AcknowledgementHistoryFilters, type AcknowledgementHistoryPage } from '@fastighetsradar/domain';
 import { acknowledgementDay } from '@/lib/acknowledgements/presentation';
 
 const arena = { propertyId: 'demo-arenastaden-hus-c', propertyName: 'Arenastaden Hus C', propertyAddress: 'Evenemangsgatan 21, Solna' };
@@ -32,6 +32,16 @@ export const demoAcknowledgements: AcknowledgementHistoryEntry[] = [
     eventAt: '2026-11-17T07:40:00Z', acknowledgedAt: '2026-11-17T08:07:00Z', undoneAt: null, imported: true,
   },
 ];
+
+/** The whole demo selection for the report, like `/v1/feed/acknowledgements/export` live. */
+export function demoAcknowledgementExport(all: AcknowledgementHistoryEntry[], filters: AcknowledgementHistoryFilters): AcknowledgementExport {
+  const entries = all.filter((entry) => {
+    const day = acknowledgementDay(entry.acknowledgedAt);
+    return (!filters.from || day >= filters.from) && (!filters.to || day <= filters.to)
+      && (!filters.property || entry.propertyId === filters.property);
+  });
+  return { entries: entries.slice(0, ACKNOWLEDGEMENT_EXPORT_MAX), truncated: entries.length > ACKNOWLEDGEMENT_EXPORT_MAX };
+}
 
 export function demoAcknowledgementPage(all: AcknowledgementHistoryEntry[], filters: AcknowledgementHistoryFilters): AcknowledgementHistoryPage {
   const properties = new Map<string, AcknowledgementHistoryPage['properties'][number]>();

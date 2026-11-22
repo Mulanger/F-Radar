@@ -102,6 +102,17 @@ describe('feed acknowledgements (kvittering i händelseflödet)', () => {
     expect(acks.size).toBe(0);
   });
 
+  it('exports the whole selection in one call, with the organization and filters from the request (Fas 2 / S-08)', async () => {
+    const { db, calls } = fakeDb();
+    const a = await app(db);
+    const r = await a.inject({ method: 'GET', url: '/v1/feed/acknowledgements/export?from=2026-11-01&to=2026-11-30' });
+    expect(r.statusCode).toBe(200);
+    expect(r.json()).toEqual({ entries: [], truncated: false });
+    expect(calls.at(-1)).toContain('LIMIT $5');
+    expect((await a.inject({ method: 'GET', url: '/v1/feed/acknowledgements/export?from=2026-12-01&to=2026-11-01' })).statusCode).toBe(400);
+    expect((await a.inject({ method: 'GET', url: '/v1/feed/acknowledgements/export?property=nope' })).statusCode).toBe(400);
+  });
+
   it('counts a batch of 1000 rows as one change for the rate limit', async () => {
     const { db } = fakeDb();
     const a = await app(db);

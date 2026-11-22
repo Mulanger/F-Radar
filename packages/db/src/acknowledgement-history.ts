@@ -40,6 +40,25 @@ export async function listAcknowledgementHistory(db: Queryable, organizationId: 
   };
 }
 
+/**
+ * The whole selection for the report (Fas 2 / S-08) in one query, newest first, at most `max` rows;
+ * `truncated` when more match. Replaces fetching page after page of 30.
+ */
+export async function listAcknowledgementExport(db: Queryable, organizationId: string, filters: Omit<AcknowledgementHistoryFilters, 'cursor'>, max: number) {
+  const { rows } = await db.query<HistoryRow>(
+    `SELECT h.id, h.property_id, h.property_name, h.property_address, h.source_id, h.operator_name,
+            h.title, h.description, h.area, h.severity, h.event_at, h.acknowledged_at, h.undone_at, h.imported, h.is_update
+     FROM feed_acknowledgement_history h
+     WHERE h.organization_id = $1
+       AND ($2::date IS NULL OR h.acknowledged_at >= ($2::date::timestamp AT TIME ZONE 'Europe/Stockholm'))
+       AND ($3::date IS NULL OR h.acknowledged_at < (($3::date + 1)::timestamp AT TIME ZONE 'Europe/Stockholm'))
+       AND ($4::uuid IS NULL OR h.property_id = $4)
+     ORDER BY h.acknowledged_at DESC, h.id DESC LIMIT $5`,
+    [organizationId, filters.from ?? null, filters.to ?? null, filters.property ?? null, max + 1],
+  );
+  return { entries: rows.slice(0, max), truncated: rows.length > max };
+}
+
 export async function listAcknowledgementProperties(db: Queryable, organizationId: string) {
   const { rows } = await db.query<AcknowledgementHistoryPage['properties'][number]>(
     `SELECT id, name, address FROM (

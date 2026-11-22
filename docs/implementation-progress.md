@@ -155,4 +155,7 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
   Historiken har kvar en rad per fastighet.
 - Steg 3: händelsesidan `/alerts/<händelse>` (live och demo) – varningstexten en gång, karta, sökbar
   lista och "Kvittera alla"; `GET /v1/events/:id`. Grupperade SMS länkar dit via `/h/<nyckel>`.
+- Steg 4: kvitteringsrapporten grupperad per händelse (texten en gång), hämtad i ett anrop
+  (`/v1/feed/acknowledgements/export`, högst 10 000), byggd i en Web Worker; CSV och sökbart
+  fastighetsfilter. 3 000 kvitteringar: 113 s → 0,9 s för den fullständiga rapporten.
 

@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useId, useState, type FormEvent } from 'react';
-import type { AcknowledgementHistoryEntry, AcknowledgementHistoryFilters, AcknowledgementHistoryPage } from '@fastighetsradar/domain';
+import { useEffect, useId, useMemo, useState, type FormEvent } from 'react';
+import type { AcknowledgementExport, AcknowledgementHistoryEntry, AcknowledgementHistoryFilters, AcknowledgementHistoryPage } from '@fastighetsradar/domain';
 import { readView, useSavedView, useViewScroll, writeView } from '@/lib/navigation/view-state';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { acknowledgementTime, importedText, severityLabel } from '@/lib/acknowledgements/presentation';
 import type { AcknowledgementReportFormat } from '@/lib/acknowledgements/pdf';
-import { demoAcknowledgementPage } from '@/lib/demo/acknowledgements';
+import { demoAcknowledgementExport, demoAcknowledgementPage } from '@/lib/demo/acknowledgements';
 import { IconAcknowledgements, IconChevronDown, IconDownload } from '../ui/icons';
 import styles from './AcknowledgementHistory.module.css';
 
@@ -24,6 +24,16 @@ async function loadHistory(filters: Filters, demoEntries?: AcknowledgementHistor
   return await response.json() as AcknowledgementHistoryPage;
 }
 
+/** The whole selection for the report in one request (docs/plans/skalning.md, Fas 2 / S-08). */
+async function loadExport(filters: Filters, demoEntries?: AcknowledgementHistoryEntry[]): Promise<AcknowledgementExport> {
+  if (demoEntries) return demoAcknowledgementExport(demoEntries, filters);
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) if (value) params.set(key, value);
+  const response = await fetch(`/api/app/feed/acknowledgements/export?${params}`, { cache: 'no-store' });
+  if (!response.ok) throw new Error('Export request failed');
+  return await response.json() as AcknowledgementExport;
+}
+
 export function AcknowledgementHistory({ demoEntries, onDemoUndo, back }: {
   back?: React.ReactNode;
   demoEntries?: AcknowledgementHistoryEntry[];
@@ -36,7 +46,8 @@ export function AcknowledgementHistory({ demoEntries, onDemoUndo, back }: {
   const [applied, setApplied, restored] = useSavedView(`${viewKey}:filters`, emptyFilters);
   const [history, setHistory] = useState<AcknowledgementHistoryPage | null>(() => demoEntries ? demoAcknowledgementPage(demoEntries, emptyFilters) : null);
   const [loading, setLoading] = useState(!demoEntries);
-  const [downloading, setDownloading] = useState(false);
+  const [downloading, setDownloading] = useState<false | 'pdf' | 'csv'>(false);
+  const [propertySearch, setPropertySearch] = useState('');
   const [undoing, setUndoing] = useState<string | null>(null);
   const [pdfFormat, setPdfFormat] = useState<AcknowledgementReportFormat>('compact');
   const [error, setError] = useState('');
@@ -98,25 +109,25 @@ export function AcknowledgementHistory({ demoEntries, onDemoUndo, back }: {
     }
   }
 
-  async function download() {
+  async function download(kind: 'pdf' | 'csv') {
     if (!history?.entries.length) return;
-    setDownloading(true);
+    setDownloading(kind);
     setError('');
     try {
-      const entries = [...history.entries];
-      let cursor = history.nextCursor;
-      while (cursor) {
-        const page = await loadHistory(applied, demoEntries, cursor);
-        entries.push(...page.entries);
-        cursor = page.nextCursor;
+      const { entries, truncated } = await loadExport(applied, demoEntries);
+      if (kind === 'csv') {
+        const { downloadAcknowledgementCsv } = await import('@/lib/acknowledgements/pdf');
+        downloadAcknowledgementCsv(entries);
+        return;
       }
       const property = history.properties.find(({ id }) => id === applied.property);
       const period = [applied.from && `Från ${applied.from}`, applied.to && `Till ${applied.to}`].filter(Boolean).join(' · ') || 'Alla datum';
       const selection = `${period} · ${property?.name ?? 'Alla fastigheter'}`;
       const { downloadAcknowledgementReport } = await import('@/lib/acknowledgements/pdf');
-      await downloadAcknowledgementReport(entries, portfolio.organizationName, selection, !!demoEntries, pdfFormat);
+      if (truncated) await downloadAcknowledgementReport(entries, portfolio.organizationName, selection, !!demoEntries, pdfFormat, true);
+      else await downloadAcknowledgementReport(entries, portfolio.organizationName, selection, !!demoEntries, pdfFormat);
     } catch {
-      setError('PDF-filen kunde inte laddas ner. Försök igen.');
+      setError(kind === 'csv' ? 'CSV-filen kunde inte laddas ner. Försök igen.' : 'PDF-filen kunde inte laddas ner. Försök igen.');
     } finally {
       setDownloading(false);
     }
@@ -147,8 +158,15 @@ export function AcknowledgementHistory({ demoEntries, onDemoUndo, back }: {
   }
 
   const entries = history?.entries ?? [];
-  const properties = history?.properties ?? [];
-  const busy = loading || downloading || undoing !== null;
+  const properties = useMemo(() => history?.properties ?? [], [history?.properties]);
+  // A searchable property filter (S-08): with hundreds of properties the list is filtered as you type.
+  const shownProperties = useMemo(() => {
+    const words = propertySearch.toLocaleLowerCase('sv').split(/\s+/).filter(Boolean);
+    return words.length
+      ? properties.filter((p) => p.id === draft.property || words.every((w) => `${p.name} ${p.address}`.toLocaleLowerCase('sv').includes(w)))
+      : properties;
+  }, [properties, propertySearch, draft.property]);
+  const busy = loading || downloading !== false || undoing !== null;
   const filtered = !!(applied.from || applied.to || applied.property);
   const count = history?.nextCursor ? `${entries.length} visade` : entries.length === 1 ? '1 kvittering' : `${entries.length} kvitteringar`;
 
@@ -168,8 +186,11 @@ export function AcknowledgementHistory({ demoEntries, onDemoUndo, back }: {
               <option value="full">Fullständig rapport</option>
             </select>
           </label>
-          <button type="button" className={styles.primary} disabled={busy || !entries.length} onClick={() => void download()}>
-            <IconDownload />{downloading ? 'Skapar PDF…' : 'Ladda ner PDF'}
+          <button type="button" className={styles.primary} disabled={busy || !entries.length} onClick={() => void download('pdf')}>
+            <IconDownload />{downloading === 'pdf' ? 'Skapar PDF…' : 'Ladda ner PDF'}
+          </button>
+          <button type="button" className={styles.secondary} disabled={busy || !entries.length} onClick={() => void download('csv')}>
+            {downloading === 'csv' ? 'Skapar CSV…' : 'Ladda ner CSV'}
           </button>
         </div>
       </header>
@@ -177,12 +198,18 @@ export function AcknowledgementHistory({ demoEntries, onDemoUndo, back }: {
       <form className={styles.filters} onSubmit={handleSubmit}>
         <label>Från datum<input name="from" type="date" value={draft.from} max={draft.to || undefined} onInput={(e) => setDraft({ ...draft, from: e.currentTarget.value })} /></label>
         <label>Till datum<input name="to" type="date" value={draft.to} min={draft.from || undefined} onInput={(e) => setDraft({ ...draft, to: e.currentTarget.value })} /></label>
-        <label className={styles.propertyFilter}>Fastighet
-          <select name="property" value={draft.property} onChange={(e) => setDraft({ ...draft, property: e.target.value })}>
-            <option value="">Alla fastigheter</option>
-            {properties.map((property) => <option key={property.id} value={property.id}>{property.name} · {property.address}</option>)}
-          </select>
-        </label>
+        <div className={styles.propertyFilter}>
+          <label>Fastighet
+            <select name="property" value={draft.property} onChange={(e) => setDraft({ ...draft, property: e.target.value })}>
+              <option value="">Alla fastigheter</option>
+              {shownProperties.map((property) => <option key={property.id} value={property.id}>{property.name} · {property.address}</option>)}
+            </select>
+          </label>
+          {properties.length > 10 && (
+            <input type="search" className={styles.propertySearch} value={propertySearch} placeholder={`Sök bland ${properties.length} fastigheter`}
+              aria-label="Sök fastighet i filtret" onChange={(e) => setPropertySearch(e.target.value)} />
+          )}
+        </div>
         <div className={styles.filterActions}>
           <button className={styles.secondary} disabled={busy}>Filtrera</button>
           {(filtered || draft.from || draft.to || draft.property) && <button type="button" className={styles.textButton} disabled={busy} onClick={() => { setDraft(emptyFilters); apply(emptyFilters); }}>Rensa</button>}

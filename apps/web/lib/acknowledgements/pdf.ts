@@ -1,12 +1,27 @@
 import type { Content, ContentTable, TDocumentDefinitions } from 'pdfmake/interfaces';
-import type { AcknowledgementHistoryEntry } from '@fastighetsradar/domain';
+import { ACKNOWLEDGEMENT_EXPORT_MAX, groupAcknowledgements, type AcknowledgementEventGroup, type AcknowledgementHistoryEntry } from '@fastighetsradar/domain';
 import { legalDomain } from '@/lib/legal/company';
 import { pdfLegalFooter } from '@/lib/legal/copy';
 import { acknowledgementDay, acknowledgementTime, importedText, severityLabel } from './presentation';
 
 export type AcknowledgementReportFormat = 'compact' | 'full';
 
-function compactEntries(entries: AcknowledgementHistoryEntry[]): ContentTable {
+/** "18 nov. 2026 09:04" – or the span when the properties were acknowledged at different times. */
+function ackTimes(entries: AcknowledgementHistoryEntry[]): string {
+  const times = entries.map((e) => e.acknowledgedAt).sort();
+  const first = acknowledgementTime(times[0]!);
+  const last = acknowledgementTime(times.at(-1)!);
+  return first === last ? first : `${first} – ${last}`;
+}
+
+function groupStatus(entries: AcknowledgementHistoryEntry[]): string {
+  const undone = entries.filter((e) => e.undoneAt).length;
+  if (!undone) return 'Kvitterad';
+  return undone === entries.length ? 'Ångrad' : `${undone} ångrade`;
+}
+
+/** One row per EVENT (docs/plans/skalning.md, Fas 2 / S-08): "300 fastigheter", not 300 rows. */
+function compactEntries(groups: AcknowledgementEventGroup[]): ContentTable {
   return {
     layout: 'lightHorizontalLines',
     fontSize: 9,
@@ -17,33 +32,51 @@ function compactEntries(entries: AcknowledgementHistoryEntry[]): ContentTable {
       widths: ['*', 105, 98, 57],
       body: [
         ['Händelse', 'Fastighet', 'Kvitterad tid', 'Status'].map((text) => ({ text, bold: true })),
-        ...entries.map((entry) => [
-          entry.title,
-          entry.propertyName,
-          acknowledgementTime(entry.acknowledgedAt),
-          entry.undoneAt ? 'Ångrad' : 'Kvitterad',
+        ...groups.map((g) => [
+          g.title,
+          g.entries.length === 1 ? g.entries[0]!.propertyName : `${g.entries.length} fastigheter`,
+          ackTimes(g.entries),
+          groupStatus(g.entries),
         ]),
       ],
     },
   };
 }
 
-function fullEntries(entries: AcknowledgementHistoryEntry[]): Content[] {
+/** Each event once with its text; an event over several properties lists them in a short table. */
+function fullEntries(groups: AcknowledgementEventGroup[]): Content[] {
   const content: Content[] = [];
-  for (const entry of entries) {
+  for (const g of groups) {
+    const one = g.entries.length === 1 ? g.entries[0]! : null;
+    content.push({ text: g.title, style: 'entryHeading', headlineLevel: 1 });
+    if (one) content.push({ text: [one.propertyName, one.propertyAddress].filter(Boolean).join(' · '), bold: true });
     content.push(
-      { text: entry.title, style: 'entryHeading', headlineLevel: 1 },
-      { text: [entry.propertyName, entry.propertyAddress].filter(Boolean).join(' · '), bold: true },
-      { text: `${entry.source} · ${severityLabel(entry.severity)}${entry.area ? ` · ${entry.area}` : ''}`, style: 'secondary' },
-      { text: `Händelsetid ${acknowledgementTime(entry.eventAt)}`, style: 'secondary' },
-      { text: `Kvitterad ${acknowledgementTime(entry.acknowledgedAt)}`, style: 'action' },
+      { text: `${g.source} · ${severityLabel(g.severity)}${g.area ? ` · ${g.area}` : ''}`, style: 'secondary' },
+      { text: `Händelsetid ${acknowledgementTime(g.eventAt)}`, style: 'secondary' },
     );
-    if (entry.undoneAt) content.push({
-      text: `Ångrad ${acknowledgementTime(entry.undoneAt)}`,
-      style: 'action', color: '#795019',
-    });
-    if (entry.imported) content.push({ text: importedText, style: 'secondary', italics: true });
-    if (entry.description) content.push({ text: entry.description, margin: [0, 5, 0, 0] });
+    if (one) {
+      content.push({ text: `Kvitterad ${acknowledgementTime(one.acknowledgedAt)}`, style: 'action' });
+      if (one.undoneAt) content.push({ text: `Ångrad ${acknowledgementTime(one.undoneAt)}`, style: 'action', color: '#795019' });
+      if (one.imported) content.push({ text: importedText, style: 'secondary', italics: true });
+    } else {
+      content.push({ text: `Kvitterad för ${g.entries.length} fastigheter · ${ackTimes(g.entries)}`, style: 'action' });
+    }
+    if (g.description) content.push({ text: g.description, margin: [0, 5, 0, 0] });
+    if (!one) {
+      content.push({
+        layout: 'lightHorizontalLines',
+        fontSize: 8.5,
+        margin: [0, 8, 0, 0],
+        table: {
+          headerRows: 1,
+          widths: [120, '*', 92, 92],
+          body: [
+            ['Fastighet', 'Adress', 'Kvitterad', 'Ångrad'].map((text) => ({ text, bold: true })),
+            ...g.entries.map((e) => [e.propertyName, e.propertyAddress, acknowledgementTime(e.acknowledgedAt), e.undoneAt ? acknowledgementTime(e.undoneAt) : '']),
+          ],
+        },
+      });
+    }
   }
   return content;
 }
@@ -57,9 +90,16 @@ export function acknowledgementReport(
   format: AcknowledgementReportFormat,
   /** Host shown in the legal footer ("… Se <domän>/villkor."). */
   domain = legalDomain(),
+  /** More entries matched than the export includes (ACKNOWLEDGEMENT_EXPORT_MAX). */
+  truncated = false,
 ): TDocumentDefinitions {
   const compact = format === 'compact';
   const formatLabel = compact ? 'Kort lista' : 'Fullständig rapport';
+  const groups = groupAcknowledgements(entries);
+  const counts = `${entries.length === 1 ? '1 kvittering' : `${entries.length} kvitteringar`}${groups.length !== entries.length ? ` · ${groups.length} händelser` : ''}`;
+  const limit: Content[] = truncated
+    ? [{ text: `Urvalet har fler än ${ACKNOWLEDGEMENT_EXPORT_MAX} kvitteringar; rapporten tar med de ${ACKNOWLEDGEMENT_EXPORT_MAX} senaste. Välj ett kortare datumintervall för resten.`, color: '#795019', margin: [0, 6, 0, 0] }]
+    : [];
   return {
     info: { title: `Kvitteringar - ${formatLabel}`, author: 'FastighetsRadar' },
     pageSize: 'A4',
@@ -75,8 +115,9 @@ export function acknowledgementReport(
     content: [
       { text: 'Kvitteringar', fontSize: 28, bold: true, margin: [0, 0, 0, 5] },
       { text: [organizationName, formatLabel, demo && 'Demodata'].filter(Boolean).join(' · '), bold: true },
-      { text: `${selection}\n${entries.length === 1 ? '1 kvittering' : `${entries.length} kvitteringar`} · Exporterad ${acknowledgementTime(exportedAt)} (svensk tid)`, style: 'secondary' },
-      ...(compact ? [compactEntries(entries)] : fullEntries(entries)),
+      { text: `${selection}\n${counts} · Exporterad ${acknowledgementTime(exportedAt)} (svensk tid)`, style: 'secondary' },
+      ...limit,
+      ...(compact ? [compactEntries(groups)] : fullEntries(groups)),
     ],
     styles: {
       entryHeading: { fontSize: 13, bold: true, margin: [0, 17, 0, 4] },
@@ -87,14 +128,92 @@ export function acknowledgementReport(
   };
 }
 
-export async function downloadAcknowledgementReport(
-  entries: AcknowledgementHistoryEntry[], organizationName: string, selection: string, demo: boolean, format: AcknowledgementReportFormat,
-) {
+/** The PDF as a Blob, built on the calling thread (the worker and the fallback both use it). */
+export async function buildAcknowledgementPdf(doc: TDocumentDefinitions): Promise<Blob> {
   const [pdf, fonts] = await Promise.all([import('pdfmake/build/pdfmake'), import('pdfmake/build/vfs_fonts')]);
   const pdfMake = pdf.default ?? pdf;
   pdfMake.addVirtualFileSystem(fonts.default ?? fonts);
+  return pdfMake.createPdf(doc).getBlob();
+}
+
+export interface AcknowledgementPdfJob {
+  entries: AcknowledgementHistoryEntry[];
+  organizationName: string;
+  selection: string;
+  demo: boolean;
+  exportedAt: string;
+  format: AcknowledgementReportFormat;
+  domain: string;
+  truncated: boolean;
+}
+
+export const pdfFromJob = (job: AcknowledgementPdfJob) => buildAcknowledgementPdf(
+  acknowledgementReport(job.entries, job.organizationName, job.selection, job.demo, job.exportedAt, job.format, job.domain, job.truncated),
+);
+
+/**
+ * Builds the PDF in a Web Worker so a report of thousands of acknowledgements does not freeze the
+ * tab (Fas 2 / S-08); on the main thread where workers are unavailable or fail to start.
+ */
+async function pdfOffMainThread(job: AcknowledgementPdfJob): Promise<Blob> {
+  if (typeof Worker === 'undefined') return pdfFromJob(job);
+  let worker: Worker;
+  try {
+    worker = new Worker(new URL('./pdf.worker.ts', import.meta.url), { type: 'module' });
+  } catch {
+    return pdfFromJob(job);
+  }
+  try {
+    return await new Promise<Blob>((resolve, reject) => {
+      worker.onmessage = (e: MessageEvent<{ blob?: Blob; error?: string }>) => (e.data.blob ? resolve(e.data.blob) : reject(new Error(e.data.error ?? 'PDF')));
+      worker.onerror = (e) => {
+        e.preventDefault();
+        reject(new Error('PDF worker'));
+      };
+      worker.postMessage(job);
+    });
+  } catch {
+    return pdfFromJob(job);
+  } finally {
+    worker.terminate();
+  }
+}
+
+function save(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+export async function downloadAcknowledgementReport(
+  entries: AcknowledgementHistoryEntry[], organizationName: string, selection: string, demo: boolean, format: AcknowledgementReportFormat, truncated = false,
+) {
   const exportedAt = new Date().toISOString();
   const formatSlug = format === 'compact' ? 'kort-lista' : 'fullstandig-rapport';
-  await pdfMake.createPdf(acknowledgementReport(entries, organizationName, selection, demo, exportedAt, format, legalDomain(window.location.origin)))
-    .download(`kvitteringar-${formatSlug}-${acknowledgementDay(exportedAt)}.pdf`);
+  const blob = await pdfOffMainThread({ entries, organizationName, selection, demo, exportedAt, format, domain: legalDomain(window.location.origin), truncated });
+  save(blob, `kvitteringar-${formatSlug}-${acknowledgementDay(exportedAt)}.pdf`);
+}
+
+const csvCell = (v: string | null | undefined) => `"${(v ?? '').replace(/"/g, '""')}"`;
+
+/**
+ * One row per acknowledged property, for a spreadsheet (Fas 2 / S-08). Semicolons and a BOM so Excel
+ * with Swedish settings opens it with å, ä and ö intact. No person is named, as in the PDF.
+ */
+export function acknowledgementCsv(entries: AcknowledgementHistoryEntry[]): string {
+  const head = ['Händelse', 'Källa', 'Allvarlighetsgrad', 'Område', 'Händelsetid', 'Fastighet', 'Adress', 'Kvitterad', 'Ångrad', 'Uppdatering', 'Importerad'];
+  const rows = entries.map((e) => [
+    e.title, e.source, severityLabel(e.severity), e.area, acknowledgementTime(e.eventAt), e.propertyName, e.propertyAddress,
+    acknowledgementTime(e.acknowledgedAt), e.undoneAt ? acknowledgementTime(e.undoneAt) : '', e.isUpdate ? 'Ja' : 'Nej', e.imported ? 'Ja' : 'Nej',
+  ]);
+  return '﻿' + [head, ...rows].map((r) => r.map(csvCell).join(';')).join('\r\n') + '\r\n';
+}
+
+export function downloadAcknowledgementCsv(entries: AcknowledgementHistoryEntry[]) {
+  save(new Blob([acknowledgementCsv(entries)], { type: 'text/csv;charset=utf-8' }), `kvitteringar-${acknowledgementDay(new Date().toISOString())}.csv`);
 }

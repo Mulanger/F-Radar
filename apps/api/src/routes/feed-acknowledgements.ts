@@ -1,7 +1,7 @@
 import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
 import { z } from 'zod';
-import { FEED_ACK_BATCH_MAX, acknowledgeFeedChange, acknowledgeFeedChanges, unacknowledgeFeedChanges, listAcknowledgementHistory, listAcknowledgementProperties, markAlarmChangesRead, markFeedUpdateRead, unacknowledgeFeedChange, undoAcknowledgementHistory, type Queryable } from '@fastighetsradar/db';
-import type { AcknowledgementHistoryPage } from '@fastighetsradar/domain';
+import { FEED_ACK_BATCH_MAX, acknowledgeFeedChange, acknowledgeFeedChanges, unacknowledgeFeedChanges, listAcknowledgementExport, listAcknowledgementHistory, listAcknowledgementProperties, markAlarmChangesRead, markFeedUpdateRead, unacknowledgeFeedChange, undoAcknowledgementHistory, type Queryable } from '@fastighetsradar/db';
+import { ACKNOWLEDGEMENT_EXPORT_MAX, type AcknowledgementExport, type AcknowledgementHistoryEntry, type AcknowledgementHistoryPage } from '@fastighetsradar/domain';
 import { orgContext } from '../auth';
 import { HttpProblem } from '../errors';
 import { createRateLimiter } from '../rate-limit';
@@ -20,6 +20,25 @@ const HistoryFilters = z.object({
   property: z.uuid().optional(),
   cursor: HistoryId.optional(),
 }).refine(({ from, to }) => !from || !to || from <= to, 'Startdatum måste vara före eller samma som slutdatum');
+
+type HistoryRow = Awaited<ReturnType<typeof listAcknowledgementHistory>>['entries'][number];
+
+const toEntry = (entry: HistoryRow): AcknowledgementHistoryEntry => ({
+  id: entry.id,
+  propertyId: entry.property_id,
+  propertyName: entry.property_name,
+  propertyAddress: entry.property_address,
+  source: entry.operator_name ?? SOURCE_LABEL[entry.source_id as keyof typeof SOURCE_LABEL] ?? entry.source_id,
+  title: entry.title,
+  description: entry.description,
+  area: entry.area,
+  severity: entry.severity,
+  eventAt: entry.event_at.toISOString(),
+  acknowledgedAt: entry.acknowledged_at.toISOString(),
+  undoneAt: entry.undone_at?.toISOString() ?? null,
+  imported: entry.imported,
+  isUpdate: entry.is_update,
+});
 
 interface Deps {
   db: Queryable | null;
@@ -45,26 +64,15 @@ export function registerFeedAcknowledgementRoutes(app: FastifyInstance, deps: De
       listAcknowledgementHistory(db(), organizationId, filters),
       filters.cursor ? [] : listAcknowledgementProperties(db(), organizationId),
     ]);
-    return {
-      nextCursor: page.nextCursor,
-      properties,
-      entries: page.entries.map((entry) => ({
-        id: entry.id,
-        propertyId: entry.property_id,
-        propertyName: entry.property_name,
-        propertyAddress: entry.property_address,
-        source: entry.operator_name ?? SOURCE_LABEL[entry.source_id as keyof typeof SOURCE_LABEL] ?? entry.source_id,
-        title: entry.title,
-        description: entry.description,
-        area: entry.area,
-        severity: entry.severity,
-        eventAt: entry.event_at.toISOString(),
-        acknowledgedAt: entry.acknowledged_at.toISOString(),
-        undoneAt: entry.undone_at?.toISOString() ?? null,
-        imported: entry.imported,
-        isUpdate: entry.is_update,
-      })),
-    };
+    return { nextCursor: page.nextCursor, properties, entries: page.entries.map(toEntry) };
+  });
+
+  // The report (PDF/CSV, docs/plans/skalning.md, Fas 2 / S-08): the whole selection in one call.
+  app.get('/v1/feed/acknowledgements/export', { preHandler: deps.requireOrg }, async (req): Promise<AcknowledgementExport> => {
+    const { organizationId } = orgContext(req);
+    const { from, to, property } = HistoryFilters.parse(req.query);
+    const page = await listAcknowledgementExport(db(), organizationId, { from, to, property }, ACKNOWLEDGEMENT_EXPORT_MAX);
+    return { entries: page.entries.map(toEntry), truncated: page.truncated };
   });
 
   app.post('/v1/feed/acknowledgements/:id/undo', { preHandler: deps.requireOrg }, async (req) => {

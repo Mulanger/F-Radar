@@ -89,7 +89,10 @@
   color: #444d50;
 }
 
-.filters .propertyFilter { flex: 1 1 200px; max-width: 360px; }
+.filters .propertyFilter { display: flex; flex: 1 1 200px; flex-direction: column; gap: 6px; max-width: 360px; }
+.filters .propertyFilter label { flex: none; }
+/* Narrows the property list as you type (hundreds of properties). */
+.filters .propertySearch { min-height: 34px; font-size: 12.5px; }
 
 .filters input, .filters select {
   box-sizing: border-box;
@@ -183,7 +186,7 @@
   .heading { flex-wrap: wrap; margin-bottom: 15px; }
   .filters { padding: 14px; }
   .filters label:not(.propertyFilter) { flex: 1 1 0; }
-  .filters label.propertyFilter { flex-basis: 100%; max-width: none; }
+  .filters .propertyFilter { flex-basis: 100%; max-width: none; }
   .resultsHeading { padding: 15px; }
   .columnLabels { display: none; }
   .record { border-top: 1px solid #e8ebe8; }
