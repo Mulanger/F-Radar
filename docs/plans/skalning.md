@@ -697,6 +697,30 @@ samma utdata före och efter `Map`-refaktoreringen; test att `/properties/:id` i
 **Klart när:** Målen i avsnitt 5 för datamängd, fastighetsbyte och live-uppdatering är uppfyllda i
 demoläget med `?n=500`, och `EXPLAIN`-planerna från podden finns i Fasloggen. Visat och godkänt.
 
+**Mätning före steg 1 (2026-11-22, testdatabasen, 500 fastigheter, `run-portfolio-scale.mjs --fields`):**
+28,7 KB per fastighet varav prognos 7,7 KB (serie 6,2 + dygn 1,2), övervakningskontext 6,9 KB
+(observationer 3,2 + luftkvalitet 3,0), mätvärden 6,0 KB (13 st), händelser 2,0 KB, riskindex 1,3 KB,
+varningar 1,1 KB, uppmätt regn 0,6 KB. Produktionens svar är gzip-komprimerade (nginx), så upprepad
+källinformation kostar lite över nätet – kostnaden är att bygga, serialisera, parsa och hålla data
+som listan aldrig läser. Därför **ingen packning av formatet**; i stället skickas den datan inte alls.
+
+**Ordning inom Fas 3:** 1) detalj vid behov (S-10, S-11, S-14), 2) live-signaler per fastighet (S-12),
+3) API:t: minnesskydd, `Map`-indexering, SQL och `EXPLAIN` (S-33, S-15, S-16, S-17).
+
+**Genomfört steg 1 (gren `claude/skalning-fas0`):**
+- `listSnapshot`/`listPortfolio` (domain): listan behåller formen men tömmer prognosserie och -dygn,
+  uppmätt regn, närliggande observationer/luftkvalitet/täckning och mätvärden som ingen listvy läser
+  (`LIST_METRIC_KEYS`). `/v1/portfolio` och demolägets layout skickar listan.
+- Fastighetssidan hämtar en fastighet via `/v1/properties/:id/snapshot` (även `generateMetadata`,
+  delat med `cache()`), aldrig hela portföljen (S-11). `PropertyDetailData` registrerar den före
+  `PropertyDetail` i layouten, så serverns HTML är komplett; vid fel visas listdata med ett meddelande.
+- SMS-kortlänken `/p/<nyckel>` ligger utanför dashboard-layouten (S-14).
+- Test: alla listvyers vymodell (översikt i alla grupper, nowcast-märken) är identiska från listan och
+  från hela portföljen (demo och 500); fastighetssidan anropar bara snapshot-endpointet.
+- **Efter (testdatabasen, 500):** 14,4 MB → 6,0 MB, 28,7 → 12,1 KB per fastighet. Demo: 9,6 → 6,3 MB.
+  Fastighetsbyte i demoläget: en begäran på 22 KB (6 KB över nätet) i stället för att API:t bygger hela
+  portföljen.
+
 ### Fas 4 – Listor, karta och grupper
 
 **Mål:** Översikt över hundratals fastigheter på karta och i tabell, uppdelat så som kunden
@@ -790,4 +814,5 @@ fastigheter (siffror i Fasloggen).
 | Mätning i produktion | 2026-11-22 | – (ingen kod, bara läsning) | Avsnitt 2.3; nya fynd S-33–S-35 | Heap och svarstid vid 200+ (ingen så stor kund) |
 | Fas 0 | 2026-11-22 | `claude/skalning-fas0` / `304d8c2` | Klient: avsnitt 2.1 bekräftat (`npm run measure:portfolio`). API mot testdatabas: avsnitt 2.4 – **OOM vid 500 fastigheter × 3 samtidiga anrop** med 192 MB heap. Snabbväxla vid `?n=500`: 32 322 px hög. | Grundförbrukning i riktiga API:t; webbserverns minne; fastighetskontext ej seedad |
 | Fas 1 | 2026-11-22 | `claude/skalning-fas0` | Snabbväxla vid `?n=500`: 32 322 px → 460,8 px (60 % av 768 px), 100 rader i stället för 500. Sök i fastighetslistan: `buildOverviewVM` per tangent → 0. | SMS-regelns fastighetsval i webbläsaren (bara DOM-test); kartans zoom vid live-uppdatering (bara DOM-test, demoläget uppdateras inte live) |
+| Fas 3 steg 1 | 2026-11-22 | `claude/skalning-fas0` | `/v1/portfolio` vid 500 (testdatabas): 14,4 → 6,0 MB, 28,7 → 12,1 KB per fastighet. Fastighetsbyte: hela portföljen i API:t → en fastighet (22 KB RSC i demo). | API:ts heap och tid (bygger fortfarande hela portföljen innan listan skärs – steg 3); målet ≤ 1 KB per fastighet (kvar: mätvärden 4,2 KB, händelser 2,0 KB) |
 | Lindring S-33 + Fas 5 steg 0 (S-34) | 2026-11-22 | `f216613`, driftsatt 2026-11-22 11:44 UTC | API-heap 192 → 512 MB (`deploy/pod/index.js`), räcker för 1000 × 3 enligt avsnitt 2.4. Schemaläggaren i tre köer: SMS, larmkällor, övrigt. Före: `sms_notifications` väntade upp till 284 s bakom luftkvalitet (200–430 s per körning, avsnitt 2.3). Efter: enhetstest visar att SMS och avbrottskällor körs medan ett tungt jobb pågår. | Efter driftsättning: API:t kör med `--max-old-space-size=512`, köerna `sms` 1 / `alerts` 50 / `background` 17 jobb, `sms_notifications` var 30:e s med `waitedMs` 5–8 ms. Under luftkvalitetskörningen 12:10:54 (pågick fortfarande 12:12:32) körde `sms_notifications` var 30:e s med `waitedMs` 8–10 ms och `krisinformation` med 9,8 s (bakom avbrottskällorna i larmkön) – med den gamla kön hade båda väntat tills luftkvalitet var klar. Inte gjort: tidsbudget per varv för tunga jobb ej gjord (S-35, Fas 7) |

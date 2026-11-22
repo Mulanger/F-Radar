@@ -7,6 +7,7 @@
  *   node scripts/run-portfolio-scale.mjs              # 200 500 1000
  *   node scripts/run-portfolio-scale.mjs 200 500      # chosen sizes
  *   node scripts/run-portfolio-scale.mjs --keep 500   # keep the synthetic data afterwards
+ *   node scripts/run-portfolio-scale.mjs --fields 500 # only where the bytes go (no heap matrix)
  *
  * Steps: build dist-perf/portfolio-scale.mjs, upload it with the migrations to /home/instapod/fr-perf,
  * seed synthetic organizations, run the measurement matrix in the background (child processes with
@@ -21,6 +22,7 @@ import { ALLOWED_POD, api } from './instapods.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const keep = process.argv.includes('--keep');
+const fieldsOnly = process.argv.includes('--fields');
 const sizes = process.argv.slice(2).filter((a) => /^\d+$/.test(a));
 const sizeArgs = (sizes.length ? sizes : ['200', '500', '1000']).join(' ');
 const dir = '/home/instapod/fr-perf';
@@ -59,8 +61,8 @@ try {
     }
   }
 
-  console.log('measure …');
-  await exec(`cd ${dir} && (${envVars} nohup node portfolio-scale.mjs matrix ${sizeArgs} > matrix.txt 2>&1; echo "exit=$?" >> matrix.txt) > /dev/null 2>&1 &`);
+  console.log(fieldsOnly ? 'fields …' : 'measure …');
+  await exec(`cd ${dir} && (${envVars} nohup node portfolio-scale.mjs ${fieldsOnly ? 'fields' : 'matrix'} ${sizeArgs} > matrix.txt 2>&1; echo "exit=$?" >> matrix.txt) > /dev/null 2>&1 &`);
   let shown = 0;
   for (;;) {
     await sleep(15_000);

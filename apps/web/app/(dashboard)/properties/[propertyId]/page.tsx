@@ -1,24 +1,23 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { loadLivePortfolio } from '@/lib/data/portfolio';
+import { loadLivePropertySnapshot } from '@/lib/data/portfolio';
+import { PropertyDetailData } from '@/lib/state/property-detail';
 
 type Params = Promise<{ propertyId: string }>;
 
-async function findProperty(propertyId: string) {
-  const result = await loadLivePortfolio();
-  if (result.status !== 'ok') return null;
-  const id = decodeURIComponent(propertyId);
-  return result.portfolio.properties.find((s) => s.property.id === id) ?? null;
-}
-
+/**
+ * Loads ONE property's full snapshot (org-scoped by the API) – not the whole portfolio
+ * (docs/plans/skalning.md, S-10/S-11). Metadata and page share the request-cached call.
+ */
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
-  const s = await findProperty((await params).propertyId);
-  return { title: `${s?.property.name ?? 'Fastighet'} · FastighetsRadar` };
+  const r = await loadLivePropertySnapshot(decodeURIComponent((await params).propertyId));
+  return { title: `${r.status === 'ok' ? r.snapshot.property.name : 'Fastighet'} · FastighetsRadar` };
 }
 
-/** Validates (org-scoped, server-side) that the property exists; UI is rendered by `../layout.tsx`. */
+/** Validates that the property exists and hands its full snapshot to `../layout.tsx`'s detail view. */
 export default async function PropertyPage({ params }: { params: Params }) {
-  const s = await findProperty((await params).propertyId);
-  if (!s) notFound();
-  return null;
+  const id = decodeURIComponent((await params).propertyId);
+  const r = await loadLivePropertySnapshot(id);
+  if (r.status === 'not_found') notFound();
+  return <PropertyDetailData id={id} snapshot={r.status === 'ok' ? r.snapshot : null} reason={r.status === 'unavailable' ? r.reason : undefined} />;
 }

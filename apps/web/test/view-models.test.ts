@@ -4,15 +4,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 // Clerk server helpers are mocked: the loader must only forward the session token.
 const authMock = vi.fn();
 vi.mock('@clerk/nextjs/server', () => ({ auth: () => authMock() }));
-import { assessPropertyRisk, type Portfolio, type PropertySnapshot } from '@fastighetsradar/domain';
-import { demoPortfolio } from '@fastighetsradar/domain/fixtures';
+import { assessPropertyRisk, listPortfolio, type Portfolio, type PropertySnapshot } from '@fastighetsradar/domain';
+import { demoPortfolio, scaleDemoPortfolio } from '@fastighetsradar/domain/fixtures';
 import { buildOverviewVM, feedTime } from '@/lib/view-models/overview';
 import { endedLabel, feedEventMapEntry } from '@/lib/view-models/event-map';
 import { SEV } from '@/lib/design/tokens';
 import { demoSingleEvent } from '@/lib/demo/event-map-demo';
 import { buildDetailVM } from '@/lib/view-models/detail';
 import { chartOf, smooth } from '@/lib/view-models/chart';
-import { loadDemoPortfolio, loadLivePortfolio } from '@/lib/data/portfolio';
+import { loadDemoPortfolio, loadDemoPropertySnapshot, loadLivePortfolio } from '@/lib/data/portfolio';
+import { nowcastVM } from '@/lib/view-models/nowcast';
 
 const ui = {
   ready: true,
@@ -157,6 +158,23 @@ describe('overview view-model reproduces the approved design values', () => {
   });
 });
 
+describe('portfolio list gives every list view the same result as the full portfolio (S-10)', () => {
+  const opts = { ready: true, isSmsOn: (s: PropertySnapshot) => s.sms.enabled, isRuleOn: (_: string, f: boolean) => f };
+  // Everything the view model computes; embedded snapshots (vm.list, row.snapshot) compared by id.
+  const computed = (vm: unknown) => JSON.parse(JSON.stringify(vm, (_k, v) => (v && typeof v === 'object' && 'property' in v && 'metrics' in v ? `snapshot:${(v as PropertySnapshot).property.id}` : v)));
+  for (const [label, full] of [['demo', demoPortfolio], ['500 properties', scaleDemoPortfolio(demoPortfolio, 500)]] as const) {
+    it(label, () => {
+      const list = listPortfolio(full);
+      for (const group of ['all', ...full.segments.map((g) => g.id)]) {
+        const a = computed(buildOverviewVM(list, { ...opts, group }));
+        expect(a).toEqual(computed(buildOverviewVM(full, { ...opts, group })));
+        expect(JSON.stringify(a)).toContain('snapshot:');
+      }
+      list.properties.forEach((s, i) => expect(nowcastVM(s, list.generatedAt)).toEqual(nowcastVM(full.properties[i]!, full.generatedAt)));
+    });
+  }
+});
+
 describe('detail view-model', () => {
   const s = byName('Augustendal Brygga');
   const d = buildDetailVM(demoPortfolio, s, { ready: true, metric: 'temp', smsOn: true, isRuleOn: (_i, f) => f });
@@ -243,6 +261,18 @@ describe('data loaders', () => {
       const r = await loadDemoPortfolio(n);
       expect(r.status === 'ok' && r.portfolio.properties.length).toBe(8);
     }
+  });
+
+  it('gives the layout the list and the property page one full snapshot (S-10)', async () => {
+    expect((await loadDemoPropertySnapshot(500, 'demo-gotgarden-17')).status).toBe('not_found');
+    process.env.FASTIGHETSRADAR_DEMO_ENABLED = 'true';
+    const layout = await loadDemoPortfolio(500);
+    const page = await loadDemoPropertySnapshot(500, 'demo-gotgarden-17');
+    expect(layout.status === 'ok' && layout.portfolio.properties.every((s) => !s.forecast?.series.length)).toBe(true);
+    expect(page.status === 'ok' && page.snapshot.property.name).toBe('Götgården 17');
+    expect(page.status === 'ok' && page.snapshot.forecast!.series.length).toBeGreaterThan(0);
+    expect((await loadDemoPropertySnapshot(500, 'finns-inte')).status).toBe('not_found');
+    expect((await loadDemoPropertySnapshot(null, 'demo-gotgarden-17')).status).toBe('not_found');
   });
 
   it('live loader forwards the Clerk token and never falls back to fixtures', async () => {

@@ -2,6 +2,7 @@ import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
 import { z } from 'zod';
 import type { ServerEnv } from '@fastighetsradar/config';
 import {
+  listPortfolio,
   PropertyCreateSchema,
   PropertyIdParamSchema,
   PropertyUpdateSchema,
@@ -101,8 +102,9 @@ export function registerCustomerRoutes(app: FastifyInstance, deps: CustomerRoute
   app.get('/v1/portfolio', { preHandler: deps.requireOrg }, async (req, reply) => {
     const ctx = orgContext(req);
     const started = performance.now();
+    // The list: detail-only parts emptied; the property page loads /v1/properties/:id/snapshot (S-10).
     const portfolio = deps.monitoring
-      ? await deps.monitoring.portfolio(ctx)
+      ? listPortfolio(await deps.monitoring.portfolio(ctx))
       : buildLivePortfolio({
         clerkOrgId: ctx.clerkOrgId,
         orgSlug: ctx.orgSlug,

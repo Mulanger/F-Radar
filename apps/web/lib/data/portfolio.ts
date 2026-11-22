@@ -1,12 +1,17 @@
 import 'server-only';
 import { cache } from 'react';
 import { cookies } from 'next/headers';
-import { PortfolioSchema, type Portfolio } from '@fastighetsradar/domain';
+import { PortfolioSchema, PropertySnapshotSchema, listPortfolio, type Portfolio, type PropertySnapshot } from '@fastighetsradar/domain';
 import { demoPortfolio, demoScaleSize, scaleDemoPortfolio } from '@fastighetsradar/domain/fixtures';
 import { DEMO_SIZE_COOKIE } from '../demo/size';
 import { InternalApiError, internalApiJson } from '../server/internal-api';
 
 export type DataMode = 'demo' | 'live';
+
+export type PropertySnapshotLoadResult =
+  | { status: 'ok'; snapshot: PropertySnapshot }
+  | { status: 'not_found' }
+  | { status: 'unavailable'; reason: string };
 
 export type PortfolioLoadResult =
   | { status: 'ok'; mode: DataMode; portfolio: Portfolio }
@@ -21,15 +26,17 @@ export function demoEnabled(): boolean {
 }
 
 /** Scaled test portfolios are deterministic; keep the last few sizes instead of rebuilding per request. */
-const scaledDemos = new Map<number, Portfolio>();
-function scaledDemo(size: number): Portfolio {
-  let portfolio = scaledDemos.get(size);
-  if (!portfolio) {
-    portfolio = scaleDemoPortfolio(demoPortfolio, size);
-    if (scaledDemos.size >= 3) scaledDemos.delete(scaledDemos.keys().next().value!);
-    scaledDemos.set(size, portfolio);
+const scaledDemos = new Map<number, { full: Portfolio; list: Portfolio }>();
+function demoPortfolios(size: number | null): { full: Portfolio; list: Portfolio } {
+  const key = size ?? 0;
+  let entry = scaledDemos.get(key);
+  if (!entry) {
+    const full = size === null ? demoPortfolio : scaleDemoPortfolio(demoPortfolio, size);
+    entry = { full, list: listPortfolio(full) };
+    if (scaledDemos.size >= 4) scaledDemos.delete(scaledDemos.keys().next().value!);
+    scaledDemos.set(key, entry);
   }
-  return portfolio;
+  return entry;
 }
 
 /**
@@ -42,11 +49,37 @@ export async function requestedDemoSize(): Promise<number | null> {
   return demoScaleSize((await cookies()).get(DEMO_SIZE_COOKIE)?.value, demoPortfolio.properties.length);
 }
 
+/**
+ * The demo portfolio as the dashboard layout gets it: the same LIST shape as live (S-10), so the
+ * split between list and property page can be verified locally.
+ */
 export async function loadDemoPortfolio(size: number | null = null): Promise<PortfolioLoadResult> {
   if (!demoEnabled()) return { status: 'unavailable', mode: 'demo', reason: 'Demoläget är avstängt.' };
-  const n = demoScaleSize(size, demoPortfolio.properties.length);
-  return { status: 'ok', mode: 'demo', portfolio: n === null ? demoPortfolio : scaledDemo(n) };
+  return { status: 'ok', mode: 'demo', portfolio: demoPortfolios(demoScaleSize(size, demoPortfolio.properties.length)).list };
 }
+
+/** Full snapshot of one demo property (the property page), like `/v1/properties/:id/snapshot` live. */
+export async function loadDemoPropertySnapshot(size: number | null, id: string): Promise<PropertySnapshotLoadResult> {
+  if (!demoEnabled()) return { status: 'not_found' };
+  const full = demoPortfolios(demoScaleSize(size, demoPortfolio.properties.length)).full;
+  const snapshot = full.properties.find((s) => s.property.id === id);
+  return snapshot ? { status: 'ok', snapshot } : { status: 'not_found' };
+}
+
+/**
+ * Full snapshot of ONE property of the signed-in organization (property page and its metadata;
+ * S-10/S-11). The API checks that the property belongs to the organization. Deduplicated per request.
+ */
+export const loadLivePropertySnapshot = cache(async (id: string): Promise<PropertySnapshotLoadResult> => {
+  try {
+    const body = await internalApiJson<{ snapshot?: unknown }>(`/v1/properties/${encodeURIComponent(id)}/snapshot`);
+    const parsed = PropertySnapshotSchema.safeParse(body?.snapshot);
+    return parsed.success ? { status: 'ok', snapshot: parsed.data } : { status: 'unavailable', reason: 'Fastighetstjänsten returnerade ett oväntat svar.' };
+  } catch (err) {
+    if (err instanceof InternalApiError && (err.status === 404 || err.status === 400)) return { status: 'not_found' };
+    return { status: 'unavailable', reason: err instanceof InternalApiError ? `Fel i fastighetstjänsten (${err.status}).` : 'Fastighetstjänsten går inte att nå.' };
+  }
+});
 
 /**
  * Loads the signed-in organization's REAL portfolio from the API. Never falls back to

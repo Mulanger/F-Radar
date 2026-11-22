@@ -6,6 +6,7 @@
  *   node portfolio-scale.mjs seed 200 500 1000     # synthetic organizations (idempotent)
  *   node portfolio-scale.mjs matrix 200 500 1000   # measure in child processes (heap limits, concurrency)
  *   node --expose-gc --max-old-space-size=512 portfolio-scale.mjs measure 500 3
+ *   node portfolio-scale.mjs fields 500             # bytes per field of one real response
  *   node portfolio-scale.mjs cleanup
  *
  * Everything it writes is tagged: organizations `org_perfscale<n>`, events `perf:…`, stations
@@ -267,6 +268,41 @@ async function measure(n: number, concurrency: number, rounds = 3) {
   };
 }
 
+/**
+ * Where the bytes of a real `/v1/portfolio` response go: average bytes per property for each snapshot
+ * field (and the parts of the heaviest ones), plus the portfolio-level fields. Sizes only, no content.
+ */
+async function fields(n: number) {
+  const app = await perfApp();
+  const r = await app.inject({ method: 'GET', url: '/v1/portfolio', headers: { authorization: `Bearer ${token(n)}` } });
+  await app.close();
+  if (r.statusCode !== 200) throw new Error(`portfolio ${r.statusCode}`);
+  const portfolio = r.json() as { properties: Array<Record<string, unknown>> } & Record<string, unknown>;
+  const size = (v: unknown) => Buffer.byteLength(JSON.stringify(v ?? null));
+  const count = portfolio.properties.length;
+  const avg = (rows: Array<Record<string, unknown> | null | undefined>) => {
+    const sums: Record<string, number> = {};
+    for (const row of rows) for (const [k, v] of Object.entries(row ?? {})) sums[k] = (sums[k] ?? 0) + size(v);
+    return Object.fromEntries(Object.entries(sums).sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, Math.round(v / count)]));
+  };
+  const top = Object.fromEntries(Object.entries(portfolio).map(([k, v]) => [k, size(v)]).sort((a, b) => (b[1] as number) - (a[1] as number)));
+  const props = portfolio.properties;
+  return {
+    n, properties: count, bytes: r.rawPayload.length, bytesPerProperty: Math.round(r.rawPayload.length / count),
+    portfolioBytes: top,
+    perPropertyAvgBytes: avg(props),
+    forecastAvgBytes: avg(props.map((s) => s.forecast as Record<string, unknown> | null)),
+    monitoringAvgBytes: avg(props.map((s) => s.monitoring as Record<string, unknown> | null)),
+    nowcastAvgBytes: avg(props.map((s) => s.nowcast as Record<string, unknown> | null)),
+    counts: {
+      events: Math.round(props.reduce((a, s) => a + ((s.events as unknown[] | undefined)?.length ?? 0), 0) / count * 10) / 10,
+      warnings: Math.round(props.reduce((a, s) => a + ((s.warnings as unknown[] | undefined)?.length ?? 0), 0) / count * 10) / 10,
+      metrics: Math.round(props.reduce((a, s) => a + ((s.metrics as unknown[] | undefined)?.length ?? 0), 0) / count * 10) / 10,
+      alertRules: Math.round(props.reduce((a, s) => a + ((s.alertRules as unknown[] | undefined)?.length ?? 0), 0) / count * 10) / 10,
+    },
+  };
+}
+
 /** The API's heap ceiling in production (deploy/pod/index.js); it was 192 MB until Fas 0 measured it. */
 const PROD_HEAP_MB = 512;
 
@@ -311,6 +347,8 @@ try {
     for (const n of sizes) console.log(JSON.stringify({ n, seed: await seedOrganization(n, now) }));
   } else if (mode === 'measure') {
     console.log(JSON.stringify(await measure(sizes[0]!, sizes[1] ?? 1)));
+  } else if (mode === 'fields') {
+    for (const n of sizes) console.log(JSON.stringify(await fields(n)));
   } else if (mode === 'matrix') {
     await pool.end();
     matrix(sizes);
@@ -318,7 +356,7 @@ try {
     await cleanup();
     console.log(JSON.stringify({ cleanup: 'done' }));
   } else {
-    throw new Error('usage: seed|matrix|measure|cleanup <sizes…>');
+    throw new Error('usage: seed|matrix|measure|fields|cleanup <sizes…>');
   }
 } finally {
   if (mode !== 'matrix') await pool.end();

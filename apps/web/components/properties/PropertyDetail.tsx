@@ -7,6 +7,7 @@ import { ForecastDays } from './ForecastDays';
 import { useMemo, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useDashboard } from '@/lib/state/dashboard-state';
+import { usePropertyDetail } from '@/lib/state/property-detail';
 import { buildDetailVM } from '@/lib/view-models/detail';
 import { C, FONT_MONO } from '@/lib/design/tokens';
 import { usePropertyEditor } from './PropertyEditorHost';
@@ -41,7 +42,10 @@ export function PropertyDetail() {
   const editor = usePropertyEditor();
   const mobile = useMobileDashboard();
   const id = params?.propertyId ? decodeURIComponent(params.propertyId) : undefined;
-  const s = ds.property(id);
+  // The page's full snapshot; the portfolio list entry only as a fallback when it could not be loaded.
+  const detail = usePropertyDetail(id);
+  const s = detail?.snapshot ?? ds.property(id);
+  const detailMissing = detail && !detail.snapshot ? detail.reason ?? 'Fastighetens detaljer kunde inte hämtas.' : null;
   const smsOn = s ? ds.isSmsOn(s) : false;
   // buildDetailVM sorts the whole portfolio for prev/next; build it once per input change (S-03).
   const { portfolio, ready, metric, isRuleOn } = ds;
@@ -57,7 +61,13 @@ export function PropertyDetail() {
     if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 24, behavior: 'smooth' });
   };
 
-  if (mobile) return <MobilePropertyDetail d={d} onSwitch={switchTo} target={target} smsHref={smsHref} />;
+  const missingNote = detailMissing && (
+    <div role="status" style={{ padding: '12px 16px', borderRadius: 14, background: 'oklch(0.96 0.03 85)', color: C.text2, fontSize: 13 }}>
+      {detailMissing} Prognoser och mätningar visas inte just nu; uppgifterna nedan kommer från översikten.
+    </div>
+  );
+
+  if (mobile) return <MobilePropertyDetail d={d} onSwitch={switchTo} target={target} smsHref={smsHref} notice={missingNote} />;
 
   return (
     <div className="fr-desktop-dashboard-view" data-screen-label="02 Property Detail" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 20, animation: 'frFade .45s ease both' }}>
@@ -104,6 +114,8 @@ export function PropertyDetail() {
             : <DashboardLink href={smsHref} className="fr-dashboard-action"><IconSliders size={15} />Konfigurera larm</DashboardLink>}
         </div>
       </div>
+
+      {missingNote}
 
       <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         <PropertyHero3D d={d} isDemo={isDemo} />
