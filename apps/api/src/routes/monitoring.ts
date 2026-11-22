@@ -89,6 +89,22 @@ export function registerMonitoringRoutes(app: FastifyInstance, deps: MonitoringR
     return sendTimed(req, reply, started, patch.nowcasts.length, patch, 'portfolio nowcast built');
   });
 
+  /* ---------------- event page (docs/plans/skalning.md, Fas 2 / S-09) ---------------- */
+
+  app.get('/v1/events/:eventId', { preHandler: deps.requireOrg }, async (req) => {
+    const { eventId } = EventIdParamSchema.parse(req.params);
+    const page = await svc().event(orgContext(req), eventId);
+    if (!page) throw new HttpProblem(404, 'Event not found');
+    return page;
+  });
+
+  app.get('/v1/events/links/:key', { preHandler: deps.requireOrg }, async (req) => {
+    const { key } = z.object({ key: z.string().regex(/^[0-9a-f]{16}$/) }).parse(req.params);
+    const id = await svc().eventByLinkKey(orgContext(req), key);
+    if (!id) throw new HttpProblem(404, 'Event not found');
+    return { id };
+  });
+
   app.get('/v1/properties/:id/snapshot', { preHandler: deps.requireOrg }, async (req) => {
     const r = await one(req);
     return { generatedAt: gen(), snapshot: r.snapshot, sources: r.statuses };

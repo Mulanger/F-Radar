@@ -21,3 +21,4 @@ export * from './night-work';
 export * from './legal';
 export * from './portfolio-list';
 export * from './portfolio-live';
+export * from './event-page';

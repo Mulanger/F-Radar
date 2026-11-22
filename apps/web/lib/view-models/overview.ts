@@ -266,6 +266,8 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
         bg: sev(f.severity).bg,
         prop: byId.get(f.propertyId)?.property.name ?? '—',
         propertyId: f.propertyId,
+        /** The source event behind the row: its page lists every property it reaches (Fas 2 / S-09). */
+        eventId: f.eventId ?? null,
         /** Event to open in the map view, or null when the row has nothing to show there. */
         mapEventId: single ? f.updatedEventId ?? f.eventId! : ev?.id ?? null,
         /** The event has ended: the map shows where it was, greyed out. */

@@ -15,7 +15,7 @@ import { buildApp } from "../../apps/api/src/app";
 import { NotificationService } from "../../apps/api/src/notifications/service";
 import { FakeVerificationProvider } from "../../apps/api/src/notifications/verification";
 import { saveRule } from "../../apps/api/src/notifications/store";
-import type { NotificationRuleInput } from "../../packages/domain/src";
+import { eventLinkKey, type NotificationRuleInput } from "../../packages/domain/src";
 
 export function registerNotificationTests(pool: pg.Pool) {
   describe("Phase 4 notifications on real PostgreSQL/PostGIS", () => {
@@ -176,6 +176,7 @@ export function registerNotificationTests(pool: pg.Pool) {
         service,
         publish,
         dispose,
+        eventId,
       };
     }
     it("persists CRUD/scopes and rejects member/cross-tenant recipient and property changes", async () => {
@@ -352,6 +353,34 @@ export function registerNotificationTests(pool: pg.Pool) {
         await f.dispose();
       }
     });
+    it("links a grouped SMS to the event page and a single-property SMS to the property (Fas 2 / S-09)", async () => {
+      const f = await fixture();
+      try {
+        const grouped = await saveRule(pool, f.org, f.config);
+        const single = await saveRule(pool, f.org, { ...f.config, name: "En fastighet", propertyIds: [f.config.propertyIds[0]!] });
+        await f.publish();
+        const { rows } = await pool.query<{ id: string }>("SELECT id::text FROM source_events WHERE external_id=$1", [f.eventId]);
+        const key = eventLinkKey(rows[0]!.id)!;
+        const groupedText = (await f.service.preview(f.org, grouped)).message;
+        assert.ok(groupedText.includes(`/h/${key}`), groupedText);
+        const singleText = (await f.service.preview(f.org, single)).message;
+        assert.ok(/\/p\/[a-f0-9]{16}/.test(singleText) && !singleText.includes("/h/"), singleText);
+        // The short link resolves only for the organization the event reached.
+        const own = await f.app.inject({ method: "GET", url: `/v1/events/links/${key}`, headers: { authorization: "Bearer admin" } });
+        assert.equal(own.statusCode, 200, own.body);
+        assert.equal(own.json().id, rows[0]!.id);
+        const page = await f.app.inject({ method: "GET", url: `/v1/events/${rows[0]!.id}`, headers: { authorization: "Bearer admin" } });
+        assert.equal(page.statusCode, 200, page.body);
+        assert.equal(page.json().properties.length, 2);
+        assert.equal(page.json().event.description, "Isolerad testdata, inte en riktig varning");
+        assert.ok(page.json().properties.every((p: { ackRequired: boolean; changeId: string | null }) => p.ackRequired && p.changeId));
+        assert.equal((await f.app.inject({ method: "GET", url: `/v1/events/links/${key}`, headers: { authorization: "Bearer other" } })).statusCode, 404);
+        assert.equal((await f.app.inject({ method: "GET", url: `/v1/events/${rows[0]!.id}`, headers: { authorization: "Bearer other" } })).statusCode, 404);
+      } finally {
+        await f.dispose();
+      }
+    });
+
     it("does not backfill old events, suppresses quiet hours permanently and enforces daily/monthly/cost caps", async () => {
       for (const type of [
         "old",

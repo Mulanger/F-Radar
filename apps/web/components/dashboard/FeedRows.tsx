@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { groupFeedRows, type OverviewFeedRow } from '@/lib/view-models/overview';
+import { useDashboard } from '@/lib/state/dashboard-state';
+import { DashboardLink } from '../shell/DashboardLink';
 import { IconChevronDown } from '../ui/icons';
 import { FeedAckAllButton, FeedAckButton, type FeedAcks } from './FeedAck';
 import { FeedMapButton, FeedUpdatedBadge } from './FeedEventMap';
@@ -14,6 +16,7 @@ export function FeedRows({ feed, acks, onMap, isUnread, property, children }: {
   property: (row: OverviewFeedRow) => ReactNode;
   children: (row: OverviewFeedRow) => ReactNode;
 }) {
+  const { basePath } = useDashboard();
   return groupFeedRows(feed).map((rows) => {
     const first = rows[0]!;
     if (rows.length === 1) return children(first);
@@ -39,6 +42,11 @@ export function FeedRows({ feed, acks, onMap, isUnread, property, children }: {
               <span className={styles.hide}>Dölj fastigheter</span>
               <IconChevronDown size={13} aria-hidden="true" />
             </span>
+            {first.eventId && (
+              <DashboardLink className={styles.open} href={`${basePath}/alerts/${encodeURIComponent(first.eventId)}`} onClick={(e) => e.stopPropagation()}>
+                Öppna händelsen
+              </DashboardLink>
+            )}
           </span>
           <span className={styles.side}>
             {updated && <FeedUpdatedBadge />}

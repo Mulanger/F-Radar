@@ -728,6 +728,27 @@ laddas ner. Visat på localhost:3000 och godkänt.
 - **Visat på localhost** (`/demo/alerts?n=500`): ett klick på "Kvittera alla (500)" → "500 av 500
   kvitterade" och "Ångra"; chippet 126 → 125 att kvittera; kvitteringssidan har en rad per fastighet.
 
+**Genomfört steg 3 – händelsesidan (gren `claude/skalning-fas0`):**
+- `/alerts/<händelse>` (live och demo; följer appens engelska sökvägar i stället för `/larm/…`):
+  varningstexten en gång med område och giltighet, karta med de berörda fastigheterna, sökbar lista
+  (100 rader och "Visa alla"), "Kvittera alla (N)" och kvittering per fastighet. Gruppkorten i flödet
+  har länken "Öppna händelsen".
+- API: `GET /v1/events/:id` – händelsen och organisationens alla berörda fastigheter (träffade nu
+  eller i historiken) med den senaste flödesraden att kvittera; 404 för en händelse som aldrig nått
+  organisationen. `loadOrgEvent` i `packages/db`.
+- **Grupperade SMS** (en händelse över flera fastigheter) länkar till `/h/<nyckel>` → händelsesidan;
+  SMS om en fastighet länkar som förut till `/p/<nyckel>`. Nyckeln är händelsens första 16
+  hexsiffror (`eventLinkKey`) – ingen migrering; `GET /v1/events/links/:key` slår upp den bara för
+  organisationen händelsen nått (och bara om nyckeln är entydig).
+- **Test:** riktig PostgreSQL (händelsesidan för 300 fastigheter, en annan organisation får inget,
+  länknyckeln; regelns förhandsvisning: grupperat SMS → `/h/<nyckel>`, en fastighet → `/p/<nyckel>`,
+  API 200 för egen organisation och 404 för annan); API (401/403, 404, 400); demo (500 fastigheter en
+  gång med varningstext); DOM (text en gång, 100 rader + "Visa alla", sök, "Kvittera alla" i ett
+  anrop).
+- **Visat på localhost** (`/demo/alerts?n=500` → "Öppna händelsen"): 500 fastigheter på kartan och i
+  listan, varningstexten en gång, sök, "Kvittera alla (500)" → alla rader "Kvitterad"; mobilbredd utan
+  sidledsrullning.
+
 ### Fas 3 – Lättare dataflöde
 
 **Mål:** Sidladdning, fastighetsbyte och live-uppdatering kostar lika lite vid 500 fastigheter som i
@@ -995,5 +1016,6 @@ fastigheter (siffror i Fasloggen).
 | Fas 3 steg 3 | 2026-11-22 | `claude/skalning-fas0` / `158dc43`, driftsatt 2026-11-22 16:59 UTC | `/v1/portfolio` (testdatabas, median): 1,6 → 0,33 s vid 500, 3,3 → 0,69 s vid 1000; tre samtidiga 0,49 / 0,87 s. Minsta heap för tre samtidiga: 256 → 128 MB (500), 384 → 192 MB (1000). Radvis uppdatering 0,26 → 0,06 s. Listan identisk med `listSnapshot` av hela bygget vid 500 och 1000. EXPLAIN i Fas 3, "Genomfört steg 3". | Datamängd (6,0 MB vid 500, mål ≤ 0,5 MB) och heaptopp (mål ≤ 30 MB) ej uppfyllda – kräver kompaktare listkontrakt. JIT av ej mätt på andra frågor än portföljens (omatchning, inserts) |
 | Fas 3 steg 4 | 2026-11-22 | `claude/skalning-fas0` / `ebf7da8`, driftsatt 2026-11-22 17:48 UTC | `buildOverviewVM` (dator): 145 → 30 ms vid 500, 289 → 56 ms vid 1000. Listan över nätet med gzip: 337 KB vid 500 (demo) – målet 0,5 MB nått utan nytt format. | Mobilens tid för vymodellen (bara dator mätt); listans okomprimerade storlek (6,0 MB vid 500) och minnet i webbläsaren är oförändrade |
 | Fas 2 steg 1 | 2026-11-22 | `claude/skalning-fas0` / `8138410`, driftsatt 2026-11-22 18:32 UTC | Flödet vid 500 (testdatabas, länsvarning över 320 + Krisinformation över 500): 1 kort med "30 berörda" → 30 kort, Krisinformation med 500, länsvarningen med 320, trafiken kvar. Menyns larmräknare i demo vid 500: 625 → 126. | Flödet blir 848 rader (~0,5 MB okomprimerat) vid två stora händelser; nyckeltalet "Aktiva larm" räknar fortfarande varning × fastighet |
-| Fas 2 steg 2 | 2026-11-22 | `claude/skalning-fas0` | Kvittera en varning över 500 fastigheter (demo): 500 klick, spärr efter 60 → 1 klick, ett anrop. Riktig PostgreSQL: 300 rader i en sats, 300 historikrader. | "Ångra" efter "Kvittera alla" finns bara tills sidan lämnas (sedan per rad på kvitteringssidan); kvitteringssidan visar 30 rader åt gången (steg 4) |
+| Fas 2 steg 2 | 2026-11-22 | `claude/skalning-fas0` / `3d22f6f`, driftsatt 2026-11-22 19:32 UTC | Kvittera en varning över 500 fastigheter (demo): 500 klick, spärr efter 60 → 1 klick, ett anrop. Riktig PostgreSQL: 300 rader i en sats, 300 historikrader. | "Ångra" efter "Kvittera alla" finns bara tills sidan lämnas (sedan per rad på kvitteringssidan); kvitteringssidan visar 30 rader åt gången (steg 4) |
+| Fas 2 steg 3 | 2026-11-22 | `claude/skalning-fas0` | Händelse över 500 fastigheter (demo): en rad per fastighet i flödet → en egen sida med texten en gång, karta, sök och "Kvittera alla". Grupperat SMS: länk till första fastigheten → till händelsesidan. | SMS skickas fortfarande simulerat, så länken i ett riktigt SMS är bara testad via förhandsvisningen; kartans rubrik säger "Portföljkarta" även på händelsesidan |
 

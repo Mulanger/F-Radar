@@ -9,6 +9,7 @@ import {
   type UtilityKind,
   type NotificationActivity,
   type NotificationDashboard,
+  eventLinkKey,
 } from "@fastighetsradar/domain";
 import {
   estimateSmsParts,
@@ -566,16 +567,23 @@ export class NotificationService {
       };
     });
   }
+  /**
+   * Where the SMS link leads: one property → its page (`/p/<key>`); an event over several properties →
+   * the event page with all of them (`/h/<key>`, docs/plans/skalning.md, Fas 2 / S-09).
+   */
+  private link(t: Trigger) {
+    const event = t.properties.length > 1 && t.evidence?.eventId ? eventLinkKey(t.evidence.eventId) : null;
+    if (event) return `${this.env.APP_URL}/h/${event}`;
+    return t.properties[0] ? `${this.env.APP_URL}/p/${t.properties[0].notification_link_key}` : `${this.env.APP_URL}/sms-rules`;
+  }
   private message(t: Trigger) {
-    if (t.shortDescription && t.properties[0]) return supplySmsText(t.properties[0].name, t.shortDescription, t.source, `${this.env.APP_URL}/p/${t.properties[0].notification_link_key}`);
+    if (t.shortDescription && t.properties[0]) return supplySmsText(t.properties[0].name, t.shortDescription, t.source, this.link(t));
     return smsText(
       t.properties.map((p) => p.name),
       t.description,
       t.source,
       t.timestamp,
-      t.properties[0]
-        ? `${this.env.APP_URL}/p/${t.properties[0].notification_link_key}`
-        : `${this.env.APP_URL}/sms-rules`,
+      this.link(t),
     );
   }
   async evaluateOrganization(

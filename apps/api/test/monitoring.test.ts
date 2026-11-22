@@ -336,7 +336,7 @@ describe('monitoring HTTP endpoints', () => {
   afterAll(() => app.close());
 
   it('require a verified user AND organization', async () => {
-    for (const url of ['/v1/portfolio', '/v1/portfolio/summary', `/v1/portfolio/rows?ids=${PID}`, '/v1/portfolio/nowcast', `/v1/properties/${PID}/snapshot`, `/v1/properties/${PID}/forecast`, `/v1/properties/${PID}/warnings`, `/v1/properties/${PID}/events`, `/v1/properties/${PID}/environment`, `/v1/properties/${PID}/flood`, `/v1/properties/${PID}/activity`, `/v1/properties/${PID}/event-map`, '/v1/settings', '/v1/changes', '/v1/stream']) {
+    for (const url of ['/v1/portfolio', '/v1/portfolio/summary', `/v1/portfolio/rows?ids=${PID}`, '/v1/portfolio/nowcast', `/v1/events/${PID}`, '/v1/events/links/0123456789abcdef', `/v1/properties/${PID}/snapshot`, `/v1/properties/${PID}/forecast`, `/v1/properties/${PID}/warnings`, `/v1/properties/${PID}/events`, `/v1/properties/${PID}/environment`, `/v1/properties/${PID}/flood`, `/v1/properties/${PID}/activity`, `/v1/properties/${PID}/event-map`, '/v1/settings', '/v1/changes', '/v1/stream']) {
       expect((await app.inject({ method: 'GET', url })).statusCode, url).toBe(401);
       expect((await app.inject({ method: 'GET', url, headers: { authorization: 'Bearer noorg' } })).statusCode, url).toBe(403);
     }
@@ -367,6 +367,14 @@ describe('monitoring HTTP endpoints', () => {
     const nowcast = await get('/v1/portfolio/nowcast');
     expect(nowcast.statusCode).toBe(200);
     expect(PortfolioNowcastPatchSchema.parse(nowcast.json()).nowcasts).toEqual([]);
+  });
+
+  it('answers 404 for an event that never reached the organization and 400 for a bad id or key (S-09)', async () => {
+    const get = (url: string) => app.inject({ method: 'GET', url, headers: { authorization: 'Bearer org' } });
+    expect((await get(`/v1/events/${PID}`)).statusCode).toBe(404);
+    expect((await get('/v1/events/links/0123456789abcdef')).statusCode).toBe(404);
+    expect((await get('/v1/events/not-a-uuid')).statusCode).toBe(400);
+    expect((await get('/v1/events/links/XYZ')).statusCode).toBe(400);
   });
 
   it('coverage requires an active organization and uses only that tenant', async () => {

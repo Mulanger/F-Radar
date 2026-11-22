@@ -1,15 +1,21 @@
 import 'server-only';
 import { cache } from 'react';
 import { cookies } from 'next/headers';
-import { PortfolioSchema, PropertySnapshotSchema, listPortfolio, type Portfolio, type PropertySnapshot } from '@fastighetsradar/domain';
+import { EventPageSchema, PortfolioSchema, PropertySnapshotSchema, listPortfolio, type EventPage, type Portfolio, type PropertySnapshot } from '@fastighetsradar/domain';
 import { demoPortfolio, demoScaleSize, scaleDemoPortfolio } from '@fastighetsradar/domain/fixtures';
 import { DEMO_SIZE_COOKIE } from '../demo/size';
+import { demoEventPage } from '../demo/event-page';
 import { InternalApiError, internalApiJson } from '../server/internal-api';
 
 export type DataMode = 'demo' | 'live';
 
 export type PropertySnapshotLoadResult =
   | { status: 'ok'; snapshot: PropertySnapshot }
+  | { status: 'not_found' }
+  | { status: 'unavailable'; reason: string };
+
+export type EventPageLoadResult =
+  | { status: 'ok'; page: EventPage }
   | { status: 'not_found' }
   | { status: 'unavailable'; reason: string };
 
@@ -65,6 +71,27 @@ export async function loadDemoPropertySnapshot(size: number | null, id: string):
   const snapshot = full.properties.find((s) => s.property.id === id);
   return snapshot ? { status: 'ok', snapshot } : { status: 'not_found' };
 }
+
+/** The page of a demo event (Fas 2 / S-09), like `/v1/events/:id` live. */
+export async function loadDemoEventPage(size: number | null, eventId: string): Promise<EventPageLoadResult> {
+  if (!demoEnabled()) return { status: 'not_found' };
+  const page = demoEventPage(demoPortfolios(demoScaleSize(size, demoPortfolio.properties.length)).full, eventId);
+  return page ? { status: 'ok', page } : { status: 'not_found' };
+}
+
+/**
+ * One event over the signed-in organization's properties (docs/plans/skalning.md, Fas 2 / S-09). The
+ * API answers 404 for an event that never reached the organization. Deduplicated per request.
+ */
+export const loadLiveEventPage = cache(async (id: string): Promise<EventPageLoadResult> => {
+  try {
+    const parsed = EventPageSchema.safeParse(await internalApiJson<unknown>(`/v1/events/${encodeURIComponent(id)}`));
+    return parsed.success ? { status: 'ok', page: parsed.data } : { status: 'unavailable', reason: 'Larmtjänsten returnerade ett oväntat svar.' };
+  } catch (err) {
+    if (err instanceof InternalApiError && (err.status === 404 || err.status === 400)) return { status: 'not_found' };
+    return { status: 'unavailable', reason: err instanceof InternalApiError ? `Fel i larmtjänsten (${err.status}).` : 'Larmtjänsten går inte att nå.' };
+  }
+});
 
 /**
  * Full snapshot of ONE property of the signed-in organization (property page and its metadata;

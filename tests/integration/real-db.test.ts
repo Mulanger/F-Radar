@@ -23,6 +23,8 @@ import {
   listRecentChangesForOrg,
   acknowledgeFeedChanges,
   unacknowledgeFeedChanges,
+  loadOrgEvent,
+  findOrgEventByLinkKey,
   listAcknowledgementHistory,
   undoAcknowledgementHistory,
   migrateUp,
@@ -381,6 +383,17 @@ describe('real PostgreSQL / PostGIS', () => {
       assert.deepEqual(await history(), { n: 300, properties: 300, undone: 300 });
       const reopened = (await listRecentChangesForOrg(pool, a.organizationId, 6, a.userId)).filter((row) => row.headline === 'Länsvarning');
       assert.ok(reopened.every((row) => row.acknowledged_at === null));
+
+      // The event page (S-09): every property of the organization once, with the row to acknowledge.
+      const countyEventId = feed.find((row) => row.headline === 'Länsvarning')!.event_id!;
+      const page = await loadOrgEvent(pool, a.organizationId, countyEventId);
+      assert.equal(page?.properties.length, 300);
+      assert.ok(page!.properties.every((p) => p.matched && p.change_id && countyIds.includes(p.change_id)));
+      assert.equal(page!.event.headline, 'Länsvarning');
+      assert.equal(await loadOrgEvent(pool, b.organizationId, countyEventId), null, 'another organization does not see it');
+      const key = countyEventId.replace(/-/g, '').slice(0, 16);
+      assert.equal(await findOrgEventByLinkKey(pool, a.organizationId, key), countyEventId);
+      assert.equal(await findOrgEventByLinkKey(pool, b.organizationId, key), null);
     } finally {
       await endEventsById(pool, 'smhi_warnings', [county.externalId, ...small.map((w) => w.externalId)], 'test_finished');
       for (const id of ids) await deleteProperty(pool, a, id);

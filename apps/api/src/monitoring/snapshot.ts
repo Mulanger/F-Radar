@@ -594,6 +594,8 @@ export function buildPropertySnapshot(p: PropertyRecord, clerkOrgId: string, dat
 /* ------------------------------------------------------------------ */
 
 const SEV_STATUS: Record<string, PropertyStatus> = { critical: 'critical', warning: 'warning', monitor: 'monitor', info: 'normal', unknown: 'unknown' };
+/** A stored change/event severity as the dashboard's status colour. */
+export const statusOfSeverity = (severity: string): PropertyStatus => SEV_STATUS[severity] ?? 'unknown';
 const CHANGE_SV: Record<string, string> = { new: 'Ny', updated: 'Uppdaterad', ended: 'Avslutad', cancelled: 'Återkallad' };
 
 type FeedChange = {

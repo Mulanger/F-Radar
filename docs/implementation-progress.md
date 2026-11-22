@@ -153,4 +153,6 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
 - Steg 2: "Kvittera alla (N)" på ett händelsekort – ett anrop (`POST /v1/feed/acknowledgements/batch`,
   högst 1 000 rader, en SQL-sats) i stället för ett klick per fastighet; "Ångra" direkt efteråt.
   Historiken har kvar en rad per fastighet.
+- Steg 3: händelsesidan `/alerts/<händelse>` (live och demo) – varningstexten en gång, karta, sökbar
+  lista och "Kvittera alla"; `GET /v1/events/:id`. Grupperade SMS länkar dit via `/h/<nyckel>`.
 

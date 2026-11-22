@@ -1,6 +1,6 @@
 import type { ServerEnv } from '@fastighetsradar/config';
-import type { DataSourceStatus, Portfolio, PortfolioNowcastPatch, PortfolioRowsPatch, PropertyRecord, PropertySnapshot } from '@fastighetsradar/domain';
-import { buildUtilityCoverageReport, listSnapshot, utilityCoverageLogEntries, UTILITY_KINDS } from '@fastighetsradar/domain';
+import type { DataSourceStatus, EventPage, Portfolio, PortfolioNowcastPatch, PortfolioRowsPatch, PropertyRecord, PropertySnapshot, SourceId } from '@fastighetsradar/domain';
+import { buildUtilityCoverageReport, feedNeedsAck, listSnapshot, utilityCoverageLogEntries, UTILITY_KINDS, WarningLevelSchema } from '@fastighetsradar/domain';
 import {
   getProperty,
   recordUtilityCoverageGaps,
@@ -15,6 +15,8 @@ import {
   getPropertyEventMapEvent,
   getOrganizationSettings,
   loadOrgMonitoring,
+  loadOrgEvent,
+  findOrgEventByLinkKey,
   loadOrgNowcasts,
   rematchEvents,
   rematchUtilityOutages,
@@ -26,7 +28,7 @@ import { isWaterOutageEnabled, operatorById, resolveSourceStatuses } from '@fast
 import { buildLivePortfolio } from '../portfolio';
 import type { MonitoringBus } from './bus';
 import { PER_PROPERTY_JOBS } from './jobs';
-import { alarmFeedItems, buildActiveAlarmFeed, buildFeed, buildNowcast, buildPropertySnapshot, buildUpcoming, indexMonitoring } from './snapshot';
+import { alarmFeedItems, buildActiveAlarmFeed, buildFeed, buildNowcast, buildPropertySnapshot, buildUpcoming, indexMonitoring, SOURCE_LABEL, statusOfSeverity } from './snapshot';
 import { resolveRuntimeStatuses } from './status';
 import { notificationSnapshots } from '../notifications/snapshots';
 import { propertyUtilityStatus, resolveOperatorStatuses, withUtilityOutages, type OperatorStatus, type UtilityInputs } from './utility-outages';
@@ -259,6 +261,55 @@ export class MonitoringService {
     const [data, statuses, utility] = await Promise.all([loadOrgMonitoring(this.db, t.organizationId, id), this.statuses(now), this.utilityInputs(t.organizationId, now)]);
     const base = buildPropertySnapshot(record, t.clerkOrgId, data, statuses, now);
     return { record, snapshot: (await notificationSnapshots(this.db, t.organizationId, [utility ? withUtilityOutages(base, utility) : base]))[0]!, statuses };
+  }
+
+  /**
+   * One event over the organization's properties (docs/plans/skalning.md, Fas 2 / S-09): the official
+   * text once, every property it reaches with the feed row to acknowledge. Null when the event never
+   * reached the organization.
+   */
+  async event(t: TenantContext, eventId: string, now = new Date()): Promise<EventPage | null> {
+    const r = await loadOrgEvent(this.db, t.organizationId, eventId);
+    if (!r) return null;
+    const e = r.event;
+    const active = e.status === 'active';
+    const level = WarningLevelSchema.safeParse(e.level);
+    const iso = (d: Date | null) => (d ? d.toISOString() : null);
+    return {
+      generatedAt: now.toISOString(),
+      event: {
+        id: e.id,
+        sourceId: e.source_id as SourceId,
+        sourceLabel: e.source_id === 'utility_outages' && typeof e.extra?.operatorName === 'string' ? e.extra.operatorName : SOURCE_LABEL[e.source_id as SourceId] ?? e.source_id,
+        title: e.headline,
+        level: level.success ? level.data : null,
+        severity: statusOfSeverity(e.severity),
+        description: e.description,
+        areaLabel: e.area_label,
+        publishedAt: iso(e.published_at),
+        validFrom: iso(e.valid_from),
+        validTo: iso(e.valid_to),
+        active,
+        sourceUrl: e.source_url,
+        origin: 'live',
+      },
+      properties: r.properties.map((p) => ({
+        propertyId: p.property_id,
+        name: p.name,
+        address: p.address,
+        location: { lat: Number(p.lat), lon: Number(p.lon) },
+        changeId: p.change_id ? `chg-${p.change_id}` : null,
+        changeType: p.change_type,
+        matched: p.matched,
+        ackRequired: !!p.change_id && feedNeedsAck({ sourceId: e.source_id, changeType: p.change_type ?? '', severity: p.change_severity ?? '', eventActive: active, superseded: false }),
+        acknowledgedAt: iso(p.acknowledged_at),
+      })),
+    };
+  }
+
+  /** The event behind a grouped SMS link (`/h/<key>`); null when unknown to the organization. */
+  async eventByLinkKey(t: TenantContext, key: string) {
+    return findOrgEventByLinkKey(this.db, t.organizationId, key);
   }
 
   async changes(t: TenantContext, limit: number) {

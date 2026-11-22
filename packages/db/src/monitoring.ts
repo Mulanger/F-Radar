@@ -1189,6 +1189,63 @@ export async function getPropertyEventMapEvent(db: Queryable, organizationId: st
   };
 }
 
+/** One source event, as an event page shows it (docs/plans/skalning.md, Fas 2 / S-09). */
+export interface EventPageEventRow {
+  id: string; source_id: string; data_class: string; level: string | null; severity: string; headline: string; description: string | null;
+  area_label: string | null; published_at: Date | null; valid_from: Date | null; valid_to: Date | null; status: string; source_url: string | null;
+  extra: Record<string, unknown> | null;
+}
+/** A property the event reaches (or reached): its newest feed row of the event and that row's acknowledgement. */
+export interface EventPagePropertyRow {
+  property_id: string; name: string; address: string; lat: number; lon: number; matched: boolean;
+  change_id: string | null; change_type: string | null; change_severity: string | null; superseded: boolean; acknowledged_at: Date | null;
+}
+
+const ORG_HAS_EVENT = `(EXISTS (SELECT 1 FROM property_event_matches m WHERE m.organization_id = $1 AND m.event_id = e.id)
+  OR EXISTS (SELECT 1 FROM monitoring_changes c WHERE c.organization_id = $1 AND c.event_id = e.id))`;
+
+/**
+ * TENANT read: an event and every property of the organization it reaches – null when the event never
+ * reached the organization (another tenant's event is indistinguishable from a missing one).
+ */
+export async function loadOrgEvent(db: Queryable, organizationId: string, eventId: string): Promise<{ event: EventPageEventRow; properties: EventPagePropertyRow[] } | null> {
+  const [events, properties] = await Promise.all([
+    db.query<EventPageEventRow>(
+      `SELECT e.id::text, e.source_id, e.data_class, e.level, e.severity, e.headline, e.description, e.area_label,
+              e.published_at, e.valid_from, e.valid_to, e.status, e.source_url, e.extra
+         FROM source_events e WHERE e.id = $2::uuid AND ${ORG_HAS_EVENT}`,
+      [organizationId, eventId],
+    ),
+    db.query<EventPagePropertyRow>(
+      `SELECT p.id AS property_id, p.name, p.address, ST_Y(p.location::geometry) AS lat, ST_X(p.location::geometry) AS lon,
+              m.event_id IS NOT NULL AS matched, latest.id::text AS change_id, latest.change_type, latest.severity AS change_severity,
+              false AS superseded, ack.acknowledged_at
+         FROM properties p
+         LEFT JOIN property_event_matches m ON m.organization_id = $1 AND m.property_id = p.id AND m.event_id = $2::uuid
+         LEFT JOIN LATERAL (
+           SELECT c.id, c.change_type, c.severity FROM monitoring_changes c
+            WHERE c.organization_id = $1 AND c.property_id = p.id AND c.event_id = $2::uuid
+            ORDER BY c.created_at DESC, c.id DESC LIMIT 1
+         ) latest ON true
+         LEFT JOIN feed_acknowledgements ack ON ack.organization_id = $1 AND ack.change_id = latest.id
+        WHERE p.organization_id = $1 AND (m.event_id IS NOT NULL OR latest.id IS NOT NULL)
+        ORDER BY p.name, p.id`,
+      [organizationId, eventId],
+    ),
+  ]);
+  const event = events.rows[0];
+  return event ? { event, properties: properties.rows } : null;
+}
+
+/** TENANT read: the event behind an SMS link key (`eventLinkKey`), only when it reached the organization and the key is unique. */
+export async function findOrgEventByLinkKey(db: Queryable, organizationId: string, key: string): Promise<string | null> {
+  const { rows } = await db.query<{ id: string }>(
+    `SELECT e.id::text FROM source_events e WHERE left(replace(e.id::text, '-', ''), 16) = $2 AND ${ORG_HAS_EVENT} LIMIT 2`,
+    [organizationId, key],
+  );
+  return rows.length === 1 ? rows[0]!.id : null;
+}
+
 export async function listPropertyEventMap(db: Queryable, organizationId: string, propertyId: string): Promise<EventMapItem[]> {
   const { rows } = await db.query<MapEventRow>(
     `SELECT e.id::text AS event_id, e.source_id, e.event_type, e.headline, e.description, e.area_label, e.valid_from, e.valid_to, e.extra,
