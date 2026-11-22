@@ -371,6 +371,8 @@ Fasen anger var fyndet åtgärdas.
   för **alla** kunder, och pågående jobb (SMS-utvärdering, hämtningar) avbryts.
 - **Snabb lindring innan Fas 3:** höj API:ts heap till 512 MB i processövervakaren (podden har ~1,2–1,5
   GB ledigt). Det tar bort kraschen vid 500 men inte de långa svarstiderna eller datamängden.
+  **Gjort 2026-11-22** (`API_MAX_OLD_SPACE_MB` i `deploy/pod/index.js`; mätskriptet mäter nu mot 512 MB),
+  gäller från nästa driftsättning.
 - **Åtgärd:** Fas 3:s lättare kontrakt (S-10, S-16) är huvudåtgärden. Dessutom: högst ett
   portföljbygge åt gången per organisation (samtidiga anrop väntar på och delar samma resultat),
   slumpad fördröjning (0–5 s) på klientens refresh efter en signal, och logga `heapUsed` per
@@ -477,6 +479,15 @@ just de händelser tjänsten finns till för.
   (luftkvalitet, nowcast, prognos, SGU, MCF) får en tidsbudget per varv och fortsätter nästa varv
   (`moreWork`). Logga kölängd/väntetid för larmjobben och larma i `/health` när SMS-jobbet väntat mer
   än 60 s.
+- **Gjort 2026-11-22 (Fas 5 steg 0):** tre köer i `scheduler.ts`, var och en med ett jobb åt gången: `sms`
+  (bara `sms_notifications`, eftersom de ~50 avbrottskällorna som förfaller samtidigt tar 25–60 s per varv
+  enligt `integration_runs`), `alerts` (SMHI-varningar, Krisinformation, Trafikverket och avbrottskällorna,
+  alltså allt en SMS-regel kan utlösas av) och `background` (resten). `collector run` loggar `lane` och
+  `waitedMs` (databasens klocka); ett SMS-jobb som är mer än 60 s sent eller ett larmjobb mer än 120 s sent
+  loggar `alert job delayed` och gör `/health/ready` till `degraded` (fortfarande HTTP 200, de första 5
+  minuterna efter start alltid `ok` så att driftsättningens hälsokontroll inte fälls av driftstoppet).
+  **Kvar:** tidsbudget per varv för tunga jobb. Luftkvalitet hämtar ett fåtal stora dataset och kan inte
+  delas per fastighet; nowcast delas upp i S-35 (Fas 7). De försenar nu bara andra bakgrundsjobb.
 
 **S-27 SMS-regelns fastighetsval och aktivitetslogg skalar inte** · P2 · Fas 1 (lista) och Fas 4 (grupper)
 - **Var:** [`SmsManagement.tsx:724`](../../apps/web/components/notifications/SmsManagement.tsx) (kryssrutor, `maxHeight: 180`), [`SmsManagement.tsx:1278`](../../apps/web/components/notifications/SmsManagement.tsx) (`propertyNames.join(", ")`).
@@ -694,6 +705,7 @@ Måste vara klar innan riktiga SMS slås på för stora kunder.
 
 0. Larmjobben får en egen loop som aldrig väntar på tunga jobb; tidsbudget per varv för de tunga;
    väntetid för larmjobben i loggen och `/health` (S-34). Görs först – den hjälper redan i dag.
+   **Gjort 2026-11-22** utom tidsbudgeten för tunga jobb (se S-34).
 1. Minuttaket köar i stället för att spärra; kön sorteras på allvar (S-23).
 2. Nödundantag från dagstaken, allvarsordning, varning i regelredigeraren, tak per prisnivå (S-24).
 3. Fastigheter över dagstak tas bort ur gruppen i stället för att spärra hela SMS:et (S-25).
@@ -758,4 +770,5 @@ fastigheter (siffror i Fasloggen).
 |---|---|---|---|---|
 | Granskning | 2026-11-22 | – (ingen kod) | Avsnitt 2.1–2.2 | API-tider, livesnapshotens storlek |
 | Mätning i produktion | 2026-11-22 | – (ingen kod, bara läsning) | Avsnitt 2.3; nya fynd S-33–S-35 | Heap och svarstid vid 200+ (ingen så stor kund) |
-| Fas 0 | 2026-11-22 | `claude/skalning-fas0` (ej committad i väntan på godkännande) | Klient: avsnitt 2.1 bekräftat (`npm run measure:portfolio`). API mot testdatabas: avsnitt 2.4 – **OOM vid 500 fastigheter × 3 samtidiga anrop** med 192 MB heap. Snabbväxla vid `?n=500`: 32 322 px hög. | Grundförbrukning i riktiga API:t; webbserverns minne; fastighetskontext ej seedad |
+| Fas 0 | 2026-11-22 | `claude/skalning-fas0` / `304d8c2` | Klient: avsnitt 2.1 bekräftat (`npm run measure:portfolio`). API mot testdatabas: avsnitt 2.4 – **OOM vid 500 fastigheter × 3 samtidiga anrop** med 192 MB heap. Snabbväxla vid `?n=500`: 32 322 px hög. | Grundförbrukning i riktiga API:t; webbserverns minne; fastighetskontext ej seedad |
+| Lindring S-33 + Fas 5 steg 0 (S-34) | 2026-11-22 | `claude/skalning-fas0` (ej committad i väntan på godkännande) | API-heap 192 → 512 MB (`deploy/pod/index.js`), räcker för 1000 × 3 enligt avsnitt 2.4. Schemaläggaren i tre köer: SMS, larmkällor, övrigt. Före: `sms_notifications` väntade upp till 284 s bakom luftkvalitet (200–430 s per körning, avsnitt 2.3). Efter: enhetstest visar att SMS och avbrottskällor körs medan ett tungt jobb pågår. | Ingen driftsättning: väntetiden i produktion (`waitedMs` i `collector run`) mäts först efter deploy; tidsbudget per varv för tunga jobb ej gjord (S-35, Fas 7) |

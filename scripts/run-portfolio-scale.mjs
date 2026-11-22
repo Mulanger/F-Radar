@@ -10,7 +10,7 @@
  *
  * Steps: build dist-perf/portfolio-scale.mjs, upload it with the migrations to /home/instapod/fr-perf,
  * seed synthetic organizations, run the measurement matrix in the background (child processes with
- * the production heap limit of 192 MB and a search for the smallest limit that works), poll until it
+ * the production heap limit (512 MB, deploy/pod/index.js) and a search for the smallest limit that works), poll until it
  * is done, print the results and remove the synthetic data.
  */
 import { execSync } from 'node:child_process';

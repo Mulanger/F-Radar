@@ -17,6 +17,13 @@ const { spawn } = require('node:child_process');
 const path = require('node:path');
 
 const root = __dirname;
+/**
+ * Heap ceilings (MB) on the 2 GB pod, shared with PostgreSQL. The API builds whole portfolios
+ * in memory: measured in docs/plans/skalning.md §2.4, 500 properties × 3 concurrent requests
+ * run out of memory at 192 MB and need 256; 1000 × 3 need 384. 512 is headroom until Fas 3
+ * shrinks the payload – a ceiling, not a reservation.
+ */
+const API_MAX_OLD_SPACE_MB = 512;
 const children = [];
 let stopping = false;
 
@@ -46,5 +53,5 @@ function shutdown(code) {
 process.on('SIGTERM', () => shutdown(0));
 process.on('SIGINT', () => shutdown(0));
 
-start('api', path.join(root, 'api', 'main.mjs'), { API_HOST: '127.0.0.1', API_PORT: '4000', FASTIGHETSRADAR_MIGRATIONS_DIR: path.join(root, 'db', 'migrations') }, 192);
+start('api', path.join(root, 'api', 'main.mjs'), { API_HOST: '127.0.0.1', API_PORT: '4000', FASTIGHETSRADAR_MIGRATIONS_DIR: path.join(root, 'db', 'migrations') }, API_MAX_OLD_SPACE_MB);
 start('web', path.join(root, 'web', 'apps', 'web', 'server.js'), { PORT: '3000', HOSTNAME: '0.0.0.0', FASTIGHETSRADAR_INTERNAL_API_URL: 'http://127.0.0.1:4000' }, 384);

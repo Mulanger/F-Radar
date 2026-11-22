@@ -5,7 +5,7 @@
  *
  *   node portfolio-scale.mjs seed 200 500 1000     # synthetic organizations (idempotent)
  *   node portfolio-scale.mjs matrix 200 500 1000   # measure in child processes (heap limits, concurrency)
- *   node --expose-gc --max-old-space-size=192 portfolio-scale.mjs measure 500 3
+ *   node --expose-gc --max-old-space-size=512 portfolio-scale.mjs measure 500 3
  *   node portfolio-scale.mjs cleanup
  *
  * Everything it writes is tagged: organizations `org_perfscale<n>`, events `perf:…`, stations
@@ -267,6 +267,9 @@ async function measure(n: number, concurrency: number, rounds = 3) {
   };
 }
 
+/** The API's heap ceiling in production (deploy/pod/index.js); it was 192 MB until Fas 0 measured it. */
+const PROD_HEAP_MB = 512;
+
 /** Runs `measure` in child processes: production heap limit first, then the smallest limit that still works. */
 function matrix(sizes: number[]) {
   const self = fileURLToPath(import.meta.url);
@@ -278,12 +281,12 @@ function matrix(sizes: number[]) {
   };
   const out = [];
   for (const n of sizes) for (const c of [1, 3]) {
-    const atProd = run(n, c, 192);
+    const atProd = run(n, c, PROD_HEAP_MB);
     let minLimit: number | null = null;
-    for (const limit of [64, 96, 128, 192, 256, 384]) {
+    for (const limit of [64, 96, 128, 192, 256, 384, 512]) {
       if (run(n, c, limit).ok) { minLimit = limit; break; }
     }
-    const row = { n, concurrency: c, at192: atProd.ok ? 'ok' : atProd.reason, minHeapLimitMb: minLimit, ...(atProd.ok ? atProd : {}) };
+    const row = { n, concurrency: c, prodHeapMb: PROD_HEAP_MB, atProdHeap: atProd.ok ? 'ok' : atProd.reason, minHeapLimitMb: minLimit, ...(atProd.ok ? atProd : {}) };
     console.log(JSON.stringify(row));
     out.push(row);
   }

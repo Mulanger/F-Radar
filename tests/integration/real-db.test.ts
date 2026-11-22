@@ -32,6 +32,7 @@ import {
   ensureJobs,
   finishJob,
   leaseDueJob,
+  listOverdueJobs,
   loadOrgMonitoring,
   rematchEvents,
   getOrganizationSettings,
@@ -361,6 +362,17 @@ describe('real PostgreSQL / PostGIS', () => {
     assert.ok(await leaseDueJob(pool, 'test_job', 'owner-c', 30));
     const { rows: runs } = await pool.query(`SELECT count(*)::int AS n FROM integration_runs WHERE job_id = 'test_job'`);
     assert.equal(runs[0].n, 1);
+  });
+
+  it('listOverdueJobs reports how late due jobs are and skips jobs in backoff or disabled', async () => {
+    await ensureJobs(pool, ['overdue_a', 'overdue_b', 'overdue_off'].map((jobId) => ({ jobId, sourceId: null, intervalSeconds: 30, enabled: jobId !== 'overdue_off' })));
+    await pool.query(`UPDATE provider_jobs SET next_run_at = now() - interval '95 seconds' WHERE job_id IN ('overdue_a', 'overdue_off')`);
+    await pool.query(`UPDATE provider_jobs SET next_run_at = now() + interval '60 seconds' WHERE job_id = 'overdue_b'`);
+    const late = await listOverdueJobs(pool, ['overdue_a', 'overdue_b', 'overdue_off', 'missing_job']);
+    assert.deepEqual(late.map((l) => l.jobId), ['overdue_a']);
+    assert.ok(late[0]!.overdueSeconds >= 95 && late[0]!.overdueSeconds < 120, String(late[0]!.overdueSeconds));
+    assert.deepEqual(await listOverdueJobs(pool, []), []);
+    await pool.query(`DELETE FROM provider_jobs WHERE job_id LIKE 'overdue_%'`);
   });
 
   it('PostGIS matching: polygons, county, radius; dedup; versioning; end; isolation; retention', async () => {

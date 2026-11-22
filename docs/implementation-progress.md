@@ -100,3 +100,17 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
   0 i applikationsdatabasen). Resultat i planens avsnitt 2.4: ~28 KB per fastighet; **500 fastigheter × 3
   samtidiga anrop ger minnesbrist vid 192 MB** (kräver 256 MB; 1000 × 3 kräver 384 MB).
 - Tester: 83 filer / 614 godkända / 6 överhoppade; typer och lint gröna för ändrade paket.
+
+# Skalning – minnesgräns och larmköer (2026-11-22)
+
+- Plan: [`plans/skalning.md`](plans/skalning.md), S-33 (lindring) och Fas 5 steg 0 / S-34. Gren `claude/skalning-fas0`
+  ovanpå `304d8c2`. Ingen driftsättning.
+- API:ts heap på podden höjd från 192 till 512 MB (`deploy/pod/index.js`); Fas 0-mätningen gav minnesbrist vid
+  500 fastigheter × 3 samtidiga anrop med 192 MB. `run-portfolio-scale.mjs` mäter nu mot 512 MB.
+- Schemaläggaren kör tre köer parallellt, ett jobb åt gången i varje: `sms` (`sms_notifications`), `alerts`
+  (SMHI-varningar, Krisinformation, Trafikverket, avbrottskällor) och `background` (övrigt). Luftkvalitet (200–430 s)
+  kan inte längre hålla SMS-utvärderingen och varningshämtningen.
+- `collector run` loggar `lane` och `waitedMs`; sent larmjobb (SMS > 60 s, larmkällor > 120 s) loggar
+  `alert job delayed` och gör `/health/ready` `degraded` (HTTP 200; `ok` de första 5 minuterna efter start).
+  Ny databasfunktion `listOverdueJobs`.
+- Tester: 84 filer / 619 godkända / 6 överhoppade; typer och lint gröna; PostGIS 39/39 på `fastighetsradar_test`.

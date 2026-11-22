@@ -34,6 +34,9 @@ async function main() {
   const app = await buildApp(env, { probes, db: pool, criticalProbes: pool ? ['database'] : [], monitoring });
   // Collectors run inside this process (Build pod: no separate worker service).
   const scheduler = pool && env.MONITORING_SCHEDULER_ENABLED ? new MonitoringScheduler({ db: pool, env, logger: app.log, bus }) : null;
+  // Non-critical: late SMS/alert jobs make /health/ready `degraded` (still HTTP 200). The health
+  // route reads `probes` per request, so adding it after buildApp is enough.
+  if (scheduler) probes.scheduler = () => scheduler.health();
   app.log.info({ clerk: clerkInstanceType(env), geocoding: env.GEOAPIFY_API_KEY ? 'configured' : 'missing', trafikverket: env.TRAFIKVERKET_API_KEY ? (env.TRAFIKVERKET_ENABLED ? 'enabled' : 'key present, disabled') : 'missing' }, 'configuration');
 
   const shutdown = async (signal: string) => {

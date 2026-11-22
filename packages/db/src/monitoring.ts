@@ -114,6 +114,21 @@ export async function listJobs(db: Queryable): Promise<JobRow[]> {
   return rows;
 }
 
+/**
+ * Enabled jobs among `jobIds` that are past their due time, with how late they are (seconds,
+ * database clock). A running job counts until it finishes: lateness is "not done yet", which is
+ * what an alert waiting for it experiences. A job in backoff is not due and not listed.
+ */
+export async function listOverdueJobs(db: Queryable, jobIds: string[]): Promise<Array<{ jobId: string; overdueSeconds: number }>> {
+  if (!jobIds.length) return [];
+  const { rows } = await db.query<{ job_id: string; overdue_s: number }>(
+    `SELECT job_id, extract(epoch FROM now() - next_run_at)::float8 AS overdue_s
+       FROM provider_jobs WHERE job_id = ANY($1::text[]) AND enabled AND next_run_at < now()`,
+    [jobIds],
+  );
+  return rows.map((r) => ({ jobId: r.job_id, overdueSeconds: Number(r.overdue_s) }));
+}
+
 /* ------------------------------------------------------------------ */
 /* Monitoring targets (system)                                         */
 /* ------------------------------------------------------------------ */
