@@ -60,7 +60,7 @@ describe('traffic updates in the feed', () => {
 });
 
 describe('kvittering i händelseflödet', () => {
-  it.each(['desktop', 'mobile'])('groups new outages without an update badge on %s', (device) => {
+  it.each(['desktop', 'mobile'])('groups new outages without an update badge on %s', async (device) => {
     const properties = demoPortfolio.properties.slice(0, 3);
     const publishedAt = demoPortfolio.generatedAt;
     const row: Portfolio['feed'][number] = {
@@ -77,7 +77,10 @@ describe('kvittering i händelseflödet', () => {
     expect(screen.queryByText('Uppdaterad')).toBeNull();
     const group = container.querySelector('details')!;
     expect(group.querySelector('summary')?.textContent).toContain('2 berörda fastigheter');
-    expect(group.querySelectorAll('li')).toHaveLength(2);
+    // The property rows are rendered when the card is opened (a county warning names hundreds: Fas 2).
+    expect(group.querySelectorAll('li')).toHaveLength(0);
+    fireEvent.click(group.querySelector('summary')!);
+    await vi.waitFor(() => expect(group.querySelectorAll('li')).toHaveLength(2));
   });
 
   it.each(['desktop', 'mobile'])('groups one SMHI revision and saves only the chosen property on %s', async (device) => {
@@ -105,7 +108,7 @@ describe('kvittering i händelseflödet', () => {
     expect(summary.textContent).toContain('2 att kvittera');
     fireEvent.click(summary);
     expect(group.open).toBe(true);
-    expect(group.querySelectorAll('li')).toHaveLength(4);
+    await vi.waitFor(() => expect(group.querySelectorAll('li')).toHaveLength(4));
     fireEvent.click(within(group).getByRole('button', { name: `Kvittera: Snöfall · ${properties[0]!.property.name}` }));
     await vi.waitFor(() => expect(within(summary).getByText('1 att kvittera')).toBeTruthy());
     expect(save).toHaveBeenCalledWith('/api/app/feed/acknowledgements', expect.objectContaining({

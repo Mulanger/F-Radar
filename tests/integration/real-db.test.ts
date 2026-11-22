@@ -337,6 +337,36 @@ describe('real PostgreSQL / PostGIS', () => {
     }
   });
 
+  it('limits the feed by event: a warning over 300 properties is one event with all its rows, and others stay (Fas 2 / S-04)', async () => {
+    const a = { organizationId: await ensureOrganization(pool, ORG_A, 'org-a'), userId: 'user_testA' };
+    const ids: string[] = [];
+    for (let i = 0; i < 300; i++) {
+      const location = { lat: 59.30 + (i % 20) * 0.003, lon: 18.00 + Math.floor(i / 20) * 0.004 };
+      ids.push((await createProperty(pool, a, { ...sveavagen, name: `Län ${i}`, location, geocode: { ...sveavagen.geocode, placeId: `feed-${i}`, geocodedPoint: location } })).id);
+    }
+    const small = [0, 1, 2, 3, 4].map((k) => ev({ externalId: `feed-small-${k}`, headline: `Lokal varning ${k}`, geometry: box(18.00 + k * 0.004, 59.30, 0.0005) }));
+    const county = ev({ externalId: 'feed-county', headline: 'Länsvarning', level: 'Orange', severity: 'warning', geometry: box(18.03, 59.33, 0.1) });
+    try {
+      for (const warning of small) {
+        await upsertSourceEvents(pool, 'smhi_warnings', [warning]);
+        await rematchEvents(pool);
+      }
+      await upsertSourceEvents(pool, 'smhi_warnings', [county]);
+      await rematchEvents(pool);
+      const feed = (await listRecentChangesForOrg(pool, a.organizationId, 6, a.userId)).filter((row) => ids.includes(row.property_id));
+      const byHeadline = new Map<string, number>();
+      for (const row of feed) byHeadline.set(row.headline, (byHeadline.get(row.headline) ?? 0) + 1);
+      assert.equal(byHeadline.get('Länsvarning'), 300, 'the county warning comes with every property');
+      for (let k = 0; k < 5; k++) assert.ok(byHeadline.get(`Lokal varning ${k}`), `local warning ${k} is still in the feed`);
+      // A smaller limit keeps the newest events – still whole.
+      const three = new Set((await listRecentChangesForOrg(pool, a.organizationId, 3, a.userId)).map((row) => row.headline));
+      assert.deepEqual(three, new Set(['Länsvarning', 'Lokal varning 3', 'Lokal varning 4']));
+    } finally {
+      await endEventsById(pool, 'smhi_warnings', [county.externalId, ...small.map((w) => w.externalId)], 'test_finished');
+      for (const id of ids) await deleteProperty(pool, a, id);
+    }
+  });
+
   it('migration 0003 creates monitoring tables and seeds the source catalog', async () => {
     const { rows } = await pool.query<{ t: string }>(`SELECT tablename AS t FROM pg_tables WHERE schemaname = 'public'`);
     const names = rows.map((r) => r.t);
@@ -486,7 +516,10 @@ describe('real PostgreSQL / PostGIS', () => {
       assert.equal((await app.inject({ method: 'GET', url: `/v1/properties/${pb.id}/warnings`, headers: { authorization: 'Bearer tok-a' } })).statusCode, 404);
       const pf = await app.inject({ method: 'GET', url: '/v1/portfolio', headers: { authorization: 'Bearer tok-a' } });
       const snap = pf.json().properties[0];
-      assert.equal(snap.monitoring.observations[0].stationName, 'Nära');
+      // The portfolio is the LIST (Fas 3 / S-10): nearby observations come with the property's own snapshot.
+      assert.deepEqual(snap.monitoring.observations, []);
+      const one = await app.inject({ method: 'GET', url: `/v1/properties/${pa.id}/snapshot`, headers: { authorization: 'Bearer tok-a' } });
+      assert.equal(one.json().snapshot.monitoring.observations[0].stationName, 'Nära');
       assert.ok(snap.events.some((e: { category: string }) => e.category === 'Traffic'));
       assert.equal(snap.demoRisk, null);
       const ch = await app.inject({ method: 'GET', url: '/v1/changes', headers: { authorization: 'Bearer tok-a' } });

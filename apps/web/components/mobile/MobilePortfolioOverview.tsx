@@ -41,7 +41,7 @@ export function MobilePortfolioOverview({ vm }: { vm: OverviewVM }) {
       </section>
       {vm.isEmpty && <div className={styles.section}><EmptyPortfolio /></div>}
       <MobileSection title="Händelseflöde" subtitle="Offentliga källor i portföljen" id="mobile-events" meta={<span className={styles.riskBadge} style={{ color: demo ? 'oklch(.45 .1 70)' : hasFeed ? 'oklch(.45 .11 155)' : C.text3, background: demo ? 'oklch(.95 .05 80)' : hasFeed ? 'oklch(.95 .035 155)' : C.chip }}><span className={styles.dot} style={{ width: 6, height: 6 }} />{demo ? 'Demo' : hasFeed ? 'Live' : 'Ej ansluten'}</span>}>
-        {acks.pending(vm.feed) > 0 && <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '-4px 4px 10px' }}><FeedAckCount n={acks.pending(vm.feed)} /></div>}
+        {acks.pending(vm.feed) > 0 && <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '-4px 4px 10px' }}><FeedAckCount n={acks.pendingEvents(vm.feed)} /></div>}
         <div className={`${styles.surface} ${styles.list}`}>
           {!vm.feed.length && <div className={styles.empty}>{hasFeed ? 'Inga händelser för valda fastigheter.' : 'Händelser visas när de offentliga datakällorna levererar data.'}</div>}
           <MobileScrollList scrollKey={`${scrollKey}:feed`} visible={4} count={groupFeedRows(vm.feed).length} label="Händelser"><MobileFeedRows feed={vm.feed} basePath={ds.basePath} onMap={map.open} isUnread={map.isUnread} acks={acks} /></MobileScrollList>

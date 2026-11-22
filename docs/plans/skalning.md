@@ -684,6 +684,34 @@ historik en rad per fastighet); DOM-test för "Kvittera alla" och räknaren; PDF
 kvar; "Kvittera alla" kvitterar alla i ett anrop; badgen visar antal larm; PDF för 3 000 kvitteringar
 laddas ner. Visat på localhost:3000 och godkänt.
 
+**Ordning inom Fas 2:** 1) flöde och larm per händelse (S-04, S-06, S-07), 2) "Kvittera alla" (S-05),
+3) händelsesida (S-09), 4) kvitteringsrapporten (S-08).
+
+**Genomfört steg 1 (gren `claude/skalning-fas0`):**
+- **Mätning före** (testdatabasen, 500 fastigheter, `run-portfolio-scale.mjs --feed`; en länsvarning som
+  når 320 fastigheter, ett Krisinformation-meddelande till alla 500, trafik): flödet hade 30 rader och
+  **ett** kort – Krisinformation med "30 berörda" i stället för 500. Länsvarningen och all trafik var borta.
+- **Flödet per händelse (S-04):** SQL:en väljer de 60 senaste *händelserna* (samma revision av samma
+  källhändelse över alla fastigheter den når) och hämtar alla deras rader (tak 5 000 rader); API:t
+  begränsar till 30 händelser i stället för 30 rader (`FEED_EVENT_LIMIT`). Kortets fastighetslista
+  renderas först när kortet öppnas.
+- **Larmräknaren (S-06)** räknar olästa händelser; "att kvittera" visar händelser och, när de når fler,
+  antal fastigheter ("126 att kvittera · 625 fastigheter"). Lästmarkeringen är kvar per fastighet.
+- **S-07 inte ändrat:** de aktiva larmen tog 3 ms vid 500 (301 rader, Fas 3-profilen) och använder redan
+  `idx_monitoring_changes_event`; en gruppering i SQL ändrar kontraktet utan mätbar vinst.
+- **Efter:** flödet visar 30 kort – Krisinformation med alla 500 fastigheter, länsvarningen med alla 320
+  och 28 trafikhändelser. Pris: 848 rader i stället för 30 (~0,5 MB okomprimerat; en rad per fastighet
+  behövs för kvitteringen). Demo vid `?n=500`: vindvarningen är ett kort med "500 berörda fastigheter",
+  menyns larmräknare 625 → 126.
+- **Test:** SQL-test mot riktig PostgreSQL (länsvarning över 300 fastigheter + 5 andra händelser → alla 6
+  kommer med, varningen med alla 300 rader; gräns 3 → länsvarningen och de två senaste); API-test för
+  30 händelser med 300 rader i en; DOM-test att gruppens rader visas när kortet öppnas.
+- **Rättat på vägen:** testet "PostGIS matching" i den riktiga databassviten läste närliggande
+  observationer från `/v1/portfolio`, som inte har dem sedan Fas 3 steg 1 – sviten kördes inte då.
+  Testet läser dem nu från fastighetens snapshot och kontrollerar att listan saknar dem.
+- **Öppen fråga:** översiktens nyckeltal "Aktiva larm" räknar varning × fastighet (872 i demo vid 500);
+  rutan "Officiella varningar" visar redan antalet varningar.
+
 ### Fas 3 – Lättare dataflöde
 
 **Mål:** Sidladdning, fastighetsbyte och live-uppdatering kostar lika lite vid 500 fastigheter som i
@@ -949,4 +977,5 @@ fastigheter (siffror i Fasloggen).
 | Lindring S-33 + Fas 5 steg 0 (S-34) | 2026-11-22 | `f216613`, driftsatt 2026-11-22 11:44 UTC | API-heap 192 → 512 MB (`deploy/pod/index.js`), räcker för 1000 × 3 enligt avsnitt 2.4. Schemaläggaren i tre köer: SMS, larmkällor, övrigt. Före: `sms_notifications` väntade upp till 284 s bakom luftkvalitet (200–430 s per körning, avsnitt 2.3). Efter: enhetstest visar att SMS och avbrottskällor körs medan ett tungt jobb pågår. | Efter driftsättning: API:t kör med `--max-old-space-size=512`, köerna `sms` 1 / `alerts` 50 / `background` 17 jobb, `sms_notifications` var 30:e s med `waitedMs` 5–8 ms. Under luftkvalitetskörningen 12:10:54 (pågick fortfarande 12:12:32) körde `sms_notifications` var 30:e s med `waitedMs` 8–10 ms och `krisinformation` med 9,8 s (bakom avbrottskällorna i larmkön) – med den gamla kön hade båda väntat tills luftkvalitet var klar. Inte gjort: tidsbudget per varv för tunga jobb ej gjord (S-35, Fas 7) |
 | Fas 3 steg 2 | 2026-11-22 | `claude/skalning-fas0` / `b335ecf`, driftsatt 2026-11-22 15:45 UTC | Live-uppdatering vid 500 (testdatabas): hela listan 1,6 s / 6,0 MB / +115 MB heap → en prognoskörning som radvis uppdatering 0,26 s / 0,65 MB / +27 MB heap; lappad lista identisk med hel lista. Hela omladdningar per timme och flik: ~20 (~40 vid 1000) → ~3 (uppskattat). | Live-strömmen i webbläsaren (demoläget har ingen ström; DOM-test med falsk ström). I produktion efter driftsättning: loggraderna `portfolio rows built` / `portfolio nowcast built` mot `portfolio built` |
 | Fas 3 steg 3 | 2026-11-22 | `claude/skalning-fas0` / `158dc43`, driftsatt 2026-11-22 16:59 UTC | `/v1/portfolio` (testdatabas, median): 1,6 → 0,33 s vid 500, 3,3 → 0,69 s vid 1000; tre samtidiga 0,49 / 0,87 s. Minsta heap för tre samtidiga: 256 → 128 MB (500), 384 → 192 MB (1000). Radvis uppdatering 0,26 → 0,06 s. Listan identisk med `listSnapshot` av hela bygget vid 500 och 1000. EXPLAIN i Fas 3, "Genomfört steg 3". | Datamängd (6,0 MB vid 500, mål ≤ 0,5 MB) och heaptopp (mål ≤ 30 MB) ej uppfyllda – kräver kompaktare listkontrakt. JIT av ej mätt på andra frågor än portföljens (omatchning, inserts) |
-| Fas 3 steg 4 | 2026-11-22 | `claude/skalning-fas0` | `buildOverviewVM` (dator): 145 → 30 ms vid 500, 289 → 56 ms vid 1000. Listan över nätet med gzip: 337 KB vid 500 (demo) – målet 0,5 MB nått utan nytt format. | Mobilens tid för vymodellen (bara dator mätt); listans okomprimerade storlek (6,0 MB vid 500) och minnet i webbläsaren är oförändrade |
+| Fas 3 steg 4 | 2026-11-22 | `claude/skalning-fas0` / `ebf7da8`, driftsatt 2026-11-22 17:48 UTC | `buildOverviewVM` (dator): 145 → 30 ms vid 500, 289 → 56 ms vid 1000. Listan över nätet med gzip: 337 KB vid 500 (demo) – målet 0,5 MB nått utan nytt format. | Mobilens tid för vymodellen (bara dator mätt); listans okomprimerade storlek (6,0 MB vid 500) och minnet i webbläsaren är oförändrade |
+| Fas 2 steg 1 | 2026-11-22 | `claude/skalning-fas0` | Flödet vid 500 (testdatabas, länsvarning över 320 + Krisinformation över 500): 1 kort med "30 berörda" → 30 kort, Krisinformation med 500, länsvarningen med 320, trafiken kvar. Menyns larmräknare i demo vid 500: 625 → 126. | Flödet blir 848 rader (~0,5 MB okomprimerat) vid två stora händelser; nyckeltalet "Aktiva larm" räknar fortfarande varning × fastighet |

@@ -144,3 +144,10 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
   räknar listvyerna bara nowcast-märket (inte fastighetssidans radarstaplar): `buildOverviewVM`
   145 → 30 ms vid 500 och 289 → 56 ms vid 1000.
 
+# Skalning – Fas 2: larm och kvittering vid stora händelser (2026-11-22)
+
+- Plan: [`plans/skalning.md`](plans/skalning.md), Fas 2 (S-04–S-09). Gren `claude/skalning-fas0`.
+- Steg 1: flödet begränsas per händelse i stället för per rad (en länsvarning över 320 fastigheter är ett
+  kort med alla 320, och andra händelser finns kvar); larmräknaren räknar händelser. Kortets
+  fastighetslista renderas när kortet öppnas.
+

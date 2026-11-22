@@ -666,8 +666,7 @@ export function buildFeed(changes: FeedChange[], propertyIds: Set<string>): Feed
     (c): DuplicateKey => ({ sourceId: c.source_id, situationId: c.situation_id ?? null, eventType: c.event_type ?? null, headline: c.headline, validFrom: c.event_valid_from?.getTime() ?? null, validTo: c.event_valid_to?.getTime() ?? null }),
     (a, b) => a.property_id === b.property_id && a.change_type === b.change_type && Math.abs(a.created_at.getTime() - b.created_at.getTime()) <= SAME_BATCH_MS,
   );
-  return groups
-    .slice(0, 30)
+  const items = groups
     .map((g) => {
       const c = g[0]!;
       const severity = g.map((x) => x.severity).sort((a, b) => (SEVERITY_RANK[b] ?? 0) - (SEVERITY_RANK[a] ?? 0))[0]!;
@@ -677,7 +676,20 @@ export function buildFeed(changes: FeedChange[], propertyIds: Set<string>): Feed
       return { ...c, severity, headline, revision };
     })
     .map(toFeedItem);
+  // The newest FEED_EVENT_LIMIT events with every property they reach (S-04), not the newest rows:
+  // a county warning over 300 properties is one card that names all 300, and other events stay.
+  const kept = new Set<string>();
+  return items.filter((f) => {
+    const key = f.eventGroupId ?? f.id;
+    if (kept.has(key)) return true;
+    if (kept.size >= FEED_EVENT_LIMIT) return false;
+    kept.add(key);
+    return true;
+  });
 }
+
+/** Events (cards) in the feed; each with all its property rows (docs/plans/skalning.md, Fas 2). */
+export const FEED_EVENT_LIMIT = 30;
 
 function toFeedItem(c: FeedChange): FeedItem {
   const ack = { sourceId: c.source_id, changeType: c.change_type, severity: c.severity };

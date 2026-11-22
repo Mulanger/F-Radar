@@ -30,6 +30,7 @@ interface DashboardState {
    * is dropped when the server sends a newer portfolio (navigation refresh, mutation, full reload).
    */
   patchPortfolio: (next: Portfolio) => void;
+  /** Unread alarm EVENTS (an event over many properties counts once). */
   unseenAlarmCount: number;
   /** Becomes true shortly after mount so bars/gauges animate in (prototype `ready`). */
   ready: boolean;
@@ -78,10 +79,13 @@ export function DashboardStateProvider({
   const [rules, setRules] = useState<Record<string, boolean>>({});
   const [seenAlarms, setSeenAlarms] = useState(() => new Set<string>());
   const viewedAlertsPage = useRef(false);
-  const alarmIds = useMemo(() => mode === 'demo'
-    ? portfolio.feed.filter((item) => item.ackRequired).map((item) => item.id)
-    : (portfolio.activeAlarms ?? []).flatMap((item) => item.unreadAlarmId ? [item.unreadAlarmId] : []),
+  // Unread alarm rows (one per property) and the event each belongs to: the badge counts EVENTS, so a
+  // warning over 300 properties is 1, not 300 (docs/plans/skalning.md, Fas 2 / S-06).
+  const alarmRows = useMemo(() => mode === 'demo'
+    ? portfolio.feed.filter((item) => item.ackRequired).map((item) => ({ id: item.id, event: item.eventGroupId ?? item.id }))
+    : (portfolio.activeAlarms ?? []).flatMap((item) => item.unreadAlarmId ? [{ id: item.unreadAlarmId, event: item.eventGroupId ?? item.eventId ?? item.unreadAlarmId }] : []),
   [mode, portfolio.activeAlarms, portfolio.feed]);
+  const alarmIds = useMemo(() => alarmRows.map((row) => row.id), [alarmRows]);
 
   useEffect(() => {
     if (pathname !== `${basePath}/alerts`) {
@@ -161,7 +165,7 @@ export function DashboardStateProvider({
     else setRules((r) => ({ ...r, [ruleId]: !current }));
   }, [mode, router, smsInteractive]);
   const property = useCallback((id: string | undefined) => (id ? byId.get(id) : undefined), [byId]);
-  const unseenAlarmCount = useMemo(() => alarmIds.filter((id) => !seenAlarms.has(id)).length, [alarmIds, seenAlarms]);
+  const unseenAlarmCount = useMemo(() => new Set(alarmRows.filter((row) => !seenAlarms.has(row.id)).map((row) => row.event)).size, [alarmRows, seenAlarms]);
 
   const value = useMemo<DashboardState>(() => ({
     mode,

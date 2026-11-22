@@ -4,6 +4,7 @@ import { loadServerEnv } from '@fastighetsradar/config';
 import { buildJobs, runNowcast, type JobContext } from '../src/monitoring/jobs';
 import { MonitoringBus, type OrganizationUpdate } from '../src/monitoring/bus';
 import { MonitoringService } from '../src/monitoring/service';
+import { buildFeed, FEED_EVENT_LIMIT } from '../src/monitoring/snapshot';
 
 /**
  * Live hints by property (docs/plans/skalning.md, Fas 3 / S-12): per-property jobs name the
@@ -120,6 +121,27 @@ describe('one portfolio build per organization at a time (S-33)', () => {
     expect(a1!.properties).toBe(a2!.properties); // the same build
     await service.list(ctx('a', 'u1'));
     expect(builds).toEqual(['a', 'b', 'a']);
+  });
+});
+
+describe('the feed counts events, not rows (Fas 2 / S-04)', () => {
+  it('keeps every property of a county warning and still shows the other events', () => {
+    const at = (min: number) => new Date(now.getTime() - min * 60_000);
+    const county = Array.from({ length: 300 }, (_, i) => ({
+      id: String(1000 + i), property_id: `p${i}`, event_id: 'county', source_id: 'smhi_warnings', change_type: 'new', severity: 'warning',
+      headline: 'Länsvarning', created_at: at(1), dedup_key: `p${i}:county:v1`,
+    }));
+    const others = Array.from({ length: FEED_EVENT_LIMIT + 5 }, (_, k) => ({
+      id: String(k + 1), property_id: `p${k}`, event_id: `local-${k}`, source_id: 'krisinformation', change_type: 'new', severity: 'monitor',
+      headline: `Lokal ${k}`, created_at: at(10 + k), dedup_key: `p${k}:local-${k}:v1`,
+    }));
+    const ids = new Set(Array.from({ length: 300 }, (_, i) => `p${i}`));
+    const feed = buildFeed([...county, ...others], ids);
+    const cards = new Map<string, number>();
+    for (const f of feed) cards.set(f.eventGroupId ?? f.id, (cards.get(f.eventGroupId ?? f.id) ?? 0) + 1);
+    expect(cards.size).toBe(FEED_EVENT_LIMIT);
+    expect(Math.max(...cards.values())).toBe(300);
+    expect(feed.filter((f) => f.title.includes('Lokal'))).toHaveLength(FEED_EVENT_LIMIT - 1);
   });
 });
 

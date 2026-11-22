@@ -12,6 +12,8 @@ export interface FeedAckRow {
   title: string;
   ackRequired: boolean;
   acknowledgedAt: string | null;
+  /** The card (event revision) the row belongs to; rows of one event over many properties share it. */
+  eventGroupKey?: string | null;
 }
 
 const CHECK = 'M20 6 9 17l-5-5';
@@ -31,6 +33,11 @@ export function useFeedAcks() {
 
   const ackedAt = useCallback((f: FeedAckRow): string | null => (f.id in overrides ? overrides[f.id]! : f.acknowledgedAt), [overrides]);
   const pending = (feed: FeedAckRow[]) => feed.filter((f) => f.ackRequired && !ackedAt(f)).length;
+  /** Events (cards) and properties waiting for acknowledgement. */
+  const pendingEvents = (feed: FeedAckRow[]) => {
+    const rows = feed.filter((f) => f.ackRequired && !ackedAt(f));
+    return { events: new Set(rows.map((f) => f.eventGroupKey ?? f.id)).size, properties: rows.length };
+  };
 
   const save = useCallback(
     (f: FeedAckRow, acknowledged: boolean) => {
@@ -62,7 +69,7 @@ export function useFeedAcks() {
     [ackedAt, demo, live, ds],
   );
 
-  return { ackedAt, pending, save, live, isSaving: (id: string) => inFlight.current.has(id) };
+  return { ackedAt, pending, pendingEvents, save, live, isSaving: (id: string) => inFlight.current.has(id) };
 }
 export type FeedAcks = ReturnType<typeof useFeedAcks>;
 
@@ -92,12 +99,12 @@ export function FeedAckButton({ f, acks }: { f: FeedAckRow; acks: FeedAcks }) {
   );
 }
 
-/** Header chip: "2 att kvittera" (hidden at 0). */
-export function FeedAckCount({ n }: { n: number }) {
-  if (!n) return null;
+/** Header chip: "2 att kvittera" – events; "· 612 fastigheter" when they reach more (hidden at 0). */
+export function FeedAckCount({ n }: { n: { events: number; properties: number } }) {
+  if (!n.events) return null;
   return (
     <span className={styles.count} role="status">
-      {n} att kvittera
+      {n.events} att kvittera{n.properties > n.events ? ` · ${n.properties} fastigheter` : ''}
     </span>
   );
 }

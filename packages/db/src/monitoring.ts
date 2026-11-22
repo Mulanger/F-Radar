@@ -813,19 +813,35 @@ export async function loadOrgNowcasts(db: Queryable, organizationId: string, pro
   return rows;
 }
 
+/**
+ * One feed event: the same revision of the same source event, over every property it reaches (a
+ * change without an event is its own). Matches how the dashboard groups feed rows into one card.
+ */
+const feedEventKey = (t: string) => `CASE WHEN ${t}.event_id IS NULL THEN ${t}.id::text
+  ELSE ${t}.source_id || ':' || ${t}.event_id || ':' || ${t}.change_type || ':'
+    || COALESCE(substring(${t}.dedup_key from ':v([0-9]+)(:|$)'), extract(epoch from ${t}.created_at)::text) END`;
+/** Rows of the feed's events at most (a few county warnings over 1000 properties fit). */
+export const FEED_ROW_CAP = 5_000;
+
 export async function listRecentChangesForOrg(db: Queryable, organizationId: string, limit = 50, viewerId?: string) {
   const forPortfolio = viewerId !== undefined;
   const changeKey = `CASE WHEN c.source_id = 'trafikverket' AND c.event_id IS NOT NULL
     THEN c.property_id || ':' || c.event_id ELSE c.id::text END`;
-  // Limit the feed by event before fetching the rows needed for each traffic event's lifecycle.
-  // Keep the first visible row even when it predates the recent window.
-  const portfolioRows = `WITH recent AS (
-    SELECT * FROM (
-      SELECT DISTINCT ON (${changeKey}) c.*
-      FROM monitoring_changes c WHERE c.organization_id = $1
-        AND (c.source_id <> 'trafikverket' OR c.severity IN ('warning', 'critical'))
-      ORDER BY ${changeKey}, c.created_at DESC, c.id DESC
-    ) latest ORDER BY created_at DESC, id DESC LIMIT $2
+  // Limit the feed by EVENT (docs/plans/skalning.md, Fas 2 / S-04): one revision of one event over 300
+  // properties is one of the `limit` events – with all 300 rows – instead of taking every place.
+  // Then fetch the rows needed for each traffic event's lifecycle. Keep the first visible row even
+  // when it predates the recent window.
+  const portfolioRows = `WITH latest AS (
+    SELECT DISTINCT ON (${changeKey}) c.*
+    FROM monitoring_changes c WHERE c.organization_id = $1
+      AND (c.source_id <> 'trafikverket' OR c.severity IN ('warning', 'critical'))
+    ORDER BY ${changeKey}, c.created_at DESC, c.id DESC
+  ), events AS (
+    SELECT ${feedEventKey('l')} AS feed_key FROM latest l
+    GROUP BY 1 ORDER BY max(l.created_at) DESC, max(l.id) DESC LIMIT $2
+  ), recent AS (
+    SELECT l.* FROM latest l WHERE ${feedEventKey('l')} IN (SELECT feed_key FROM events)
+    ORDER BY l.created_at DESC, l.id DESC LIMIT ${FEED_ROW_CAP}
   ), feed_changes AS (
     SELECT * FROM recent
     UNION

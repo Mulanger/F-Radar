@@ -20,7 +20,7 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
           <div style={cardSub}>Händelser från offentliga källor i portföljen</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <FeedAckCount n={acks.pending(vm.feed)} />
+        <FeedAckCount n={acks.pendingEvents(vm.feed)} />
         <span
           style={{
             display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '5px 10px', borderRadius: 12,

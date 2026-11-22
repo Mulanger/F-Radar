@@ -29,7 +29,7 @@ export function MobileAlerts() {
       <h1>Larm och händelser</h1>
       <DashboardLink className={styles.alertHistory} href={`${ds.basePath}/acknowledgements?via=alerts`}>Visa kvitteringar</DashboardLink>
     </div>
-    <MobileSection title="Händelseflöde" subtitle={`${feedCount} ${feedCount === 1 ? 'händelse' : 'händelser'} i portföljen`} meta={<FeedAckCount n={acks.pending(vm.feed)} />}><div className={`${styles.surface} ${styles.list}`}><MobileFeedRows feed={vm.feed} basePath={ds.basePath} from="alerts" onMap={map.open} isUnread={map.isUnread} acks={acks} />{!feedCount && <div className={styles.empty}>Inga händelser att visa just nu.</div>}</div></MobileSection>
+    <MobileSection title="Händelseflöde" subtitle={`${feedCount} ${feedCount === 1 ? 'händelse' : 'händelser'} i portföljen`} meta={<FeedAckCount n={acks.pendingEvents(vm.feed)} />}><div className={`${styles.surface} ${styles.list}`}><MobileFeedRows feed={vm.feed} basePath={ds.basePath} from="alerts" onMap={map.open} isUnread={map.isUnread} acks={acks} />{!feedCount && <div className={styles.empty}>Inga händelser att visa just nu.</div>}</div></MobileSection>
     {map.view}
   </div>;
 }

@@ -9,6 +9,7 @@
  *   node portfolio-scale.mjs fields 500             # bytes per field of one real response
  *   node --expose-gc portfolio-scale.mjs live 500   # a live row patch vs the full list (Fas 3 / S-12)
  *   node --expose-gc portfolio-scale.mjs profile 500 # where one portfolio build spends time (SQL, build, JSON) + EXPLAIN
+ *   node portfolio-scale.mjs feed 500               # the feed and alarms at a county warning (Fas 2)
  *   node portfolio-scale.mjs cleanup
  *
  * Everything it writes is tagged: organizations `org_perfscale<n>`, events `perf:…`, stations
@@ -484,6 +485,32 @@ async function profile(n: number) {
   };
 }
 
+/**
+ * The feed and the active alarms of the synthetic organization (Fas 2, S-04/S-06/S-07): how many
+ * cards (events) and rows the feed shows, how many properties each card names compared with how many
+ * the event really reaches, and which sources are left. Counts only.
+ */
+async function feed(n: number) {
+  const app = await perfApp();
+  const r = await app.inject({ method: 'GET', url: '/v1/portfolio', headers: { authorization: `Bearer ${token(n)}` } });
+  await app.close();
+  if (r.statusCode !== 200) throw new Error(`portfolio ${r.statusCode}`);
+  const p = r.json() as Portfolio;
+  const key = (f: Portfolio['feed'][number]) => f.eventGroupId ?? f.id;
+  const groups = new Map<string, Set<string>>();
+  for (const f of p.feed) groups.set(key(f), (groups.get(key(f)) ?? new Set()).add(f.propertyId));
+  const { rows } = await pool.query<{ external_id: string; matches: number }>(
+    `SELECT e.external_id, count(*)::int AS matches FROM property_event_matches m JOIN source_events e ON e.id = m.event_id
+       JOIN organizations o ON o.id = m.organization_id WHERE o.clerk_org_id = $1 AND e.data_class = 'OFFICIAL_WARNING' GROUP BY 1`, [orgClerkId(n)]);
+  const alarmEvents = new Set((p.activeAlarms ?? []).map((a) => a.eventId));
+  return {
+    n,
+    feed: { rows: p.feed.length, cards: groups.size, propertiesPerCard: [...groups.values()].map((g) => g.size).sort((a, b) => b - a).slice(0, 8), sources: [...new Set(p.feed.map((f) => f.sourceId))] },
+    warningsReach: rows.map((x) => x.matches).sort((a, b) => b - a),
+    activeAlarms: { rows: p.activeAlarms?.length ?? 0, events: alarmEvents.size, unread: (p.activeAlarms ?? []).filter((a) => a.unreadAlarmId).length },
+  };
+}
+
 /** The API's heap ceiling in production (deploy/pod/index.js); it was 192 MB until Fas 0 measured it. */
 const PROD_HEAP_MB = 512;
 
@@ -530,6 +557,8 @@ try {
     console.log(JSON.stringify(await measure(sizes[0]!, sizes[1] ?? 1)));
   } else if (mode === 'fields') {
     for (const n of sizes) console.log(JSON.stringify(await fields(n)));
+  } else if (mode === 'feed') {
+    for (const n of sizes) console.log(JSON.stringify(await feed(n)));
   } else if (mode === 'profile') {
     for (const n of sizes) console.log(JSON.stringify(await profile(n)));
   } else if (mode === 'live') {
@@ -541,7 +570,7 @@ try {
     await cleanup();
     console.log(JSON.stringify({ cleanup: 'done' }));
   } else {
-    throw new Error('usage: seed|matrix|measure|fields|live|profile|cleanup <sizes…>');
+    throw new Error('usage: seed|matrix|measure|fields|live|profile|feed|cleanup <sizes…>');
   }
 } finally {
   if (mode !== 'matrix') await pool.end();
