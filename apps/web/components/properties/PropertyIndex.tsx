@@ -12,6 +12,7 @@ import { metricValue, show } from '@/lib/view-models/snapshot';
 import { C, SEV } from '@/lib/design/tokens';
 import { usePropertyEditor } from './PropertyEditorHost';
 import { PositionReview } from './PositionReview';
+import { GroupFilter } from '../groups/GroupFilter';
 import importStyles from './PropertyImport.module.css';
 import { IconPlus, IconSearch } from '../ui/icons';
 import { MobileStatusBadge, shortStatus } from '../mobile/MobilePrimitives';
@@ -28,8 +29,8 @@ export function PropertyIndex() {
   const { query, status, sort } = filtersState;
   useViewScroll(`${viewKey}:scroll:${mobile ? 'mobile' : 'desktop'}`, restored);
   // Built once per portfolio/override change, not per keystroke (docs/plans/skalning.md, S-03).
-  const { portfolio, ready, isSmsOn, isRuleOn } = ds;
-  const vm = useMemo(() => buildOverviewVM(portfolio, { ready, group: 'all', isSmsOn, isRuleOn }), [portfolio, ready, isSmsOn, isRuleOn]);
+  const { portfolio, ready, group, isSmsOn, isRuleOn } = ds;
+  const vm = useMemo(() => buildOverviewVM(portfolio, { ready, group, isSmsOn, isRuleOn }), [portfolio, ready, group, isSmsOn, isRuleOn]);
   const searchText = useMemo(() => new Map(vm.rows.map(r => [r.id, `${r.name} ${r.address} ${r.snapshot.property.area} ${r.snapshot.property.municipality ?? ''}`.toLocaleLowerCase('sv-SE')])), [vm.rows]);
   // The field updates at once; filtering 500 rows may lag a frame behind while typing.
   const deferredQuery = useDeferredValue(query);
@@ -41,8 +42,9 @@ export function PropertyIndex() {
   const tableVm = useMemo(() => ({ ...vm, rows }), [vm, rows]);
   const filters = [{ id: 'all', label: 'Alla', color: C.text3, count: vm.rows.length }, ...Object.entries(SEV).map(([id, style]) => ({ id, label: shortStatus(style.label), color: style.c, count: vm.rows.filter(r => r.snapshot.property.status === id).length })).filter(f => f.count > 0)];
   return <div className={`${styles.page} ${styles.listPage}`} data-screen-label="Fastighetslista">
-    <div className={`${styles.heading} ${styles.listHeading}`}><div><div className={styles.date}>{ds.portfolio.properties.length} fastigheter{ds.mode === 'demo' ? ' · Demodata' : ''}</div><h1>Fastigheter</h1></div><div className={importStyles.headActions}><button className={importStyles.importButton} onClick={editor.openImport} title={editor.enabled ? 'Importera fastigheter från Excel eller CSV' : 'Prova importen – i demoläget sparas inget'}>Importera</button><button className={styles.iconButton} style={{ background: C.ink, color: '#fff' }} aria-label="Lägg till fastighet" title={editor.enabled ? 'Lägg till fastighet' : 'Demodata kan inte redigeras'} disabled={!editor.enabled} onClick={editor.openCreate}><IconPlus size={18} /></button></div></div>
+    <div className={`${styles.heading} ${styles.listHeading}`}><div><div className={styles.date}>{ds.portfolio.properties.length} fastigheter{ds.mode === 'demo' ? ' · Demodata' : ''}</div><h1>Fastigheter</h1></div><div className={importStyles.headActions}><button className={importStyles.importButton} onClick={editor.openGroups} title={editor.enabled ? 'Skapa grupper och välj deras fastigheter' : 'Prova grupperna – i demoläget sparas inget'}>Grupper</button><button className={importStyles.importButton} onClick={editor.openImport} title={editor.enabled ? 'Importera fastigheter från Excel eller CSV' : 'Prova importen – i demoläget sparas inget'}>Importera</button><button className={styles.iconButton} style={{ background: C.ink, color: '#fff' }} aria-label="Lägg till fastighet" title={editor.enabled ? 'Lägg till fastighet' : 'Demodata kan inte redigeras'} disabled={!editor.enabled} onClick={editor.openCreate}><IconPlus size={18} /></button></div></div>
     <PositionReview />
+    {portfolio.groups.length > 0 && <div className={styles.groupRow}><GroupFilter /></div>}
     <label className={styles.search}><IconSearch /><span className="fr-sr-only">Sök fastighet, adress eller område</span><input value={query} onChange={e => setFilters({ ...filtersState, query: e.target.value })} placeholder="Sök fastighet, adress eller område" type="search" /></label>
     <div className={styles.filters} role="group" aria-label="Filtrera fastighetsstatus">{filters.map(f => <button key={f.id} className={styles.filter} aria-label={`${f.label} ${f.count}`} aria-pressed={status === f.id} onClick={() => setFilters({ ...filtersState, status: f.id })}><span className={styles.dot} style={{ color: f.color }} />{f.label}<span className={styles.count}>{f.count}</span></button>)}</div>
     <div className={styles.sortRow}><span role="status">{rows.length} {rows.length === 1 ? 'fastighet' : 'fastigheter'}</span><div className={styles.sort} role="group" aria-label="Sortera fastigheter"><button aria-pressed={sort === 'risk'} onClick={() => setFilters({ ...filtersState, sort: 'risk' })}>Risk</button><button aria-pressed={sort === 'name'} onClick={() => setFilters({ ...filtersState, sort: 'name' })}>Namn</button></div></div>
@@ -59,7 +61,7 @@ export function PropertyIndex() {
           {r.nowcast.badge && <div className={styles.small} style={{ color: '#4A86C5' }} title={r.nowcast.source}>{r.nowcast.badge} · MET Norway · <span style={{ color: C.text4 }}>CC BY 4.0</span></div>}
         </DashboardLink>;
       })}
-      {!rows.length && <div className={`${styles.surface} ${styles.empty}`}><strong>Inga fastigheter matchar</strong><div>Prova en annan sökning eller ett annat filter.</div>{(query || status !== 'all') && <button className={styles.more} onClick={() => { setFilters({ ...filtersState, query: '', status: 'all' }); }}>Rensa filter</button>}</div>}
+      {!rows.length && <div className={`${styles.surface} ${styles.empty}`}><strong>Inga fastigheter matchar</strong><div>Prova en annan sökning eller ett annat filter.</div>{(query || status !== 'all' || group !== 'all') && <button className={styles.more} onClick={() => { setFilters({ ...filtersState, query: '', status: 'all' }); ds.setGroup('all'); }}>Rensa filter</button>}</div>}
     </div>
   </div>;
 }

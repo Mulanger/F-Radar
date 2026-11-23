@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => ({ openProperty: vi.fn(), refresh: vi.fn(), mode:
 let activePortfolio = demoPortfolio;
 vi.mock('next/link', () => ({ default: ({ href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) => <a href={href} {...props} /> }));
 vi.mock('@/lib/state/dashboard-state', () => ({ useDashboard: () => ({
-  portfolio: activePortfolio, mode: mocks.mode, ready: true, metric: 'temp', basePath: '/demo', openProperty: mocks.openProperty, refresh: mocks.refresh,
+  portfolio: activePortfolio, mode: mocks.mode, ready: true, metric: 'temp', basePath: '/demo', group: 'all', setGroup: vi.fn(), openProperty: mocks.openProperty, refresh: mocks.refresh,
   isSmsOn: (s: PropertySnapshot) => s.sms.enabled, isRuleOn: (_id: string, fallback: boolean) => fallback,
 }) }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals(); mocks.mode = 'demo'; activePortfolio = demoPortfolio; });

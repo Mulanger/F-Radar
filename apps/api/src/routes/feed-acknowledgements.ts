@@ -18,6 +18,7 @@ const HistoryFilters = z.object({
   from: z.iso.date().optional(),
   to: z.iso.date().optional(),
   property: z.uuid().optional(),
+  group: z.uuid().optional(),
   cursor: HistoryId.optional(),
 }).refine(({ from, to }) => !from || !to || from <= to, 'Startdatum måste vara före eller samma som slutdatum');
 
@@ -70,8 +71,8 @@ export function registerFeedAcknowledgementRoutes(app: FastifyInstance, deps: De
   // The report (PDF/CSV, docs/plans/skalning.md, Fas 2 / S-08): the whole selection in one call.
   app.get('/v1/feed/acknowledgements/export', { preHandler: deps.requireOrg }, async (req): Promise<AcknowledgementExport> => {
     const { organizationId } = orgContext(req);
-    const { from, to, property } = HistoryFilters.parse(req.query);
-    const page = await listAcknowledgementExport(db(), organizationId, { from, to, property }, ACKNOWLEDGEMENT_EXPORT_MAX);
+    const { from, to, property, group } = HistoryFilters.parse(req.query);
+    const page = await listAcknowledgementExport(db(), organizationId, { from, to, property, group }, ACKNOWLEDGEMENT_EXPORT_MAX);
     return { entries: page.entries.map(toEntry), truncated: page.truncated };
   });
 

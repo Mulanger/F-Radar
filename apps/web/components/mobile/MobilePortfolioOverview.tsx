@@ -8,6 +8,7 @@ import { C } from '@/lib/design/tokens';
 import { portfolioSceneConfig } from '../three/property-scene';
 import { IconRain, IconWind } from '../ui/icons';
 import { EmptyPortfolio } from '../dashboard/EmptyPortfolio';
+import { GroupFilter } from '../groups/GroupFilter';
 import { UtilityCoverage } from '../dashboard/UtilityCoverage';
 import { useFeedEventMap } from '../dashboard/FeedEventMap';
 import { FeedAckCount, useFeedAcks } from '../dashboard/FeedAck';
@@ -31,7 +32,7 @@ export function MobilePortfolioOverview({ vm }: { vm: OverviewVM }) {
   const acks = useFeedAcks();
   return (
     <div className={styles.page} data-screen-label="Mobil portföljöversikt">
-      <div className={styles.heading}><div className={styles.date}><span className={styles.dot} style={{ color: demo ? C.demo : C.live }} />{vm.dateLine}</div><h1>Portföljöversikt</h1></div>
+      <div className={styles.heading}><div className={styles.date}><span className={styles.dot} style={{ color: demo ? C.demo : C.live }} />{vm.dateLine}</div><h1>Portföljöversikt</h1>{ds.portfolio.groups.length > 0 && <div className={styles.groupRow}><GroupFilter /></div>}</div>
       <section className={styles.hero} aria-label="Portföljens risköversikt">
         <div className={styles.heroTop}><span className={styles.heroPill}><span className={styles.dot} style={{ color: demo ? C.demo : C.live, width: 6, height: 6 }} />{vm.hero.count} {vm.hero.count === 1 ? 'fastighet' : 'fastigheter'}{demo ? ' · Demo' : ''}</span><span className={styles.riskBadge} style={{ color: st.c, background: `color-mix(in oklch, ${st.c} 12%, white)` }}><span className={styles.dot} style={{ width: 6, height: 6 }} />{st.label}</span></div>
         <MobileRiskGauge score={st.n === null ? '—' : String(st.n)} unit={`av ${st.total}`} max={String(st.total)} fraction={st.fill} color={st.c} label="Fastigheter att bevaka" ariaLabel={st.headline} config={config} ready={ds.ready} />

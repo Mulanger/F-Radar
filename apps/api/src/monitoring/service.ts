@@ -8,6 +8,7 @@ import {
   listOrgPropertyConcessions,
   listOrgUtilityOutages,
   listProperties,
+  listPropertyGroups,
   listRecentChangesForOrg,
   listActiveAlarmChangesForOrg,
   listPropertyActivity,
@@ -66,6 +67,7 @@ export class MonitoringService {
 
   /** Pending re-matches per organization: one run after the last save in the window. */
   private readonly pendingChanges = new Map<string, { timer: ReturnType<typeof setTimeout>; count: number; done: Array<() => void> }>();
+  private readonly runningChanges = new Set<Promise<void>>();
 
   constructor(
     private readonly db: Queryable,
@@ -169,12 +171,13 @@ export class MonitoringService {
   }
 
   private async buildOrganizationList(t: TenantContext, now: Date): Promise<OrganizationList> {
-    const [properties, data, statuses, utility, settings] = await Promise.all([
+    const [properties, data, statuses, utility, settings, groups] = await Promise.all([
       listProperties(this.db, t),
       loadOrgMonitoring(this.db, t.organizationId, undefined, { list: { now } }),
       this.statuses(now),
       this.utilityInputs(t.organizationId, now),
       getOrganizationSettings(this.db, t.organizationId),
+      listPropertyGroups(this.db, t),
     ]);
     const index = indexMonitoring(data);
     const snapshots = await notificationSnapshots(this.db, t.organizationId, properties.map((p) => {
@@ -182,7 +185,7 @@ export class MonitoringService {
       return utility ? withUtilityOutages(s, utility) : s;
     }));
     return {
-      base: buildLivePortfolio({ clerkOrgId: t.clerkOrgId, orgSlug: t.orgSlug, properties, sources: statuses, now }),
+      base: buildLivePortfolio({ clerkOrgId: t.clerkOrgId, orgSlug: t.orgSlug, properties, groups, sources: statuses, now }),
       propertyIds: new Set(properties.map((p) => p.id)),
       properties: snapshots.map(listSnapshot),
       utilityCoverage: this.coverageReports(properties, utility),
@@ -193,7 +196,7 @@ export class MonitoringService {
 
   /** The FULL portfolio (every property's full snapshot). Not served; the reference for `list()` in tests and measurements. */
   async portfolio(t: TenantContext, now = new Date()): Promise<Portfolio> {
-    const [properties, data, statuses, changes, activeAlarms, utility, settings] = await Promise.all([
+    const [properties, data, statuses, changes, activeAlarms, utility, settings, groups] = await Promise.all([
       listProperties(this.db, t),
       loadOrgMonitoring(this.db, t.organizationId),
       this.statuses(now),
@@ -201,8 +204,9 @@ export class MonitoringService {
       listActiveAlarmChangesForOrg(this.db, t.organizationId, t.userId),
       this.utilityInputs(t.organizationId, now),
       getOrganizationSettings(this.db, t.organizationId),
+      listPropertyGroups(this.db, t),
     ]);
-    const base = buildLivePortfolio({ clerkOrgId: t.clerkOrgId, orgSlug: t.orgSlug, properties, sources: statuses, now });
+    const base = buildLivePortfolio({ clerkOrgId: t.clerkOrgId, orgSlug: t.orgSlug, properties, groups, sources: statuses, now });
     const index = indexMonitoring(data);
     const snapshots = await notificationSnapshots(this.db,t.organizationId,properties.map((p) => {
       const s = buildPropertySnapshot(p, t.clerkOrgId, data, statuses, now, index);
@@ -364,10 +368,33 @@ export class MonitoringService {
       entry.done.push(resolve);
       entry.timer = setTimeout(() => {
         this.pendingChanges.delete(organizationId);
-        void this.rematchOrganization(organizationId, entry.count).finally(() => entry.done.forEach((d) => d()));
+        this.startRematch(organizationId, entry);
       }, options.settleMs ?? this.options.propertyChangeDebounceMs ?? PROPERTY_CHANGE_DEBOUNCE_MS);
       this.pendingChanges.set(organizationId, entry);
     });
+  }
+
+  private startRematch(organizationId: string, entry: { count: number; done: Array<() => void> }): Promise<void> {
+    const run = this.rematchOrganization(organizationId, entry.count).finally(() => {
+      entry.done.forEach((d) => d());
+      this.runningChanges.delete(run);
+    });
+    this.runningChanges.add(run);
+    return run;
+  }
+
+  /**
+   * Runs the re-matches still waiting out their debounce now, and waits for every one in progress.
+   * Called when the app closes: a re-match must not outlive it and run into the next user of the
+   * database (a test deleting properties hit a deadlock with one).
+   */
+  async flushPropertyChanges(): Promise<void> {
+    for (const [organizationId, entry] of this.pendingChanges) {
+      clearTimeout(entry.timer);
+      this.pendingChanges.delete(organizationId);
+      this.startRematch(organizationId, entry);
+    }
+    await Promise.all([...this.runningChanges]);
   }
 
   private async rematchOrganization(organizationId: string, changes: number): Promise<void> {

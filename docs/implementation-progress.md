@@ -178,4 +178,7 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
   adressökning i omgångar inom Geoapifys takt och en omatchning per import; granskningslista
   "Kontrollera position" för träffar som bara nådde gatan. Ingen SMS-regel slås på för importerade
   fastigheter.
+- Fas 4 steg 1: fastighetsgrupper (migrering 0025) som organisationen skapar själv; en fastighet kan
+  ligga i flera. Gruppval i översikt, karta, fastighetslista, larmsida och kvitteringsrapport; grupper i
+  fastighetsdialogen, en egen dialog för att skapa och fylla grupper, och kolumnen "Grupp" i importen.
 

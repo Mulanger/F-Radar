@@ -34,16 +34,18 @@ export const demoAcknowledgements: AcknowledgementHistoryEntry[] = [
 ];
 
 /** The whole demo selection for the report, like `/v1/feed/acknowledgements/export` live. */
-export function demoAcknowledgementExport(all: AcknowledgementHistoryEntry[], filters: AcknowledgementHistoryFilters): AcknowledgementExport {
+export function demoAcknowledgementExport(all: AcknowledgementHistoryEntry[], filters: AcknowledgementHistoryFilters, members?: ReadonlySet<string>): AcknowledgementExport {
   const entries = all.filter((entry) => {
     const day = acknowledgementDay(entry.acknowledgedAt);
     return (!filters.from || day >= filters.from) && (!filters.to || day <= filters.to)
-      && (!filters.property || entry.propertyId === filters.property);
+      && (!filters.property || entry.propertyId === filters.property)
+      && (!filters.group || !members || members.has(entry.propertyId));
   });
   return { entries: entries.slice(0, ACKNOWLEDGEMENT_EXPORT_MAX), truncated: entries.length > ACKNOWLEDGEMENT_EXPORT_MAX };
 }
 
-export function demoAcknowledgementPage(all: AcknowledgementHistoryEntry[], filters: AcknowledgementHistoryFilters): AcknowledgementHistoryPage {
+/** `members`: the properties of `filters.group` (the demo portfolio's groups; S-20). */
+export function demoAcknowledgementPage(all: AcknowledgementHistoryEntry[], filters: AcknowledgementHistoryFilters, members?: ReadonlySet<string>): AcknowledgementHistoryPage {
   const properties = new Map<string, AcknowledgementHistoryPage['properties'][number]>();
   for (const { propertyId, propertyName, propertyAddress } of all) {
     if (!properties.has(propertyId)) properties.set(propertyId, { id: propertyId, name: propertyName, address: propertyAddress });
@@ -51,7 +53,8 @@ export function demoAcknowledgementPage(all: AcknowledgementHistoryEntry[], filt
   const filtered = all.filter((entry) => {
     const day = acknowledgementDay(entry.acknowledgedAt);
     return (!filters.from || day >= filters.from) && (!filters.to || day <= filters.to)
-      && (!filters.property || entry.propertyId === filters.property);
+      && (!filters.property || entry.propertyId === filters.property)
+      && (!filters.group || !members || members.has(entry.propertyId));
   });
   const start = filters.cursor ? filtered.findIndex(({ id }) => id === filters.cursor) + 1 : 0;
   const entries = filtered.slice(start, start + ACKNOWLEDGEMENT_PAGE_SIZE);

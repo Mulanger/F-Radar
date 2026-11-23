@@ -19,6 +19,8 @@ export interface AcknowledgementHistoryFilters {
   from?: string;
   to?: string;
   property?: string;
+  /** Properties currently in this group (S-20). */
+  group?: string;
   cursor?: string;
 }
 

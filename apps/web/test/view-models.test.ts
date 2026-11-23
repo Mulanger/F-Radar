@@ -165,7 +165,7 @@ describe('portfolio list gives every list view the same result as the full portf
   for (const [label, full] of [['demo', demoPortfolio], ['500 properties', scaleDemoPortfolio(demoPortfolio, 500)]] as const) {
     it(label, () => {
       const list = listPortfolio(full);
-      for (const group of ['all', ...full.segments.map((g) => g.id)]) {
+      for (const group of ['all', ...full.groups.map((g) => g.id)]) {
         const a = computed(buildOverviewVM(list, { ...opts, group }));
         expect(a).toEqual(computed(buildOverviewVM(full, { ...opts, group })));
         expect(JSON.stringify(a)).toContain('snapshot:');
@@ -308,7 +308,7 @@ describe('live portfolio without connected sources', () => {
     upcoming: [],
     narrative: null,
     demoTrends: null,
-    segments: [],
+    groups: [],
     sources: [{ sourceId: 'smhi_forecast', label: 'SMHI', status: 'not_implemented', lastSuccessAt: null, lastCheckedAt: null, freshness: 'unknown', errorCode: null }],
     properties: [
       {

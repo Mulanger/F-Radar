@@ -115,7 +115,11 @@ button.feedRow { width: 100%; border: 0; background: none; text-align: left; fon
 .mapDialog::backdrop { background: #14171a66; backdrop-filter: blur(6px); }
 .dialogHeader { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
 .iconButton { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 22px; background: #fff; border: 1px solid #14171a0f; color: #14171a; cursor: pointer; flex-shrink: 0; }
-.listHeading { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.listHeading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; }
+/* Property group (Fas 4 / S-20): the menu under a page heading, with the group dialog's button beside it. */
+.groupRow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.listPage > .groupRow { margin: 0 16px; }
+.groupNotice { margin: 12px 16px 0; }
 .listPage { gap: 12px; }
 .listPage .search { margin-top: 6px; }
 .listPage .sortRow { margin-top: 2px; margin-bottom: 0; }

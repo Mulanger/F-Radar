@@ -14,6 +14,7 @@ import {
   type PropertySnapshot,
 } from '@fastighetsradar/domain';
 import { C, FONT_MONO, card } from '@/lib/design/tokens';
+import { GroupChips } from '../groups/GroupChips';
 
 const LocationPickerMap = dynamic(() => import('../maps/LocationPickerMap').then((m) => m.LocationPickerMap), { ssr: false });
 
@@ -77,13 +78,20 @@ export function PropertyEditorDialog({
   onClose,
   onSaved,
   onDeleted,
+  groups = [],
+  onCreateGroup,
 }: {
   mode: Mode;
   onClose: () => void;
   onSaved: (id: string) => void;
   onDeleted?: () => void;
+  /** The organization's property groups (Fas 4 / S-20). */
+  groups?: { id: string; label: string }[];
+  onCreateGroup?: (name: string) => Promise<string>;
 }) {
   const editing = mode.kind === 'edit' ? mode.snapshot.property : null;
+  const [groupIds, setGroupIds] = useState<string[]>(editing?.groupIds ?? []);
+  const groupsChanged = editing ? [...groupIds].sort().join() !== [...editing.groupIds].sort().join() : groupIds.length > 0;
   const [name, setName] = useState(editing?.name ?? '');
   const [query, setQuery] = useState(editing?.address ?? '');
   const [address, setAddress] = useState(editing?.address ?? '');
@@ -179,9 +187,10 @@ export function PropertyEditorDialog({
     if (!point) return null;
     if (!editing) {
       if (!geocode) return null;
-      return { name: name.trim(), address: (geocode.provider === 'manual_pin' ? query : address).trim(), location: point, geocode };
+      return { name: name.trim(), address: (geocode.provider === 'manual_pin' ? query : address).trim(), location: point, geocode, ...(groupIds.length ? { groupIds } : {}) };
     }
     const patch: Record<string, unknown> = {};
+    if (groupsChanged) patch.groupIds = groupIds;
     if (name.trim() !== editing.name) patch.name = name.trim();
     if (geocode) {
       patch.address = (geocode.provider === 'manual_pin' ? query : address).trim();
@@ -191,7 +200,7 @@ export function PropertyEditorDialog({
       patch.location = point;
     }
     return patch;
-  }, [point, editing, geocode, name, query, address, pointTouched]);
+  }, [point, editing, geocode, name, query, address, pointTouched, groupIds, groupsChanged]);
 
   const save = async () => {
     setError(null);
@@ -332,6 +341,12 @@ export function PropertyEditorDialog({
                 </button>
               )}
             </div>
+            {(groups.length > 0 || onCreateGroup) && (
+              <div>
+                <div style={label}>Grupper</div>
+                <GroupChips groups={groups} selected={groupIds} onChange={setGroupIds} onCreate={onCreateGroup} />
+              </div>
+            )}
             <div style={{ padding: 12, borderRadius: 14, background: C.tile, fontSize: 12, color: C.text3, lineHeight: 1.5 }}>
               {point ? (
                 <>

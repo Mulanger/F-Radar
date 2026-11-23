@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { SwedishPointSchema } from './api';
+import { PropertyGroupNameSchema } from './property-groups';
 
 /**
  * Bulk import of properties (docs/plans/skalning.md, Fas 6 / S-28).
@@ -24,6 +25,8 @@ export const PropertyImportRowSchema = z.object({
   address: trimmed(3, 300),
   /** Coordinates from the file: used as given (no geocoding), counted as a position set by the customer. */
   location: SwedishPointSchema.optional(),
+  /** Group by name (Fas 4 / S-20): created when the organization has none by that name. */
+  group: PropertyGroupNameSchema.optional(),
 });
 export type PropertyImportRow = z.infer<typeof PropertyImportRowSchema>;
 
@@ -61,6 +64,8 @@ export const PropertyImportResultSchema = z.object({
     .optional(),
   /** The position is not confirmed (street or approximate hit): it is on the review list. */
   needsReview: z.boolean().optional(),
+  /** Created, but not put in the row's group: the organization has as many groups as it may. */
+  groupNotSet: z.boolean().optional(),
 });
 export type PropertyImportResult = z.infer<typeof PropertyImportResultSchema>;
 

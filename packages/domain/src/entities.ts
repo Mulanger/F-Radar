@@ -37,8 +37,8 @@ export const PropertySchema = z.object({
   area: z.string(),
   municipality: z.string().nullable().optional(),
   countyCode: z.string().nullable().optional(),
-  /** Customer-defined portfolio segment used by the overview filter. */
-  segment: z.string(),
+  /** The organization's own groups this property is in (ids from `Portfolio.groups`; S-20). */
+  groupIds: z.array(z.string()),
   /** User-confirmed WGS84 point (EPSG:4326). An address point is not a property boundary. */
   location: LatLonSchema,
   geocode: z.object({
@@ -423,7 +423,8 @@ export const PortfolioSchema = z.object({
   generatedAt: IsoDateTimeSchema,
   origin: DataOriginSchema,
   regionLabel: z.string(),
-  segments: z.array(z.object({ id: z.string(), label: z.string() })),
+  /** The organization's property groups (docs/plans/skalning.md, Fas 4 / S-20), by name. */
+  groups: z.array(z.object({ id: z.string(), label: z.string() })),
   properties: z.array(PropertySnapshotSchema),
   feed: z.array(FeedItemSchema),
   activeAlarms: z.array(FeedItemSchema).optional(),

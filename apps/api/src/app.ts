@@ -15,6 +15,7 @@ import { registerNotificationRoutes } from './routes/notifications';
 import { registerSettingsRoutes } from './routes/settings';
 import { registerLegalRoutes } from './routes/legal';
 import { registerFeedAcknowledgementRoutes } from './routes/feed-acknowledgements';
+import { registerPropertyGroupRoutes } from './routes/property-groups';
 import type { PhoneVerificationProvider } from './notifications/verification';
 
 export interface AppDeps {
@@ -62,6 +63,9 @@ export async function buildApp(env: ServerEnv, deps: AppDeps = {}): Promise<Fast
   const verify = deps.verifyAuth !== undefined ? deps.verifyAuth : createClerkVerifier(env);
   const { requireUser, requireOrg } = registerAuth(app, { verify, db: deps.db ?? null });
   const monitoring = deps.monitoring !== undefined ? deps.monitoring : deps.db ? new MonitoringService(deps.db, env, new MonitoringBus(), app.log) : null;
+  // A property save's debounced re-match finishes before the app is closed (shutdown, tests).
+  // (Test doubles of the service may not have it.)
+  if (monitoring && typeof monitoring.flushPropertyChanges === 'function') app.addHook('onClose', async () => monitoring.flushPropertyChanges());
   registerCustomerRoutes(app, {
     env,
     db: deps.db ?? null,
@@ -75,6 +79,7 @@ export async function buildApp(env: ServerEnv, deps: AppDeps = {}): Promise<Fast
   registerMonitoringRoutes(app, { env, service: monitoring, requireUser, requireOrg });
   registerNotificationRoutes(app, { env, db: deps.db ?? null, requireOrg, verification: deps.verification });
   registerFeedAcknowledgementRoutes(app, { db: deps.db ?? null, requireOrg });
+  registerPropertyGroupRoutes(app, { db: deps.db ?? null, requireOrg });
   registerSettingsRoutes(app, { db: deps.db ?? null, requireOrg });
   registerLegalRoutes(app, { db: deps.db ?? null, requireOrg });
 

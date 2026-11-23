@@ -71,6 +71,8 @@ export const PropertyCreateSchema = z.object({
   /** User-confirmed point (may differ from the geocoded point after manual adjustment). */
   location: SwedishPointSchema,
   geocode: GeocodeMetadataSchema,
+  /** The organization's groups to put the property in (S-20); unknown ids are skipped. */
+  groupIds: z.array(z.string().uuid()).max(100).optional(),
 });
 export type PropertyCreateInput = z.infer<typeof PropertyCreateSchema>;
 
@@ -81,6 +83,8 @@ export const PropertyUpdateSchema = z
     location: SwedishPointSchema.optional(),
     /** Required when the address changed via a new geocoding selection. */
     geocode: GeocodeMetadataSchema.optional(),
+    /** Replaces the property's groups (S-20). */
+    groupIds: z.array(z.string().uuid()).max(100).optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: 'Inget att uppdatera' });
 export type PropertyUpdateInput = z.infer<typeof PropertyUpdateSchema>;
@@ -107,6 +111,8 @@ export const PropertyRecordSchema = z.object({
     geocodedAt: IsoDateTimeSchema.nullable(),
   }),
   status: z.enum(['profiling', 'active', 'paused']),
+  /** The organization's groups the property is in (S-20). Always set by the database. */
+  groupIds: z.array(z.string().uuid()).optional(),
   createdAt: IsoDateTimeSchema,
   updatedAt: IsoDateTimeSchema,
 });

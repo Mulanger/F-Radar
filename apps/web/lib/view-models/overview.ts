@@ -1,8 +1,9 @@
 import { nowcastBadge } from './nowcast';
-import type { OfficialWarning, Portfolio, PropertySnapshot, PropertyStatus } from '@fastighetsradar/domain';
+import type { FeedItem, OfficialWarning, Portfolio, PropertySnapshot, PropertyStatus } from '@fastighetsradar/domain';
 import { formatClock, formatLongDate, formatNumber, formatShortDate, swedishDateKey, type RiskFactorKey } from '@fastighetsradar/domain';
 import { C, EXPOSURE_SV, SEV, STATUS_ORDER, WL, riskStyle } from '../design/tokens';
 import { smooth } from './chart';
+import { filterByGroup, groupOptions } from './groups';
 import { buildUpcomingEvents, upcomingCenter, upcomingUpdated } from './upcoming';
 import { rulesFor, eventCounts } from './rules';
 import { availability, isOfficialLevel, mappedExposure, metricValue, n0, riskScore, show } from './snapshot';
@@ -56,9 +57,7 @@ export interface WxSplit {
   items: WxItem[];
 }
 
-export function filterByGroup(p: Portfolio, group: string) {
-  return group === 'all' ? p.properties : p.properties.filter((s) => s.property.segment === group);
-}
+export { filterByGroup } from './groups';
 
 /**
  * Feed time: "22:00" today, "igår 22:00" yesterday, otherwise "17 nov 22:00" – a recurring night
@@ -257,9 +256,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
         t: feedTime(f.publishedAt, portfolio.generatedAt),
         unreadUpdateId: f.unreadUpdateId ?? null,
         acknowledgementUpdate: f.acknowledgementUpdate === true,
-        eventGroupKey: f.eventId
-          ? JSON.stringify([f.eventGroupId ?? [f.sourceId, f.eventId, f.updatedEventId, f.updatedAt ?? f.publishedAt], f.title, f.severity, f.nightWork])
-          : null,
+        eventGroupKey: feedEventKey(f),
         title: f.acknowledgementUpdate ? f.title.replace(/^Uppdaterad: /, '') : f.title,
         src: f.sourceLabel,
         c: sev(f.severity).c,
@@ -283,14 +280,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
       };
     });
 
-  const groups = [
-    { id: 'all', label: 'Alla fastigheter' },
-    ...portfolio.segments.map((g) => ({ id: g.id, label: g.label })),
-  ].map((g) => ({
-    ...g,
-    count: g.id === 'all' ? portfolio.properties.length : portfolio.properties.filter((s) => s.property.segment === g.id).length,
-    active: ui.group === g.id,
-  }));
+  const groups = groupOptions(portfolio).map((g) => ({ ...g, active: ui.group === g.id }));
 
   const avail = availability(portfolio);
   const assessed = STATUS_ORDER.reduce((a, k) => a + counts[k], 0);
@@ -363,6 +353,30 @@ export type OverviewVM = ReturnType<typeof buildOverviewVM>;
 export type OverviewFeedRow = OverviewVM['feed'][number];
 
 /** Collect matching properties under one card for the same source revision. */
+/** What joins feed rows of one event into one card (`groupFeedRows`); null: a card of its own. */
+export function feedEventKey(f: FeedItem): string | null {
+  return f.eventId
+    ? JSON.stringify([f.eventGroupId ?? [f.sourceId, f.eventId, f.updatedEventId, f.updatedAt ?? f.publishedAt], f.title, f.severity, f.nightWork])
+    : null;
+}
+
+/** How many cards `groupFeedRows` makes of these items, without building the view model (S-20). */
+export function countFeedEvents(items: FeedItem[]): number {
+  let cards = 0;
+  const events = new Map<string, Set<string>>();
+  for (const f of items) {
+    const key = feedEventKey(f);
+    const members = key ? events.get(key) : undefined;
+    if (members && !members.has(f.propertyId)) {
+      members.add(f.propertyId);
+      continue;
+    }
+    cards++;
+    if (key && !members) events.set(key, new Set([f.propertyId]));
+  }
+  return cards;
+}
+
 export function groupFeedRows(feed: OverviewVM['feed']): OverviewFeedRow[][] {
   const groups: OverviewFeedRow[][] = [];
   const events = new Map<string, OverviewFeedRow[]>();

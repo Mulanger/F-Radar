@@ -33,7 +33,9 @@ const SELECT_COLUMNS = `
   p.id, p.name, p.address, p.status, p.position_source,
   ST_Y(p.location::geometry) AS lat, ST_X(p.location::geometry) AS lon,
   p.geocode_provider, p.geocode_precision, p.geocode_confidence, p.geocode_label, p.geocode_place_id,
-  p.geocode_result_type, p.postcode, p.city, p.municipality, p.geocoded_at, p.created_at, p.updated_at`;
+  p.geocode_result_type, p.postcode, p.city, p.municipality, p.geocoded_at, p.created_at, p.updated_at,
+  ARRAY(SELECT m.group_id::text FROM property_group_members m
+         WHERE m.organization_id = p.organization_id AND m.property_id = p.id ORDER BY m.group_id) AS group_ids`;
 
 interface Row {
   id: string;
@@ -55,6 +57,7 @@ interface Row {
   geocoded_at: Date | null;
   created_at: Date;
   updated_at: Date;
+  group_ids: string[] | null;
 }
 
 function toRecord(r: Row): PropertyRecord {
@@ -77,6 +80,7 @@ function toRecord(r: Row): PropertyRecord {
       geocodedAt: r.geocoded_at ? r.geocoded_at.toISOString() : null,
     },
     status: r.status,
+    groupIds: r.group_ids ?? [],
     createdAt: r.created_at.toISOString(),
     updatedAt: r.updated_at.toISOString(),
   };
@@ -123,6 +127,10 @@ export async function createProperty(db: Queryable, ctx: OrgContext, input: Prop
        ) RETURNING id, organization_id
      ), mon AS (
        INSERT INTO property_monitoring (property_id, organization_id) SELECT id, organization_id FROM ins
+     ), grp AS (
+       INSERT INTO property_group_members (organization_id, group_id, property_id)
+       SELECT ins.organization_id, g.id, ins.id FROM ins
+         JOIN property_groups g ON g.organization_id = ins.organization_id AND g.id = ANY($21::uuid[])
      )
      SELECT id FROM ins`,
     [
@@ -146,6 +154,7 @@ export async function createProperty(db: Queryable, ctx: OrgContext, input: Prop
       ctx.userId,
       g.street ?? null,
       g.housenumber?.replace(/\s+/g, '').toUpperCase() ?? null,
+      input.groupIds ?? [],
     ],
   );
   return (await getProperty(db, ctx, rows[0]!.id))!;
@@ -201,10 +210,30 @@ export async function updateProperty(db: Queryable, ctx: OrgContext, id: string,
   }
   add('updated_by = $1', ctx.userId);
 
-  const { rowCount } = (await db.query(`UPDATE properties SET ${sets.join(', ')} WHERE organization_id = $1 AND id = $2`, params)) as {
-    rowCount?: number | null;
-  };
-  if (rowCount === 0) return null;
+  const update = `UPDATE properties SET ${sets.join(', ')} WHERE organization_id = $1 AND id = $2`;
+  if (patch.groupIds === undefined) {
+    const { rowCount } = (await db.query(update, params)) as { rowCount?: number | null };
+    if (rowCount === 0) return null;
+    return getProperty(db, ctx, id);
+  }
+  // The groups in the same statement as the rest (S-20): all of the change, or none of it.
+  params.push(patch.groupIds);
+  const groups = `$${params.length}::uuid[]`;
+  const { rows } = await db.query<{ id: string }>(
+    `WITH upd AS (${update} RETURNING id, organization_id),
+     removed AS (
+       DELETE FROM property_group_members m USING upd
+        WHERE m.organization_id = upd.organization_id AND m.property_id = upd.id AND m.group_id <> ALL(${groups})
+     ), added AS (
+       INSERT INTO property_group_members (organization_id, group_id, property_id)
+       SELECT upd.organization_id, g.id, upd.id FROM upd
+         JOIN property_groups g ON g.organization_id = upd.organization_id AND g.id = ANY(${groups})
+       ON CONFLICT (group_id, property_id) DO NOTHING
+     )
+     SELECT id FROM upd`,
+    params,
+  );
+  if (!rows.length) return null;
   return getProperty(db, ctx, id);
 }
 

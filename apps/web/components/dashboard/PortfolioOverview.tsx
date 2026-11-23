@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useSavedView, useViewScroll } from '@/lib/navigation/view-state';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import { buildOverviewVM, filterByGroup } from '@/lib/view-models/overview';
+import { GroupFilter } from '../groups/GroupFilter';
 import { C } from '@/lib/design/tokens';
 import { PortfolioHero3D } from './PortfolioHero3D';
 import { PortfolioMap } from '../maps/PortfolioMap';
@@ -26,8 +27,7 @@ export function PortfolioOverview() {
   const viewKey = `${ds.basePath}:${portfolio.organizationId}:overview:desktop`;
   const [statusFull, setStatusFull, restored] = useSavedView(`${viewKey}:full-table`, false);
   useViewScroll(viewKey, !mobile && restored);
-  const vmGroup = mobile ? 'all' : group;
-  const vm = useMemo(() => buildOverviewVM(portfolio, { ready, group: vmGroup, isSmsOn, isRuleOn }), [portfolio, ready, vmGroup, isSmsOn, isRuleOn]);
+  const vm = useMemo(() => buildOverviewVM(portfolio, { ready, group, isSmsOn, isRuleOn }), [portfolio, ready, group, isSmsOn, isRuleOn]);
   // The map refits only when the set of properties changes (group filter), not on a data refresh.
   const mapList = useMemo(() => filterByGroup(portfolio, group), [portfolio, group]);
   const isDemo = ds.mode === 'demo';
@@ -49,23 +49,7 @@ export function PortfolioOverview() {
               : 'Bevakning av väder, varningar och offentliga data för dina fastigheter'}
           </p>
         </div>
-        <div role="tablist" aria-label="Fastighetsgrupp" className="fr-tabs" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 24, background: C.white, border: '1px solid rgba(20,23,26,0.06)' }}>
-          {vm.groups.map((g) => (
-            <button
-              key={g.id}
-              role="tab"
-              aria-selected={g.active}
-              onClick={() => ds.setGroup(g.id)}
-              style={{
-                height: 36, padding: '0 16px', borderRadius: 18, border: 'none', cursor: 'pointer', fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 8,
-                background: g.active ? C.ink : 'transparent', color: g.active ? '#FFFFFF' : C.text2, transition: 'all .25s',
-              }}
-            >
-              {g.label}
-              <span style={{ fontSize: 11.5, opacity: 0.6 }}>{g.count}</span>
-            </button>
-          ))}
-        </div>
+        <GroupFilter variant="auto" />
       </div>
 
       <div className={styles.summaryRow}>

@@ -1,0 +1,48 @@
+/* The group dialog (docs/plans/skalning.md, Fas 4 / S-20); frame and buttons from PropertyImport.module.css. */
+.create { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+.create label { display: flex; flex-direction: column; gap: 6px; flex: 1 1 240px; color: #6b737b; font-size: 12px; }
+.create input,
+.rename input {
+  height: 40px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border: 1px solid rgba(20, 23, 26, 0.12);
+  border-radius: 12px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  color: #14171a;
+  outline: none;
+}
+.create input:focus,
+.rename input:focus { border-color: rgba(20, 23, 26, 0.35); }
+
+.list { margin: 0; padding: 0; list-style: none; border: 1px solid rgba(20, 23, 26, 0.06); border-radius: 16px; overflow: hidden; }
+.item { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px; }
+.item + .item { border-top: 1px solid rgba(20, 23, 26, 0.06); }
+.name { flex: 1 1 200px; min-width: 0; }
+.name strong { display: block; color: #14171a; font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.name span { color: #6b737b; font-size: 12px; }
+.itemActions { display: flex; flex-wrap: wrap; gap: 6px; }
+.rename { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: 1 1 100%; }
+.rename input { flex: 1 1 200px; height: 34px; }
+.confirm { flex: 1 1 100%; margin: 0; color: #4a5157; font-size: 13px; }
+.danger { color: oklch(0.5 0.17 27) !important; }
+.empty { margin: 0; padding: 18px 14px; color: #6b737b; font-size: 13px; text-align: center; }
+
+/* Group chips in the property dialog. */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(20, 23, 26, 0.12);
+  border-radius: 16px;
+  background: #ffffff;
+  color: #4a5157;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.chip[aria-pressed='true'] { background: #14171a; border-color: #14171a; color: #ffffff; }
+.chipNew { display: flex; gap: 6px; flex: 1 1 220px; }
+.chipNew input { flex: 1; min-width: 0; height: 32px; box-sizing: border-box; padding: 0 12px; border: 1px dashed rgba(20, 23, 26, 0.2); border-radius: 16px; font: inherit; font-size: 12.5px; outline: none; }

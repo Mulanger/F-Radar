@@ -24,16 +24,21 @@ export function RulePropertySelect({
   properties,
   selected,
   onChange,
+  searchLabel = "Sök fastighet för regeln",
+  listHeight = 220,
 }: {
-  properties: { id: string; name: string }[];
+  /** `detail` (address, town) is shown beside the name and searched too. */
+  properties: { id: string; name: string; detail?: string }[];
   selected: string[];
   onChange: (ids: string[]) => void;
+  searchLabel?: string;
+  listHeight?: number;
 }) {
   const [query, setQuery] = useState("");
   const chosen = useMemo(() => new Set(selected), [selected]);
   const visible = useMemo(() => {
     const words = norm(query).split(/\s+/).filter(Boolean);
-    return words.length ? properties.filter((p) => words.every((w) => norm(p.name).includes(w))) : properties;
+    return words.length ? properties.filter((p) => words.every((w) => norm(`${p.name} ${p.detail ?? ""}`).includes(w))) : properties;
   }, [properties, query]);
   const visibleChosen = visible.filter((p) => chosen.has(p.id)).length;
 
@@ -54,8 +59,8 @@ export function RulePropertySelect({
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Sök fastighet"
-          aria-label="Sök fastighet för regeln"
+          placeholder={properties.some((p) => p.detail) ? "Sök fastighet, adress eller ort" : "Sök fastighet"}
+          aria-label={searchLabel}
           autoComplete="off"
           style={{ boxSizing: "border-box", width: "100%", padding: "8px 12px", border: "1px solid rgba(20,23,26,.13)", borderRadius: 12, background: C.white, color: C.ink, font: "inherit", fontSize: 13 }}
         />
@@ -73,7 +78,7 @@ export function RulePropertySelect({
           </button>
         )}
       </div>
-      <div role="group" aria-label="Välj fastigheter" style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 220, overflowY: "auto", overscrollBehavior: "contain" }}>
+      <div role="group" aria-label="Välj fastigheter" style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: listHeight, overflowY: "auto", overscrollBehavior: "contain" }}>
         {visible.map((p) => (
           <label key={p.id} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13 }}>
             <input
@@ -82,6 +87,7 @@ export function RulePropertySelect({
               onChange={(e) => onChange(e.target.checked ? [...selected, p.id] : selected.filter((id) => id !== p.id))}
             />
             {p.name}
+            {p.detail && <span style={{ color: C.text3, fontSize: 12, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.detail}</span>}
           </label>
         ))}
         {!visible.length && <span style={cardSub}>Inga fastigheter matchar ”{query.trim()}”.</span>}

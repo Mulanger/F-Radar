@@ -116,7 +116,7 @@ export function scaleDemoPortfolio(base: Portfolio, n: number): Portfolio {
       address: `${street} ${copy}, ${muni.name}`,
       area: muni.name,
       municipality: muni.name,
-      segment: muni.inner ? 'inner' : 'outer',
+      groupIds: [muni.inner ? 'inner' : 'outer'],
       location,
     };
     properties.push(s);

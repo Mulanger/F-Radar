@@ -48,7 +48,7 @@ describe('scaleDemoPortfolio (Fas 0 test portfolio)', () => {
       expect(s.property.area).toBe(s.property.municipality);
     }
     expect(new Set(clones.map((s) => s.property.area)).size).toBeGreaterThan(10);
-    expect(new Set(clones.map((s) => s.property.segment))).toEqual(new Set(['inner', 'outer']));
+    expect(new Set(clones.flatMap((s) => s.property.groupIds))).toEqual(new Set(['inner', 'outer']));
     expect(new Set(p.properties.map((s) => s.property.name)).size).toBe(500);
   });
 

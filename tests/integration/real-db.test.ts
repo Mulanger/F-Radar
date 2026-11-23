@@ -56,7 +56,8 @@ import type { AuthVerifier, VerifiedIdentity } from '../../apps/api/src/auth';
 import { MonitoringBus } from '../../apps/api/src/monitoring/bus';
 import { MonitoringService } from '../../apps/api/src/monitoring/service';
 import type { GeocodingProvider } from '../../packages/integrations/src';
-import type { PositionReviewItem, PropertyImportResult } from '../../packages/domain/src';
+import type { PositionReviewItem, Portfolio, PropertyGroup, PropertyImportResult, PropertyRecord } from '../../packages/domain/src';
+import { GROUP_LIMIT_REACHED, GROUP_NAME_TAKEN } from '../../apps/api/src/routes/property-groups';
 import { registerNotificationTests } from './notifications';
 import { registerUtilityOutageTests } from './utility-outages';
 
@@ -97,7 +98,7 @@ const sveavagen = {
 
 async function resetSchema() {
   await pool.query(`
-    DROP TABLE IF EXISTS feed_acknowledgement_history,feed_update_reads,sms_delivery_callbacks,notification_attempts,notification_properties,notification_outbox,notification_daily_usage,notification_usage,notification_global_usage,notification_rate_buckets,alert_evaluation_state,alert_rule_recipients,alert_rule_properties,sms_recipients,
+    DROP TABLE IF EXISTS property_group_members,property_groups,feed_acknowledgement_history,feed_update_reads,sms_delivery_callbacks,notification_attempts,notification_properties,notification_outbox,notification_daily_usage,notification_usage,notification_global_usage,notification_rate_buckets,alert_evaluation_state,alert_rule_recipients,alert_rule_properties,sms_recipients,
       property_event_history, station_daily, history_stations, history_backfill_checks,
       station_precipitation_normals, history_normal_checks, history_flow_references, history_archive_state,
       observation_history, observation_backfill_checks, nowcast_points, hydrology_references, hydrology_reference_checks,
@@ -558,6 +559,140 @@ describe('real PostgreSQL / PostGIS', () => {
       await app.close();
       await pool.query('UPDATE organizations SET max_properties = NULL WHERE id = $1', [b.organizationId]);
       await pool.query(`DELETE FROM properties WHERE organization_id = ANY($1::uuid[]) AND name LIKE 'Import %'`, [[a.organizationId, b.organizationId]]);
+    }
+  });
+
+  it('groups properties per organization: API, property groups, import column, portfolio and report filter (Fas 4 / S-20)', async () => {
+    const a = { organizationId: await ensureOrganization(pool, ORG_A, 'org-a'), userId: 'user_testA' };
+    const b = { organizationId: await ensureOrganization(pool, ORG_B, 'org-b'), userId: 'user_testB' };
+    const pin = (n: number) => ({ location: { lat: 59.3 + n / 1000, lon: 18 + n / 1000 }, geocode: { provider: 'manual_pin' as const, precision: 'unknown' as const } });
+    const [p1, p2, p3] = await Promise.all([1, 2, 3].map((n) => createProperty(pool, a, { name: `Grupp ${n}`, address: `Gruppvägen ${n}, Stockholm`, ...pin(n) })));
+    const pB = await createProperty(pool, b, { name: 'Grupp B', address: 'Gruppvägen 9, Solna', ...pin(9) });
+    // No monitoring service: the portfolio falls back to the plain list, and the service is checked directly below.
+    const app = await buildApp(loadServerEnv({ NODE_ENV: 'test' }), { logger: false, verifyAuth: verify, db: pool, monitoring: null, importGeocodePerSecond: 10_000 });
+    const call = (token: string, method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE', url: string, payload?: unknown) =>
+      app.inject({ method, url, headers: { authorization: `Bearer ${token}`, ...(payload === undefined ? {} : { 'content-type': 'application/json' }) }, payload: payload as never });
+    const groupsOf = async (token: string) => ((await call(token, 'GET', '/v1/property-groups')).json() as { groups: PropertyGroup[] }).groups;
+    const groupIdsOf = async (id: string) => (await getProperty(pool, a, id))!.groupIds;
+    try {
+      // A group with its first members; B's property in the list is skipped, not added.
+      let res = await call('tok-a', 'POST', '/v1/property-groups', { name: ' Innerstad ', propertyIds: [p1.id, p2.id, pB.id] });
+      assert.equal(res.statusCode, 201, res.body);
+      const inner = (res.json() as { group: PropertyGroup }).group;
+      assert.deepEqual({ name: inner.name, count: inner.propertyCount }, { name: 'Innerstad', count: 2 });
+      assert.deepEqual(await groupIdsOf(p1.id), [inner.id]);
+
+      // The same name in another case is taken; B may use it for its own group.
+      res = await call('tok-a', 'POST', '/v1/property-groups', { name: 'INNERSTAD' });
+      assert.equal(res.statusCode, 409);
+      assert.equal((res.json() as { type: string }).type, GROUP_NAME_TAKEN);
+      res = await call('tok-b', 'POST', '/v1/property-groups', { name: 'Innerstad', propertyIds: [pB.id] });
+      assert.equal(res.statusCode, 201, res.body);
+      const innerB = (res.json() as { group: PropertyGroup }).group;
+
+      // Tenant isolation: B neither sees nor changes A's group, and the database refuses a cross-organization member.
+      assert.deepEqual((await groupsOf('tok-b')).map((g) => g.id), [innerB.id]);
+      for (const [method, url, payload] of [
+        ['PATCH', `/v1/property-groups/${inner.id}`, { name: 'Kapad' }],
+        ['PUT', `/v1/property-groups/${inner.id}/properties`, { propertyIds: [pB.id] }],
+        ['DELETE', `/v1/property-groups/${inner.id}`, undefined],
+      ] as const) assert.equal((await call('tok-b', method, url, payload)).statusCode, 404, `${method} ${url}`);
+      await assert.rejects(pool.query('INSERT INTO property_group_members (organization_id, group_id, property_id) VALUES ($1, $2, $3)', [a.organizationId, inner.id, pB.id]));
+      await assert.rejects(pool.query('INSERT INTO property_group_members (organization_id, group_id, property_id) VALUES ($1, $2, $3)', [b.organizationId, inner.id, pB.id]));
+      // B's property cannot be put in A's group from A either.
+      res = await call('tok-a', 'PATCH', `/v1/properties/${p3.id}`, { groupIds: [innerB.id] });
+      assert.equal(res.statusCode, 200, res.body);
+      assert.deepEqual((res.json() as { property: PropertyRecord }).property.groupIds, [], "B's group id is skipped");
+
+      // The property dialog: groups on create, replaced on edit (unknown ids skipped).
+      res = await call('tok-a', 'POST', '/v1/property-groups', { name: 'Förort' });
+      const outer = (res.json() as { group: PropertyGroup }).group;
+      res = await call('tok-a', 'POST', '/v1/properties', { name: 'Grupp 4', address: 'Gruppvägen 4, Stockholm', ...pin(4), groupIds: [outer.id, '00000000-0000-4000-8000-000000000000'] });
+      assert.equal(res.statusCode, 201, res.body);
+      const p4 = (res.json() as { property: PropertyRecord }).property;
+      assert.deepEqual(p4.groupIds, [outer.id]);
+      res = await call('tok-a', 'PATCH', `/v1/properties/${p1.id}`, { groupIds: [outer.id, inner.id] });
+      assert.deepEqual([...(res.json() as { property: PropertyRecord }).property.groupIds!].sort(), [inner.id, outer.id].sort(), 'a property in two groups');
+      res = await call('tok-a', 'PATCH', `/v1/properties/${p1.id}`, { groupIds: [] });
+      assert.deepEqual((res.json() as { property: PropertyRecord }).property.groupIds, []);
+
+      // The group dialog: members replaced in one call; rename; a taken name.
+      res = await call('tok-a', 'PUT', `/v1/property-groups/${inner.id}/properties`, { propertyIds: [p2.id, p3.id, p3.id, pB.id] });
+      assert.deepEqual(res.json(), { id: inner.id, propertyCount: 2 });
+      assert.deepEqual(await groupIdsOf(p3.id), [inner.id]);
+      assert.equal((await call('tok-a', 'PATCH', `/v1/property-groups/${outer.id}`, { name: 'Förort & kust' })).statusCode, 200);
+      assert.equal((await call('tok-a', 'PATCH', `/v1/property-groups/${outer.id}`, { name: 'innerstad' })).statusCode, 409);
+      assert.deepEqual((await groupsOf('tok-a')).map((g) => [g.name, g.propertyCount]), [['Förort & kust', 1], ['Innerstad', 2]]);
+
+      // The portfolio carries the groups and each property's membership – both list paths.
+      const portfolio = (await call('tok-a', 'GET', '/v1/portfolio')).json() as Portfolio;
+      assert.deepEqual(portfolio.groups.map((g) => g.label), ['Förort & kust', 'Innerstad']);
+      assert.deepEqual(portfolio.properties.find((s) => s.property.id === p2.id)!.property.groupIds, [inner.id]);
+      const service = new MonitoringService(pool, loadServerEnv({ NODE_ENV: 'test' }), new MonitoringBus());
+      const listed = await service.list({ ...a, clerkOrgId: ORG_A, orgSlug: 'org-a' });
+      assert.deepEqual(listed.groups.map((g) => g.id).sort(), [inner.id, outer.id].sort());
+      assert.deepEqual(listed.properties.find((s) => s.property.id === p4.id)!.property.groupIds, [outer.id]);
+      assert.ok(!listed.groups.some((g) => g.id === innerB.id), "B's group is not in A's portfolio");
+
+      // Import with a group column: an existing group in another case, and a new one created once.
+      const imported = await call('tok-a', 'POST', '/v1/properties/import', {
+        final: true,
+        rows: [
+          { row: 2, name: 'Grupp 5', address: 'Gruppvägen 5, Stockholm', location: pin(5).location, group: 'INNERSTAD' },
+          { row: 3, name: 'Grupp 6', address: 'Gruppvägen 6, Stockholm', location: pin(6).location, group: 'Kusten' },
+          { row: 4, name: 'Grupp 7', address: 'Gruppvägen 7, Stockholm', location: pin(7).location, group: 'kusten' },
+          { row: 5, name: 'Grupp 8', address: 'Gruppvägen 8, Stockholm', location: pin(8).location },
+        ],
+      });
+      assert.equal(imported.statusCode, 200, imported.body);
+      const importResults = (imported.json() as { results: PropertyImportResult[] }).results;
+      assert.ok(importResults.every((r) => r.status === 'created' && !r.groupNotSet), JSON.stringify(importResults));
+      const afterImport = await groupsOf('tok-a');
+      assert.deepEqual(afterImport.map((g) => [g.name, g.propertyCount]), [['Förort & kust', 1], ['Innerstad', 3], ['Kusten', 2]]);
+      assert.deepEqual(await groupIdsOf(importResults[3]!.propertyId!), []);
+
+      // At the group limit: no new group, from the dialog or an import – the property is still created.
+      await pool.query(
+        `INSERT INTO property_groups (organization_id, name, created_by) SELECT $1, 'Fyllnad ' || n, 'test' FROM generate_series(1, 100 - $2::int) n`,
+        [a.organizationId, afterImport.length],
+      );
+      res = await call('tok-a', 'POST', '/v1/property-groups', { name: 'En för mycket' });
+      assert.equal(res.statusCode, 409);
+      assert.equal((res.json() as { type: string }).type, GROUP_LIMIT_REACHED);
+      const full = await call('tok-a', 'POST', '/v1/properties/import', { rows: [{ row: 2, name: 'Grupp 10', address: 'Gruppvägen 10, Stockholm', location: pin(10).location, group: 'Ny grupp' }] });
+      const fullResult = (full.json() as { results: PropertyImportResult[] }).results[0]!;
+      assert.deepEqual([fullResult.status, fullResult.groupNotSet], ['created', true]);
+      await pool.query(`DELETE FROM property_groups WHERE organization_id = $1 AND name LIKE 'Fyllnad %'`, [a.organizationId]);
+
+      // The acknowledgement report for a group: the properties in it NOW, for A only.
+      await pool.query(
+        `INSERT INTO feed_acknowledgement_history (organization_id, change_id, property_id, property_name, property_address, source_id, title, severity, event_at, acknowledged_at, acknowledged_by)
+         SELECT $1, 900000 + n, p, 'Grupp', 'Gruppvägen', 'smhi_warnings', 'Gruppvarning', 'Yellow', now(), now() - n::float8 * interval '1 minute', 'user_testA'
+           FROM unnest($2::uuid[]) WITH ORDINALITY AS t(p, n)`,
+        [a.organizationId, [p1.id, p2.id, p3.id]],
+      );
+      const history = async (token: string, query: string) =>
+        ((await call(token, 'GET', `/v1/feed/acknowledgements?${query}`)).json() as { entries: Array<{ propertyId: string }> }).entries.map((e) => e.propertyId);
+      assert.deepEqual((await history('tok-a', `group=${inner.id}`)).sort(), [p2.id, p3.id].sort());
+      assert.deepEqual(await history('tok-a', `property=${p1.id}`), [p1.id], 'p1 is in the history, just not in the group');
+      assert.deepEqual(await history('tok-b', `group=${inner.id}`), []);
+      const exported = (await call('tok-a', 'GET', `/v1/feed/acknowledgements/export?group=${inner.id}`)).json() as { entries: Array<{ propertyId: string }> };
+      assert.deepEqual(exported.entries.map((e) => e.propertyId).sort(), [p2.id, p3.id].sort());
+      assert.equal((await call('tok-a', 'GET', '/v1/feed/acknowledgements?group=inte-ett-id')).statusCode, 400);
+
+      // Deleting a group keeps its properties; deleting a property leaves the group.
+      assert.equal((await call('tok-a', 'DELETE', `/v1/property-groups/${outer.id}`)).statusCode, 204);
+      assert.ok(await getProperty(pool, a, p4.id));
+      assert.deepEqual(await groupIdsOf(p4.id), []);
+      await deleteProperty(pool, a, p3.id);
+      assert.equal((await groupsOf('tok-a')).find((g) => g.id === inner.id)!.propertyCount, 2, 'p2 and Grupp 5 remain');
+      assert.equal((await call('tok-a', 'POST', '/v1/property-groups', { name: '' })).statusCode, 400);
+      assert.equal((await app.inject({ method: 'GET', url: '/v1/property-groups' })).statusCode, 401);
+    } finally {
+      await app.close();
+      await pool.query('DELETE FROM feed_acknowledgement_history WHERE organization_id = $1 AND change_id >= 900000', [a.organizationId]);
+      await pool.query('DELETE FROM property_groups WHERE organization_id = ANY($1::uuid[])', [[a.organizationId, b.organizationId]]);
+      await pool.query(`DELETE FROM properties WHERE organization_id = ANY($1::uuid[]) AND name LIKE 'Grupp %'`, [[a.organizationId, b.organizationId]]);
     }
   });
 

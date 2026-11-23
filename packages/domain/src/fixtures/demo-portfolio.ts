@@ -317,7 +317,7 @@ function buildSnapshot(p: RawProperty): PropertySnapshot {
       area: p.area,
       municipality: null,
       countyCode: '01',
-      segment: p.group,
+      groupIds: [p.group],
       location: { lat: p.lat, lon: p.lng },
       geocode: { provider: 'demo_fixture', precision: 'approximate', confirmedAt: null },
       building: { type: p.type, floors: p.floors, unitsLabel: p.units },
@@ -478,7 +478,7 @@ export const demoPortfolio: Portfolio = {
   generatedAt: DEMO_REFERENCE_TIME,
   origin: 'demo_fixture',
   regionLabel: 'Stockholmsregionen',
-  segments: [
+  groups: [
     { id: 'inner', label: 'Innerstad' },
     { id: 'outer', label: 'Förort & Kust' },
   ],

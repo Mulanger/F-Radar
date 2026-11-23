@@ -12,7 +12,7 @@ import { isSameOrigin, readBoundedText, RequestBodyTimeout, RequestBodyTooLarge 
  *  - Organization context comes from the verified token inside Fastify, never from the client.
  */
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
-const ROUTES: Array<{ pattern: RegExp; methods: string[] }> = [
+const ROUTES: Array<{ pattern: RegExp; methods: string[]; maxBody?: number }> = [
   { pattern: /^notifications$/, methods: ['GET'] },
   { pattern: /^notifications\/(categories|activity|usage)$/, methods: ['GET'] },
   { pattern: /^notifications\/(rules|recipients)$/, methods: ['GET', 'POST'] },
@@ -39,6 +39,10 @@ const ROUTES: Array<{ pattern: RegExp; methods: string[] }> = [
   { pattern: /^properties$/, methods: ['GET', 'POST'] },
   { pattern: /^properties\/import$/, methods: ['POST'] },
   { pattern: /^properties\/position-review$/, methods: ['GET'] },
+  { pattern: /^property-groups$/, methods: ['GET', 'POST'], maxBody: 512 * 1024 },
+  { pattern: new RegExp(`^property-groups/${UUID}$`), methods: ['PATCH', 'DELETE'] },
+  // A group's members: up to 10 000 property ids (~390 kB).
+  { pattern: new RegExp(`^property-groups/${UUID}/properties$`), methods: ['PUT'], maxBody: 512 * 1024 },
   { pattern: new RegExp(`^properties/${UUID}$`), methods: ['GET', 'PATCH', 'DELETE'] },
   { pattern: /^geocoding\/suggestions$/, methods: ['GET'] },
 ];
@@ -62,7 +66,7 @@ async function handle(req: NextRequest, ctx: { params: Promise<{ path: string[] 
   const search = req.nextUrl.search;
   let body: string | undefined;
   try {
-    if (req.method !== 'GET' && req.method !== 'DELETE') body = await readBoundedText(req, 64 * 1024);
+    if (req.method !== 'GET' && req.method !== 'DELETE') body = await readBoundedText(req, route.maxBody ?? 64 * 1024);
   } catch (err) {
     return problem(err instanceof RequestBodyTooLarge ? 413 : err instanceof RequestBodyTimeout ? 408 : 400, 'Request body rejected');
   }
@@ -91,4 +95,4 @@ async function handle(req: NextRequest, ctx: { params: Promise<{ path: string[] 
 }
 
 export const dynamic = 'force-dynamic';
-export { handle as GET, handle as POST, handle as PATCH, handle as DELETE };
+export { handle as GET, handle as POST, handle as PATCH, handle as PUT, handle as DELETE };

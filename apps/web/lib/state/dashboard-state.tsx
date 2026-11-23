@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { dashboardSection, propertyHref, propertySmsHref, recordDashboardDeparture, type DashboardSection } from '@/lib/navigation/dashboard';
+import { readView, writeView } from '@/lib/navigation/view-state';
 import type { Portfolio, PropertySnapshot } from '@fastighetsradar/domain';
 
 export type ChartMetric = 'temp' | 'rain' | 'wind' | 'hum';
@@ -34,6 +35,11 @@ interface DashboardState {
   unseenAlarmCount: number;
   /** Becomes true shortly after mount so bars/gauges animate in (prototype `ready`). */
   ready: boolean;
+  /**
+   * The property group shown in overview, list, map and alert feed ('all' or a `Portfolio.groups` id;
+   * docs/plans/skalning.md, Fas 4 / S-20). Kept for the tab's session; a group that no longer
+   * exists reads as 'all'.
+   */
   group: string;
   setGroup: (g: string) => void;
   layers: { weather: boolean; flood: boolean };
@@ -72,7 +78,21 @@ export function DashboardStateProvider({
   }, [serverPortfolio]);
   const patchPortfolio = useCallback((next: Portfolio) => setPatched({ from: serverRef.current, value: next }), []);
   const [ready, setReady] = useState(false);
-  const [group, setGroup] = useState('all');
+  const groupKey = `${basePath}:${serverPortfolio.organizationId}:group`;
+  const [chosenGroup, setChosenGroup] = useState('all');
+  // The saved group is read after hydration; until then nothing may act on "all" (the alerts page
+  // would mark alarms of every group as read).
+  const [restoredGroupKey, setRestoredGroupKey] = useState<string | null>(null);
+  useLayoutEffect(() => {
+    setChosenGroup(readView(groupKey, 'all'));
+    setRestoredGroupKey(groupKey);
+  }, [groupKey]);
+  const groupReady = restoredGroupKey === groupKey;
+  const setGroup = useCallback((g: string) => {
+    setChosenGroup(g);
+    writeView(groupKey, g);
+  }, [groupKey]);
+  const group = chosenGroup !== 'all' && !portfolio.groups.some((g) => g.id === chosenGroup) ? 'all' : chosenGroup;
   const [layers, setLayers] = useState({ weather: false, flood: true });
   const [metric, setMetric] = useState<ChartMetric>('temp');
   const [smsOff, setSmsOff] = useState<Record<string, boolean>>({});
@@ -82,16 +102,23 @@ export function DashboardStateProvider({
   // Unread alarm rows (one per property) and the event each belongs to: the badge counts EVENTS, so a
   // warning over 300 properties is 1, not 300 (docs/plans/skalning.md, Fas 2 / S-06).
   const alarmRows = useMemo(() => mode === 'demo'
-    ? portfolio.feed.filter((item) => item.ackRequired).map((item) => ({ id: item.id, event: item.eventGroupId ?? item.id }))
-    : (portfolio.activeAlarms ?? []).flatMap((item) => item.unreadAlarmId ? [{ id: item.unreadAlarmId, event: item.eventGroupId ?? item.eventId ?? item.unreadAlarmId }] : []),
+    ? portfolio.feed.filter((item) => item.ackRequired).map((item) => ({ id: item.id, event: item.eventGroupId ?? item.id, propertyId: item.propertyId }))
+    : (portfolio.activeAlarms ?? []).flatMap((item) => item.unreadAlarmId ? [{ id: item.unreadAlarmId, event: item.eventGroupId ?? item.eventId ?? item.unreadAlarmId, propertyId: item.propertyId }] : []),
   [mode, portfolio.activeAlarms, portfolio.feed]);
-  const alarmIds = useMemo(() => alarmRows.map((row) => row.id), [alarmRows]);
+  // A visit marks only what the alerts page shows: with a group chosen, alarms at other properties
+  // stay unread and keep the badge (S-20).
+  const alarmIds = useMemo(() => {
+    if (group === 'all') return alarmRows.map((row) => row.id);
+    const members = new Set(portfolio.properties.filter((s) => s.property.groupIds.includes(group)).map((s) => s.property.id));
+    return alarmRows.filter((row) => members.has(row.propertyId)).map((row) => row.id);
+  }, [alarmRows, group, portfolio.properties]);
 
   useEffect(() => {
     if (pathname !== `${basePath}/alerts`) {
       viewedAlertsPage.current = false;
       return;
     }
+    if (!groupReady) return;
     const markDisplayedAlarms = () => {
       if (document.visibilityState === 'hidden' || viewedAlertsPage.current || (mode === 'live' && !portfolio.activeAlarms)) return;
       viewedAlertsPage.current = true;
@@ -115,7 +142,7 @@ export function DashboardStateProvider({
     markDisplayedAlarms();
     document.addEventListener('visibilitychange', markDisplayedAlarms);
     return () => document.removeEventListener('visibilitychange', markDisplayedAlarms);
-  }, [alarmIds, basePath, mode, pathname, portfolio.activeAlarms, router]);
+  }, [alarmIds, basePath, groupReady, mode, pathname, portfolio.activeAlarms, router]);
 
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 120);
@@ -190,7 +217,7 @@ export function DashboardStateProvider({
     openProperty,
     goProperties,
     property,
-  }), [mode, basePath, smsInteractive, refresh, portfolio, patchPortfolio, unseenAlarmCount, ready, group, layers, toggleLayer, metric, isSmsOn, toggleSms, isRuleOn, toggleRule, openProperty, goProperties, property]);
+  }), [mode, basePath, smsInteractive, refresh, portfolio, patchPortfolio, unseenAlarmCount, ready, group, setGroup, layers, toggleLayer, metric, isSmsOn, toggleSms, isRuleOn, toggleRule, openProperty, goProperties, property]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

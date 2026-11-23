@@ -421,6 +421,9 @@ Fasen anger var fyndet åtgärdas.
   koppling, en fastighet kan ligga i flera). Gruppval i översikt, lista, karta, larmflöde,
   kvitteringshistorik och som omfattning i SMS-regler ("alla i grupp X, även nya"). Sätts i
   fastighetsdialogen och vid import (S-28).
+- **Gjort 2026-11-23 (Fas 4 steg 1)**, utom SMS-regelns omfattning (steg 5). Platt modell: en grupp är
+  ett namn, och en fastighet kan ligga i flera grupper – område **och** förvaltare går alltså med två
+  grupper per fastighet (öppna frågan i avsnitt 7). Gruppvalet gäller hela panelen under sessionen.
 
 **S-21 "Kommande förhållanden" visar en rad per fastighet** · P2 · Fas 4
 - **Var:** `upcomingView` i [`upcoming.ts:261`](../../apps/web/lib/view-models/upcoming.ts), [`UpcomingParts.tsx`](../../apps/web/components/upcoming/UpcomingParts.tsx).
@@ -534,7 +537,8 @@ just de händelser tjänsten finns till för.
   per rad direkt i dialogen utan jobbtabell och avfrågning, och en avbruten import återupptas genom att
   samma fil importeras igen – redan inlagda adresser hoppas över. Nackdelen: fönstret måste vara öppet
   under importen (500 adresser ≈ 2 minuter). Excel läses genom inklistrade rader eller CSV, inte .xlsx.
-  Gruppkolumnen väntar på grupperna (S-20, Fas 4).
+  Gruppkolumnen väntar på grupperna (S-20, Fas 4). **Gjord i Fas 4 steg 1:** kolumnen "Grupp" lägger
+  nya fastigheter i gruppen och skapar den om den saknas.
 
 **S-29 Varje sparad fastighet räknar om matchningar för hela plattformen** · P2 · Fas 6
 - **Var:** `propertyChanged` i [`monitoring/service.ts:170`](../../apps/api/src/monitoring/service.ts) → `rematchEvents(this.db)` och `rematchUtilityOutages(this.db)` (rad 180) utan organisationsfilter, plus täckningsrapport för hela organisationen och `requestJobRun(PER_PROPERTY_JOBS)`.
@@ -979,6 +983,39 @@ test att klustret får värsta status.
 **Klart när:** Med `?n=500` går det att filtrera på grupp i översikt, lista, karta och larm; kartan
 visar kluster med rätt färg; "Kommande" visar grupperade rader. Visat och godkänt.
 
+**Genomfört steg 1 (gren `claude/skalning-fas0`):**
+- **Datamodell (migrering 0025):** `property_groups` (namn unikt per organisation oavsett stora/små
+  bokstäver, högst 100 grupper) och `property_group_members`. Sammansatta nycklar
+  (organisation, grupp) och (organisation, fastighet) gör ett medlemskap över organisationsgränsen
+  omöjligt i databasen. En borttagen grupp lämnar fastigheterna kvar; en borttagen fastighet lämnar
+  gruppen.
+- **API:** `GET/POST /v1/property-groups`, `PATCH/DELETE /v1/property-groups/:id`,
+  `PUT /v1/property-groups/:id/properties` (ersätter medlemmarna i en sats, upp till 10 000 id:n).
+  `groupIds` vid skapa och ändra fastighet (i samma sats som resten av ändringen; bara grupper ger
+  ingen omatchning). Portföljen bär `groups` och varje fastighets `groupIds` (ersätter `segment` och
+  `segments`, som bara demon använde). Kvitteringshistorik och export tar `group` – fastigheterna i
+  gruppen nu, inte vid kvitteringen.
+- **Gruppval överallt:** ett val för hela panelen (sparas för sessionen): flikar i översikten så länge
+  grupperna får plats, annars en meny; menyn även i mobilöversikten, fastighetslistan och på
+  larmsidan. Kartan, KPI:erna och händelseflödet följer valet. Larmsidan säger hur många händelser i
+  andra fastigheter som inte visas ("Visa alla fastigheter") och markerar bara de visade larmen som
+  lästa – larm i andra grupper behåller märket. Kvitteringssidan har gruppen i filtret och i
+  rapportens urval.
+- **Grupper skapas och fylls** i dialogen "Grupper" på sidan Fastigheter: skapa, byt namn, ta bort
+  (med bekräftelse) och välj fastigheter med sök på namn, adress eller ort och "Markera alla som
+  syns". I fastighetsdialogen väljs gruppen per fastighet, och en ny grupp kan skapas där. Vid import
+  läser kolumnen "Grupp" (S-28). I demoläget fungerar dialogen men sparar inget.
+- **Fynd under arbetet:** en omatchning som väntade på sin fördröjning överlevde att appen stängdes och
+  krockade (dödläge) med nästa tests borttagningar. Appen kör nu klart väntande omatchningar när den
+  stängs. Och larmsidan, laddad direkt med en sparad grupp, markerade larm i alla grupper som lästa
+  innan gruppen hunnit läsas in – nu väntar den på gruppen.
+- **Mätning mot riktig PostgreSQL** (`fastighetsradar_test`): grupp med medlemmar, namnkrock oavsett
+  versaler (409), organisation B ser och ändrar inget av A:s (404) och databasen vägrar ett
+  medlemskap över gränsen; fastighet i två grupper; import med "INNERSTAD" (befintlig) och "Kusten"
+  (ny, skapad en gång för två rader); vid gruppgränsen skapas fastigheten utan grupp (`groupNotSet`);
+  kvitteringar filtrerade på grupp, även exporten. Hela sviten 46/46.
+- **Inte gjort:** SMS-regel med omfattning grupp (steg 5); kluster, sortering och "Kommande" (steg 2–4).
+
 ### Fas 5 – SMS vid stora händelser
 
 **Mål:** Inget larm tappas tyst, de viktigaste går först, och en länsvarning blir ett begripligt SMS.
@@ -1124,6 +1161,7 @@ fastigheter (siffror i Fasloggen).
 | Fas 2 steg 3 | 2026-11-22 | `claude/skalning-fas0` / `dbf4306`, driftsatt 2026-11-22 19:47 UTC | Händelse över 500 fastigheter (demo): en rad per fastighet i flödet → en egen sida med texten en gång, karta, sök och "Kvittera alla". Grupperat SMS: länk till första fastigheten → till händelsesidan. | SMS skickas fortfarande simulerat, så länken i ett riktigt SMS är bara testad via förhandsvisningen; kartans rubrik säger "Portföljkarta" även på händelsesidan |
 | Fas 2 steg 4 | 2026-11-22 | `claude/skalning-fas0` / `62ab6b9` + `24b2146`, driftsatt 2026-11-23 07:56 UTC | Kvitteringsrapport för 3 000 kvitteringar (10 händelser à 300): fullständig 113 s / 2,1 MB i huvudtråden → 0,9 s / 388 KB i en Web Worker; hämtning 100 anrop à 30 → 1 anrop. CSV och sökbart fastighetsfilter. | Kvitteringssidans lista på skärmen är fortfarande en rad per fastighet; PDF i workern bara provad i Chromium (webbläsarpanelen) |
 | Fas 5 steg 1–4 | 2026-11-23 | `claude/skalning-fas0` / `baabbfe`, driftsatt 2026-11-23 08:20 UTC | Riktig PostgreSQL, 300 fastigheter: samlat SMS vid full minut och 5 fastigheter vid tak spärrat för alla → köat för 295; VMA efter dagstaken spärrat → köat; VMA skickas före tidigare orange varning. | Tak per prisnivå; riktiga SMS (allt mätt i simulering) |
-| Fas 6 steg 1 | 2026-11-23 | `claude/skalning-fas0` / `21da523` | En sparad fastighet: omatchning av hela plattformen → av organisationen, en gång per 2 s. Tak 500 → 1000 per organisation (eget tak möjligt). | Importen (steg 2); omatchningstiden vid 1000 fastigheter ej mätt |
-| Fas 6 steg 2 | 2026-11-23 | `claude/skalning-fas0` | Import av 500 rader mot riktig PostgreSQL: 490 skapade med status per rad och **en** omatchning (tidigare: 500 fastigheter för hand, en omatchning per fastighet). Demo: 500 inklistrade rader → förhandsvisning, 480 skapade, 40 i granskningslistan. | Riktig Geoapify-sökning i stor skala; grupper vid import (Fas 4) |
+| Fas 6 steg 1 | 2026-11-23 | `claude/skalning-fas0` / `21da523`, driftsatt 2026-11-23 11:19 UTC | En sparad fastighet: omatchning av hela plattformen → av organisationen, en gång per 2 s. Tak 500 → 1000 per organisation (eget tak möjligt). | Importen (steg 2); omatchningstiden vid 1000 fastigheter ej mätt |
+| Fas 6 steg 2 | 2026-11-23 | `claude/skalning-fas0` / `98976da`, driftsatt 2026-11-23 11:19 UTC | Import av 500 rader mot riktig PostgreSQL: 490 skapade med status per rad och **en** omatchning (tidigare: 500 fastigheter för hand, en omatchning per fastighet). Demo: 500 inklistrade rader → förhandsvisning, 480 skapade, 40 i granskningslistan. | Riktig Geoapify-sökning i stor skala; grupper vid import (Fas 4) |
+| Fas 4 steg 1 | 2026-11-23 | `claude/skalning-fas0` | Grupper: livekunder hade bara "Alla" (demon hade två fasta) → egna grupper med flera grupper per fastighet, val i översikt, lista, karta, larm och kvitteringar, import med gruppkolumn. Riktig PostgreSQL: tenant-isolering även i databasens nycklar. | SMS-regel per grupp (steg 5); gruppval vid 100 grupper i mobilens meny inte provat på telefon |
 

@@ -6,12 +6,24 @@ import {
   PropertyCreateSchema,
   PropertyIdParamSchema,
   PropertyImportRequestSchema,
+  propertyGroupKey,
   PropertyUpdateSchema,
   type GeocodingSuggestionsResponse,
   type PositionReviewResponse,
   type PropertyImportResponse,
 } from '@fastighetsradar/domain';
-import { createProperty, deleteProperty, getProperty, getPropertyLimit, listPositionReview, listProperties, updateProperty, type Queryable } from '@fastighetsradar/db';
+import {
+  createProperty,
+  deleteProperty,
+  ensurePropertyGroups,
+  getProperty,
+  getPropertyLimit,
+  listPositionReview,
+  listProperties,
+  listPropertyGroups,
+  updateProperty,
+  type Queryable,
+} from '@fastighetsradar/db';
 import { GEOAPIFY_ATTRIBUTION, resolveSourceStatuses, type AdapterContext, type GeocodingProvider } from '@fastighetsradar/integrations';
 import { orgContext } from '../auth';
 import { createRateLimiter } from '../rate-limit';
@@ -113,8 +125,19 @@ export function registerCustomerRoutes(app: FastifyInstance, deps: CustomerRoute
       const retry = r.error === 'timeout' || r.error === 'upstream_error' || (r.error === 'rate_limited' && r.retryAfterSeconds !== undefined);
       return { ok: false, retry };
     };
+    // A group the rows name is created the first time a row of it is (Fas 4 / S-20).
+    const groups = new Map<string, Promise<string | null>>();
+    const groupId = (name: string) => {
+      const key = propertyGroupKey(name);
+      let id = groups.get(key);
+      if (!id) {
+        id = ensurePropertyGroups(db(), ctx, [name]).then((found) => found.get(key) ?? null);
+        groups.set(key, id);
+      }
+      return id;
+    };
     const outcome = await serializeForOrganization(ctx.organizationId, async () =>
-      importPropertyBatch(db(), ctx, rows, { geocode, limit: await getPropertyLimit(db(), ctx.organizationId), signal: abort.signal }),
+      importPropertyBatch(db(), ctx, rows, { geocode, limit: await getPropertyLimit(db(), ctx.organizationId), signal: abort.signal, groupId }),
     );
     // One re-match for the whole import: held while batches follow, run shortly after the last one.
     if (outcome.created > 0 || final) {
@@ -137,7 +160,8 @@ export function registerCustomerRoutes(app: FastifyInstance, deps: CustomerRoute
     const ctx = orgContext(req);
     const property = await updateProperty(db(), ctx, id, patch);
     if (!property) throw new HttpProblem(404, 'Property not found');
-    void deps.monitoring?.propertyChanged(ctx.organizationId);
+    // Groups alone do not move the property: nothing to re-match (S-20).
+    if (Object.keys(patch).some((key) => key !== 'groupIds')) void deps.monitoring?.propertyChanged(ctx.organizationId);
     return { property };
   });
 
@@ -164,6 +188,7 @@ export function registerCustomerRoutes(app: FastifyInstance, deps: CustomerRoute
         clerkOrgId: ctx.clerkOrgId,
         orgSlug: ctx.orgSlug,
         properties: await listProperties(db(), ctx),
+        groups: await listPropertyGroups(db(), ctx),
         sources: resolveSourceStatuses(deps.env),
       });
     const body = JSON.stringify(portfolio);

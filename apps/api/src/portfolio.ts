@@ -20,7 +20,7 @@ export function propertyToSnapshot(p: PropertyRecord, clerkOrgId: string): Prope
       area: p.geocode.city ?? p.geocode.municipality ?? '',
       municipality: p.geocode.municipality,
       countyCode: null,
-      segment: 'all',
+      groupIds: p.groupIds ?? [],
       location: p.location,
       geocode: {
         provider: p.geocode.provider === 'geoapify' ? 'geoapify' : 'manual_pin',
@@ -61,6 +61,8 @@ export function buildLivePortfolio(input: {
   orgSlug: string | null;
   properties: PropertyRecord[];
   sources: DataSourceStatus[];
+  /** The organization's property groups (S-20). */
+  groups?: { id: string; name: string }[];
   now?: Date;
 }): Portfolio {
   return {
@@ -69,7 +71,7 @@ export function buildLivePortfolio(input: {
     generatedAt: (input.now ?? new Date()).toISOString(),
     origin: 'live',
     regionLabel: 'Sverige',
-    segments: [],
+    groups: (input.groups ?? []).map((g) => ({ id: g.id, label: g.name })),
     properties: input.properties.map((p) => propertyToSnapshot(p, input.clerkOrgId)),
     feed: [],
     upcoming: [],

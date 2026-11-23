@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useId, useMemo, useState, type FormEvent } from 'react';
 import type { AcknowledgementExport, AcknowledgementHistoryEntry, AcknowledgementHistoryFilters, AcknowledgementHistoryPage } from '@fastighetsradar/domain';
 import { readView, useSavedView, useViewScroll, writeView } from '@/lib/navigation/view-state';
 import { useDashboard } from '@/lib/state/dashboard-state';
@@ -10,11 +10,14 @@ import { demoAcknowledgementExport, demoAcknowledgementPage } from '@/lib/demo/a
 import { IconAcknowledgements, IconChevronDown, IconDownload } from '../ui/icons';
 import styles from './AcknowledgementHistory.module.css';
 
-type Filters = Required<Pick<AcknowledgementHistoryFilters, 'from' | 'to' | 'property'>>;
-const emptyFilters: Filters = { from: '', to: '', property: '' };
+// `group` is optional: filters saved before groups existed (S-20) have none.
+type Filters = Required<Pick<AcknowledgementHistoryFilters, 'from' | 'to' | 'property'>> & { group?: string };
+const emptyFilters: Filters = { from: '', to: '', property: '', group: '' };
+/** Demo mode: the fixture entries, and the properties of the chosen group. */
+type DemoSource = { entries: AcknowledgementHistoryEntry[]; members?: ReadonlySet<string> };
 
-async function loadHistory(filters: Filters, demoEntries?: AcknowledgementHistoryEntry[], cursor?: string, signal?: AbortSignal) {
-  if (demoEntries) return demoAcknowledgementPage(demoEntries, { ...filters, cursor });
+async function loadHistory(filters: Filters, demo?: DemoSource, cursor?: string, signal?: AbortSignal) {
+  if (demo) return demoAcknowledgementPage(demo.entries, { ...filters, cursor }, demo.members);
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries({ ...filters, cursor })) {
     if (value) params.set(key, value);
@@ -25,8 +28,8 @@ async function loadHistory(filters: Filters, demoEntries?: AcknowledgementHistor
 }
 
 /** The whole selection for the report in one request (docs/plans/skalning.md, Fas 2 / S-08). */
-async function loadExport(filters: Filters, demoEntries?: AcknowledgementHistoryEntry[]): Promise<AcknowledgementExport> {
-  if (demoEntries) return demoAcknowledgementExport(demoEntries, filters);
+async function loadExport(filters: Filters, demo?: DemoSource): Promise<AcknowledgementExport> {
+  if (demo) return demoAcknowledgementExport(demo.entries, filters, demo.members);
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) if (value) params.set(key, value);
   const response = await fetch(`/api/app/feed/acknowledgements/export?${params}`, { cache: 'no-store' });
@@ -54,14 +57,23 @@ export function AcknowledgementHistory({ demoEntries, onDemoUndo, back }: {
 
   useViewScroll(`${viewKey}:scroll`, restored && !loading && history !== null);
 
+  // Demo mode filters the fixtures itself, by the demo portfolio's groups; live, the API filters
+  // (null keeps the callback stable while live rows are patched in).
+  const demoProperties = demoEntries ? portfolio.properties : null;
+  const demoSource = useCallback((f: Filters): DemoSource | undefined => {
+    if (!demoEntries) return undefined;
+    const group = f.group;
+    return { entries: demoEntries, members: group && demoProperties ? new Set(demoProperties.filter((s) => s.property.groupIds.includes(group)).map((s) => s.property.id)) : undefined };
+  }, [demoEntries, demoProperties]);
+
   useEffect(() => {
     if (!restored) return;
     const controller = new AbortController();
     async function restoreHistory() {
-      let result = await loadHistory(applied, demoEntries, undefined, controller.signal);
+      let result = await loadHistory(applied, demoSource(applied), undefined, controller.signal);
       const savedPages = readView(pagesKey, 1);
       for (let page = 1; page < savedPages && result.nextCursor && !controller.signal.aborted; page++) {
-        const next = await loadHistory(applied, demoEntries, result.nextCursor, controller.signal);
+        const next = await loadHistory(applied, demoSource(applied), result.nextCursor, controller.signal);
         result = { ...result, entries: [...result.entries, ...next.entries], nextCursor: next.nextCursor };
       }
       return result;
@@ -79,7 +91,7 @@ export function AcknowledgementHistory({ demoEntries, onDemoUndo, back }: {
       }
     });
     return () => controller.abort();
-  }, [applied, demoEntries, pagesKey, restored]);
+  }, [applied, demoSource, pagesKey, restored]);
 
   function apply(filters: Filters) {
     setError('');
@@ -91,7 +103,7 @@ export function AcknowledgementHistory({ demoEntries, onDemoUndo, back }: {
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fields = new FormData(e.currentTarget);
-    apply({ from: String(fields.get('from') ?? ''), to: String(fields.get('to') ?? ''), property: String(fields.get('property') ?? '') });
+    apply({ from: String(fields.get('from') ?? ''), to: String(fields.get('to') ?? ''), property: String(fields.get('property') ?? ''), group: String(fields.get('group') ?? '') });
   }
 
   async function loadMore() {
@@ -99,7 +111,7 @@ export function AcknowledgementHistory({ demoEntries, onDemoUndo, back }: {
     setError('');
     setLoading(true);
     try {
-      const page = await loadHistory(applied, demoEntries, history.nextCursor);
+      const page = await loadHistory(applied, demoSource(applied), history.nextCursor);
       setHistory({ ...history, entries: [...history.entries, ...page.entries], nextCursor: page.nextCursor });
       writeView(pagesKey, readView(pagesKey, 1) + 1);
     } catch {
@@ -114,7 +126,7 @@ export function AcknowledgementHistory({ demoEntries, onDemoUndo, back }: {
     setDownloading(kind);
     setError('');
     try {
-      const { entries, truncated } = await loadExport(applied, demoEntries);
+      const { entries, truncated } = await loadExport(applied, demoSource(applied));
       if (kind === 'csv') {
         const { downloadAcknowledgementCsv } = await import('@/lib/acknowledgements/pdf');
         downloadAcknowledgementCsv(entries);
@@ -122,7 +134,8 @@ export function AcknowledgementHistory({ demoEntries, onDemoUndo, back }: {
       }
       const property = history.properties.find(({ id }) => id === applied.property);
       const period = [applied.from && `Från ${applied.from}`, applied.to && `Till ${applied.to}`].filter(Boolean).join(' · ') || 'Alla datum';
-      const selection = `${period} · ${property?.name ?? 'Alla fastigheter'}`;
+      const groupName = applied.group ? portfolio.groups.find((g) => g.id === applied.group)?.label : undefined;
+      const selection = `${period} · ${property?.name ?? (groupName ? `Gruppen ${groupName}` : 'Alla fastigheter')}`;
       const { downloadAcknowledgementReport } = await import('@/lib/acknowledgements/pdf');
       if (truncated) await downloadAcknowledgementReport(entries, portfolio.organizationName, selection, !!demoEntries, pdfFormat, true);
       else await downloadAcknowledgementReport(entries, portfolio.organizationName, selection, !!demoEntries, pdfFormat);
@@ -167,7 +180,7 @@ export function AcknowledgementHistory({ demoEntries, onDemoUndo, back }: {
       : properties;
   }, [properties, propertySearch, draft.property]);
   const busy = loading || downloading !== false || undoing !== null;
-  const filtered = !!(applied.from || applied.to || applied.property);
+  const filtered = !!(applied.from || applied.to || applied.property || applied.group);
   const count = history?.nextCursor ? `${entries.length} visade` : entries.length === 1 ? '1 kvittering' : `${entries.length} kvitteringar`;
 
   return (
@@ -210,9 +223,17 @@ export function AcknowledgementHistory({ demoEntries, onDemoUndo, back }: {
               aria-label="Sök fastighet i filtret" onChange={(e) => setPropertySearch(e.target.value)} />
           )}
         </div>
+        {portfolio.groups.length > 0 && (
+          <label>Grupp
+            <select name="group" value={draft.group ?? ''} onChange={(e) => setDraft({ ...draft, group: e.target.value })}>
+              <option value="">Alla grupper</option>
+              {portfolio.groups.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}
+            </select>
+          </label>
+        )}
         <div className={styles.filterActions}>
           <button className={styles.secondary} disabled={busy}>Filtrera</button>
-          {(filtered || draft.from || draft.to || draft.property) && <button type="button" className={styles.textButton} disabled={busy} onClick={() => { setDraft(emptyFilters); apply(emptyFilters); }}>Rensa</button>}
+          {(filtered || draft.from || draft.to || draft.property || draft.group) && <button type="button" className={styles.textButton} disabled={busy} onClick={() => { setDraft(emptyFilters); apply(emptyFilters); }}>Rensa</button>}
         </div>
       </form>
 
@@ -233,7 +254,7 @@ export function AcknowledgementHistory({ demoEntries, onDemoUndo, back }: {
           <div className={styles.empty}>
             <IconAcknowledgements size={24} />
             <strong>{filtered ? 'Inga träffar' : 'Inga kvitteringar ännu'}</strong>
-            <p>{filtered ? 'Prova ett annat datumintervall eller en annan fastighet.' : 'När någon i organisationen kvitterar ett larm visas det här.'}</p>
+            <p>{filtered ? 'Prova ett annat datumintervall, en annan grupp eller en annan fastighet.' : 'När någon i organisationen kvitterar ett larm visas det här.'}</p>
           </div>
         )}
         {history?.nextCursor && (

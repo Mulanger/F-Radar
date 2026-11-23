@@ -168,7 +168,7 @@
 .reviewMeta { margin-top: 2px; color: #6b737b; font-size: 12px; }
 .reviewActions { display: flex; gap: 8px; }
 
-.headActions { display: flex; align-items: center; gap: 8px; }
+.headActions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .importButton {
   height: 44px;
   padding: 0 16px;
@@ -186,4 +186,7 @@
 @media (max-width: 640px) {
   .dialog { padding: 18px 16px; border-radius: 20px; }
   .tableWrap { max-height: 300px; }
+  /* Grupper, Importera and + beside the heading: smaller, and below it when they do not fit. */
+  .headActions { gap: 6px; }
+  .importButton { height: 40px; padding: 0 12px; font-size: 12.5px; }
 }

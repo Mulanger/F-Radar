@@ -23,3 +23,4 @@ export * from './portfolio-list';
 export * from './portfolio-live';
 export * from './event-page';
 export * from './property-import';
+export * from './property-groups';

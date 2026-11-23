@@ -30,6 +30,7 @@ interface RowView {
   row: number;
   name: string;
   address: string;
+  group?: string;
   label: string;
   tone: Tone;
   detail: string;
@@ -37,13 +38,15 @@ interface RowView {
 }
 
 function view(p: PreviewRow, r: PropertyImportResult | undefined): RowView {
-  const base = { row: p.row, name: p.name, address: p.address };
+  const base = { row: p.row, name: p.name, address: p.address, group: p.group };
   const position = p.location ? `Koordinater ${p.location.lat.toFixed(5)}, ${p.location.lon.toFixed(5)}` : '';
   if (p.status === 'invalid') return { ...base, label: 'Fel', tone: 'bad', detail: p.message ?? '', categories: ['failed'] };
   if (p.status === 'duplicate_file') return { ...base, label: 'Dubblett', tone: 'muted', detail: p.message ?? '', categories: ['skipped'] };
   if (p.status === 'exists') return { ...base, label: 'Finns redan', tone: 'muted', detail: p.message ?? '', categories: ['skipped'] };
   if (!r) return { ...base, label: 'Klar', tone: p.warning ? 'warn' : 'ok', detail: p.warning ?? (position || 'Adressen söks'), categories: p.warning ? ['ready', 'noTown', 'waiting'] : ['ready', 'waiting'] };
-  const hit = r.match ? `${r.match.label ?? ''} · ${PRECISION_SV[r.match.precision] ?? r.match.precision}` : position;
+  const found = r.match ? `${r.match.label ?? ''} · ${PRECISION_SV[r.match.precision] ?? r.match.precision}` : position;
+  // The organization already has as many groups as it may: the property is there, its group is not.
+  const hit = r.groupNotSet ? `${found ? `${found} · ` : ''}utan grupp (gränsen för antal grupper är nådd)` : found;
   switch (r.status) {
     case 'created':
       return r.needsReview
@@ -133,6 +136,7 @@ export function PropertyImportDialog({
   const table = parsed.table;
   const roles = useMemo(() => (table ? (roleOverride?.table === table ? roleOverride.roles : detectColumns(table)) : []), [table, roleOverride]);
   const preview = useMemo(() => (table ? buildPreview(table, roles, existingAddresses) : []), [table, roles, existingAddresses]);
+  const withGroups = useMemo(() => preview.some((p) => p.group), [preview]);
   const rows = useMemo(() => importRows(preview), [preview]);
   const missingAddress = table !== null && !roles.includes('address');
 
@@ -236,7 +240,7 @@ export function PropertyImportDialog({
             <div className={styles.fileRow}>
               <input ref={fileInput} id="import-file" type="file" accept=".csv,.tsv,.txt,text/csv,text/plain" onChange={(e) => void pickFile(e.target.files?.[0])} />
               <button type="button" className={`${styles.button} ${styles.small}`} onClick={() => fileInput.current?.click()}>Välj CSV-fil</button>
-              {fileName ? <span>{fileName}</span> : <span>eller klistra in ovan. Första raden får vara rubriker (Namn, Adress, Postnummer, Ort, Latitud, Longitud).</span>}
+              {fileName ? <span>{fileName}</span> : <span>eller klistra in ovan. Första raden får vara rubriker (Namn, Adress, Postnummer, Ort, Latitud, Longitud, Grupp).</span>}
             </div>
           </div>
         )}
@@ -292,7 +296,7 @@ export function PropertyImportDialog({
             <div className={styles.tableWrap}>
               <table className={styles.table}>
                 <thead>
-                  <tr><th>Rad</th><th>Namn</th><th>Adress</th><th>Status</th><th>{started ? 'Träff' : 'Position'}</th></tr>
+                  <tr><th>Rad</th><th>Namn</th><th>Adress</th>{withGroups && <th>Grupp</th>}<th>Status</th><th>{started ? 'Träff' : 'Position'}</th></tr>
                 </thead>
                 <tbody>
                   {shown.slice(0, VISIBLE_ROWS).map((v) => (
@@ -300,6 +304,7 @@ export function PropertyImportDialog({
                       <td className={styles.num}>{v.row}</td>
                       <td>{v.name}</td>
                       <td>{v.address}</td>
+                      {withGroups && <td>{v.group ?? ''}</td>}
                       <td><span className={`${styles.status} ${styles[v.tone]}`}>{v.label}</span></td>
                       <td className={styles.detail}>{v.detail}</td>
                     </tr>

@@ -1,4 +1,4 @@
-import { importAddressKey, PROPERTY_IMPORT_ROWS_MAX, SWEDEN_BOUNDS, type PropertyImportRow } from '@fastighetsradar/domain';
+import { importAddressKey, PROPERTY_GROUP_NAME_MAX, PROPERTY_IMPORT_ROWS_MAX, SWEDEN_BOUNDS, type PropertyImportRow } from '@fastighetsradar/domain';
 
 /**
  * Reads the customer's property list for the import (docs/plans/skalning.md, Fas 6 / S-28): rows
@@ -6,7 +6,7 @@ import { importAddressKey, PROPERTY_IMPORT_ROWS_MAX, SWEDEN_BOUNDS, type Propert
  * Everything here runs in the browser; the API validates the rows again.
  */
 
-export type ColumnRole = 'name' | 'address' | 'postcode' | 'city' | 'lat' | 'lon' | 'ignore';
+export type ColumnRole = 'name' | 'address' | 'postcode' | 'city' | 'lat' | 'lon' | 'group' | 'ignore';
 
 export const COLUMN_ROLE_LABELS: Record<ColumnRole, string> = {
   name: 'Namn',
@@ -15,6 +15,7 @@ export const COLUMN_ROLE_LABELS: Record<ColumnRole, string> = {
   city: 'Ort',
   lat: 'Latitud',
   lon: 'Longitud',
+  group: 'Grupp',
   ignore: 'Används inte',
 };
 
@@ -25,6 +26,8 @@ const HEADER_WORDS: Record<Exclude<ColumnRole, 'ignore'>, string[]> = {
   city: ['ort', 'postort', 'stad', 'city', 'town'],
   lat: ['latitud', 'lat', 'latitude', 'breddgrad'],
   lon: ['longitud', 'lon', 'lng', 'long', 'longitude', 'längdgrad'],
+  // The organization's own grouping (Fas 4 / S-20): area, company or manager.
+  group: ['grupp', 'gruppnamn', 'group', 'fastighetsgrupp'],
 };
 
 const headerWord = (cell: string) => cell.toLocaleLowerCase('sv-SE').replace(/[^\p{L}]/gu, '');
@@ -160,6 +163,8 @@ export interface PreviewRow {
   name: string;
   address: string;
   location?: { lat: number; lon: number };
+  /** The group to put the property in (created on import when the organization has none by that name). */
+  group?: string;
   status: PreviewStatus;
   /** Why the row cannot be imported. */
   message?: string;
@@ -193,7 +198,7 @@ export function buildPreview(table: ImportTable, roles: ColumnRole[], existingAd
   const existing = new Set<string>();
   for (const a of existingAddresses) existing.add(importAddressKey(a));
   const col = (role: ColumnRole) => roles.indexOf(role);
-  const [iName, iAddress, iPostcode, iCity, iLat, iLon] = (['name', 'address', 'postcode', 'city', 'lat', 'lon'] as const).map(col);
+  const [iName, iAddress, iPostcode, iCity, iLat, iLon, iGroup] = (['name', 'address', 'postcode', 'city', 'lat', 'lon', 'group'] as const).map(col);
   const cell = (r: string[], i: number) => (i >= 0 ? (r[i] ?? '').trim() : '');
   const seen = new Map<string, number>();
 
@@ -205,11 +210,13 @@ export function buildPreview(table: ImportTable, roles: ColumnRole[], existingAd
     const name = cell(r, iName!) || address.split(',')[0]!.trim();
     const lat = coordinate(cell(r, iLat!));
     const lon = coordinate(cell(r, iLon!));
-    const base = { row, name, address };
+    const group = cell(r, iGroup!).replace(/\s+/g, ' ');
+    const base = { row, name, address, ...(group && { group }) };
 
     if (address.length < 3) return { ...base, status: 'invalid', message: 'Adress saknas' };
     if (name.length > 120) return { ...base, status: 'invalid', message: 'Namnet är längre än 120 tecken' };
     if (address.length > 300) return { ...base, status: 'invalid', message: 'Adressen är längre än 300 tecken' };
+    if (group.length > PROPERTY_GROUP_NAME_MAX) return { ...base, status: 'invalid', message: `Gruppnamnet är längre än ${PROPERTY_GROUP_NAME_MAX} tecken` };
     let location: PreviewRow['location'];
     if (lat !== null || lon !== null) {
       if (lat === null || lon === null) return { ...base, status: 'invalid', message: 'Både latitud och longitud behövs' };
@@ -236,5 +243,5 @@ export function buildPreview(table: ImportTable, roles: ColumnRole[], existingAd
 export function importRows(preview: PreviewRow[]): PropertyImportRow[] {
   return preview
     .filter((p) => p.status === 'ready')
-    .map((p) => ({ row: p.row, name: p.name, address: p.address, ...(p.location && { location: p.location }) }));
+    .map((p) => ({ row: p.row, name: p.name, address: p.address, ...(p.location && { location: p.location }), ...(p.group && { group: p.group }) }));
 }

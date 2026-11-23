@@ -98,7 +98,14 @@ export async function importPropertyBatch(
   db: Queryable,
   ctx: OrgContext,
   rows: PropertyImportRow[],
-  options: { geocode: ImportGeocoder; limit: number; signal?: AbortSignal; now?: () => number },
+  options: {
+    geocode: ImportGeocoder;
+    limit: number;
+    signal?: AbortSignal;
+    now?: () => number;
+    /** The id of the group a row names (found or created; Fas 4 / S-20), or null at the group limit. */
+    groupId?: (name: string) => Promise<string | null>;
+  },
 ): Promise<ImportBatchOutcome> {
   const now = options.now ?? (() => performance.now());
   const started = now();
@@ -128,11 +135,12 @@ export async function importPropertyBatch(
     for (const k of keys) byKey.set(k, 'reserved');
     if (place) byPlace.set(place, 'reserved');
     try {
-      const property = await createProperty(db, ctx, input);
+      const groupId = row.group && options.groupId ? await options.groupId(row.group) : null;
+      const property = await createProperty(db, ctx, groupId ? { ...input, groupIds: [groupId] } : input);
       for (const k of keys) byKey.set(k, property.id);
       if (place) byPlace.set(place, property.id);
       created++;
-      results.set(row.row, { row: row.row, status: 'created', propertyId: property.id, ...extra });
+      results.set(row.row, { row: row.row, status: 'created', propertyId: property.id, ...extra, ...(row.group && !groupId ? { groupNotSet: true } : {}) });
     } catch (err) {
       count--;
       for (const k of keys) byKey.delete(k);

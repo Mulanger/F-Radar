@@ -19,6 +19,10 @@ interface HistoryRow {
   is_update: boolean;
 }
 
+/** The property is in the group NOW (S-20): the report follows today's grouping, not the one at acknowledgement. */
+const IN_GROUP = (param: string) =>
+  `EXISTS (SELECT 1 FROM property_group_members m WHERE m.organization_id = h.organization_id AND m.group_id = ${param} AND m.property_id = h.property_id)`;
+
 export async function listAcknowledgementHistory(db: Queryable, organizationId: string, filters: AcknowledgementHistoryFilters) {
   const { rows } = await db.query<HistoryRow>(
     `SELECT h.id, h.property_id, h.property_name, h.property_address, h.source_id, h.operator_name,
@@ -28,11 +32,12 @@ export async function listAcknowledgementHistory(db: Queryable, organizationId: 
        AND ($2::date IS NULL OR h.acknowledged_at >= ($2::date::timestamp AT TIME ZONE 'Europe/Stockholm'))
        AND ($3::date IS NULL OR h.acknowledged_at < (($3::date + 1)::timestamp AT TIME ZONE 'Europe/Stockholm'))
        AND ($4::uuid IS NULL OR h.property_id = $4)
+       AND ($7::uuid IS NULL OR ${IN_GROUP('$7')})
        AND ($5::bigint IS NULL OR (h.acknowledged_at, h.id) < (
          SELECT c.acknowledged_at, c.id FROM feed_acknowledgement_history c WHERE c.organization_id = $1 AND c.id = $5
        ))
      ORDER BY h.acknowledged_at DESC, h.id DESC LIMIT $6`,
-    [organizationId, filters.from ?? null, filters.to ?? null, filters.property ?? null, filters.cursor ?? null, ACKNOWLEDGEMENT_PAGE_SIZE + 1],
+    [organizationId, filters.from ?? null, filters.to ?? null, filters.property ?? null, filters.cursor ?? null, ACKNOWLEDGEMENT_PAGE_SIZE + 1, filters.group ?? null],
   );
   return {
     entries: rows.slice(0, ACKNOWLEDGEMENT_PAGE_SIZE),
@@ -53,8 +58,9 @@ export async function listAcknowledgementExport(db: Queryable, organizationId: s
        AND ($2::date IS NULL OR h.acknowledged_at >= ($2::date::timestamp AT TIME ZONE 'Europe/Stockholm'))
        AND ($3::date IS NULL OR h.acknowledged_at < (($3::date + 1)::timestamp AT TIME ZONE 'Europe/Stockholm'))
        AND ($4::uuid IS NULL OR h.property_id = $4)
+       AND ($6::uuid IS NULL OR ${IN_GROUP('$6')})
      ORDER BY h.acknowledged_at DESC, h.id DESC LIMIT $5`,
-    [organizationId, filters.from ?? null, filters.to ?? null, filters.property ?? null, max + 1],
+    [organizationId, filters.from ?? null, filters.to ?? null, filters.property ?? null, max + 1, filters.group ?? null],
   );
   return { entries: rows.slice(0, max), truncated: rows.length > max };
 }

@@ -10,7 +10,7 @@ vi.mock('@/lib/acknowledgements/pdf', async (importOriginal) => ({
   ...await importOriginal<typeof import('@/lib/acknowledgements/pdf')>(),
   downloadAcknowledgementReport: download,
 }));
-vi.mock('@/lib/state/dashboard-state', () => ({ useDashboard: () => ({ portfolio: { organizationName: 'Demoportfölj' }, refresh }) }));
+vi.mock('@/lib/state/dashboard-state', () => ({ useDashboard: () => ({ portfolio: { organizationName: 'Demoportfölj', groups: [], properties: [] }, refresh }) }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals(); });
 
 it('undoes the selected history id, keeps the row and exports the undo time', async () => {
