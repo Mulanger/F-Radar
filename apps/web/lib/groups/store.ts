@@ -1,4 +1,4 @@
-import { PROPERTY_GROUPS_MAX, type Portfolio, type PropertyGroup } from '@fastighetsradar/domain';
+import { GROUP_USED_BY_SMS_RULES, groupUsedBySmsRulesMessage, PROPERTY_GROUPS_MAX, type NotificationRule, type Portfolio, type PropertyGroup } from '@fastighetsradar/domain';
 
 /**
  * Changes to the organization's property groups (docs/plans/skalning.md, Fas 4 / S-20). Live, each
@@ -37,16 +37,22 @@ export function applyGroupChange(p: Portfolio, change: GroupChange): Portfolio {
 }
 
 export class GroupRequestError extends Error {}
+export class GroupUsedBySmsRulesError extends GroupRequestError {}
 
 const PROBLEM_TYPE_LIMIT = 'urn:fastighetsradar:problem:group-limit';
 
 async function problem(res: Response): Promise<GroupRequestError> {
   let type = '';
+  let detail: string | undefined;
   try {
-    type = ((await res.json()) as { type?: string }).type ?? '';
+    const body = (await res.json()) as { type?: string; detail?: string };
+    type = body.type ?? '';
+    detail = body.detail;
   } catch {
     // Not a problem document (a proxy error page): the status is enough.
   }
+  if (res.status === 409 && type === GROUP_USED_BY_SMS_RULES)
+    return new GroupUsedBySmsRulesError(detail ?? 'Gruppen används av en SMS-regel. Ändra eller ta bort regeln först.');
   const message =
     res.status === 409 ? (type === PROBLEM_TYPE_LIMIT ? `En organisation kan ha högst ${PROPERTY_GROUPS_MAX} grupper.` : 'Det finns redan en grupp med det namnet.')
     : res.status === 404 ? 'Gruppen finns inte längre – ladda om sidan.'
@@ -95,7 +101,7 @@ let demoSequence = 0;
 /** Runs one change: through the API when live (then reloads), in the shown portfolio only in demo mode. */
 export async function runGroupChange(
   change: GroupChangeRequest,
-  options: { live: boolean; portfolio: () => Portfolio; patch: (next: Portfolio) => void; refresh: () => void },
+  options: { live: boolean; portfolio: () => Portfolio; patch: (next: Portfolio) => void; refresh: () => void; demoRules?: () => readonly NotificationRule[] },
 ): Promise<string> {
   let applied: GroupChange;
   if (change.kind === 'create') {
@@ -106,6 +112,9 @@ export async function runGroupChange(
       if (change.kind === 'rename') await groupApi.rename(change.id, change.name);
       else if (change.kind === 'remove') await groupApi.remove(change.id);
       else await groupApi.members(change.id, change.propertyIds);
+    } else if (change.kind === 'remove') {
+      const names = options.demoRules?.().filter((r) => r.scope === 'group' && r.groupId === change.id).map((r) => r.name) ?? [];
+      if (names.length) throw new GroupUsedBySmsRulesError(groupUsedBySmsRulesMessage(names));
     }
     applied = change;
   }

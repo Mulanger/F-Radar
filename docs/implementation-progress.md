@@ -188,4 +188,7 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
 - Fas 4 steg 4: ”Kommande förhållanden” grupperar per förhållande och tid (officiella varningar på
   exakt tid, prognoser per sextimmarsfönster) inom vald fastighetsgrupp på dator och mobil. Grupperna kan fällas ut och sökas på namn eller adress med
   100 rader per sida. Upp till tre fastigheter visas enskilt.
+- Fas 4 steg 5: SMS-regler kan omfatta alla aktuella medlemmar i en fastighetsgrupp. Regelvyn visar
+  grupp och antal. En grupp som används av en sparad regel kan tas bort först när regeln ändrats
+  eller tagits bort. Flödet finns även i demoläget.
 

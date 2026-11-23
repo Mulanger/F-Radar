@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { demoPortfolio } from '@fastighetsradar/domain/fixtures';
 import type { FeedItem, Portfolio } from '@fastighetsradar/domain';
+import { GROUP_USED_BY_SMS_RULES, groupUsedBySmsRulesMessage, type NotificationRule } from '@fastighetsradar/domain';
 import { DashboardStateProvider } from '@/lib/state/dashboard-state';
 import { MobileAlerts } from '@/components/mobile/MobileAlerts';
 import { MobileNavigation } from '@/components/mobile/MobileNavigation';
@@ -164,6 +165,23 @@ describe('group components', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: new RegExp(inner[0]!.property.name) }));
     fireEvent.click(screen.getByRole('button', { name: 'Spara (1)' }));
     await waitFor(() => expect(change).toHaveBeenLastCalledWith({ kind: 'members', id: 'outer', propertyIds: [inner[0]!.property.id] }));
+  });
+
+  it.each([false, true])('shows the blocking SMS rule in the group dialog (demo: %s)', async (demo) => {
+    const names = ['Varningar i Innerstad'];
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ type: GROUP_USED_BY_SMS_RULES, detail: groupUsedBySmsRulesMessage(names) }, { status: 409 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const patch = vi.fn();
+    render(<PropertyGroupsDialog portfolio={demoPortfolio} demo={demo} change={(request) => runGroupChange(request, {
+      live: !demo, portfolio: () => demoPortfolio, patch, refresh: vi.fn(),
+      demoRules: () => [{ scope: 'group', groupId: 'inner', name: names[0] } as NotificationRule],
+    })} onClose={() => {}} />);
+    const row = within(screen.getByText('Innerstad').closest('li')!);
+    fireEvent.click(row.getByRole('button', { name: 'Ta bort Innerstad' }));
+    fireEvent.click(row.getByRole('button', { name: 'Ta bort gruppen' }));
+    await waitFor(() => expect(row.getByRole('alert').textContent).toBe(groupUsedBySmsRulesMessage(names)));
+    expect(patch).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(demo ? 0 : 1);
   });
 
   it('toggles a property\'s groups and creates a new one from the property dialog', async () => {

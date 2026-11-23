@@ -35,7 +35,7 @@ function PendingLink({ icon, label, badge }: { icon: React.ReactNode; label: str
 export function Sidebar() {
   const pathname = usePathname() ?? '';
   const { portfolio, mode, basePath, unseenAlarmCount } = useDashboard();
-  const isSms = pathname === '/sms-rules';
+  const isSms = pathname === `${basePath}/sms-rules`;
   const isSettings = pathname === '/settings';
   const isAlerts = pathname === `${basePath}/alerts`;
   const isAcknowledgements = pathname === `${basePath}/acknowledgements`;
@@ -77,7 +77,7 @@ export function Sidebar() {
           <Link href={`${basePath}/alerts`} aria-current={isAlerts ? 'page' : undefined} style={{ ...navItem, ...(isAlerts ? navOn : navOff) }}><IconAlert />Larm{unseenAlarmCount > 0 && <span aria-label={`${unseenAlarmCount} olästa larm`} style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: '#fff', background: 'oklch(0.6 0.18 28)', borderRadius: 20, padding: '2px 7px' }}>{unseenAlarmCount}</span>}</Link>
           <Link href={`${basePath}/acknowledgements`} aria-current={isAcknowledgements ? 'page' : undefined} style={{ ...navItem, ...(isAcknowledgements ? navOn : navOff) }}><IconAcknowledgements />Kvitteringar</Link>
           <div style={{ ...sectionLabel, padding: '22px 12px 8px' }}>Konfiguration</div>
-          {isDemo ? <PendingLink icon={<IconMessage />} label="SMS-regler" /> : <Link href="/sms-rules" aria-current={isSms?'page':undefined} style={{...navItem,...(isSms?navOn:navOff)}}><IconMessage/>SMS-regler</Link>}
+          <Link href={`${basePath}/sms-rules`} aria-current={isSms?'page':undefined} style={{...navItem,...(isSms?navOn:navOff)}}><IconMessage/>SMS-regler</Link>
           {isDemo ? <PendingLink icon={<IconSliders />} label="Inställningar" /> : <Link href="/settings" aria-current={isSettings ? 'page' : undefined} style={{ ...navItem, ...(isSettings ? navOn : navOff) }}><IconSliders />Inställningar</Link>}
         </nav>
   

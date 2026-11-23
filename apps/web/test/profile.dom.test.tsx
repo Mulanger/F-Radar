@@ -121,7 +121,7 @@ it('keeps demo navigation in the demo and disables live account actions', () => 
   mocks.mode = 'demo';
   render(<DemoProfile />);
   expect(screen.getByRole('link', { name: /^Kvitteringar/ }).getAttribute('href')).toBe('/demo/acknowledgements?via=profile');
-  expect(screen.queryByRole('link', { name: /^SMS-regler/ })).toBeNull();
+  expect(screen.getByRole('link', { name: /^SMS-regler/ }).getAttribute('href')).toBe('/demo/sms-rules?via=profile');
   expect(screen.queryByRole('button', { name: 'Ändra namn' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Logga ut' })).toBeNull();
 });

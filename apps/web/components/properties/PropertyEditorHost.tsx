@@ -9,6 +9,7 @@ import { PropertyEditorDialog } from './PropertyEditorDialog';
 import { PropertyImportDialog } from './PropertyImportDialog';
 import { PropertyGroupsDialog } from '../groups/PropertyGroupsDialog';
 import { runGroupChange, type GroupChangeRequest } from '@/lib/groups/store';
+import { useDemoSmsRules } from '../notifications/DemoSmsRules';
 
 type EditorMode = { kind: 'create' } | { kind: 'edit'; snapshot: PropertySnapshot };
 
@@ -28,6 +29,7 @@ const EditorCtx = createContext<{
 /** Owns the add/edit and import dialogs so the header, empty states and detail page share one instance. */
 export function PropertyEditorHost({ children }: { children: React.ReactNode }) {
   const ds = useDashboard();
+  const demoRules = useDemoSmsRules()?.rules;
   const [mode, setMode] = useState<EditorMode | null>(null);
   const [importing, setImporting] = useState(false);
   const [grouping, setGrouping] = useState(false);
@@ -47,8 +49,9 @@ export function PropertyEditorHost({ children }: { children: React.ReactNode }) 
           patchPortfolio(next);
         },
         refresh,
+        demoRules,
       }),
-    [ds.canEdit, patchPortfolio, refresh],
+    [ds.canEdit, patchPortfolio, refresh, demoRules],
   );
   const openGroups = useCallback(() => setGrouping(true), []);
   const [demoReview, setDemoReview] = useState<PositionReviewItem[]>([]);

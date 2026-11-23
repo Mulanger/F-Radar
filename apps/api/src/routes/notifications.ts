@@ -323,13 +323,13 @@ export function registerNotificationRoutes(app: FastifyInstance, deps: Deps) {
       })
       .strict()
       .parse(req.body ?? {});
-    const generated = await requireService().evaluateOrganization(
+    const result = await requireService().testRule(
       org,
       Id.parse(req.params).id,
       scenario,
     );
     // The regular scheduler processes these durable records. Requests cannot call a gateway.
-    return { generated, mode: "simulated" };
+    return { ...result, mode: "simulated" };
   });
   app.get("/v1/notifications/links/:key", read, async (req) => {
     const { key } = z

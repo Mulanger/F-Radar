@@ -11,6 +11,13 @@ export const PROPERTY_GROUPS_MAX = 100;
 export const PROPERTY_GROUP_NAME_MAX = 60;
 /** Ids in one membership request: the largest per-organization property limit. */
 export const PROPERTY_GROUP_MEMBERS_MAX = 10_000;
+export const GROUP_USED_BY_SMS_RULES = 'urn:fastighetsradar:problem:group-used-by-sms-rules';
+
+export function groupUsedBySmsRulesMessage(ruleNames: readonly string[]): string {
+  const names = ruleNames.map((name) => `”${name}”`).join(', ');
+  return ruleNames.length === 1 ? `Gruppen används av SMS-regeln ${names}. Ändra eller ta bort regeln först.`
+    : `Gruppen används av SMS-reglerna ${names}. Ändra eller ta bort reglerna först.`;
+}
 
 export const PropertyGroupNameSchema = z.string().trim().min(1).max(PROPERTY_GROUP_NAME_MAX);
 

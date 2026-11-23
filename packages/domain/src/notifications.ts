@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TRAFFIC_RADIUS } from "./organization-settings";
+import type { PropertyGroup } from "./property-groups";
 
 export const NOTIFICATION_CATEGORIES = [
   { id: 'water_outage', source: 'utility_outages', label: 'Vatten och avlopp', explanation: 'Exakt träff på leverantörens område eller adresslista. Kokningsrekommendationer följer kommunens besked.', enabled: true },
@@ -147,7 +148,8 @@ export const NotificationRuleInputSchema = z
   .object({
     name: z.string().trim().min(1).max(80),
     enabled: z.boolean().default(false),
-    scope: z.enum(["selected", "all_current", "all_future"]),
+    scope: z.enum(["selected", "all_current", "all_future", "group"]),
+    groupId: z.uuid({ error: "Ogiltigt id för fastighetsgruppen" }).optional(),
     // As many as an organization may have (DEFAULT_MAX_PROPERTIES); larger selections use the "all" scopes.
     propertyIds: z.array(z.string().uuid()).max(1000),
     recipientIds: z.array(z.string().uuid()).min(1).max(10),
@@ -167,6 +169,8 @@ export const NotificationRuleInputSchema = z
   })
   .strict()
   .superRefine((r, ctx) => {
+    if (r.scope === "group" && !r.groupId)
+      ctx.addIssue({ code: "custom", path: ["groupId"], message: "Välj en fastighetsgrupp" });
     if (r.scope === "selected" && !r.propertyIds.length)
       ctx.addIssue({
         code: "custom",
@@ -272,7 +276,8 @@ export interface NotificationUsage {
 export interface NotificationDashboard {
   rules: NotificationRule[];
   recipients: NotificationRecipient[];
-  properties: { id: string; name: string }[];
+  properties: { id: string; name: string; groupIds: string[] }[];
+  groups: PropertyGroup[];
   activity: NotificationActivity[];
   usage: NotificationUsage;
   canManage: boolean;

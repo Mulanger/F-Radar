@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import type {
   NotificationCondition,
   NotificationDashboard,
@@ -40,7 +41,7 @@ const row: React.CSSProperties = {
   alignItems: "center",
   flexWrap: "wrap",
 };
-const section: React.CSSProperties = { ...card, padding: 24 };
+const section: React.CSSProperties = { ...card, padding: 24, minWidth: 0 };
 const field: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
@@ -48,6 +49,7 @@ const field: React.CSSProperties = {
   fontSize: 12.5,
   color: C.text2,
   flex: "1 1 180px",
+  minWidth: 0,
 };
 const fmt = (date: string) =>
   new Date(date).toLocaleString("sv-SE", {
@@ -112,7 +114,7 @@ function newRule(
     dailyRecipientLimit: 5,
   };
 }
-export async function notificationRequest<T>(
+async function liveRequest<T>(
   path: string,
   method = "GET",
   body?: unknown,
@@ -138,17 +140,29 @@ export async function notificationRequest<T>(
 
 /** A rule that sends one SMS per property: above this many properties the editor suggests grouping (Fas 5 / S-24). */
 export const SPLIT_RULE_WARNING_AT = 10;
-/** How many properties a rule reaches: every property for the "all" scopes, else the selection. */
-export const ruleReach = (scope: string, selected: number, all: number) => (scope === "selected" ? selected : all);
+const propertiesText = (n: number) => `${n} ${n === 1 ? "fastighet" : "fastigheter"}`;
+
+function scopeLabel(rule: NotificationRule, groups: NotificationDashboard["groups"]): string {
+  if (rule.scope === "all_future") return "Alla nuvarande och framtida fastigheter";
+  if (rule.scope !== "group") return `${rule.propertyIds.length} valda fastigheter`;
+  const group = groups.find((g) => g.id === rule.groupId);
+  return group ? `Gruppen ${group.name} · ${propertiesText(group.propertyCount)}` : "Fastighetsgruppen saknas";
+}
 
 export function SmsManagement({
   initial,
   propertyId,
   back,
+  request: notificationRequest = liveRequest,
+  propertiesHref = "/properties",
+  demo = false,
 }: {
   initial: NotificationDashboard;
   propertyId?: string;
   back?: React.ReactNode;
+  request?: typeof liveRequest;
+  propertiesHref?: string;
+  demo?: boolean;
 }) {
   const [data, setData] = useState(initial),
     [draft, setDraft] = useState<NotificationRuleInput>(() =>
@@ -169,6 +183,7 @@ export function SmsManagement({
       parts: number;
       estimatedCostSek: number | null;
       eligible: boolean;
+      propertyCount?: number;
     } | null>(null);
   const [scenario, setScenario] = useState("success"),
     [verificationId, setVerificationId] = useState<string | null>(null),
@@ -176,7 +191,7 @@ export function SmsManagement({
   const reload = useCallback(async () => {
     const d = await notificationRequest<NotificationDashboard>("");
     setData(d);
-  }, []);
+  }, [notificationRequest]);
   useEffect(() => {
     const t = setInterval(() => void reload().catch(() => undefined), 15000);
     return () => clearInterval(t);
@@ -214,15 +229,14 @@ export function SmsManagement({
     setNotice("");
   };
   const disabled = busy || !data.canManage;
-  const selectedCount = new Set(
-    data.rules
-      .filter((r) => r.enabled)
-      .flatMap((r) =>
-        r.scope === "all_future"
-          ? data.properties.map((p) => p.id)
-          : r.propertyIds,
-      ),
-  ).size;
+  const enabledRules = data.rules.filter((r) => r.enabled);
+  const watchedGroups = new Set(enabledRules.filter((r) => r.scope === "group").map((r) => r.groupId));
+  const watchedProperties = new Set(enabledRules.flatMap((r) => r.propertyIds));
+  const selectedCount = enabledRules.some((r) => r.scope === "all_future") ? data.properties.length
+    : data.properties.filter((p) => watchedProperties.has(p.id) || p.groupIds.some((id) => watchedGroups.has(id))).length;
+  const draftGroup = data.groups.find((g) => g.id === draft.groupId);
+  const reach = draft.scope === "group" ? draftGroup?.propertyCount ?? 0
+    : draft.scope === "selected" ? draft.propertyIds.length : data.properties.length;
   const save = () =>
     act(async () => {
       const { id } = await notificationRequest<{ id: string }>(
@@ -326,7 +340,7 @@ export function SmsManagement({
           <div style={cardSub}>Leverans: simulering</div>
         </div>
       </section>
-      <section style={section} aria-labelledby="recipient-heading">
+      {!demo && <section style={section} aria-labelledby="recipient-heading">
         <h2 id="recipient-heading" style={{ ...cardTitle, margin: "0 0 5px" }}>
           Mottagare
         </h2>
@@ -509,7 +523,7 @@ export function SmsManagement({
             </button>
           </form>
         )}
-      </section>
+      </section>}
       <div
         style={{
           display: "flex",
@@ -545,8 +559,9 @@ export function SmsManagement({
           </div>
           {!data.rules.length && (
             <p style={cardSub}>
-              Inga regler ännu. Lägg till ett nummer och välj vilka fastigheter
-              du vill bevaka.
+              {demo
+                ? "Inga regler ännu. Skapa en regel nedan – i demon går inga SMS ut och mottagaren är påhittad."
+                : "Inga regler ännu. Lägg till ett nummer och välj vilka fastigheter du vill bevaka."}
             </p>
           )}
           {data.rules.map((r) => (
@@ -594,9 +609,7 @@ export function SmsManagement({
                     ?.label
                 }{" "}
                 ·{" "}
-                {r.scope === "all_future"
-                  ? "Alla nuvarande och framtida fastigheter"
-                  : `${r.propertyIds.length} valda fastigheter`}
+                {scopeLabel(r, data.groups)}
               </div>
               <div style={{ ...row, marginTop: 10 }}>
                 <button style={button} onClick={() => edit(r)}>
@@ -702,10 +715,11 @@ export function SmsManagement({
                     setDraft((d) => ({
                       ...d,
                       scope,
+                      groupId: scope === "group" ? d.groupId : undefined,
                       propertyIds:
                         scope === "all_current"
                           ? data.properties.map((p) => p.id)
-                          : d.propertyIds,
+                          : scope === "group" ? [] : d.propertyIds,
                     }));
                     setPreview(null);
                   }}
@@ -717,6 +731,7 @@ export function SmsManagement({
                   <option value="all_future">
                     Alla nuvarande och framtida fastigheter
                   </option>
+                  <option value="group">Alla i en grupp (även nya)</option>
                 </select>
               </label>
               {draft.scope === "all_future" ? (
@@ -724,6 +739,21 @@ export function SmsManagement({
                   Du väljer uttryckligen att även nya fastigheter ska omfattas
                   av regeln.
                 </p>
+              ) : draft.scope === "group" ? (
+                data.groups.length > 0 ? (
+                  <>
+                    <label style={field}>
+                      Fastighetsgrupp
+                      <select style={inputStyle} required value={draftGroup?.id ?? ""} onChange={(e) => update("groupId", e.target.value || undefined)}>
+                        <option value="">Välj grupp</option>
+                        {data.groups.map((g) => <option key={g.id} value={g.id}>{g.name} ({propertiesText(g.propertyCount)})</option>)}
+                      </select>
+                    </label>
+                    {draftGroup && <p style={{ ...cardSub, margin: 0 }} role="status">{propertiesText(draftGroup.propertyCount)} i gruppen just nu.</p>}
+                  </>
+                ) : (
+                  <p style={{ ...cardSub, margin: 0 }}>Skapa först en grupp under ”Grupper” på sidan <Link href={propertiesHref}>Fastigheter</Link>.</p>
+                )
               ) : (
                 <RulePropertySelect
                   properties={data.properties}
@@ -1043,9 +1073,9 @@ export function SmsManagement({
                 />
                 Samla samma källhändelse för flera fastigheter i ett SMS
               </label>
-              {!draft.groupProperties && ruleReach(draft.scope, draft.propertyIds.length, data.properties.length) > SPLIT_RULE_WARNING_AT && (
+              {!draft.groupProperties && reach > SPLIT_RULE_WARNING_AT && (
                 <p role="note" style={{ ...cardSub, margin: 0, color: "oklch(0.47 0.12 60)" }}>
-                  En länsvarning kan bli {ruleReach(draft.scope, draft.propertyIds.length, data.properties.length)} SMS per mottagare med
+                  En länsvarning kan bli {reach} SMS per mottagare med
                   den här regeln, och dagstaket stoppar dem efter {draft.dailyRecipientLimit}. Samla dem i ett SMS?
                 </p>
               )}
@@ -1121,7 +1151,7 @@ export function SmsManagement({
                 </label>
                 <button
                   style={primary}
-                  disabled={!data.recipients.length || !data.properties.length}
+                  disabled={!data.recipients.length || (draft.scope === "group" ? !draftGroup : !data.properties.length)}
                 >
                   Spara regel
                 </button>
@@ -1176,9 +1206,10 @@ export function SmsManagement({
                     void act(async () => {
                       const r = await notificationRequest<{
                         generated: number;
+                        propertyCount?: number;
                       }>(`/rules/${editing}/test`, "POST", { scenario });
                       setNotice(
-                        `${r.generated} testposter skapades. De bearbetas i bakgrunden. Inga SMS skickas.`,
+                        `${r.propertyCount === undefined ? "" : `Testets omfattning: ${propertiesText(r.propertyCount)}. `}${r.generated} testposter skapades. ${demo ? "" : "De bearbetas i bakgrunden. "}Inga SMS skickas.`,
                       );
                     })
                   }
@@ -1187,7 +1218,7 @@ export function SmsManagement({
                 </button>
               </div>
               <p style={cardSub}>
-                Förhandsgranskning och test använder sparade källhändelser.
+                {demo ? "Förhandsgranskning och test använder demodata." : "Förhandsgranskning och test använder sparade källhändelser."}{" "}
                 Spara ändringar först.
               </p>
             </div>
@@ -1213,6 +1244,7 @@ export function SmsManagement({
                 {preview.message}
               </div>
               <div style={{ ...cardSub, marginTop: 12 }}>
+                {preview.propertyCount !== undefined && `Regelns omfattning: ${propertiesText(preview.propertyCount)} · `}
                 {preview.parts} SMS-delar ·{" "}
                 {preview.estimatedCostSek === null
                   ? "Pris per del ej konfigurerat"
@@ -1265,7 +1297,7 @@ export function SmsManagement({
                 {a.isTest ? " · Regeltest" : ""}
               </div>
               <div style={cardSub}>
-                <PropertyNamesSummary names={a.propertyNames} /> · {a.maskedPhone} ·{" "}
+                {propertiesText(a.propertyNames.length)} · {a.propertyNames.length > 0 && <><PropertyNamesSummary names={a.propertyNames} /> · </>}{a.maskedPhone} ·{" "}
                 {fmt(a.createdAt)}
               </div>
               {a.detail && (

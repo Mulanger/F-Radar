@@ -151,8 +151,16 @@ export async function saveRule(
       ) >= 50
     )
       throw new HttpProblem(409, "Maximum 50 rules");
-    const propertyIds =
-      (input.scope === "all_current" && !id) || input.scope === "all_future"
+    const groupId = input.scope === "group"
+      ? (await tx.query<{ id: string }>(
+          "SELECT id FROM property_groups WHERE organization_id=$1 AND id=$2",
+          [org, input.groupId],
+        )).rows[0]?.id
+      : undefined;
+    if (input.scope === "group" && !groupId)
+      throw new HttpProblem(404, "Group not found", "Fastighetsgruppen finns inte.");
+    const propertyIds = input.scope === "group" ? []
+      : (input.scope === "all_current" && !id) || input.scope === "all_future"
         ? (
             await tx.query<{ id: string }>(
               "SELECT id FROM properties WHERE organization_id=$1",
@@ -174,7 +182,7 @@ export async function saveRule(
       validRecipients.rows.length !== recipientIds.length
     )
       throw new HttpProblem(400, "Invalid property or recipient scope");
-    const config = { ...input, propertyIds, recipientIds };
+    const config = { ...input, groupId, propertyIds, recipientIds };
     const source = {
       smhi_warning: "smhi_warnings",
       forecast: "smhi_forecast",

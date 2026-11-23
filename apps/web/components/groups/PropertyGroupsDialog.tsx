@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { PROPERTY_GROUP_NAME_MAX, PROPERTY_GROUPS_MAX, propertyGroupKey, type Portfolio } from '@fastighetsradar/domain';
 import { groupOptions } from '@/lib/view-models/groups';
-import type { GroupChangeRequest } from '@/lib/groups/store';
+import { GroupUsedBySmsRulesError, type GroupChangeRequest } from '@/lib/groups/store';
 import { RulePropertySelect } from '../notifications/RulePropertySelect';
 import frame from '../properties/PropertyImport.module.css';
 import styles from './PropertyGroups.module.css';
@@ -31,6 +31,7 @@ export function PropertyGroupsDialog({
   const [newName, setNewName] = useState('');
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState<{ id: string; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
@@ -107,7 +108,12 @@ export function PropertyGroupsDialog({
 
   function remove(id: string) {
     void run(async () => {
-      await change({ kind: 'remove', id });
+      try {
+        await change({ kind: 'remove', id });
+      } catch (err) {
+        if (!(err instanceof GroupUsedBySmsRulesError)) throw err;
+        setBlocked({ id, message: err.message });
+      }
       setConfirming(null);
     });
   }
@@ -184,8 +190,9 @@ export function PropertyGroupsDialog({
                             Välj fastigheter
                           </button>
                           <button className={`${frame.button} ${frame.small}`} disabled={busy} onClick={() => { setConfirming(null); setRenaming({ id: g.id, name: g.label }); }}>Byt namn</button>
-                          <button className={`${frame.button} ${frame.small} ${styles.danger}`} disabled={busy} onClick={() => { setRenaming(null); setConfirming(g.id); }} aria-label={`Ta bort ${g.label}`}>Ta bort</button>
+                          <button className={`${frame.button} ${frame.small} ${styles.danger}`} disabled={busy} onClick={() => { setBlocked(null); setRenaming(null); setConfirming(g.id); }} aria-label={`Ta bort ${g.label}`}>Ta bort</button>
                         </div>
+                        {blocked?.id === g.id && <p className={styles.confirm} role="alert">{blocked.message}</p>}
                         {confirming === g.id && (
                           <p className={styles.confirm} role="alert">
                             Ta bort gruppen <b>{g.label}</b>? {g.count > 0 ? `De ${g.count} fastigheterna finns kvar, bara grupperingen försvinner.` : 'Gruppen är tom.'}{' '}

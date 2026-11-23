@@ -45,8 +45,8 @@ export function ProfilePage({
       <ProfileSection id="profile-account" title="Mitt konto">{account}</ProfileSection>
 
       <ProfileSection id="profile-monitoring" title="Bevakning">
-        <ProfileLink href={demo ? undefined : '/sms-rules?via=profile'} icon={<IconMessage />} title="SMS-regler och mottagare"
-          description={demo ? 'Tillgängligt i inloggat läge' : 'Regler, telefonnummer och SMS-historik'} />
+        <ProfileLink href={`${basePath}/sms-rules?via=profile`} icon={<IconMessage />} title="SMS-regler och mottagare"
+          description={demo ? 'Prova regler med demodata' : 'Regler, telefonnummer och SMS-historik'} />
         <ProfileLink href={`${basePath}/acknowledgements?via=profile`} icon={<IconAcknowledgements />} title="Kvitteringar"
           description="Historik och PDF-export" />
         <ProfileLink href={demo ? undefined : '/settings?via=profile'} icon={<IconSliders />} title="Bevakningsinställningar"

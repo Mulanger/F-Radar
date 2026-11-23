@@ -15,7 +15,7 @@ import { buildApp } from "../../apps/api/src/app";
 import { NotificationService } from "../../apps/api/src/notifications/service";
 import { FakeVerificationProvider } from "../../apps/api/src/notifications/verification";
 import { saveRule } from "../../apps/api/src/notifications/store";
-import { eventLinkKey, type NotificationRuleInput } from "../../packages/domain/src";
+import { eventLinkKey, GROUP_USED_BY_SMS_RULES, type NotificationRuleInput } from "../../packages/domain/src";
 
 export function registerNotificationTests(pool: pg.Pool) {
   describe("Phase 4 notifications on real PostgreSQL/PostGIS", () => {
@@ -303,6 +303,83 @@ export function registerNotificationTests(pool: pg.Pool) {
           [f.org, future],
         );
         assert.ok(rows.rows.some((r) => r.property_id === next.id));
+      } finally {
+        await f.dispose();
+      }
+    });
+    it("evaluates group rules against current members and scopes preview, test and activity to them", async () => {
+      const f = await fixture();
+      try {
+        const group = await f.app.inject({ method: "POST", url: "/v1/property-groups", headers: { authorization: "Bearer admin" },
+          payload: { name: "Innerstad", propertyIds: [f.p.id] } });
+        assert.equal(group.statusCode, 201, group.body);
+        const groupId = group.json().group.id as string;
+        const response = await f.request("POST", "/rules", { ...f.config, scope: "group", groupId, dailyPropertyLimit: 10, dailyRecipientLimit: 10 });
+        assert.equal(response.statusCode, 201, response.body);
+        const id = response.json().id as string;
+        const saved = (await f.request("GET", "/rules")).json().rules[0];
+        assert.equal(saved.groupId, groupId);
+        assert.deepEqual(saved.propertyIds, [], "Group membership is never saved as explicit property links");
+        const dashboard = (await f.request("GET", "")).json();
+        assert.deepEqual(dashboard.groups, [{ id: groupId, name: "Innerstad", propertyCount: 1 }]);
+        assert.deepEqual(dashboard.properties.find((p: { id: string }) => p.id === f.p.id).groupIds, [groupId]);
+
+        async function members(propertyIds: string[]) {
+          const res = await f.app.inject({ method: "PUT", url: `/v1/property-groups/${groupId}/properties`,
+            headers: { authorization: "Bearer admin" }, payload: { propertyIds } });
+          assert.equal(res.statusCode, 200, res.body);
+        }
+        async function checkMatchingNames(headline: string, expected: string[]) {
+          await f.publish({ headline });
+          await f.service.evaluateOrganization(f.org);
+          const { rows } = await pool.query<{ property_names: string[] }>(
+            "SELECT property_names FROM notification_outbox WHERE organization_id=$1 AND rule_id=$2 AND NOT is_test ORDER BY created_at DESC LIMIT 1",
+            [f.org, id],
+          );
+          assert.deepEqual([...rows[0]!.property_names].sort(), [...expected].sort());
+        }
+        await checkMatchingNames("Sommarens första testvarning", [f.p.name]);
+        await members([f.p.id, f.p2.id]);
+        await checkMatchingNames("Gruppen har fått en ny medlem", [f.p.name, f.p2.name]);
+        await members([f.p2.id]);
+        await checkMatchingNames("Gruppen har tagit bort första medlemmen", [f.p2.name]);
+        const preview = (await f.request("POST", `/rules/${id}/preview`)).json();
+        assert.equal(preview.propertyCount, 1);
+        assert.ok(preview.message.includes(f.p2.name));
+        const test = await f.request("POST", `/rules/${id}/test`, {});
+        assert.equal(test.statusCode, 200, test.body);
+        assert.deepEqual(test.json(), { generated: 1, propertyCount: 1, mode: "simulated" });
+        assert.deepEqual((await f.service.activity(f.org)).find((a) => a.isTest)?.propertyNames, [f.p2.name]);
+        await pool.query("UPDATE properties SET sms_notifications_paused=true WHERE organization_id=$1 AND id=$2", [f.org, f.p2.id]);
+        const pausedPreview = await f.request("POST", `/rules/${id}/preview`);
+        assert.equal(pausedPreview.statusCode, 200, pausedPreview.body);
+        assert.equal(pausedPreview.json().propertyCount, 0);
+        assert.equal(pausedPreview.json().eligible, false);
+      } finally {
+        await f.dispose();
+      }
+    });
+    it("rejects foreign groups and prevents deleting a group used by a saved rule", async () => {
+      const f = await fixture();
+      try {
+        const auth = (tenant: string) => ({ authorization: `Bearer ${tenant}` });
+        const group = await f.app.inject({ method: "POST", url: "/v1/property-groups", headers: auth("admin"), payload: { name: "Innerstad" } });
+        assert.equal(group.statusCode, 201, group.body);
+        const groupId = group.json().group.id as string;
+        const other = await f.request("POST", "/recipients", { phone: "0701234567", consent: true }, "other");
+        assert.equal(other.statusCode, 201, other.body);
+        const input = { ...f.config, scope: "group", groupId, propertyIds: [], enabled: false };
+        assert.equal((await f.request("POST", "/rules", { ...input, recipientIds: [other.json().recipient.id] }, "other")).statusCode, 404);
+        const saved = await f.request("POST", "/rules", input);
+        assert.equal(saved.statusCode, 201, saved.body);
+        const path = `/v1/property-groups/${groupId}`;
+        assert.equal((await f.app.inject({ method: "DELETE", url: path, headers: auth("other") })).statusCode, 404);
+        const blocked = await f.app.inject({ method: "DELETE", url: path, headers: auth("admin") });
+        assert.equal(blocked.statusCode, 409, blocked.body);
+        assert.equal(blocked.json().type, GROUP_USED_BY_SMS_RULES);
+        assert.ok(blocked.json().detail.includes(f.config.name));
+        assert.equal((await f.request("PATCH", `/rules/${saved.json().id}`, f.config)).statusCode, 200);
+        assert.equal((await f.app.inject({ method: "DELETE", url: path, headers: auth("admin") })).statusCode, 204);
       } finally {
         await f.dispose();
       }

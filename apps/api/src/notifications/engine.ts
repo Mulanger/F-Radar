@@ -168,10 +168,9 @@ export function smsText(
   timestamp: Date,
   link: string,
 ): string {
-  const where =
-    names.length === 1
-      ? names[0]!.slice(0, 65)
-      : `${names[0]!.slice(0, 40)} + ${names.length - 1} fastigheter`;
+  const where = !names.length ? ""
+    : names.length === 1 ? `${names[0]!.slice(0, 65)}. `
+    : `${names[0]!.slice(0, 40)} + ${names.length - 1} fastigheter. `;
   const time = new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Europe/Stockholm",
     month: "2-digit",
@@ -179,7 +178,7 @@ export function smsText(
     hour: "2-digit",
     minute: "2-digit",
   }).format(timestamp);
-  return `FastighetsRadar: ${where}. ${description.replace(/[\r\n]+/g, " ").slice(0, 155)}. ${time}. Källa: ${source}. ${link}`;
+  return `FastighetsRadar: ${where}${description.replace(/[\r\n]+/g, " ").slice(0, 155)}. ${time}. Källa: ${source}. ${link}`;
 }
 
 /** Keep the deep link intact. If even the minimal form is too long, enqueue rejects it. */

@@ -8,6 +8,8 @@ import {
   type Queryable,
 } from '@fastighetsradar/db';
 import {
+  GROUP_USED_BY_SMS_RULES,
+  groupUsedBySmsRulesMessage,
   PROPERTY_GROUPS_MAX,
   PropertyGroupCreateSchema,
   PropertyGroupIdParamSchema,
@@ -18,8 +20,9 @@ import {
 } from '@fastighetsradar/domain';
 import { orgContext } from '../auth';
 import { HttpProblem } from '../errors';
+import { notificationTransaction } from '../notifications/store';
 
-/** Problem types the web tells apart (a 409 is either a taken name or the group limit). */
+/** Problem types for group names and limits. */
 export const GROUP_NAME_TAKEN = 'urn:fastighetsradar:problem:group-name-taken';
 export const GROUP_LIMIT_REACHED = 'urn:fastighetsradar:problem:group-limit';
 
@@ -74,7 +77,19 @@ export function registerPropertyGroupRoutes(app: FastifyInstance, deps: { db: Qu
 
   app.delete('/v1/property-groups/:id', { preHandler: deps.requireOrg }, async (req, reply) => {
     const { id } = PropertyGroupIdParamSchema.parse(req.params);
-    if (!(await deletePropertyGroup(db(), orgContext(req), id))) throw new HttpProblem(404, 'Group not found');
+    const ctx = orgContext(req);
+    // Serialize with SMS rule creation and edits so the JSON reference cannot outlive its group.
+    await notificationTransaction(db(), async (tx) => {
+      const { rows } = await tx.query<{ name: string }>(
+        `SELECT r.name FROM alert_rules r JOIN property_groups g ON g.organization_id = r.organization_id
+         WHERE g.organization_id = $1 AND g.id = $2 AND r.sms_version = 1
+           AND r.config->>'scope' = 'group' AND r.config->>'groupId' = g.id::text
+         ORDER BY r.name, r.id`,
+        [ctx.organizationId, id],
+      );
+      if (rows.length) throw new HttpProblem(409, 'Group used by SMS rules', groupUsedBySmsRulesMessage(rows.map((r) => r.name)), GROUP_USED_BY_SMS_RULES);
+      if (!(await deletePropertyGroup(tx, ctx, id))) throw new HttpProblem(404, 'Group not found');
+    });
     reply.code(204);
     return null;
   });

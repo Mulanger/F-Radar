@@ -13,7 +13,7 @@ export function MobileNavigation() {
   const { basePath, unseenAlarmCount } = useDashboard();
   const isHistory = pathname === `${basePath}/acknowledgements`;
   const isProperty = pathname?.startsWith(`${basePath}/properties/`);
-  const isSms = !basePath && pathname === '/sms-rules';
+  const isSms = pathname === `${basePath}/sms-rules`;
   const profilePath = `${basePath}/profile`;
   const tabs = [
     { href: `${basePath}/overview`, label: 'Översikt', icon: <IconDashboard size={22} />, active: pathname === `${basePath}/overview` },

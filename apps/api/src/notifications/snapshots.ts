@@ -31,7 +31,9 @@ export async function notificationSnapshots(
     const matching = rules.filter(
       (r) =>
         r.config.scope === "all_future" ||
-        ruleProperties.get(r.id)!.has(s.property.id),
+        (r.config.scope === "group"
+          ? !!r.config.groupId && s.property.groupIds.includes(r.config.groupId)
+          : ruleProperties.get(r.id)!.has(s.property.id)),
     );
     const ids = new Set(matching.flatMap((r) => r.config.recipientIds));
     const numbers = recipients.filter((r) => ids.has(r.id));

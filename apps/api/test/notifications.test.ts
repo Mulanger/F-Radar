@@ -1,7 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { buildApp } from "../src/app";
 import { loadServerEnv } from "@fastighetsradar/config";
 import { NotificationRuleInputSchema } from "@fastighetsradar/domain";
+import type { Queryable } from "@fastighetsradar/db";
+import { demoPortfolio } from "@fastighetsradar/domain/fixtures";
+import { notificationSnapshots } from "../src/notifications/snapshots";
+import { NotificationService } from "../src/notifications/service";
 import {
   eventEligible,
   forecastValue,
@@ -51,6 +55,49 @@ const event: EventCandidate = {
   match_method: "polygon_intersection",
 };
 describe("typed notification rules", () => {
+  const groupId = "00000000-0000-4000-8000-000000000003";
+  const groupRule = {
+    name: "Testgrupp", enabled: true, scope: "group", groupId, propertyIds: [],
+    recipientIds: ["00000000-0000-4000-8000-000000000002"], condition: warning,
+    quietHours: { enabled: false, start: "22:00", end: "07:00", emergencyException: false },
+  };
+
+  it("requires a UUID for group scope and accepts saved rules without groupId", () => {
+    expect(NotificationRuleInputSchema.parse(groupRule).groupId).toBe(groupId);
+    for (const [value, message] of [[undefined, "Välj en fastighetsgrupp"], ["Innerstad", "Ogiltigt id för fastighetsgruppen"]]) {
+      const result = NotificationRuleInputSchema.safeParse({ ...groupRule, groupId: value });
+      expect(result.error?.issues).toEqual([expect.objectContaining({ path: ["groupId"], message })]);
+    }
+    expect(NotificationRuleInputSchema.safeParse({ ...groupRule, groupId: undefined, scope: "all_future" }).success).toBe(true);
+  });
+
+  it("uses current group membership for SMS flags and respects paused properties", async () => {
+    const [first, second, paused] = demoPortfolio.properties.slice(0, 3).map((s, i) => ({
+      ...s, property: { ...s.property, groupIds: i === 0 ? [] : [groupId] },
+    }));
+    const config = NotificationRuleInputSchema.parse(groupRule);
+    const query = vi.fn(async (sql: string) => ({ rows: sql.includes("FROM alert_rules") ? [{ id: "r", name: config.name, enabled: true, config }]
+      : sql.includes("AND sms_notifications_paused") ? [{ id: paused!.property.id }] : [] }));
+    const db = { query } as unknown as Queryable;
+    const flags = async (snapshots: typeof demoPortfolio.properties) => (await notificationSnapshots(db, "tenant", snapshots)).map((s) => s.sms.enabled);
+    expect(await flags([first!, second!, paused!])).toEqual([false, true, false]);
+    expect(await flags([{ ...first!, property: { ...first!.property, groupIds: [groupId] } }, { ...second!, property: { ...second!.property, groupIds: [] } }])).toEqual([true, false]);
+  });
+
+  it("passes the organization and group id to the evaluation query instead of a saved property list", async () => {
+    const config = NotificationRuleInputSchema.parse(groupRule);
+    const members = [{ id: "p", name: "Medlem", notification_link_key: "link" }];
+    const query = vi.fn(async (sql: string) => ({ rows: sql.includes("FROM alert_rules") ? [{ id: "r", organization_id: "tenant", config }]
+      : sql.includes("FROM properties p") ? members : [] }));
+    const db = { connect: async () => ({ query, release: () => {} }) } as unknown as Queryable;
+    const service = new NotificationService(db, loadServerEnv({ NODE_ENV: "test" }));
+    expect(await service.preview("tenant", "r")).toMatchObject({ message: expect.stringContaining("Medlem"), propertyCount: 1 });
+    expect(query).toHaveBeenCalledWith(expect.stringContaining("property_group_members WHERE organization_id=$1 AND group_id=$4"), ["tenant", "group", "r", groupId]);
+    expect(query).toHaveBeenCalledWith(expect.stringContaining("c.property_id=ANY($2::uuid[])"), ["tenant", ["p"], "smhi_warnings", true, undefined]);
+    members.length = 0;
+    expect(await service.preview("tenant", "r")).toMatchObject({ message: expect.stringContaining("Regeln omfattar inga aktiva fastigheter"), propertyCount: 0, eligible: false });
+  });
+
   it("validates scope, threshold semantics and quiet hours on the server", () => {
     const base = {
       name: "Test",

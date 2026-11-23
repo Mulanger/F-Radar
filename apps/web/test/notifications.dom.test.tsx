@@ -57,7 +57,8 @@ function data(): NotificationDashboard {
         verificationExpiresAt: null,
       },
     ],
-    properties: [{ id: p, name: "Sveavägen 42" }],
+    properties: [{ id: p, name: "Sveavägen 42", groupIds: [] }],
+    groups: [],
     activity: [],
     usage: {
       simulated: 0,
@@ -174,7 +175,7 @@ describe("SMS management dashboard", () => {
     expect(screen.getByText(/gallras efter 30 dagar/)).toBeTruthy();
   });
   it("suggests grouping when a rule would send one SMS per property for more than 10 properties (Fas 5 / S-24)", () => {
-    const many = Array.from({ length: 12 }, (_, i) => ({ id: `00000000-0000-4000-8000-0000000001${String(i).padStart(2, "0")}`, name: `Fastighet ${i + 1}` }));
+    const many = Array.from({ length: 12 }, (_, i) => ({ id: `00000000-0000-4000-8000-0000000001${String(i).padStart(2, "0")}`, name: `Fastighet ${i + 1}`, groupIds: [] }));
     render(<SmsManagement initial={{ ...data(), properties: many }} />);
     fireEvent.change(screen.getByLabelText("Fastigheter"), { target: { value: "all_current" } });
     expect(screen.queryByRole("note")).toBeNull();
@@ -188,5 +189,42 @@ describe("SMS management dashboard", () => {
     render(<SmsManagement initial={{ ...data(), canManage: false }} />);
     expect(screen.getByText("Spara regel").matches(":disabled")).toBe(true);
     expect(screen.getByText(/Du har läsbehörighet/)).toBeTruthy();
+  });
+
+  it("chooses a group, counts its members, saves just its id and labels the saved rule", async () => {
+    const groupId = "00000000-0000-4000-8000-000000000004";
+    const initial = data();
+    initial.groups = [{ id: groupId, name: "Innerstad", propertyCount: 12 }];
+    initial.properties = Array.from({ length: 20 }, (_, i) => ({ id: `${i}`, name: `Fastighet ${i}`, groupIds: i < 12 ? [groupId] : [] }));
+    const request = vi.fn(async (_path: string, init?: RequestInit) => {
+      if (init?.method === "POST") {
+        initial.rules = [{ ...rule, ...JSON.parse(init.body as string) }];
+        return Response.json({ id });
+      }
+      return Response.json(initial);
+    });
+    vi.stubGlobal("fetch", request);
+    render(<SmsManagement initial={initial} />);
+    fireEvent.change(screen.getByLabelText("Regelnamn"), { target: { value: "Varningar i Innerstad" } });
+    fireEvent.change(screen.getByLabelText("Fastigheter"), { target: { value: "group" } });
+    expect(screen.getByRole("button", { name: "Spara regel" }).matches(":disabled")).toBe(true);
+    const select = screen.getByLabelText("Fastighetsgrupp");
+    expect(screen.getByRole("option", { name: "Innerstad (12 fastigheter)" })).toBeTruthy();
+    fireEvent.change(select, { target: { value: groupId } });
+    expect(screen.getByText("12 fastigheter i gruppen just nu.")).toBeTruthy();
+    fireEvent.click(screen.getByLabelText("Samla samma källhändelse för flera fastigheter i ett SMS"));
+    expect(screen.getByRole("note").textContent).toContain("12 SMS per mottagare");
+    fireEvent.click(screen.getByRole("button", { name: "Spara regel" }));
+    expect(await screen.findByText(/Gruppen Innerstad · 12 fastigheter/)).toBeTruthy();
+    expect(JSON.parse(request.mock.calls[0]![1]!.body as string)).toMatchObject({ scope: "group", groupId, propertyIds: [] });
+  });
+
+  it("points to group administration when the organization has no groups", () => {
+    render(<SmsManagement initial={data()} />);
+    fireEvent.change(screen.getByLabelText("Fastigheter"), { target: { value: "group" } });
+    expect(screen.getByText(/Skapa först en grupp under/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Fastigheter" }).getAttribute("href")).toBe("/properties");
+    expect(screen.queryByLabelText("Fastighetsgrupp")).toBeNull();
+    expect(screen.getByRole("button", { name: "Spara regel" }).matches(":disabled")).toBe(true);
   });
 });

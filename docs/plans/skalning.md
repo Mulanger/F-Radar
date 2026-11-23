@@ -428,6 +428,7 @@ Fasen anger var fyndet åtgärdas.
 - **Gjort 2026-11-23 (Fas 4 steg 1)**, utom SMS-regelns omfattning (steg 5). Platt modell: en grupp är
   ett namn, och en fastighet kan ligga i flera grupper – område **och** förvaltare går alltså med två
   grupper per fastighet (öppna frågan i avsnitt 7). Gruppvalet gäller hela panelen under sessionen.
+- **Gjort 2026-11-23 (Fas 4 steg 5)** även för SMS-regler. Regeln följer gruppens aktuella medlemmar.
 
 **S-21 "Kommande förhållanden" visar en rad per fastighet** · P2 · Fas 4
 - **Var:** `upcomingView` i [`upcoming.ts:261`](../../apps/web/lib/view-models/upcoming.ts), [`UpcomingParts.tsx`](../../apps/web/components/upcoming/UpcomingParts.tsx).
@@ -527,6 +528,7 @@ just de händelser tjänsten finns till för.
   av 500 är många klick. I aktivitetsloggen blir ett samlat SMS en rad med 300 fastighetsnamn.
 - **Åtgärd:** Fas 1: sökfält, "Markera alla som syns/Avmarkera", antal valda, och "Hamnvägen 1, Kajen 4
   och 298 till" med expandering i loggen. Fas 4: välj grupp (S-20) som omfattning.
+- **Gjort 2026-11-23 (Fas 4 steg 5)** för gruppomfattningen. Regelvyn visar gruppens namn och antal.
 
 ### 4.6 Stora kunder in
 
@@ -1081,6 +1083,36 @@ visar kluster med rätt färg; "Kommande" visar grupperade rader. Visat och godk
 - **Inte gjort:** liveflödet i webbläsaren och produktionsbyggets rendering har inte verifierats för
   steget; svarets storlek med alla förhållanden är uppskattad, inte uppmätt i liveläget.
 
+**Genomfört steg 5 (gren `claude/skalning-fas0`):**
+- En SMS-regel kan omfatta ”Alla i en grupp (även nya)”. Regelns JSON sparar grupp-id och
+  medlemskapet hämtas inom organisationen vid utvärderingen med befintliga pausfilter. Gruppens
+  aktuella storlek visas i regelvyn och används i förslaget om samlade SMS. Förhandsgranskning och
+  test räknar omfattningen efter pausfilter. Aktivitetsloggen visar fastigheterna i varje test- eller
+  aviseringspost vid utvärderingen.
+- API:t avvisar grupper från andra organisationer. Gruppborttagning och regelsparande använder samma
+  transaktionslås. En grupp som används av en sparad regel, även en avstängd, ger 409 med regelnamnen
+  i gruppdialogen. Regelns JSON och befintliga grupptabeller räcker för steget.
+- Demo med 500 fastigheter i Chrome: regler med 9 fastigheter i Innerstad och 491 i Förort & Kust
+  kunde sparas, och dialogen nekade gruppborttagning med rätt regelnamn på dator och mobil.
+  Förhandsgranskning och testaktivitet provades. SMS-vyn och gruppdialogen rymdes på 375 px utan horisontell
+  rullning. Demoreglerna sparas i den öppna demosessionen.
+- Enhets- och DOM-tester täcker schema, medlemskap, pausfilter, gruppval, antal, tomt gruppläge och
+  blockerad gruppborttagning. Vitest: 742 godkända och 6 överhoppade. ESLint och båda typkontrollerna
+  gick igenom. PostgreSQL/PostGIS på testpodden: 48 av 48 i `fastighetsradar_test`, inklusive
+  medlemsbyten efter att regeln sparats, pausfilter, 404 över organisationsgränsen och 409 vid
+  borttagning av använd grupp.
+- **Utöver planen:** demon har nu en egen sida för SMS-regler (`/demo/sms-rules`, tidigare en grå
+  länk), helt lokal och utan anrop till API:t, så att gruppomfattningen går att prova och visa.
+  SMS-texten utan fastighetsnamn (test av en regel som inte omfattar någon fastighet) börjar inte
+  längre med en ensam punkt.
+- **Granskning (Claude):** utvärderingen och sparandet filtrerar på organisation både för grupp och
+  fastigheter; en annan organisations grupp ger 404 och kan inte tas bort; regelsparande och
+  gruppborttagning går under samma lås, så en regel kan inte sparas mot en grupp som samtidigt tas
+  bort. Databassviten kördes om av granskaren.
+- **Inte gjort:** prov med riktiga SMS och verifiering i driftsatt kundmiljö. Steget använder
+  simulering för SMS och testdatabas för PostgreSQL.
+- **Fas 4 är därmed klar** (steg 1–5).
+
 ### Fas 5 – SMS vid stora händelser
 
 **Mål:** Inget larm tappas tyst, de viktigaste går först, och en länsvarning blir ett begripligt SMS.
@@ -1231,5 +1263,6 @@ fastigheter (siffror i Fasloggen).
 | Fas 4 steg 1 | 2026-11-23 | `claude/skalning-fas0` / `a28948c`, driftsatt 2026-11-23 13:40 UTC | Grupper: livekunder hade bara "Alla" (demon hade två fasta) → egna grupper med flera grupper per fastighet, val i översikt, lista, karta, larm och kvitteringar, import med gruppkolumn. Riktig PostgreSQL: tenant-isolering även i databasens nycklar. | SMS-regel per grupp (steg 5); gruppval vid 100 grupper i mobilens meny inte provat på telefon |
 | Fas 4 steg 2 | 2026-11-23 | `claude/skalning-fas0` / `4ec363a`, driftsatt 2026-11-23 14:08 UTC | Portföljkartan med 500 fastigheter: 500 nålar och 500 tabbstopp → 44 kluster och 2 nålar i värsta statusens färg, inga tabbstopp. | Nålar utanför utsnittet ritas vid inzoomning; mobilens lilla karta zoomar ut för långt vid 500 |
 | Fas 4 steg 3 | 2026-11-23 | `claude/skalning-fas0` / `91b8b03`, driftsatt 2026-11-23 14:37 UTC | Fastighetslistan med 500: sortering bara risk/namn, rubriken rullade bort, 500 rader ritade → sortering på sex kolumner, filter på område, fast rubrik, 100 rader i taget. Omsortering 140–350 ms → 55–250 ms i utvecklingsbygget. | Produktionsbyggets renderingstid inte mätt |
-| Fas 4 steg 4 | 2026-11-23 | `claude/skalning-fas0` | Demo med 500 fastigheter: 499 rader → 8 grupper i ”Kommande förhållanden”; i liveläget visades tidigare bara 8 förhållanden, nu alla, grupperade. Den orange SMHI-varningen i panelen: 62 enskilda rader → 1 grupp med 62 fastigheter. Ingen horisontell rullning vid 375 px. | Liveflöde i webbläsaren och rendering i produktionsbygge |
+| Fas 4 steg 4 | 2026-11-23 | `claude/skalning-fas0` / `f74ef1d`, driftsatt 2026-11-23 15:16 UTC | Demo med 500 fastigheter: 499 rader → 8 grupper i ”Kommande förhållanden”; i liveläget visades tidigare bara 8 förhållanden, nu alla, grupperade. Den orange SMHI-varningen i panelen: 62 enskilda rader → 1 grupp med 62 fastigheter. Ingen horisontell rullning vid 375 px. | Liveflöde i webbläsaren och rendering i produktionsbygge |
+| Fas 4 steg 5 | 2026-11-23 | `claude/skalning-fas0` | Sparat fastighetsurval → grupp med aktuellt medlemskap. PostgreSQL 48/48: berörda fastigheter 1 → 2 → 1 efter medlemsbyten. Demo med 500 fastigheter: Innerstad 9, Förort & Kust 491. Gruppborttagning nekades i dator- och mobilvyn. | Riktiga SMS och driftsatt kundmiljö |
 

@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import type { Queryable } from "@fastighetsradar/db";
+import { listPropertyGroups, type Queryable } from "@fastighetsradar/db";
 import type { ServerEnv } from "@fastighetsradar/config";
 import {
   formatOutageWindow,
@@ -115,16 +115,19 @@ export class NotificationService {
     org: string,
     canManage: boolean,
   ): Promise<NotificationDashboard> {
-    const [rules, recipients, properties, activity, usage] = await Promise.all([
+    const [rules, recipients, properties, groups, activity, usage] = await Promise.all([
       loadRules(this.db, org),
       this.db.query<RecipientRow>(
         "SELECT * FROM sms_recipients WHERE organization_id=$1 ORDER BY created_at",
         [org],
       ),
-      this.db.query<Property>(
-        "SELECT id,name FROM properties WHERE organization_id=$1 ORDER BY name",
+      this.db.query<NotificationDashboard["properties"][number]>(
+        `SELECT p.id, p.name, ARRAY(SELECT m.group_id FROM property_group_members m
+          WHERE m.organization_id=p.organization_id AND m.property_id=p.id ORDER BY m.group_id) AS "groupIds"
+         FROM properties p WHERE p.organization_id=$1 ORDER BY p.name`,
         [org],
       ),
+      listPropertyGroups(this.db, { organizationId: org }),
       this.activity(org),
       this.usage(org),
     ]);
@@ -132,6 +135,7 @@ export class NotificationService {
       rules: rules.map(publicRule),
       recipients: recipients.rows.map((r) => publicRecipient(r)),
       properties: properties.rows,
+      groups,
       activity,
       usage,
       canManage,
@@ -202,9 +206,14 @@ export class NotificationService {
   private async properties(tx: Queryable, r: RuleRow): Promise<Property[]> {
     return (
       await tx.query<Property>(
-        `SELECT id,name,notification_link_key FROM properties WHERE organization_id=$1 AND status<>'paused' AND NOT sms_notifications_paused
-      AND ($2 OR id IN (SELECT property_id FROM alert_rule_properties WHERE organization_id=$1 AND rule_id=$3)) ORDER BY id`,
-        [r.organization_id, r.config.scope === "all_future", r.id],
+        `SELECT p.id,p.name,p.notification_link_key FROM properties p
+         WHERE p.organization_id=$1 AND p.status<>'paused' AND NOT p.sms_notifications_paused
+           AND CASE $2::text
+             WHEN 'all_future' THEN true
+             WHEN 'group' THEN p.id IN (SELECT property_id FROM property_group_members WHERE organization_id=$1 AND group_id=$4)
+             ELSE p.id IN (SELECT property_id FROM alert_rule_properties WHERE organization_id=$1 AND rule_id=$3)
+           END ORDER BY p.id`,
+        [r.organization_id, r.config.scope, r.id, r.config.groupId ?? null],
       )
     ).rows;
   }
@@ -546,22 +555,22 @@ export class NotificationService {
       triggers.push({
         key: "no-source-data",
         properties: props.slice(0, 1),
-        description: "Ingen aktuell källhändelse finns för denna regel",
+        description: props.length ? "Ingen aktuell källhändelse finns för denna regel" : "Regeln omfattar inga aktiva fastigheter",
         source: "FastighetsRadar",
         timestamp: now,
         emergency: false,
         eligible: false,
-        detail:
-          "Ingen lämplig sparad källhändelse. Testet skapade inga mätvärden.",
+        detail: props.length ? "Ingen lämplig sparad källhändelse. Testet skapade inga mätvärden." : "Ingen aktiv fastighet omfattas av regeln.",
       });
-    return triggers;
+    return { triggers, propertyCount: props.length };
   }
   async preview(org: string, id: string) {
     return notificationTransaction(this.db, async (tx) => {
       const r = (await loadRules(tx, org)).find((r) => r.id === id);
       if (!r) throw new HttpProblem(404, "Rule not found");
-      const t = (await this.triggers(tx, r, new Date(), true))[0]!;
-      const message = this.message(t);
+      const { triggers, propertyCount } = await this.triggers(tx, r, new Date(), true);
+      const trigger = triggers[0]!;
+      const message = this.message(trigger);
       return {
         message,
         parts: estimateSmsParts(message),
@@ -569,8 +578,9 @@ export class NotificationService {
           unitPrice(this.env) === null
             ? null
             : estimateSmsParts(message) * unitPrice(this.env)!,
-        eligible: t.eligible,
-        sourceTimestamp: t.timestamp.toISOString(),
+        eligible: trigger.eligible,
+        sourceTimestamp: trigger.timestamp.toISOString(),
+        propertyCount,
         simulated: true,
       };
     });
@@ -605,33 +615,40 @@ export class NotificationService {
     testRuleId?: string,
     scenario: SimulationScenario = "success",
   ): Promise<number> {
+    if (testRuleId) return (await this.evaluateRule(org, testRuleId, true, scenario)).generated;
     const rules = (await loadRules(this.db, org))
-      .filter((r) => (testRuleId ? r.id === testRuleId : r.enabled))
+      .filter((r) => r.enabled)
       .sort((a, b) => Number(b.config.condition.category === "vma") - Number(a.config.condition.category === "vma"));
-    if (testRuleId && !rules.length)
-      throw new HttpProblem(404, "Rule not found");
     let n = 0;
-    for (const rule of rules) {
-      n += await notificationTransaction(this.db, async (tx) => {
-        const now = new Date();
-        // Re-read inside the transaction: last_change_id may have moved since the list was loaded.
-        const r = (await loadRules(tx, org)).find((x) => x.id === rule.id);
-        if (!r) return 0;
-        const recipients = await tx.query<RecipientRow>(
-          `SELECT * FROM sms_recipients WHERE organization_id=$1 AND id IN
-          (SELECT recipient_id FROM alert_rule_recipients WHERE organization_id=$1 AND rule_id=$2)`,
-          [org, r.id],
-        );
-        const triggers = (await this.triggers(tx, r, now, !!testRuleId))
-          .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
-        let queued = 0;
-        for (const t of triggers)
-          for (const recipient of recipients.rows)
-            if (await this.enqueue(tx, r, recipient, t, now, !!testRuleId, scenario)) queued++;
-        return queued;
-      });
-    }
+    for (const rule of rules)
+      n += (await this.evaluateRule(org, rule.id, false, scenario)).generated;
     return n;
+  }
+
+  testRule(org: string, id: string, scenario: SimulationScenario) {
+    return this.evaluateRule(org, id, true, scenario);
+  }
+
+  private evaluateRule(org: string, id: string, test: boolean, scenario: SimulationScenario) {
+    return notificationTransaction(this.db, async (tx) => {
+      const now = new Date();
+      // Re-read inside the transaction: last_change_id may have moved since the list was loaded.
+      const r = (await loadRules(tx, org)).find((x) => x.id === id);
+      if (!r && test) throw new HttpProblem(404, "Rule not found");
+      if (!r) return { generated: 0, propertyCount: 0 };
+      const recipients = await tx.query<RecipientRow>(
+        `SELECT * FROM sms_recipients WHERE organization_id=$1 AND id IN
+          (SELECT recipient_id FROM alert_rule_recipients WHERE organization_id=$1 AND rule_id=$2)`,
+        [org, r.id],
+      );
+      const { triggers, propertyCount } = await this.triggers(tx, r, now, test);
+      triggers.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+      let generated = 0;
+      for (const t of triggers)
+        for (const recipient of recipients.rows)
+          if (await this.enqueue(tx, r, recipient, t, now, test, scenario)) generated++;
+      return { generated, propertyCount };
+    });
   }
   private async enqueue(
     tx: Queryable,

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Viewport } from 'next';
 import { AppShell } from '@/components/shell/AppShell';
 import { DemoAcknowledgementProvider } from '@/components/acknowledgements/DemoAcknowledgements';
+import { DemoSmsRulesProvider } from '@/components/notifications/DemoSmsRules';
 import { loadDemoPortfolio, requestedDemoSize } from '@/lib/data/portfolio';
 
 export const dynamic = 'force-dynamic';
@@ -13,9 +14,11 @@ export default async function DemoLayout({ children }: { children: React.ReactNo
   if (result.status !== 'ok') notFound();
   return (
     <DemoAcknowledgementProvider portfolio={result.portfolio}>
-      <AppShell mode="demo" basePath="/demo" portfolio={result.portfolio}>
-        {children}
-      </AppShell>
+      <DemoSmsRulesProvider>
+        <AppShell mode="demo" basePath="/demo" portfolio={result.portfolio}>
+          {children}
+        </AppShell>
+      </DemoSmsRulesProvider>
     </DemoAcknowledgementProvider>
   );
 }
