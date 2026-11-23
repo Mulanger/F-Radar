@@ -90,6 +90,7 @@ describe('collector backoff', () => {
     expect(nextRunSeconds(300, 3, { status: 'error', items: 0 })).toBe(2_400);
     expect(nextRunSeconds(300, 30, { status: 'error', items: 0 })).toBe(6 * 3_600);
     expect(nextRunSeconds(300, 1, { status: 'error', items: 0, retryAfterSeconds: 3_600 })).toBe(3_600);
+    expect(nextRunSeconds(900, 0, { status: 'partial', items: 1, moreWork: true, retryAfterSeconds: 120 })).toBe(120);
   });
 });
 

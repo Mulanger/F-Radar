@@ -2,6 +2,7 @@ import { ACTIVITY, EventMapGeometrySchema, FEED_ACK_SEVERITY_RANK, WEATHER_WATER
 import { applyUtilityOutageRetention } from './utility-outages';
 import { createHash } from 'node:crypto';
 import type { Queryable } from './migrations';
+import { loadPropertyForecasts, pruneForecastGridPoints, type OrgForecastRow } from './forecasts';
 
 /**
  * Phase 3 monitoring repository.
@@ -556,20 +557,6 @@ export async function propertiesNeedingContext(db: Queryable, sourceId: string, 
   return rows.map((r) => ({ propertyId: r.id, organizationId: r.organization_id, lat: r.lat, lon: r.lon, municipality: r.municipality, updatedAt: r.updated_at }));
 }
 
-/** Same as above for forecasts. */
-export async function propertiesNeedingForecast(db: Queryable, maxAgeSeconds: number, limit: number): Promise<MonitoringTarget[]> {
-  const { rows } = await db.query<{ id: string; organization_id: string; lat: number; lon: number; municipality: string | null; updated_at: Date }>(
-    `SELECT p.id, p.organization_id, ST_Y(p.location::geometry) AS lat, ST_X(p.location::geometry) AS lon, p.municipality, p.updated_at
-       FROM properties p LEFT JOIN property_forecasts f ON f.property_id = p.id
-      WHERE p.status <> 'paused'
-        AND (f.property_id IS NULL OR f.fetched_at < now() - make_interval(secs => $1) OR f.fetched_at < p.updated_at)
-      ORDER BY f.fetched_at NULLS FIRST, p.created_at
-      LIMIT $2`,
-    [maxAgeSeconds, limit],
-  );
-  return rows.map((r) => ({ propertyId: r.id, organizationId: r.organization_id, lat: r.lat, lon: r.lon, municipality: r.municipality, updatedAt: r.updated_at }));
-}
-
 /* ------------------------------------------------------------------ */
 /* Retention                                                           */
 /* ------------------------------------------------------------------ */
@@ -593,6 +580,7 @@ export async function applyRetention(db: Queryable): Promise<Record<string, numb
     runs: await del(`DELETE FROM integration_runs WHERE started_at < now() - make_interval(days => $1)`, [RETENTION.runsDays]),
     observationHistory: await del(`DELETE FROM observation_history WHERE observed_at < now() - make_interval(days => $1)`, [RETENTION.observationHistoryDays]),
     nowcast: await del(`DELETE FROM nowcast_points WHERE fetched_at < now() - make_interval(days => $1)`, [RETENTION.nowcastDays]),
+    forecastGrid: await pruneForecastGridPoints(db),
     stations: await del(`DELETE FROM observation_stations WHERE fetched_at < now() - make_interval(days => $1)`, [RETENTION.stationSilentDays]),
     stationHistory: await del(`DELETE FROM station_observation_history WHERE observed_at < now() - interval '7 days'`, []),
   };
@@ -601,18 +589,6 @@ export async function applyRetention(db: Queryable): Promise<Record<string, numb
 /* ------------------------------------------------------------------ */
 /* TENANT reads (organization-scoped)                                  */
 /* ------------------------------------------------------------------ */
-
-export interface OrgForecastRow {
-  property_id: string;
-  source_id: string;
-  reference_time: Date | null;
-  created_time: Date | null;
-  grid_lat: number | null;
-  grid_lon: number | null;
-  distance_m: string | null;
-  series: unknown;
-  fetched_at: Date;
-}
 
 export interface OrgEventRow {
   property_id: string;
@@ -731,22 +707,14 @@ export interface LoadMonitoringOptions {
 export async function loadOrgMonitoring(db: Queryable, organizationId: string, propertyIds?: string | string[], options: LoadMonitoringOptions = {}): Promise<OrgMonitoringData> {
   const pid = propertyIds === undefined ? null : Array.isArray(propertyIds) ? propertyIds : [propertyIds];
   const list = options.list;
-  const window = list ? [
-    new Date(list.now.getTime() - LIST_FORECAST_WINDOW_H.before * 3_600_000).toISOString(),
-    new Date(list.now.getTime() + LIST_FORECAST_WINDOW_H.after * 3_600_000).toISOString(),
-  ] : [null, null];
+  const window = list ? {
+    from: new Date(list.now.getTime() - LIST_FORECAST_WINDOW_H.before * 3_600_000).toISOString(),
+    to: new Date(list.now.getTime() + LIST_FORECAST_WINDOW_H.after * 3_600_000).toISOString(),
+  } : undefined;
   const nearest = list ? LIST_NEAREST_PARAMETERS : NEAREST_PARAMETERS;
   const historyParameters = list ? ['sea_level', 'water_flow'] : ['sea_level', 'water_flow', 'precipitation_15min'];
   const [forecasts, events, contexts, observations, counties, nowcasts, hydrologyReferences, history, airHistory] = await Promise.all([
-    db.query<OrgForecastRow>(
-      `SELECT f.property_id, f.source_id, f.reference_time, f.created_time, ST_Y(f.grid_point::geometry) AS grid_lat, ST_X(f.grid_point::geometry) AS grid_lon,
-              f.distance_m, f.fetched_at,
-              CASE WHEN $3::text IS NULL OR jsonb_typeof(f.series->'steps') IS DISTINCT FROM 'array' THEN f.series
-                   ELSE jsonb_set(f.series, '{steps}', jsonb_path_query_array(f.series->'steps', '$[*] ? (@.time >= $from && @.time <= $to)', jsonb_build_object('from', $3::text, 'to', $4::text)))
-              END AS series
-         FROM property_forecasts f WHERE f.organization_id = $1 AND ($2::uuid[] IS NULL OR f.property_id = ANY($2::uuid[]))`,
-      [organizationId, pid, window[0], window[1]],
-    ),
+    loadPropertyForecasts(db, organizationId, pid, window),
     db.query<OrgEventRow>(
       `SELECT m.property_id, m.match_method, m.distance_m, m.first_matched_at,
               e.id, e.source_id, e.external_id, e.data_class, e.category, e.level, e.severity, e.event_type, e.headline, e.description,
@@ -805,7 +773,7 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
       [organizationId, pid],
     ),
   ]);
-  return { history:history.rows, hydrologyReferences:hydrologyReferences.rows, nowcasts, forecasts: forecasts.rows, events: events.rows, contexts: contexts.rows, observations: observations.rows, counties: counties.rows, airHistory: airHistory.rows };
+  return { history:history.rows, hydrologyReferences:hydrologyReferences.rows, nowcasts, forecasts, events: events.rows, contexts: contexts.rows, observations: observations.rows, counties: counties.rows, airHistory: airHistory.rows };
 }
 
 /** The stored radar nowcast of an organization's properties (all, or the given ones). */

@@ -24,15 +24,24 @@ function context(env: Record<string, string>, fetchImpl: () => Promise<Response>
 describe('per-property jobs name the properties they changed', () => {
   it('the forecast job publishes organization + property ids, never "all"', async () => {
     const targets = [
-      { id: 'p1', organization_id: 'org-a', lat: 59.331, lon: 18.061, municipality: null, updated_at: now },
-      { id: 'p2', organization_id: 'org-b', lat: 59.332, lon: 18.062, municipality: null, updated_at: now },
+      { property_id: 'p1', organization_id: 'org-a', lat: 59.331, lon: 18.076 },
+      { property_id: 'p2', organization_id: 'org-b', lat: 59.332, lon: 18.075 },
     ];
-    const ctx = context({ NODE_ENV: 'test' }, async () => new Response(forecastFixture, { headers: { 'content-type': 'application/json' } }),
-      (sql) => (sql.includes('LEFT JOIN property_forecasts') ? targets : []));
+    const point = { id: '1', lat: 59.33036, lon: 18.077207 };
+    const properties = targets.map((t) => ({ organizationId: t.organization_id, propertyId: t.property_id }));
+    const ctx = context({ NODE_ENV: 'test' }, async () => new Response(forecastFixture),
+      (sql) => sql.includes('LEFT JOIN property_forecast_links') ? targets : sql.includes('SELECT g.id, g.lat') ? [point]
+        : sql.includes('WITH refreshed AS') ? properties : []);
+    const request = vi.fn(async (url: string | URL | Request) => String(url).endsWith('/multipoint.json')
+      ? Response.json({ type: 'MultiPoint', coordinates: [[point.lon, point.lat]] }) : new Response(forecastFixture));
+    ctx.adapter.fetch = request;
     const job = buildJobs(loadServerEnv({ NODE_ENV: 'test' })).find((j) => j.jobId === 'smhi_forecast')!;
     const r = await job.run(ctx);
-    expect(r).toMatchObject({ status: 'ok', items: 2 });
-    expect(r.changed).toEqual({ properties: [{ organizationId: 'org-a', propertyId: 'p1' }, { organizationId: 'org-b', propertyId: 'p2' }] });
+    expect(r).toMatchObject({ status: 'ok', items: 1 });
+    expect(r.changed).toEqual({ properties });
+    expect(request.mock.calls.map(([url]) => new URL(String(url)).pathname)).toEqual([
+      '/api/category/snow1g/version/1/geotype/multipoint.json', '/api/category/snow1g/version/1/geotype/point/lon/18.0772/lat/59.3304/data.json',
+    ]);
   });
 
   it('the nowcast job names only the properties at the points it refreshed', async () => {

@@ -3,6 +3,7 @@ export * from './pool';
 export * from './properties';
 export * from './property-groups';
 export * from './monitoring';
+export * from './forecasts';
 export * from './utility-outages';
 export * from './utility-coverage';
 export * from './organization-settings';

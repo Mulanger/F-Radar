@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { listPropertyGroups, type Queryable } from "@fastighetsradar/db";
+import { listPropertyGroups, loadPropertyForecasts, type Queryable } from "@fastighetsradar/db";
 import type { ServerEnv } from "@fastighetsradar/config";
 import {
   formatOutageWindow,
@@ -317,23 +317,16 @@ export class NotificationService {
   ): Promise<Trigger[]> {
     const c = r.config.condition;
     if (c.category !== "forecast") return [];
-    const forecasts = await tx.query<{
-      property_id: string;
-      reference_time: Date | null;
-      fetched_at: Date;
-      series: { steps?: ForecastStep[] };
-    }>(
-      "SELECT * FROM property_forecasts WHERE organization_id=$1 AND property_id=ANY($2::uuid[])",
-      [r.organization_id, props.map((p) => p.id)],
-    );
+    const forecasts = await loadPropertyForecasts(tx, r.organization_id, props.map((p) => p.id));
     const triggers: Trigger[] = [];
     const byId = new Map(props.map((p) => [p.id, p]));
-    for (const f of forecasts.rows) {
+    for (const f of forecasts) {
+      const steps = (f.series as { steps?: ForecastStep[] } | null)?.steps;
       if (
         !f.reference_time ||
         now.getTime() - f.reference_time.getTime() > 6 * 3600000 ||
         now.getTime() - f.fetched_at.getTime() > 6 * 3600000 ||
-        !Array.isArray(f.series.steps)
+        !Array.isArray(steps)
       )
         continue;
       const p = byId.get(f.property_id)!;
@@ -353,7 +346,7 @@ export class NotificationService {
         f.reference_time < state.reference_time
       )
         continue;
-      const value = forecastValue(c, f.series.steps, now);
+      const value = forecastValue(c, steps, now);
       const next = thresholdTransition(c, value, state?.latched ?? null);
       if (next.latched === null) continue;
       const transition =
@@ -1022,24 +1015,17 @@ export class NotificationService {
     } else if (row.trigger_evidence.forecastPropertyId) {
       if (rule.config.condition.category !== "forecast")
         return "source_not_current";
-      const f = (
-        await this.db.query<{
-          reference_time: Date;
-          series: { steps: ForecastStep[] };
-        }>(
-          "SELECT reference_time,series FROM property_forecasts WHERE organization_id=$1 AND property_id=$2",
-          [row.organization_id, row.trigger_evidence.forecastPropertyId],
-        )
-      ).rows[0];
+      const [f] = await loadPropertyForecasts(this.db, row.organization_id, [row.trigger_evidence.forecastPropertyId]);
+      const steps = (f?.series as { steps?: ForecastStep[] } | null)?.steps;
       if (
         !f ||
         !f.reference_time ||
         now.getTime() - f.reference_time.getTime() > 6 * 3600000 ||
-        !Array.isArray(f.series.steps)
+        !Array.isArray(steps)
       )
         return "source_not_current";
       const c = rule.config.condition,
-        value = forecastValue(c, f.series.steps, now);
+        value = forecastValue(c, steps, now);
       if (
         value === null ||
         !(c.operator === "gt" ? value > c.threshold : value < c.threshold)

@@ -45,6 +45,7 @@ import {
   requestJobRun,
   upsertCountyAreas,
   upsertPropertyContext,
+  upsertPropertyForecast,
   upsertSourceEvents,
   upsertStationObservations,
   insertObservationHistory, saveNowcastPoint, revalidateNowcastPoint, saveFlowReferences,
@@ -55,11 +56,12 @@ import { buildApp } from '../../apps/api/src/app';
 import type { AuthVerifier, VerifiedIdentity } from '../../apps/api/src/auth';
 import { MonitoringBus } from '../../apps/api/src/monitoring/bus';
 import { MonitoringService } from '../../apps/api/src/monitoring/service';
-import type { GeocodingProvider } from '../../packages/integrations/src';
+import { parseSmhiForecast, type GeocodingProvider } from '../../packages/integrations/src';
 import type { PositionReviewItem, Portfolio, PropertyGroup, PropertyImportResult, PropertyRecord } from '../../packages/domain/src';
 import { GROUP_LIMIT_REACHED, GROUP_NAME_TAKEN } from '../../apps/api/src/routes/property-groups';
 import { registerNotificationTests } from './notifications';
 import { registerUtilityOutageTests } from './utility-outages';
+import { forecastFixtureAt, measureForecastCycle, stubForecasts } from './forecast-grid-fixture';
 
 const url = process.env.TEST_DATABASE_URL;
 if (!url) throw new Error('TEST_DATABASE_URL is required');
@@ -98,7 +100,7 @@ const sveavagen = {
 
 async function resetSchema() {
   await pool.query(`
-    DROP TABLE IF EXISTS property_group_members,property_groups,feed_acknowledgement_history,feed_update_reads,sms_delivery_callbacks,notification_attempts,notification_properties,notification_outbox,notification_daily_usage,notification_usage,notification_global_usage,notification_rate_buckets,alert_evaluation_state,alert_rule_recipients,alert_rule_properties,sms_recipients,
+    DROP TABLE IF EXISTS property_forecast_links,forecast_grid_points,property_group_members,property_groups,feed_acknowledgement_history,feed_update_reads,sms_delivery_callbacks,notification_attempts,notification_properties,notification_outbox,notification_daily_usage,notification_usage,notification_global_usage,notification_rate_buckets,alert_evaluation_state,alert_rule_recipients,alert_rule_properties,sms_recipients,
       property_event_history, station_daily, history_stations, history_backfill_checks,
       station_precipitation_normals, history_normal_checks, history_flow_references, history_archive_state,
       observation_history, observation_backfill_checks, nowcast_points, hydrology_references, hydrology_reference_checks,
@@ -137,6 +139,69 @@ describe('real PostgreSQL / PostGIS', () => {
   it('loads empty monitoring with all new spatial joins on real PostgreSQL',async()=>{
     const data=await loadOrgMonitoring(pool,'00000000-0000-4000-8000-000000000001');
     assert.deepEqual(data.history,[]);assert.deepEqual(data.nowcasts,[]);assert.deepEqual(data.hydrologyReferences,[]);
+  });
+
+  it('shares one native forecast across tenants and preserves legacy snapshots until the shared forecast is ready', async () => {
+    const db = await pool.connect();
+    try {
+      await db.query('BEGIN');
+      await db.query("UPDATE properties SET status='paused' WHERE status<>'paused'");
+      const now = (await db.query<{ now: Date }>('SELECT now()')).rows[0]!.now;
+      const stub = stubForecasts(db, now);
+      const native = forecastFixtureAt(0), destination = forecastFixtureAt(1);
+      const orgA = { organizationId: await ensureOrganization(db, 'org_gridtestA'), clerkOrgId: 'org_gridtestA', orgSlug: 'grid-a', userId: 'user_grid' };
+      const orgB = { organizationId: await ensureOrganization(db, 'org_gridtestB'), clerkOrgId: 'org_gridtestB', orgSlug: 'grid-b', userId: 'user_grid' };
+      const a = await createProperty(db, orgA, { ...sveavagen, location: { lat: native.lat + 0.001, lon: native.lon } });
+      const b = await createProperty(db, orgB, { ...sveavagen, location: { lat: native.lat, lon: native.lon + 0.003 } });
+      const f = parseSmhiForecast(stub.fixture(native))!;
+      for (const [property, org] of [[a, orgA], [b, orgB]] as const) await upsertPropertyForecast(db, {
+        propertyId: property.id, organizationId: org.organizationId, sourceId: 'smhi_forecast',
+        referenceTime: f.referenceTime, createdTime: f.createdTime, grid: native, series: { v: 2, steps: f.steps },
+      });
+
+      const service = new MonitoringService(db, loadServerEnv({ NODE_ENV: 'test' }), new MonitoringBus());
+      const views = async () => Promise.all([
+        service.property(orgA, a.id, now), service.property(orgB, b.id, now),
+        service.list(orgA, now), service.list(orgB, now), service.rows(orgA, [a.id], now),
+      ]);
+      const before = await views();
+      assert.ok((await service.property(orgA, a.id, now))?.snapshot.forecast);
+      assert.ok((await service.list(orgA, now)).upcoming.length > 0);
+      const result = await stub.run();
+      assert.equal(result.status, 'ok', result.errorDetail);
+      assert.equal(result.items, 1);
+      assert.deepEqual(stub.counts(), { gridRequests: 1, pointRequests: 1 });
+      assert.deepEqual(new Set(result.changed?.properties?.map((p) => p.propertyId)), new Set([a.id, b.id]));
+      assert.deepEqual(await views(), before);
+      assert.deepEqual((await loadOrgMonitoring(db, orgA.organizationId, b.id)).forecasts, []);
+      assert.deepEqual((await stub.run()).changed?.properties, []);
+      assert.deepEqual(stub.counts(), { gridRequests: 1, pointRequests: 1 });
+
+      const newcomer = await createProperty(db, orgA, { ...sveavagen, location: native });
+      assert.deepEqual((await stub.run()).changed?.properties, [{ organizationId: orgA.organizationId, propertyId: newcomer.id }]);
+      assert.equal(stub.counts().pointRequests, 1, 'A new member reuses the already fresh point');
+      await updateProperty(db, orgA, a.id, { location: destination });
+      assert.deepEqual((await stub.run()).changed?.properties, [{ organizationId: orgA.organizationId, propertyId: a.id }]);
+      assert.equal(stub.counts().pointRequests, 2);
+      const [moved] = (await loadOrgMonitoring(db, orgA.organizationId, a.id)).forecasts;
+      assert.equal(moved?.grid_lon, destination.lon);
+      assert.equal(moved?.distance_m, '0');
+      await deleteProperty(db, orgA, a.id);
+      await applyRetention(db);
+      const { rows } = await db.query('SELECT lat, lon FROM forecast_grid_points ORDER BY lon');
+      assert.deepEqual(rows, [native]);
+      assert.equal((await loadOrgMonitoring(db, orgA.organizationId, a.id)).forecasts.length, 0);
+    } finally {
+      await db.query('ROLLBACK');
+      db.release();
+    }
+  });
+
+  for (const n of [500, 1000]) it(`fetches 49 points for ${n} clustered properties in two runs`, async () => {
+    const cycle = await measureForecastCycle(pool, n);
+    const { durationMs, ...counts } = cycle;
+    assert.deepEqual(counts, { properties: n, gridRequests: 1, pointRequests: 49, runs: 2, touched: n });
+    assert.ok(durationMs >= 0);
   });
 
   it('creates the expected tables, foreign keys and indexes', async () => {

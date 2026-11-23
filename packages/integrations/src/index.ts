@@ -2,6 +2,7 @@ export * from './types';
 export * from './geo';
 export * from './sl';
 export * from './smhi/derived';
+export * from './smhi/grid';
 export * from './sgu/observed';
 export * from './air-quality/eea';
 export * from './http';

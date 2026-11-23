@@ -15,11 +15,13 @@ import {
   listMonitoringTargets,
   type MonitoringTarget,
   propertiesNeedingContext,
-  propertiesNeedingForecast,
+  forecastPointsDue,
+  linkForecastProperties,
+  propertiesNeedingForecastLink,
+  saveForecastGridPoint,
   rematchEvents,
   upsertCountyAreas,
   upsertPropertyContext,
-  upsertPropertyForecast,
   upsertSourceEvents,
   upsertStationObservations,
   type JobDefinition,
@@ -51,6 +53,7 @@ import {
   fetchSguLatestLevel,
   fetchSmhiCountyAreas,
   fetchSmhiPointForecast,
+  fetchSmhiForecastGrid,
   fetchSmhiWarnings,
   fetchTrafikverketNear,
   probeFloodScenarios,
@@ -59,7 +62,7 @@ import {
   type AdapterContext,
   type AdapterErrorCode,
   type NormalizedSourceEvent,
-  type PointForecast,
+  type SmhiForecastGrid,
 } from '@fastighetsradar/integrations';
 
 /**
@@ -223,55 +226,70 @@ async function runCountyAreas(ctx: JobContext): Promise<JobResult> {
 }
 
 /* ------------------------------------------------------------------ */
-/* Point forecast per property                                         */
+/* Point forecast shared by the properties on a grid point             */
 /* ------------------------------------------------------------------ */
 
 export const FORECAST_MAX_AGE_S = 3_600;
 const PER_RUN = { forecast: 40, sgu: 25, mcf: 8, scb: 20 };
 
-async function runForecasts(ctx: JobContext): Promise<JobResult> {
-  const targets = await propertiesNeedingForecast(ctx.db, FORECAST_MAX_AGE_S - 120, PER_RUN.forecast);
-  if (!targets.length) return { status: 'ok', items: 0 };
-  const cache = new Map<string, PointForecast>();
-  let ok = 0;
-  let lastErr: JobResult | null = null;
-  let ref: string | null = null;
-  const updated: MonitoringTarget[] = [];
-  for (const t of targets) {
-    const key = `${t.lat.toFixed(3)},${t.lon.toFixed(3)}`;
-    let f = cache.get(key);
-    if (!f) {
+const FORECAST_LINKS_PER_RUN = 1_000;
+/** ~1 m: how far SMHI's answered grid point may lie from the catalogue's (number formatting only). */
+const GRID_MATCH_DEG = 1e-5;
+
+function forecastRunner(): MonitoringJob['run'] {
+  // The versioned provider geometry is static. Only load it when a pin needs a point assigned.
+  let grid: SmhiForecastGrid | undefined;
+  return async (ctx) => {
+    const unlinked = await propertiesNeedingForecastLink(ctx.db, FORECAST_LINKS_PER_RUN + 1);
+    let budget = PER_RUN.forecast;
+    let lastErr: JobResult | undefined;
+    const changed = new Map<string, ChangedProperty>();
+    const markChanged = (properties: ChangedProperty[]) => {
+      for (const property of properties) changed.set(property.propertyId, property);
+    };
+    if (unlinked.length) {
+      if (!grid) {
+        const r = await fetchSmhiForecastGrid(ctx.adapter);
+        if (r.ok) grid = r.data;
+        else lastErr = fail(r);
+        budget--;
+      }
+      if (grid) markChanged(await linkForecastProperties(ctx.db, unlinked.slice(0, FORECAST_LINKS_PER_RUN)
+        .map((property) => ({ property, grid: grid!.nearest(property.lat, property.lon) }))));
+    }
+    if (lastErr?.errorCode === 'rate_limited' || lastErr?.errorCode === 'unauthorized') return lastErr;
+
+    const targets = await forecastPointsDue(ctx.db, FORECAST_MAX_AGE_S - 120, budget + 1);
+    let items = 0;
+    let ref: string | null = null;
+    for (const t of targets.slice(0, budget)) {
       const r = await fetchSmhiPointForecast(t.lat, t.lon, ctx.adapter);
       if (!r.ok) {
         lastErr = fail(r);
-        if (r.error === 'rate_limited' || r.error === 'unauthorized') break;
+        if (r.error === 'rate_limited' || r.error === 'unauthorized' || ctx.adapter.signal?.aborted) break;
         continue;
       }
-      f = r.data;
-      cache.set(key, f);
+      const f = r.data;
+      // The answer must be the catalogue's point. Within ~1 m rather than exactly equal: a different
+      // number format in one of SMHI's two endpoints must not stop every forecast from refreshing.
+      if (Math.abs(f.gridPoint.lat - t.lat) > GRID_MATCH_DEG || Math.abs(f.gridPoint.lon - t.lon) > GRID_MATCH_DEG) {
+        lastErr = fail({ error: 'invalid_payload', detail: 'smhi_forecast: point does not match the grid catalogue' });
+        continue;
+      }
+      markChanged(await saveForecastGridPoint(ctx.db, t.id, { referenceTime: f.referenceTime, createdTime: f.createdTime, series: { v: 2, steps: f.steps } }));
+      if (!ref || f.referenceTime > ref) ref = f.referenceTime;
+      items++;
     }
-    await upsertPropertyForecast(ctx.db, {
-      propertyId: t.propertyId,
-      organizationId: t.organizationId,
-      sourceId: 'smhi_forecast',
-      referenceTime: f.referenceTime,
-      createdTime: f.createdTime,
-      grid: f.gridPoint,
-      series: { v: 2, steps: f.steps },
-    });
-    ref = f.referenceTime;
-    ok++;
-    updated.push(t);
-  }
-  if (!ok && lastErr) return lastErr;
-  return {
-    status: lastErr ? 'partial' : 'ok',
-    items: ok,
-    errorCode: lastErr?.errorCode,
-    errorDetail: lastErr?.errorDetail,
-    sourceUpdatedAt: ref,
-    changed: { properties: changedOf(updated) },
-    moreWork: targets.length === PER_RUN.forecast,
+    if (lastErr && !items && !changed.size) return lastErr;
+    const defer = lastErr?.errorCode === 'rate_limited' || lastErr?.errorCode === 'unauthorized' || ctx.adapter.signal?.aborted;
+    return {
+      ...lastErr,
+      status: lastErr ? 'partial' : 'ok',
+      items,
+      sourceUpdatedAt: ref,
+      changed: { properties: [...changed.values()] },
+      moreWork: !defer && (targets.length > budget || unlinked.length > FORECAST_LINKS_PER_RUN),
+    };
   };
 }
 
@@ -460,7 +478,7 @@ export function buildJobs(env: ServerEnv): MonitoringJob[] {
     { jobId:'hydrology_reference',sourceId:'smhi_hydrology',intervalSeconds:3600,enabled:env.SOURCE_SMHI_HYDROLOGY_ENABLED,timeoutMs:600000,run:runHydrologyReferences },
     { jobId: 'smhi_oceanography', sourceId:'smhi_oceanography', intervalSeconds:600, enabled:env.SOURCE_SMHI_OCEANOGRAPHY_ENABLED, timeoutMs:90000, run:runOceanography },
     { jobId: 'met_nowcast', sourceId: 'met_nowcast', intervalSeconds: 300, enabled: env.SOURCE_MET_NOWCAST_ENABLED, timeoutMs: 180_000, run: runNowcast },
-    { jobId: 'smhi_forecast', sourceId: 'smhi_forecast', intervalSeconds: 900, enabled: env.SOURCE_SMHI_FORECAST_ENABLED, timeoutMs: 180_000, run: runForecasts },
+    { jobId: 'smhi_forecast', sourceId: 'smhi_forecast', intervalSeconds: 900, enabled: env.SOURCE_SMHI_FORECAST_ENABLED, timeoutMs: 180_000, run: forecastRunner() },
     { jobId: 'smhi_observations', sourceId: 'smhi_observations', intervalSeconds: 900, enabled: env.SOURCE_SMHI_OBSERVATIONS_ENABLED, timeoutMs: 180_000, run: runMetObs },
     // After the latest-hour collection so newly listed stations exist; also triggered when a property is added.
     { jobId: 'observation_backfill', sourceId: 'smhi_observations', intervalSeconds: 3_600, enabled: env.SOURCE_SMHI_OBSERVATIONS_ENABLED, timeoutMs: 180_000, run: runObservationBackfill },
@@ -481,7 +499,7 @@ export const PER_PROPERTY_JOBS = ['met_nowcast', 'smhi_forecast', 'observation_b
 
 /** Backoff after failures: interval × 2^(n−1), min 60 s, max 6 h; Retry-After wins when longer. */
 export function nextRunSeconds(intervalSeconds: number, consecutiveFailures: number, result: JobResult): number {
-  if (result.status === 'ok' || result.status === 'partial') return result.moreWork ? 30 : intervalSeconds;
+  if (result.status === 'ok' || result.status === 'partial') return Math.max(result.moreWork ? 30 : intervalSeconds, result.retryAfterSeconds ?? 0);
   if (result.status === 'skipped') return intervalSeconds;
   const backoff = Math.min(6 * 3_600, Math.max(60, Math.min(intervalSeconds, 900) * 2 ** Math.max(0, consecutiveFailures)));
   return Math.max(backoff, result.retryAfterSeconds ?? 0);

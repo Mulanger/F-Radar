@@ -574,6 +574,7 @@ just de händelser tjänsten finns till för.
   sparas var för sig, och genomloppet tar fler omgångar (driver S-12).
 - **Åtgärd:** Spara prognosen per rutnätspunkt och låt fastigheter peka på den; hämta varje punkt en
   gång per cykel oavsett organisation.
+- **Gjort 2026-11-23 (Fas 7 steg 1)** med SMHI:s SNOW-rutnät och delad prognoslagring.
 
 **S-35 Nowcast hinner inte med fler än ~500 olika platser** · P2 · Fas 7
 - **Var:** `runNowcast` i [`jobs.ts`](../../apps/api/src/monitoring/jobs.ts) (punkter avrundade till 0,01°, ~1 km; 4 hämtningar åt gången med 1 s paus; tidsgräns 180 s; körs var 5:e minut).
@@ -1223,6 +1224,54 @@ omatchning körs en gång.
 **Klart när:** Ett prognosgenomlopp för den syntetiska organisationen gör färre SMHI-anrop än antal
 fastigheter (siffror i Fasloggen).
 
+**Genomfört steg 1 (gren `claude/skalning-fas0`):**
+- Prognosjobbet använder SMHI:s publicerade SNOW-koordinater för att välja närmaste punkt när en
+  fastighet läggs till eller flyttas. Katalogen hålls i minnet efter första hämtningen. Jobbet hämtar
+  förfallna punkter äldst först med en budget på 40 hämtningar, inklusive kataloghämtningen när den
+  behövs. Det använder befintlig jobbleasing, tidsgräns, HTTP-omförsök och backoff. En uppdaterad punkt aviserar varje
+  berörd fastighet i respektive organisation. Fem offentliga provpositioner gav samma punkt som
+  direkta punktanrop. [SMHI:s SNOW-dokumentation](https://opendata.smhi.se/metfcst/snow1gv1/examples)
+- Migrering 0026 skapar två tomma tabeller och deras index. `forecast_grid_points` innehåller bara
+  offentliga prognoser och koordinater. `property_forecast_links` har en sammansatt främmande nyckel
+  för organisation och fastighet. Migreringen skriver inte om befintliga rader och avbryter om den
+  behöver vänta mer än fem sekunder på ett lås. Den tidigare fastighetsprognosen läses tills den
+  delade punkten har en prognos. Löpande rensning tar bort prognospunkter när sista länken försvinner.
+- Portföljlista, radvisa uppdateringar, fastighetsdetalj och SMS läser samma fastighetsformade rader.
+  SQL gör Fas 3:s tidsurval en gång per punkt. Läsvägen återanvänder serien för fastigheterna på
+  samma punkt och behåller fastighetens eget avstånd.
+- Prognosgenomlopp med stubbad SMHI-hämtning i `fastighetsradar_test`. Fastigheterna låg i 49 täta
+  kluster runt Stockholm. Körtiden omfattar databasen och jobbkoden, utan väntan på nät eller schema.
+
+  | Fastigheter | Punktanrop före → efter | Kataloganrop före → efter | Körningar före → efter | Körtid före → efter |
+  |---:|---:|---:|---:|---:|
+  | 500 | 500 → 49 | 0 → 1 | 13 → 2 | 187 → 47 ms |
+  | 1 000 | 1 000 → 49 | 0 → 1 | 26 → 2 | 304 → 55 ms |
+
+- `/v1/portfolio` mättes med Fas 3:s verktyg i samma testdatabas. Före och efter kördes omväxlande
+  mot samma data, fem processer per variant med en uppvärmning och tre enskilda anrop per process.
+  Tabellen visar medianen av processernas medianer. Svarets byteantal var identiskt inom varje par.
+
+  | Fastigheter | Ursprunglig Fas 3-fixtur, 1 440 punkter totalt | Samma fixtur med delade punkter, 488 punkter totalt |
+  |---:|---:|---:|
+  | 500 | 363 → 364 ms | 370 → 327 ms |
+  | 1 000 | 702 → 692 ms | 681 → 606 ms |
+
+- Tester jämför hela snapshots, portföljlistan och de radvisa svaren mot gamla lagringen. De täcker
+  även delning över organisationsgränsen, avgränsad läsning, flytt, rensning och anropsbudget.
+  PostgreSQL/PostGIS på testpodden gick 51 av 51. Vitest gav 744 godkända och 6 överhoppade.
+  ESLint och typkontrollen för projektet och integrationstesterna gick igenom.
+- **Granskning (Claude):** migreringen är additiv och säker att köra i produktion. Katalogen är 8,8 MB
+  JSON (~350 000 punkter) och läses en gång per API-process; tolkningen tar tillfälligt några tiotals
+  MB av API:ts 512 MB (168 MB använda på podden). Svarets rutnätspunkt jämförs nu med katalogens
+  inom ~1 m i stället för exakt: ett annat talformat i en av SMHI:s två tjänster hade annars stoppat
+  alla prognoser. Databassviten kördes om av granskaren (51/51).
+- **Känd risk:** om katalogen inte går att läsa får nya eller flyttade fastigheter ingen punkt, och
+  den gamla prognostabellen uppdateras inte längre – prognoserna åldras då tills katalogen fungerar.
+  Jobbet rapporterar felet som vanligt (status och backoff); någon reservväg via punkt per fastighet
+  finns inte.
+- **Inte gjort:** fullskaligt genomlopp mot SMHI i produktion. Punktvalet vid varje gräns mellan
+  rutnätsceller är inte verifierat. De tidigare prognosraderna behålls för övergång och återgång.
+
 ---
 
 ## 7. Kända okända
@@ -1264,5 +1313,6 @@ fastigheter (siffror i Fasloggen).
 | Fas 4 steg 2 | 2026-11-23 | `claude/skalning-fas0` / `4ec363a`, driftsatt 2026-11-23 14:08 UTC | Portföljkartan med 500 fastigheter: 500 nålar och 500 tabbstopp → 44 kluster och 2 nålar i värsta statusens färg, inga tabbstopp. | Nålar utanför utsnittet ritas vid inzoomning; mobilens lilla karta zoomar ut för långt vid 500 |
 | Fas 4 steg 3 | 2026-11-23 | `claude/skalning-fas0` / `91b8b03`, driftsatt 2026-11-23 14:37 UTC | Fastighetslistan med 500: sortering bara risk/namn, rubriken rullade bort, 500 rader ritade → sortering på sex kolumner, filter på område, fast rubrik, 100 rader i taget. Omsortering 140–350 ms → 55–250 ms i utvecklingsbygget. | Produktionsbyggets renderingstid inte mätt |
 | Fas 4 steg 4 | 2026-11-23 | `claude/skalning-fas0` / `f74ef1d`, driftsatt 2026-11-23 15:16 UTC | Demo med 500 fastigheter: 499 rader → 8 grupper i ”Kommande förhållanden”; i liveläget visades tidigare bara 8 förhållanden, nu alla, grupperade. Den orange SMHI-varningen i panelen: 62 enskilda rader → 1 grupp med 62 fastigheter. Ingen horisontell rullning vid 375 px. | Liveflöde i webbläsaren och rendering i produktionsbygge |
-| Fas 4 steg 5 | 2026-11-23 | `claude/skalning-fas0` | Sparat fastighetsurval → grupp med aktuellt medlemskap. PostgreSQL 48/48: berörda fastigheter 1 → 2 → 1 efter medlemsbyten. Demo med 500 fastigheter: Innerstad 9, Förort & Kust 491. Gruppborttagning nekades i dator- och mobilvyn. | Riktiga SMS och driftsatt kundmiljö |
+| Fas 4 steg 5 | 2026-11-23 | `claude/skalning-fas0` / `c49426d`, driftsatt 2026-11-23 16:01 UTC | Sparat fastighetsurval → grupp med aktuellt medlemskap. PostgreSQL 48/48: berörda fastigheter 1 → 2 → 1 efter medlemsbyten. Demo med 500 fastigheter: Innerstad 9, Förort & Kust 491. Gruppborttagning nekades i dator- och mobilvyn. | Riktiga SMS och driftsatt kundmiljö |
+| Fas 7 steg 1 | 2026-11-23 | `claude/skalning-fas0` (ocommittat) | 500/1 000 fastigheter, stubbad SMHI-hämtning: 500/1 000 anrop → 49 punktanrop + 1 kataloganrop, 13/26 → 2 körningar, 187/304 → 47/55 ms. `/v1/portfolio` med delade punkter: 370 → 327 ms vid 500 och 681 → 606 ms vid 1 000. | Genomloppets verkliga nät- och väntetider i produktion |
 

@@ -9,6 +9,8 @@
  *   node portfolio-scale.mjs fields 500             # bytes per field of one real response
  *   node --expose-gc portfolio-scale.mjs live 500   # a live row patch vs the full list (Fas 3 / S-12)
  *   node --expose-gc portfolio-scale.mjs profile 500 # where one portfolio build spends time (SQL, build, JSON) + EXPLAIN
+ *   node portfolio-scale.mjs share [--clustered]   # fill the grid store from portfolio fixtures (Fas 7 / S-31)
+ *   node portfolio-scale.mjs forecast 500 1000     # time a complete scheduled cycle with a stubbed SMHI API
  *   node portfolio-scale.mjs feed 500               # the feed and alarms at a county warning (Fas 2)
  *   node portfolio-scale.mjs cleanup
  *
@@ -42,6 +44,7 @@ import { buildApp } from '../../apps/api/src/app';
 import type { AuthVerifier } from '../../apps/api/src/auth';
 import { MonitoringBus } from '../../apps/api/src/monitoring/bus';
 import { MonitoringService } from '../../apps/api/src/monitoring/service';
+import { measureForecastCycle } from '../integration/forecast-grid-fixture';
 
 const url = process.env.TEST_DATABASE_URL;
 if (!url) throw new Error('TEST_DATABASE_URL is required');
@@ -545,6 +548,39 @@ async function cleanup() {
   await pool.query(`DELETE FROM observation_stations WHERE station_id LIKE 'perf-%'`);
 }
 
+/** Give the legacy and grid-backed portfolio endpoints exactly the same rows and forecast values. */
+async function shareForecastFixtures(clustered: boolean) {
+  await migrateUp(pool, quiet);
+  if (clustered) {
+    // The Phase 3 seed has one synthetic grid coordinate per pin. Assign shared ~2.5 km cells
+    // to those same properties, in both stores, without changing the weather or the rest of the workload.
+    await pool.query(`WITH points AS (
+      SELECT p.id, p.location, ST_SetSRID(ST_MakePoint(round(ST_X(p.location::geometry) * 25) / 25,
+             round(ST_Y(p.location::geometry) * 45) / 45), 4326)::geography AS grid_point
+        FROM properties p JOIN organizations o ON o.id = p.organization_id WHERE o.clerk_org_id LIKE 'org_perfscale%'
+    ) UPDATE property_forecasts f SET grid_point = p.grid_point,
+         distance_m = round(ST_Distance(p.location, p.grid_point)::numeric, 0) FROM points p WHERE p.id = f.property_id`);
+  }
+  await pool.query(`INSERT INTO forecast_grid_points (lat, lon, reference_time, created_time, fetched_at, series)
+    SELECT DISTINCT ON (lat, lon) ST_Y(f.grid_point::geometry) AS lat, ST_X(f.grid_point::geometry) AS lon,
+           f.reference_time, f.created_time, f.fetched_at, f.series
+      FROM property_forecasts f JOIN organizations o ON o.id = f.organization_id
+     WHERE o.clerk_org_id LIKE 'org_perfscale%' AND f.grid_point IS NOT NULL
+     ORDER BY lat, lon, f.fetched_at DESC
+    ON CONFLICT (lat, lon) DO NOTHING`);
+  const linked = await pool.query(`INSERT INTO property_forecast_links (property_id, organization_id, point_id, for_location, distance_m)
+    SELECT f.property_id, f.organization_id, g.id, p.location, f.distance_m
+      FROM property_forecasts f JOIN organizations o ON o.id = f.organization_id
+      JOIN properties p ON p.id = f.property_id AND p.organization_id = f.organization_id
+      JOIN forecast_grid_points g ON g.lat = ST_Y(f.grid_point::geometry) AND g.lon = ST_X(f.grid_point::geometry)
+     WHERE o.clerk_org_id LIKE 'org_perfscale%'
+    ON CONFLICT (property_id) DO UPDATE SET point_id = EXCLUDED.point_id, for_location = EXCLUDED.for_location, distance_m = EXCLUDED.distance_m`);
+  await pool.query('ANALYZE forecast_grid_points, property_forecast_links');
+  const { rows: [row] } = await pool.query<{ points: number }>(`SELECT count(DISTINCT l.point_id)::int AS points
+    FROM property_forecast_links l JOIN organizations o ON o.id = l.organization_id WHERE o.clerk_org_id LIKE 'org_perfscale%'`);
+  console.log(JSON.stringify({ linked: linked.rowCount, points: row?.points, clustered }));
+}
+
 const [mode, ...args] = process.argv.slice(2);
 const sizes = args.map(Number).filter((x) => Number.isInteger(x) && x > 0);
 try {
@@ -555,6 +591,10 @@ try {
     for (const n of sizes) console.log(JSON.stringify({ n, seed: await seedOrganization(n, now) }));
   } else if (mode === 'measure') {
     console.log(JSON.stringify(await measure(sizes[0]!, sizes[1] ?? 1)));
+  } else if (mode === 'forecast') {
+    for (const n of sizes) console.log(JSON.stringify(await measureForecastCycle(pool, n)));
+  } else if (mode === 'share') {
+    await shareForecastFixtures(args.includes('--clustered'));
   } else if (mode === 'fields') {
     for (const n of sizes) console.log(JSON.stringify(await fields(n)));
   } else if (mode === 'feed') {
@@ -570,7 +610,7 @@ try {
     await cleanup();
     console.log(JSON.stringify({ cleanup: 'done' }));
   } else {
-    throw new Error('usage: seed|matrix|measure|fields|live|profile|feed|cleanup <sizes…>');
+    throw new Error('usage: seed|matrix|measure|forecast|share|fields|live|profile|feed|cleanup <sizes…>');
   }
 } finally {
   if (mode !== 'matrix') await pool.end();

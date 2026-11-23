@@ -191,4 +191,7 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
 - Fas 4 steg 5: SMS-regler kan omfatta alla aktuella medlemmar i en fastighetsgrupp. Regelvyn visar
   grupp och antal. En grupp som används av en sparad regel kan tas bort först när regeln ändrats
   eller tagits bort. Flödet finns även i demoläget.
+- Fas 7 steg 1: SMHI-prognosen hämtas och sparas per SNOW-rutnätspunkt. Organisationernas
+  fastigheter länkas till punkten och läser den tidigare fastighetsprognosen tills en delad prognos
+  finns. Liveuppdateringar omfattar alla berörda fastigheter. Oanvända prognospunkter rensas.
 
