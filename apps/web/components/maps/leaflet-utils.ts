@@ -70,6 +70,20 @@ export function pinIcon(L: typeof Leaflet, color: string, size = 18) {
   });
 }
 
+/**
+ * Several properties close together (docs/plans/skalning.md, S-18): their number on white, ringed in the
+ * colour of the most serious status – dark text on white stays readable on every status colour.
+ */
+export function clusterIcon(L: typeof Leaflet, color: string, count: number) {
+  const size = count < 10 ? 28 : count < 100 ? 32 : 38;
+  return L.divIcon({
+    className: '',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    html: `<div style="width:${size}px;height:${size}px;box-sizing:border-box;border-radius:50%;background:#fff;border:3px solid ${color};box-shadow:0 0 0 3px ${color}40,0 3px 10px rgba(20,23,26,.3);display:grid;place-items:center;color:#14171A;font-size:${count < 100 ? 12 : 11}px;font-weight:600;font-variant-numeric:tabular-nums">${count}</div>`,
+  });
+}
+
 /** Escapes text interpolated into Leaflet tooltip HTML (data may come from external sources later). */
 export function esc(s: string | number): string {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);

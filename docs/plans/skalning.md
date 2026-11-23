@@ -404,6 +404,8 @@ Fasen anger var fyndet åtgärdas.
 - **Åtgärd:** Klustring (t.ex. `leaflet.markercluster` eller `supercluster`, version låst) där klustret
   får färgen från sin **värsta** status och visar antal. Klick zoomar in eller listar fastigheterna.
   Tangentbordsåtkomst via listan bredvid i stället för en tabbstopp per nål.
+- **Gjort 2026-11-23 (Fas 4 steg 2)** utan bibliotek: en enkel klustring i skärmpixlar räcker för de
+  1 000 fastigheter en organisation får ha, och går att testa utan Leaflet.
 
 **S-19 Fastighetstabellen saknar kolumnsortering, filter och virtualisering** · P2 · Fas 4
 - **Var:** [`PropertyIndex.tsx`](../../apps/web/components/properties/PropertyIndex.tsx), [`PropertyStatusTable.tsx`](../../apps/web/components/dashboard/PropertyStatusTable.tsx), mobilkorten i `PropertyIndex`.
@@ -1016,6 +1018,22 @@ visar kluster med rätt färg; "Kommande" visar grupperade rader. Visat och godk
   kvitteringar filtrerade på grupp, även exporten. Hela sviten 46/46.
 - **Inte gjort:** SMS-regel med omfattning grupp (steg 5); kluster, sortering och "Kommande" (steg 2–4).
 
+**Genomfört steg 2 (gren `claude/skalning-fas0`):**
+- **Kluster på kartan (S-18):** nålar som ligger närmare än 24 pixlar varandra vid kartans zoom (en
+  nåls bredd plus ett mellanrum) ritas som ett kluster: antalet fastigheter på vitt, med en ring i den
+  allvarligaste statusens färg ("Ej bedömd" räknas lägre än "Ingen aktiv varning", så grått döljer
+  aldrig grönt). Klustren räknas om vid varje zoom. Verktygstipset visar antal per status. Klick zoomar
+  in på klustrets fastigheter; ligger de på samma adresspunkt, eller är kartan redan helt inzoomad,
+  visas en lista att välja fastighet ur. Samma karta på dator och mobil.
+- **Tangentbord:** varken nålar eller kluster är tabbstopp längre (500 var det); listan bredvid kartan är
+  vägen med tangentbordet, som planen säger.
+- **Utan bibliotek:** en girig klustring över ett rutnät i skärmpixlar räcker för 1 000 fastigheter och
+  går att testa utan Leaflet (`apps/web/lib/maps/cluster.ts`).
+- **Demo `?n=500`:** översiktskartan ritar 44 kluster och 2 nålar i stället för 500 nålar; ett klick på
+  ett kluster med 36 fastigheter zoomar in. Demons åtta fastigheter är fortfarande åtta nålar.
+- **Inte gjort:** nålar utanför kartans utsnitt ritas fortfarande när man zoomat in (som förut);
+  mobilens lilla karta zoomar ut till hela regionen vid 500 fastigheter (som förut).
+
 ### Fas 5 – SMS vid stora händelser
 
 **Mål:** Inget larm tappas tyst, de viktigaste går först, och en länsvarning blir ett begripligt SMS.
@@ -1163,5 +1181,6 @@ fastigheter (siffror i Fasloggen).
 | Fas 5 steg 1–4 | 2026-11-23 | `claude/skalning-fas0` / `baabbfe`, driftsatt 2026-11-23 08:20 UTC | Riktig PostgreSQL, 300 fastigheter: samlat SMS vid full minut och 5 fastigheter vid tak spärrat för alla → köat för 295; VMA efter dagstaken spärrat → köat; VMA skickas före tidigare orange varning. | Tak per prisnivå; riktiga SMS (allt mätt i simulering) |
 | Fas 6 steg 1 | 2026-11-23 | `claude/skalning-fas0` / `21da523`, driftsatt 2026-11-23 11:19 UTC | En sparad fastighet: omatchning av hela plattformen → av organisationen, en gång per 2 s. Tak 500 → 1000 per organisation (eget tak möjligt). | Importen (steg 2); omatchningstiden vid 1000 fastigheter ej mätt |
 | Fas 6 steg 2 | 2026-11-23 | `claude/skalning-fas0` / `98976da`, driftsatt 2026-11-23 11:19 UTC | Import av 500 rader mot riktig PostgreSQL: 490 skapade med status per rad och **en** omatchning (tidigare: 500 fastigheter för hand, en omatchning per fastighet). Demo: 500 inklistrade rader → förhandsvisning, 480 skapade, 40 i granskningslistan. | Riktig Geoapify-sökning i stor skala; grupper vid import (Fas 4) |
-| Fas 4 steg 1 | 2026-11-23 | `claude/skalning-fas0` | Grupper: livekunder hade bara "Alla" (demon hade två fasta) → egna grupper med flera grupper per fastighet, val i översikt, lista, karta, larm och kvitteringar, import med gruppkolumn. Riktig PostgreSQL: tenant-isolering även i databasens nycklar. | SMS-regel per grupp (steg 5); gruppval vid 100 grupper i mobilens meny inte provat på telefon |
+| Fas 4 steg 1 | 2026-11-23 | `claude/skalning-fas0` / `a28948c`, driftsatt 2026-11-23 13:40 UTC | Grupper: livekunder hade bara "Alla" (demon hade två fasta) → egna grupper med flera grupper per fastighet, val i översikt, lista, karta, larm och kvitteringar, import med gruppkolumn. Riktig PostgreSQL: tenant-isolering även i databasens nycklar. | SMS-regel per grupp (steg 5); gruppval vid 100 grupper i mobilens meny inte provat på telefon |
+| Fas 4 steg 2 | 2026-11-23 | `claude/skalning-fas0` | Portföljkartan med 500 fastigheter: 500 nålar och 500 tabbstopp → 44 kluster och 2 nålar i värsta statusens färg, inga tabbstopp. | Nålar utanför utsnittet ritas vid inzoomning; mobilens lilla karta zoomar ut för långt vid 500 |
 

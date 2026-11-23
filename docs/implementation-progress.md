@@ -181,4 +181,6 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
 - Fas 4 steg 1: fastighetsgrupper (migrering 0025) som organisationen skapar själv; en fastighet kan
   ligga i flera. Gruppval i översikt, karta, fastighetslista, larmsida och kvitteringsrapport; grupper i
   fastighetsdialogen, en egen dialog för att skapa och fylla grupper, och kolumnen "Grupp" i importen.
+- Fas 4 steg 2: kluster på portföljkartan (dator och mobil) i den allvarligaste statusens färg; klick
+  zoomar in eller listar fastigheter på samma adresspunkt; inga tabbstopp per nål.
 
