@@ -5,9 +5,8 @@ import { darkSpans } from './daylight';
 
 /**
  * "Kommande förhållanden" (next 48 h) – designer's layout (Design förbättring, 2026-11-18):
- * a headline sentence, filter chips per kind, and a timeline per property where every condition is a
- * bar from its start to its end over the next 48 hours, with darkness shaded. Rows expand inline to
- * what it means and what is good to do. Plain information – nothing here is acknowledged.
+ * a headline, filter chips and a 48 h timeline with darkness shaded. Shared conditions expand to
+ * their affected properties; individual conditions expand to details and advice.
  *
  * The rows come from the API (forecast thresholds + official warnings that start later); this module
  * only derives presentation.
@@ -101,6 +100,9 @@ export interface UpcomingEvent {
   hot: boolean;
   name: string;
   propertyId: string | null;
+  address: string;
+  condition: string;
+  tone: UpcomingCondition['tone'];
   label: string;
   bar: string;
   /** Start and end (ms); a condition without an end is drawn as one hour. */
@@ -118,6 +120,7 @@ export interface UpcomingEvent {
 
 export function buildUpcomingEvents(portfolio: Portfolio, propertyIds: Set<string>): UpcomingEvent[] {
   const ref = Date.parse(portfolio.generatedAt);
+  const addresses = new Map(portfolio.properties.map(({ property }) => [property.id, property.address]));
   return portfolio.upcoming
     .filter((u) => !u.propertyId || propertyIds.has(u.propertyId))
     .map((u): UpcomingEvent => {
@@ -127,6 +130,7 @@ export function buildUpcomingEvents(portfolio: Portfolio, propertyIds: Set<strin
       const end = u.kind === 'outage' ? Date.parse(u.validTo!) : u.validTo ? Math.max(Date.parse(u.validTo), start + 15 * 60_000) : start + HOUR;
       const src = u.kind === 'outage' ? u.sourceName ?? 'Leverantören' : (u.sourceId && SOURCE_SV[u.sourceId]) || 'SMHI';
       const level = u.official ? u.value.split(' ')[0]!.toLowerCase() : '';
+      const condition = stripTag(u.label);
       const kind: UpcomingKind = u.kind === 'outage' ? 'outage' : k?.kind ?? 'warning';
       const vu = k ? k.value(u, (end - start) / HOUR) : { value: u.value.replace(/\s*varning$/i, ''), unit: /varning/i.test(u.value) ? 'varning' : '' };
       const temp = prefix === 'frost' ? Number(u.value.replace('−', '-').replace(',', '.').replace(/[^\d.-]/g, '')) : NaN;
@@ -140,13 +144,16 @@ export function buildUpcomingEvents(portfolio: Portfolio, propertyIds: Set<strin
         hot: u.tone === 'warning' || u.tone === 'critical',
         name: u.where,
         propertyId: u.propertyId ?? null,
-        label: u.official ? `${u.value} · ${stripTag(u.label).toLowerCase()}` : stripTag(u.label),
+        address: u.propertyId ? addresses.get(u.propertyId) ?? '' : '',
+        condition,
+        tone: u.tone,
+        label: u.official ? `${u.value} · ${condition.toLowerCase()}` : condition,
         bar: u.official ? LEVEL_BAR[level] ?? UPCOMING_KIND.warning.bar : UPCOMING_KIND[kind].bar,
         start,
         end,
         value: vu.value,
         unit: vu.unit,
-        note: kind === 'outage' ? u.explanation ? `Leverantörens text: ${u.explanation}` : 'Leverantören har registrerat en planerad avstängning vid fastighetens läge. Läs leverantörens driftinformation.' : k ? `${k.body}${u.explanation && prefix !== 'freeze-thaw' ? ` ${u.explanation[0]!.toUpperCase()}${u.explanation.slice(1)}.` : ''} ${k.action}` : `${src} har utfärdat en ${u.value.toLowerCase()} för ${stripTag(u.label).toLowerCase()}. ${OFFICIAL_ACTION}`,
+        note: kind === 'outage' ? u.explanation ? `Leverantörens text: ${u.explanation}` : 'Leverantören har registrerat en planerad avstängning vid fastighetens läge. Läs leverantörens driftinformation.' : k ? `${k.body}${u.explanation && prefix !== 'freeze-thaw' ? ` ${u.explanation[0]!.toUpperCase()}${u.explanation.slice(1)}.` : ''} ${k.action}` : `${src} har utfärdat en ${u.value.toLowerCase()} för ${condition.toLowerCase()}. ${OFFICIAL_ACTION}`,
         from: formatWeekdayClock(new Date(start).toISOString()),
         to: formatWeekdayClock(new Date(end).toISOString()),
         src: `${src} · ${kind === 'outage' ? 'avbrottsinformation' : u.official ? 'varning' : 'prognos'}`,
@@ -223,11 +230,76 @@ function sentence(kind: UpcomingKind, list: UpcomingEvent[]): string {
 
 export type UpcomingFilter = UpcomingKind | 'all';
 
+const TONE_ORDER: Record<UpcomingEvent['tone'], number> = { critical: 0, warning: 1, monitor: 2, cold: 3 };
+const compareTone = (a: UpcomingEvent, b: UpcomingEvent) => TONE_ORDER[a.tone] - TONE_ORDER[b.tone] || a.rank - b.rank;
+const byRank = (a: UpcomingEvent, b: UpcomingEvent) => a.rank - b.rank || a.start - b.start;
+const byName = new Intl.Collator(DISPLAY_LOCALE, { numeric: true });
+
+type PropertyEvent = UpcomingEvent & { propertyId: string };
+
+/**
+ * When a condition counts as "the same" for grouping. An official warning or an outage is one event with
+ * one span. A forecast threshold is computed per property from its own point forecast, so frost over
+ * a city starts 02:00 here and 03:00 there: those are grouped per six-hour window of the start
+ * (night, morning, afternoon, evening – Stockholm time), and the group spans the earliest start to the
+ * latest end. Exact spans left 500 properties in many small groups shown as single rows again.
+ */
+function groupTime(e: UpcomingEvent): string | number {
+  if (e.official || e.kind === 'outage') return `${e.start}-${e.end}`;
+  return `${dayKey(e.start)}/${Math.floor(hourOf(e.start) / 6)}`;
+}
+
+/** Group shared conditions with the same source and time (`groupTime`), once per affected property. */
+export function groupUpcomingEvents(events: readonly UpcomingEvent[]) {
+  const individual: UpcomingEvent[] = [];
+  const candidates = new Map<string, PropertyEvent[]>();
+  for (const event of events) {
+    if (!event.propertyId) {
+      individual.push(event);
+      continue;
+    }
+    const key = JSON.stringify([event.kind, event.condition, event.official, event.src, event.sourceUrl, groupTime(event)]);
+    const propertyEvent = { ...event, propertyId: event.propertyId };
+    const bucket = candidates.get(key);
+    if (bucket) bucket.push(propertyEvent);
+    else candidates.set(key, [propertyEvent]);
+  }
+
+  const groups = [];
+  for (const [key, bucket] of candidates) {
+    const properties = new Map<string, PropertyEvent>();
+    const strongest = bucket.reduce((a, b) => compareTone(a, b) <= 0 ? a : b);
+    for (const event of bucket) {
+      const previous = properties.get(event.propertyId);
+      if (!previous || compareTone(event, previous) < 0) properties.set(event.propertyId, event);
+    }
+    if (properties.size <= 3) {
+      individual.push(...bucket);
+      continue;
+    }
+    const bar = strongest.tone === 'critical' ? SEV.critical.c
+      : strongest.tone === 'warning' && !strongest.official ? SEV.warning.c : strongest.bar;
+    const start = Math.min(...bucket.map((e) => e.start));
+    const end = Math.max(...bucket.map((e) => e.end));
+    groups.push({
+      key,
+      event: { ...strongest, bar, start, end, from: formatWeekdayClock(new Date(start).toISOString()), to: formatWeekdayClock(new Date(end).toISOString()) },
+      properties: [...properties.values()].sort((a, b) => byName.compare(a.name, b.name) || byName.compare(a.address, b.address)),
+    });
+  }
+  return { groups, individual };
+}
+
+export type UpcomingBar = UpcomingEvent & { left: number; width: number; right: number; cross: boolean };
+export type UpcomingPlaceRow = { type: 'place'; key: string; name: string; propertyId: string | null; events: UpcomingBar[]; countText: string };
+export type UpcomingGroupRow = { type: 'group'; key: string; name: string; events: [UpcomingBar]; properties: PropertyEvent[]; countText: string };
+export type UpcomingRow = UpcomingPlaceRow | UpcomingGroupRow;
+
 export function upcomingView(events: UpcomingEvent[], referenceIso: string, opts: { filter?: UpcomingFilter; center?: { lat: number; lon: number } | null } = {}) {
   const ref = Date.parse(referenceIso);
   const filter = opts.filter && (opts.filter === 'all' || events.some((e) => e.kind === opts.filter)) ? opts.filter : 'all';
   const pos = (ms: number) => Math.min(1, Math.max(0, (ms - ref) / WINDOW));
-  const byRank = (a: UpcomingEvent, b: UpcomingEvent) => a.rank - b.rank || a.start - b.start;
+  const toBar = (e: UpcomingEvent): UpcomingBar => ({ ...e, left: pos(e.start), width: Math.max(0.012, pos(e.end) - pos(e.start)), right: pos(e.end), cross: e.kind === 'freeze' });
 
   // Headline: the most serious condition, where and from when; the subline sums up the other kinds.
   const top = [...events].sort(byRank)[0];
@@ -252,16 +324,19 @@ export function upcomingView(events: UpcomingEvent[], referenceIso: string, opts
   ];
 
   const shown = events.filter((e) => filter === 'all' || e.kind === filter);
+  const { groups, individual } = groupUpcomingEvents(shown);
   const places = new Map<string, { key: string; name: string; propertyId: string | null; events: UpcomingEvent[] }>();
-  for (const e of shown) {
-    const key = e.propertyId ?? e.name;
+  const placeKey = (e: UpcomingEvent) => e.propertyId ? `property:${e.propertyId}` : `place:${e.name}`;
+  for (const e of individual) {
+    const key = placeKey(e);
     if (!places.has(key)) places.set(key, { key, name: e.name, propertyId: e.propertyId, events: [] });
     places.get(key)!.events.push(e);
   }
-  const rows = [...places.values()]
-    .map((p) => ({ ...p, events: p.events.sort(byRank).map((e) => ({ ...e, left: pos(e.start), width: Math.max(0.012, pos(e.end) - pos(e.start)), right: pos(e.end), cross: e.kind === 'freeze' })) }))
-    .sort((a, b) => byRank(a.events[0]!, b.events[0]!))
-    .map((p) => ({ ...p, countText: p.events.length > 1 ? `${p.events.length} händelser` : '' }));
+  const rows: UpcomingRow[] = [...places.values()].map((p) => ({
+    ...p, type: 'place', events: p.events.sort(byRank).map(toBar), countText: p.events.length > 1 ? `${p.events.length} händelser` : '',
+  }));
+  for (const g of groups) rows.push({ type: 'group', key: `group:${g.key}`, name: g.event.label, events: [toBar(g.event)], properties: g.properties, countText: `${g.properties.length} fastigheter` });
+  rows.sort((a, b) => byRank(a.events[0]!, b.events[0]!));
 
   // Axis: midnights (day starts) and every six clock hours, in Stockholm time.
   const midnights: Array<{ pos: number; day: string; date: string; short: string }> = [];
@@ -283,6 +358,7 @@ export function upcomingView(events: UpcomingEvent[], referenceIso: string, opts
   const night = opts.center ? darkSpans(ref, ref + WINDOW, opts.center.lat, opts.center.lon) : [];
 
   const n = shown.length;
+  const placeCount = new Set(shown.map(placeKey)).size;
   return {
     headline,
     subline,
@@ -291,13 +367,11 @@ export function upcomingView(events: UpcomingEvent[], referenceIso: string, opts
     rows,
     axis: { now: `Nu ${String(hourOf(ref)).padStart(2, '0')}`, today: (midnights[0]?.pos ?? 1) > 0.1 ? firstLabel : null, midnights, ticks },
     night,
-    countText: `${n} ${n === 1 ? 'händelse' : 'händelser'} · ${rows.length} ${rows.length === 1 ? 'plats' : 'platser'}`,
+    countText: `${n} ${n === 1 ? 'händelse' : 'händelser'} · ${placeCount} ${placeCount === 1 ? 'plats' : 'platser'}`,
     empty: events.length === 0,
   };
 }
 export type UpcomingView = ReturnType<typeof upcomingView>;
-export type UpcomingRow = UpcomingView['rows'][number];
-export type UpcomingBar = UpcomingRow['events'][number];
 
 /** Latest source update among the rows ("SMHI · uppdaterad 16:00"), or null. */
 export function upcomingUpdated(portfolio: Portfolio): string | null {

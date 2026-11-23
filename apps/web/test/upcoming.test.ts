@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { Portfolio } from '@fastighetsradar/domain';
 import { demoPortfolio } from '@fastighetsradar/domain/fixtures';
-import { buildUpcomingEvents, upcomingCenter, upcomingView, whenPhrase } from '../lib/view-models/upcoming';
+import { buildUpcomingEvents, groupUpcomingEvents, upcomingCenter, upcomingView, whenPhrase } from '../lib/view-models/upcoming';
 import { darkSpans, sunTimes } from '../lib/view-models/daylight';
+import { SEV } from '../lib/design/tokens';
 
 const ids = (p: Portfolio) => new Set(p.properties.map((s) => s.property.id));
 const ref = demoPortfolio.generatedAt; // ons 12 nov 14:32
@@ -38,6 +39,52 @@ describe('kommande förhållanden – events', () => {
   it('keeps only the properties in view', () => {
     const one = demoPortfolio.properties.find((s) => s.property.name === 'Ulvsunda Lager')!.property.id;
     expect(buildUpcomingEvents(demoPortfolio, new Set([one])).map((e) => e.name)).toEqual(['Ulvsunda Lager', 'Ulvsunda Lager']);
+  });
+});
+
+describe('kommande förhållanden – shared conditions', () => {
+  const events = buildUpcomingEvents(demoPortfolio, ids(demoPortfolio));
+  const frost = events.find((e) => e.kind === 'frost')!;
+  const wind = events.find((e) => e.kind === 'wind')!;
+  const official = events.find((e) => e.official)!;
+  const copies = (event: typeof frost) => [1, 2, 3, 4].map((i) => ({ ...event, propertyId: `p${i}`, id: `${event.id}-${i}` }));
+
+  it('groups a forecast condition per six-hour window and unique property, keeping small and unassigned rows', () => {
+    // Stockholm time (CET): 02:00 and 04:00 are the same night window, 07:00 the next one.
+    const at = (iso: string, hours: number) => ({ start: Date.parse(iso), end: Date.parse(iso) + hours * H });
+    const night = copies({ ...frost, ...at('2026-11-13T01:00:00Z', 5) });
+    const laterSameNight = { ...frost, ...at('2026-11-13T03:00:00Z', 4), propertyId: 'p5', id: 'p5' };
+    const morning = copies({ ...frost, ...at('2026-11-13T06:00:00Z', 2) });
+    const unassigned = { ...frost, propertyId: null };
+    const duplicate = { ...night[0]!, id: 'duplicate' };
+    const result = groupUpcomingEvents([...night, duplicate, laterSameNight, ...morning.slice(0, 3), unassigned]);
+    expect(result.groups).toHaveLength(1);
+    const group = result.groups[0]!;
+    expect(group.properties.map((p) => p.propertyId).sort()).toEqual(['p1', 'p2', 'p3', 'p4', 'p5']);
+    // The group spans the earliest start to the latest end of its properties.
+    expect([group.event.start, group.event.end]).toEqual([Date.parse('2026-11-13T01:00:00Z'), Date.parse('2026-11-13T07:00:00Z')]);
+    expect(group.event.from).toMatch(/02:00$/);
+    // Three in the morning window: shown one by one, like the unassigned row.
+    expect(result.individual).toEqual([unassigned, ...morning.slice(0, 3)]);
+    expect(groupUpcomingEvents(night.slice(0, 3)).individual).toEqual(night.slice(0, 3));
+  });
+
+  it('keeps official warnings with different spans apart – they are different warnings', () => {
+    const one = copies({ ...official, start: official.start, end: official.end });
+    const other = copies({ ...official, start: official.start + H, end: official.end + H });
+    expect(groupUpcomingEvents([...one, ...other]).groups.map((g) => g.properties.length)).toEqual([4, 4]);
+  });
+
+  it('keeps official warnings distinct from forecasts and takes the strongest tone within each group', () => {
+    const warning = { ...official, condition: wind.condition, start: wind.start, end: wind.end };
+    const yellow = { ...warning, tone: 'monitor' as const, rank: 2, bar: 'yellow' };
+    const [w1, w2, w3, w4] = copies(yellow);
+    const gusts = copies(wind);
+    gusts[3] = { ...gusts[3]!, tone: 'warning', rank: 4 };
+    const result = groupUpcomingEvents([w1!, w2!, w3!, { ...w4!, tone: warning.tone, rank: warning.rank, bar: warning.bar }, ...gusts]);
+    expect(result.groups.map((g) => [g.event.official, g.event.tone, g.event.bar, g.properties.length])).toEqual([
+      [true, 'warning', warning.bar, 4], [false, 'warning', SEV.warning.c, 4],
+    ]);
   });
 });
 

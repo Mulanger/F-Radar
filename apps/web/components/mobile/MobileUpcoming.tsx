@@ -8,7 +8,7 @@ import up from '../upcoming/Upcoming.module.css';
 
 /**
  * Mobile "Kommande förhållanden" (designer's 1b): a top card with the headline, chips and the 48 h
- * axis, then one white card per address with the page's grey between them.
+ * axis, then one card per shared condition or address.
  */
 export function MobileUpcoming({ vm }: { vm: OverviewVM }) {
   const st = useUpcoming(vm);

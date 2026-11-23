@@ -269,6 +269,15 @@ describe('property snapshot from stored data', () => {
     expect(traffic[0]!.title).toMatch(/^(Vägarbete, vägen avstängd|Vägen avstängd, vägarbete): Väg 75/);
   });
 
+  it('keeps upcoming official warnings for every affected property', () => {
+    const s = buildPropertySnapshot(record, 'o', data(), statuses, NOW);
+    const warning = { ...s.warnings[0]!, validFrom: new Date(NOW.getTime() + 3600_000).toISOString() };
+    const snapshots = Array.from({ length: 12 }, (_, i) => ({
+      ...s, property: { ...s.property, id: `${PID}-${i}` }, warnings: [warning],
+    }));
+    expect(buildUpcoming(snapshots, [], NOW).map((u) => u.propertyId).sort()).toEqual(snapshots.map((p) => p.property.id).sort());
+  });
+
   it('gives a cold spell its start, its end and its lowest temperature – also when the forecast ends above 0°', () => {
     // 2, 1, −1, −3, −2, then above zero again: the spell is hours 3–5 (regression: this crashed the portfolio, 2026-11-18).
     const temps = [2, 1, -1, -3, -2, 1, 2, 3, 3, 3, 3, 3];

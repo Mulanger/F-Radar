@@ -19,6 +19,7 @@ export function useUpcoming(vm: OverviewVM) {
     hasOutages: vm.upcoming.some((e) => e.kind === 'outage'),
     hasWeather: vm.upcoming.some((e) => e.kind !== 'outage'),
     view,
+    group: ds.group,
     live: ds.mode === 'live',
     updated: vm.upcomingUpdated,
     setFilter,

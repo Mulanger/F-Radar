@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { UPCOMING_LIMIT, activeAlarmKeys, compareUpcoming, filterActiveAlarms, mergeUpcoming, topUpcoming, type UpcomingCondition } from '../src';
+import { activeAlarmKeys, compareUpcoming, filterActiveAlarms, mergeUpcoming, type UpcomingCondition } from '../src';
 import { demoPortfolio } from '../src/fixtures';
 
 /** Live row patches (docs/plans/skalning.md, Fas 3 / S-12): the portfolio-level parts rebuilt from patched rows. */
@@ -12,12 +12,10 @@ describe('upcoming conditions after a row patch', () => {
     ...Array.from({ length: 10 }, (_, i) => cond(`f${i}`, `p${i}`, 'cold', `2026-11-22T${String(10 + i).padStart(2, '0')}:00:00Z`)),
     cond('g1', 'b', 'monitor', '2026-11-22T18:00:00Z'),
   ];
-  const shown = topUpcoming(all);
+  const shown = [...all].sort(compareUpcoming);
 
-  it('orders official first, then by tone, then by time', () => {
-    expect(shown).toHaveLength(UPCOMING_LIMIT);
-    expect(shown.map((u) => u.id).slice(0, 3)).toEqual(['w1', 'g1', 'f0']);
-    expect([...shown].sort(compareUpcoming)).toEqual(shown);
+  it('keeps every condition and orders official first, then by tone and time', () => {
+    expect(mergeUpcoming(all, [], []).map((u) => u.id)).toEqual(['w1', 'g1', 'f0', 'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9']);
   });
 
   it('gives exactly the shown list when the patched properties did not change', () => {
@@ -29,7 +27,8 @@ describe('upcoming conditions after a row patch', () => {
     const next = mergeUpcoming(shown, [cond('g2', 'p3', 'critical', '2026-11-22T20:00:00Z')], ['p3']);
     expect(next.map((u) => u.id).slice(0, 2)).toEqual(['w1', 'g2']);
     expect(next.some((u) => u.id === 'f3')).toBe(false);
-    expect(next).toHaveLength(UPCOMING_LIMIT);
+    expect(next).toHaveLength(all.length);
+    expect(next.some((u) => u.id === 'f9')).toBe(true);
   });
 });
 

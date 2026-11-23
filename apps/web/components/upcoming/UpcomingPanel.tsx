@@ -5,7 +5,7 @@ import { card } from '@/lib/design/tokens';
 import { useUpcoming } from './use-upcoming';
 import { UpcomingChips, UpcomingHeader, UpcomingHeadline, UpcomingTimeline } from './UpcomingParts';
 
-/** Desktop "Kommande förhållanden": headline, kind chips and a 48 h timeline per property. Full width. */
+/** Desktop "Kommande förhållanden": headline, kind chips and a 48 h timeline. */
 export function UpcomingPanel({ vm }: { vm: OverviewVM }) {
   const st = useUpcoming(vm);
   return (

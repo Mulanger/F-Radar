@@ -253,7 +253,7 @@ export class MonitoringService {
       missing: ids.filter((id) => !found.has(id)),
       feed: buildFeed(changes, new Set(properties.map((p) => p.id))),
       alarmCandidates: alarmFeedItems(alarmChanges),
-      upcoming: buildUpcoming(snapshots, data.forecasts, now, this.env.UTILITY_OUTAGE_UPCOMING_ENABLED, Number.POSITIVE_INFINITY),
+      upcoming: buildUpcoming(snapshots, data.forecasts, now, this.env.UTILITY_OUTAGE_UPCOMING_ENABLED),
       sources: statuses,
     };
   }

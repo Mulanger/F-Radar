@@ -22,8 +22,6 @@ import { NowcastSchema } from './nowcast';
 
 /** At most this many properties are patched by row; more → one full reload. */
 export const ROWS_PATCH_MAX = 50;
-/** "Kommande förhållanden": the portfolio shows the first eight conditions. */
-export const UPCOMING_LIMIT = 8;
 /** Sources the portfolio list never shows (only the property page): an update reloads the open property only. */
 export const DETAIL_ONLY_SOURCES: readonly SourceId[] = ['smhi_observations'];
 /** Sources whose updates change portfolio-level parts a row patch does not rebuild (utility coverage). */
@@ -39,7 +37,7 @@ export const PortfolioRowsPatchSchema = z.object({
   feed: z.array(FeedItemSchema),
   /** Every alarm row that may be active; the client keeps those active in its rows (`filterActiveAlarms`). */
   alarmCandidates: z.array(FeedItemSchema),
-  /** All upcoming conditions of the requested properties (not cut to `UPCOMING_LIMIT`). */
+  /** All upcoming conditions of the requested properties. */
   upcoming: z.array(UpcomingConditionSchema),
   sources: z.array(DataSourceStatusSchema),
 });
@@ -62,18 +60,12 @@ export function compareUpcoming(a: UpcomingCondition, b: UpcomingCondition): num
     || a.id.localeCompare(b.id);
 }
 
-export function topUpcoming(conditions: UpcomingCondition[]): UpcomingCondition[] {
-  return [...conditions].sort(compareUpcoming).slice(0, UPCOMING_LIMIT);
-}
-
 /**
- * The shown conditions after a row patch: the patched properties' old conditions are replaced by
- * their new ones. A condition of another property that ranked below the eighth is not known to the
- * client, so a freed place is filled from the known ones until the next full reload.
+ * Replace the patched properties' conditions and retain the full set for grouping and counting.
  */
 export function mergeUpcoming(previous: UpcomingCondition[], candidates: UpcomingCondition[], propertyIds: Iterable<string>): UpcomingCondition[] {
   const ids = new Set(propertyIds);
-  return topUpcoming([...previous.filter((u) => !u.propertyId || !ids.has(u.propertyId)), ...candidates]);
+  return [...previous.filter((u) => !u.propertyId || !ids.has(u.propertyId)), ...candidates].sort(compareUpcoming);
 }
 
 /** `propertyId:eventId` of every active alarm: an official warning above Info, or a current outage at warning/critical. */

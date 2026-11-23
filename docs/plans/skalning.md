@@ -435,6 +435,8 @@ Fasen anger var fyndet åtgärdas.
   panelen.
 - **Åtgärd:** Gruppera per förhållande och tid ("Frost natt mot tisdag – 412 fastigheter") med
   expanderbar, sökbar lista. Visa enskilda rader bara när få fastigheter berörs.
+- **Gjort 2026-11-23 (Fas 4 steg 4)** för dator och mobil. Taket på åtta i API:t togs bort: i liveläget
+  visade panelen bara de åtta första förhållandena, så en grupp kunde aldrig räknas rätt.
 
 **S-22 Vädrets KPI-listor och täckningslistan har inget tak** · P3 · Fas 1
 - **Var:** `wxItems` i [`overview.ts`](../../apps/web/lib/view-models/overview.ts) och [`WeatherKpiPills.tsx`](../../apps/web/components/dashboard/WeatherKpiPills.tsx); [`UtilityCoverage.tsx`](../../apps/web/components/dashboard/UtilityCoverage.tsx) (alla fastigheter med lucka eller ungefärlig position).
@@ -1055,6 +1057,30 @@ visar kluster med rätt färg; "Kommande" visar grupperade rader. Visat och godk
 - **Inte gjort:** riktig fönsterrendering (bara de rader som syns) – sidor om 100 valdes för att
   raderna har olika höjd.
 
+**Genomfört steg 4 (gren `claude/skalning-fas0`):**
+- Vymodellen grupperar samma förhållande från samma källa. En officiell varning eller ett avbrott är
+  en händelse med ett tidsintervall och grupperas på exakt tid. Ett prognosförhållande räknas per
+  fastighet ur dess egen punktprognos (frosten börjar 02:00 här och 03:00 där) och grupperas därför
+  per sextimmarsfönster för starten (natt, förmiddag, eftermiddag, kväll); gruppen spänner från
+  tidigaste start till senaste slut. Raden visar antalet unika fastigheter, tidsintervallet och den
+  allvarligaste tonen. Källtexten skiljer officiella varningar från prognoser. Upp till tre
+  fastigheter visas som enskilda rader.
+- Den utfällda listan följer vald fastighetsgrupp. Den går att söka på namn eller adress och visar
+  högst 100 rader per sida med ”Visa fler”. Fastigheterna öppnas via samma väg som tidigare.
+  Portföljsvaret och radvisa uppdateringar behåller alla förhållanden så att gruppvalet får rätt
+  underlag. Kostnad: ~0,4 KB per förhållande och fastighet i svaret – några procent av listans
+  6,0 MB vid 500 fastigheter (337 KB med gzip, Fas 3 steg 4).
+- I `/demo/overview?n=500` gick panelen från 499 rader till 8 grupper. Den orange vindvarningen i
+  panelen samlade 62 fastigheter. Utfällning, adressök och gruppbyte provades i Chrome. Vid 375 px
+  på mobilvyn höll sig både sidan och panelen inom sin bredd med listan stängd och öppen.
+- Enhetstester täcker gruppering, tidsintervall, allvarligaste ton och hela dataunderlaget. DOM-tester
+  täcker gruppantal, små urval, utfällning, navigering, sök, sidindelning och fastighetsgrupp.
+- **Granskning (Claude):** exakt start- och sluttid som grupperingsnyckel räckte i demon, där klonerna
+  delar prognos, men skulle i liveläget ha delat upp ett frostdygn över 500 fastigheter i många små
+  grupper och enskilda rader – ändrat till sextimmarsfönster för prognoser, med tester.
+- **Inte gjort:** liveflödet i webbläsaren och produktionsbyggets rendering har inte verifierats för
+  steget; svarets storlek med alla förhållanden är uppskattad, inte uppmätt i liveläget.
+
 ### Fas 5 – SMS vid stora händelser
 
 **Mål:** Inget larm tappas tyst, de viktigaste går först, och en länsvarning blir ett begripligt SMS.
@@ -1204,5 +1230,6 @@ fastigheter (siffror i Fasloggen).
 | Fas 6 steg 2 | 2026-11-23 | `claude/skalning-fas0` / `98976da`, driftsatt 2026-11-23 11:19 UTC | Import av 500 rader mot riktig PostgreSQL: 490 skapade med status per rad och **en** omatchning (tidigare: 500 fastigheter för hand, en omatchning per fastighet). Demo: 500 inklistrade rader → förhandsvisning, 480 skapade, 40 i granskningslistan. | Riktig Geoapify-sökning i stor skala; grupper vid import (Fas 4) |
 | Fas 4 steg 1 | 2026-11-23 | `claude/skalning-fas0` / `a28948c`, driftsatt 2026-11-23 13:40 UTC | Grupper: livekunder hade bara "Alla" (demon hade två fasta) → egna grupper med flera grupper per fastighet, val i översikt, lista, karta, larm och kvitteringar, import med gruppkolumn. Riktig PostgreSQL: tenant-isolering även i databasens nycklar. | SMS-regel per grupp (steg 5); gruppval vid 100 grupper i mobilens meny inte provat på telefon |
 | Fas 4 steg 2 | 2026-11-23 | `claude/skalning-fas0` / `4ec363a`, driftsatt 2026-11-23 14:08 UTC | Portföljkartan med 500 fastigheter: 500 nålar och 500 tabbstopp → 44 kluster och 2 nålar i värsta statusens färg, inga tabbstopp. | Nålar utanför utsnittet ritas vid inzoomning; mobilens lilla karta zoomar ut för långt vid 500 |
-| Fas 4 steg 3 | 2026-11-23 | `claude/skalning-fas0` | Fastighetslistan med 500: sortering bara risk/namn, rubriken rullade bort, 500 rader ritade → sortering på sex kolumner, filter på område, fast rubrik, 100 rader i taget. Omsortering 140–350 ms → 55–250 ms i utvecklingsbygget. | Produktionsbyggets renderingstid inte mätt |
+| Fas 4 steg 3 | 2026-11-23 | `claude/skalning-fas0` / `91b8b03`, driftsatt 2026-11-23 14:37 UTC | Fastighetslistan med 500: sortering bara risk/namn, rubriken rullade bort, 500 rader ritade → sortering på sex kolumner, filter på område, fast rubrik, 100 rader i taget. Omsortering 140–350 ms → 55–250 ms i utvecklingsbygget. | Produktionsbyggets renderingstid inte mätt |
+| Fas 4 steg 4 | 2026-11-23 | `claude/skalning-fas0` | Demo med 500 fastigheter: 499 rader → 8 grupper i ”Kommande förhållanden”; i liveläget visades tidigare bara 8 förhållanden, nu alla, grupperade. Den orange SMHI-varningen i panelen: 62 enskilda rader → 1 grupp med 62 fastigheter. Ingen horisontell rullning vid 375 px. | Liveflöde i webbläsaren och rendering i produktionsbygge |
 

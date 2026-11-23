@@ -18,7 +18,7 @@ import type {
   WarningLevel,
   WeatherForecast,
 } from '@fastighetsradar/domain';
-import { activeAlarmKeys, compareUpcoming, UPCOMING_LIMIT, assessPropertyRisk, feedNeedsAck, nightWorkLabel, formatWeekdayClock, swedishDayWindows, forecastInformation, WEATHER_WATER, summarizeNowcast, measurementTrend, type TimedReading, classifyFlow, measuredPrecipitation, outageHeadline } from '@fastighetsradar/domain';
+import { activeAlarmKeys, compareUpcoming, assessPropertyRisk, feedNeedsAck, nightWorkLabel, formatWeekdayClock, swedishDayWindows, forecastInformation, WEATHER_WATER, summarizeNowcast, measurementTrend, type TimedReading, classifyFlow, measuredPrecipitation, outageHeadline } from '@fastighetsradar/domain';
 import type { NowcastRow, ObservationHistoryRow, OrgContextRow, OrgEventRow, OrgForecastRow, OrgMonitoringData, OrgObservationRow } from '@fastighetsradar/db';
 import {
   AIR_PHENOMENA,
@@ -741,7 +741,7 @@ export function buildActiveAlarmFeed(changes: Array<FeedChange & { unread_alarm_
  * Forecast-derived upcoming conditions (next 24 h). Plain thresholds on the SMHI point forecast,
  * shown as forecast facts – not alerts and not a risk assessment.
  */
-export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForecastRow[], now: Date, outagesEnabled = false, limit = UPCOMING_LIMIT): UpcomingCondition[] {
+export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForecastRow[], now: Date, outagesEnabled = false): UpcomingCondition[] {
   const out: UpcomingCondition[] = [];
   const forecastById = firstBy(forecasts, (f) => f.property_id);
   for (const s of snapshots) {
@@ -790,5 +790,5 @@ export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForec
       out.push({ id: `frost-${s.property.id}`, label: 'Minusgrader (prognos)', where: s.property.name, propertyId: s.property.id, when: formatWeekdayClock(from), validAt: from, validTo: spell.at(-1)!.time, sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${lowest.toFixed(0)}°`, tone: 'cold', origin: 'live' });
     }
   }
-  return out.sort(compareUpcoming).slice(0, limit);
+  return out.sort(compareUpcoming);
 }

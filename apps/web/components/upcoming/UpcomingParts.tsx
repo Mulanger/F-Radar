@@ -1,6 +1,8 @@
 'use client';
 
-import type { UpcomingBar, UpcomingRow } from '@/lib/view-models/upcoming';
+import { useId, useState } from 'react';
+import { DISPLAY_LOCALE } from '@fastighetsradar/domain';
+import type { UpcomingBar, UpcomingGroupRow, UpcomingPlaceRow } from '@/lib/view-models/upcoming';
 import type { UpcomingState } from './use-upcoming';
 import s from './Upcoming.module.css';
 
@@ -123,7 +125,7 @@ function Value({ e, inline }: { e: UpcomingBar; inline?: boolean }) {
   );
 }
 
-function PlaceName({ r, st }: { r: UpcomingRow; st: UpcomingState }) {
+function PlaceName({ r, st }: { r: UpcomingPlaceRow; st: UpcomingState }) {
   return r.propertyId ? (
     <button type="button" className={s.placeName} onClick={() => st.openProperty(r.propertyId!)} title={`Öppna ${r.name}`}>
       {r.name}
@@ -133,7 +135,82 @@ function PlaceName({ r, st }: { r: UpcomingRow; st: UpcomingState }) {
   );
 }
 
-/** Desktop: PLATS | HÄNDELSE | the 48 h axis | VÄRDE, one row per property, one line per condition. */
+const PAGE_SIZE = 100;
+
+function GroupProperties({ r, st, id }: { r: UpcomingGroupRow; st: UpcomingState; id: string }) {
+  const [query, setQuery] = useState('');
+  const [pageIndex, setPage] = useState(0);
+  const q = query.trim().toLocaleLowerCase(DISPLAY_LOCALE);
+  const matches = r.properties.filter((p) => !q || [p.name, p.address].some((text) => text.toLocaleLowerCase(DISPLAY_LOCALE).includes(q)));
+  const page = Math.min(pageIndex, Math.max(0, Math.ceil(matches.length / PAGE_SIZE) - 1));
+  const start = page * PAGE_SIZE;
+  const visible = matches.slice(start, start + PAGE_SIZE);
+  const e = r.events[0];
+  return (
+    <div id={id} className={s.groupDetails}>
+      {e.sourceUrl && <a href={e.sourceUrl} target="_blank" rel="noopener noreferrer">{e.src}</a>}
+      <label className={s.groupSearch}>
+        Sök på namn eller adress
+        <input type="search" value={query} onChange={(event) => { setQuery(event.target.value); setPage(0); }} />
+      </label>
+      <div className={s.groupRange} role="status">
+        {visible.length ? `Visar ${start + 1}–${start + visible.length} av ${matches.length} fastigheter` : 'Inga fastigheter matchar sökningen.'}
+      </div>
+      {visible.length > 0 && (
+        <ul key={page} className={s.groupProperties} aria-label="Berörda fastigheter">
+          {visible.map((p) => (
+            <li key={p.propertyId}>
+              <button type="button" className={s.groupProperty} onClick={() => st.openProperty(p.propertyId)}>
+                <span><strong>{p.name}</strong>{' '}<span className={s.groupAddress}>{p.address}</span></span>{' '}
+                <span className={s.groupRange}>{p.value} {p.unit}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {(page > 0 || start + visible.length < matches.length) && (
+        <div className={s.groupPages}>
+          {page > 0 && <button type="button" className={s.chip} onClick={() => setPage(page - 1)}>Visa föregående</button>}
+          {start + visible.length < matches.length && <button type="button" className={s.chip} onClick={() => setPage(page + 1)}>Visa fler</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GroupRow({ r, st, variant, cardClassName }: { r: UpcomingGroupRow; st: UpcomingState; variant: Variant; cardClassName?: string }) {
+  const id = useId();
+  const e = r.events[0];
+  const open = st.openId === r.key;
+  const heading = (
+    <span className={s.groupHeading}>
+      <span className={s.label}><span aria-hidden="true" className={s.swatch} style={{ background: e.bar }} /><strong>{r.name}</strong></span>
+      <span className={s.groupMeta}>{e.from}–{e.to} · {e.src}</span>
+    </span>
+  );
+  const chev = <span className={`${s.chev} ${open ? s.up : ''}`} aria-hidden="true" />;
+  return (
+    <div className={variant === 'desktop' ? s.group : `${cardClassName} ${s.mPlaceCard}`}>
+      <button type="button" data-testid="upcoming-row" className={variant === 'desktop' ? `${s.line} ${s.groupLine}` : s.mLine} aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => st.toggle(r.key)} aria-label={`${r.name}, ${r.countText}, ${e.from} till ${e.to}, ${e.src}`}>
+        {variant === 'desktop' ? (
+          <>
+            <span className={s.groupCount}>{r.countText}</span>
+            <span className={`${s.lineGrid} ${s.groupTrack}`}>{heading}<Track e={e} st={st} variant={variant} /><span />{chev}</span>
+          </>
+        ) : (
+          <>
+            <span className={s.mGroupTop}>{heading}{chev}</span>
+            <span className={s.groupCount}>{r.countText}</span>
+            <Track e={e} st={st} variant={variant} />
+          </>
+        )}
+      </button>
+      {open && <GroupProperties key={st.group} r={r} st={st} id={id} />}
+    </div>
+  );
+}
+
+/** Desktop: PLATS | HÄNDELSE | the 48 h axis | VÄRDE. */
 export function UpcomingTimeline({ st }: { st: UpcomingState }) {
   const { view } = st;
   if (view.empty) return null;
@@ -163,7 +240,7 @@ export function UpcomingTimeline({ st }: { st: UpcomingState }) {
           <div />
         </div>
       </div>
-      {view.rows.map((r) => (
+      {view.rows.map((r) => r.type === 'group' ? <GroupRow key={r.key} r={r} st={st} variant="desktop" /> : (
         <div key={r.key} className={s.place}>
           <div className={s.placeHead}>
             <PlaceName r={r} st={st} />
@@ -225,11 +302,10 @@ export function UpcomingMobileAxis({ st }: { st: UpcomingState }) {
 }
 
 /**
- * Mobile: one white card per address (its conditions – label and value, the bar under), with the
- * page's grey between the cards so it is clear where one address ends and the next begins.
+ * Mobile: a card per group or address, with the timeline under the condition label.
  */
 export function UpcomingMobilePlaces({ st, cardClassName }: { st: UpcomingState; cardClassName: string }) {
-  return st.view.rows.map((r) => (
+  return st.view.rows.map((r) => r.type === 'group' ? <GroupRow key={r.key} r={r} st={st} variant="mobile" cardClassName={cardClassName} /> : (
     <section key={r.key} className={`${cardClassName} ${s.mPlaceCard}`} aria-label={r.name}>
       <div className={s.mPlaceHead}>
         <PlaceName r={r} st={st} />
