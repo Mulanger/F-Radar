@@ -30,4 +30,35 @@ describe('informational forecast thresholds', () => {
     s.forEach(x=>x.airTemperature=null); expect(find(s,'freeze-thaw')).toBeUndefined();
   });
   it('never derives conditions from missing values', () => expect(forecastInformation(steps({ airTemperature:null, precipitationMean:null, frozenPartPercent:null, thunderProbability:null }), now)).toEqual([]));
+
+  it('finds intense rain, thunder, ice and snow during the second day', () => {
+    const s = steps();
+    Object.assign(s[42]!, { precipitationMean: 8, thunderProbability: 45, frozenPartPercent: 100, airTemperature: -1 });
+    const conditions = forecastInformation(s, now);
+    for (const key of ['intense-rain', 'thunder', 'ice']) {
+      expect(conditions.find((x) => x.key === key)).toMatchObject({ at: s[42]!.intervalStart, until: s[42]!.time });
+    }
+    expect(conditions.find((x) => x.key === 'snow')).toMatchObject({ value: 'ca 8 cm', at: s[19]!.intervalStart, until: s[42]!.time });
+  });
+
+  it('places heavy precipitation over the wettest complete 24 hours, including prorated intervals', () => {
+    const s = steps();
+    const last = { ...s[47]!, time: new Date(+now + 53 * 3_600_000).toISOString(), precipitationMean: 12 };
+    s[47] = last;
+    for (const step of s.slice(24, 47)) step.precipitationMean = 1;
+    expect(find(s, 'rain')).toMatchObject({ value: '25 mm', at: s[24]!.intervalStart, until: new Date(+now + 48 * 3_600_000).toISOString() });
+    s[36]!.precipitationMean = null;
+    expect(find(s, 'rain')).toBeUndefined();
+  });
+
+  it('finds the wettest complete window starting between forecast samples', () => {
+    const s = steps();
+    const half = 30 * 60_000;
+    for (const interval of s) {
+      interval.time = new Date(Date.parse(interval.time) + half).toISOString();
+      interval.intervalStart = new Date(Date.parse(interval.intervalStart!) + half).toISOString();
+    }
+    for (const interval of s.slice(24, 48)) interval.precipitationMean = 1;
+    expect(find(s, 'rain')).toMatchObject({ value: '24 mm', at: new Date(+now + 24 * 3_600_000).toISOString(), until: new Date(+now + 48 * 3_600_000).toISOString() });
+  });
 });

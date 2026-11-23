@@ -2,7 +2,8 @@
 export const WEATHER_WATER = {
   intenseRainMonitorMm: 5, intenseRainWarningMm: 15, thunderPercent: 30,
   snowWaterMm: 5, snowCmPerMm: 1, icePrecipitationMm: 0.2, iceMinC: -2, iceMaxC: 1,
-  zeroCrossings: 2, forecastUsableHours: 6,
+  zeroCrossings: 2, forecastUsableHours: 6, upcomingHours: 48,
+  heavyPrecipitationMonitorMm: 15, heavyPrecipitationWarningMm: 30,
   nowcastNoiseMmH: 0.2, moderateMmH: 2.5, heavyMmH: 10, cloudburstMmH: 50,
   snowMaxC: 0.5, mixedMaxC: 2, nowcastFreshMinutes: 15, nowcastUsableMinutes: 30,
   seaDistanceM: 15_000, flowDistanceM: 5_000, observationDistanceM: 50_000, airDistanceM: 25_000,
@@ -28,27 +29,70 @@ export interface ForecastInformation {
   at: string; until: string;
   tone: 'monitor' | 'warning' | 'cold'; explanation?: string;
 }
+
+const HOUR = 3_600_000;
+const DAY = 24 * HOUR;
+
+function strongestDay(
+  intervals: { start: number; end: number; step: InformationStep }[],
+  from: number,
+  to: number,
+  amount: (step: InformationStep) => number | null,
+) {
+  // The running total is linear between interval boundaries of either end of the window.
+  const starts = new Set([from, to - DAY]);
+  for (const { start, end } of intervals) {
+    for (const t of [start, end, start - DAY, end - DAY]) {
+      if (t > from && t < to - DAY) starts.add(t);
+    }
+  }
+  let best: { start: number; total: number } | undefined;
+  for (const start of starts) {
+    const end = start + DAY;
+    let cursor = start;
+    let total = 0;
+    for (const interval of intervals) {
+      const left = Math.max(start, interval.start);
+      const right = Math.min(end, interval.end);
+      if (left >= right) continue;
+      const value = amount(interval.step);
+      if (left !== cursor || value === null) break;
+      total += value * (right - left) / (interval.end - interval.start);
+      cursor = right;
+      if (cursor === end) break;
+    }
+    if (cursor !== end) continue;
+    if (!best || total > best.total + 1e-9 || (Math.abs(total - best.total) < 1e-9 && start < best.start)) best = { start, total };
+  }
+  return best && { total: best.total, at: new Date(best.start).toISOString(), until: new Date(best.start + DAY).toISOString() };
+}
+
 export function forecastInformation(all: InformationStep[], now: Date): ForecastInformation[] {
-  const a = now.getTime(), b = a + 24 * 3_600_000;
-  const steps = all.filter(s => Date.parse(s.time) > a && Date.parse(s.time) <= b).sort((x,y) => x.time.localeCompare(y.time));
+  const a = now.getTime(), b = a + WEATHER_WATER.upcomingHours * HOUR;
+  const intervals = all.map((step) => {
+    const end = Date.parse(step.time);
+    return { step, end, start: step.intervalStart ? Date.parse(step.intervalStart) : end - HOUR };
+  }).filter(({ start, end }) => end > a && start < b && start < end).sort((x, y) => x.end - y.end);
+  const steps = intervals.filter(({ end }) => end <= b).map(({ step }) => step);
   const out: ForecastInformation[] = [];
-  const rain = steps.filter(s => s.intervalStart && Date.parse(s.time) - Date.parse(s.intervalStart) === 3_600_000 && s.precipitationMean != null)
+  const rain = steps.filter(s => s.intervalStart && Date.parse(s.time) - Date.parse(s.intervalStart) === HOUR && s.precipitationMean != null)
     .sort((x,y) => y.precipitationMean! - x.precipitationMean!)[0];
   if (rain && rain.precipitationMean! >= WEATHER_WATER.intenseRainMonitorMm) out.push({ key: 'intense-rain', label: 'Intensivt regn (prognos)', value: `ca ${Math.round(rain.precipitationMean!)} mm på en timme`, at: rain.intervalStart!, until: rain.time, tone: rain.precipitationMean! >= WEATHER_WATER.intenseRainWarningMm ? 'warning' : 'monitor' });
   const thunder = steps.filter(s => s.thunderProbability != null).sort((x,y) => y.thunderProbability! - x.thunderProbability!)[0];
   if (thunder && thunder.thunderProbability! >= WEATHER_WATER.thunderPercent) out.push({ key: 'thunder', label: 'Risk för åska (prognos)', value: `${Math.round(thunder.thunderProbability!)} %`, at: thunder.intervalStart ?? thunder.time, until: thunder.time, tone: 'monitor' });
-  let snow = 0, cursor = a;
-  for (const s of all.filter(s => Date.parse(s.time) > a).sort((x,y) => x.time.localeCompare(y.time))) {
-    const end = Math.min(b, Date.parse(s.time)), start = Math.max(a, Date.parse(s.intervalStart ?? ''));
-    if (start >= b) break;
-    if (end <= start) continue;
-    if (start !== cursor || s.precipitationMean == null || (s.precipitationMean > 0 && s.frozenPartPercent == null)) break;
-    snow += s.precipitationMean * (s.frozenPartPercent ?? 0) / 100 * (end - start) / (Date.parse(s.time) - Date.parse(s.intervalStart!));
-    cursor = end;
-    if (cursor === b) break;
+  const wettest = strongestDay(intervals, a, b, (s) => s.precipitationMean);
+  const rainTotal = Math.round((wettest?.total ?? 0) * 10) / 10;
+  if (wettest && rainTotal >= WEATHER_WATER.heavyPrecipitationMonitorMm) {
+    out.push({ key: 'rain', label: 'Kraftig nederbörd (24 h)', value: `${rainTotal.toFixed(0)} mm`, at: wettest.at, until: wettest.until, tone: rainTotal >= WEATHER_WATER.heavyPrecipitationWarningMm ? 'warning' : 'monitor' });
   }
-  if (cursor === b && snow >= WEATHER_WATER.snowWaterMm) out.push({ key: 'snow', label: 'Snöfall väntas (prognos)', value: `ca ${Math.round(snow * WEATHER_WATER.snowCmPerMm)} cm`, at: steps[0]?.intervalStart ?? now.toISOString(), until: new Date(b).toISOString(), tone: 'cold' });
-  // Ice: from the first to the last step that gives a risk within the next 24 h.
+  const snowiest = strongestDay(intervals, a, b, (s) => {
+    if (s.precipitationMean === 0) return 0;
+    return s.precipitationMean != null && s.frozenPartPercent != null ? s.precipitationMean * s.frozenPartPercent / 100 : null;
+  });
+  if (snowiest && snowiest.total >= WEATHER_WATER.snowWaterMm) {
+    out.push({ key: 'snow', label: 'Snöfall väntas (prognos)', value: `ca ${Math.round(snowiest.total * WEATHER_WATER.snowCmPerMm)} cm`, at: snowiest.at, until: snowiest.until, tone: 'cold' });
+  }
+  // Ice: from the first to the last step that gives a risk within the forecast window.
   let previous: InformationStep | undefined, iceFrom: InformationStep | undefined, iceTo: InformationStep | undefined;
   for (const s of steps) {
     const contiguous = previous && s.intervalStart === previous.time;
@@ -62,7 +106,7 @@ export function forecastInformation(all: InformationStep[], now: Date): Forecast
   if (iceFrom && iceTo) out.push({ key: 'ice', label: 'Risk för halka och isbildning (prognos)', value: 'Nederbörd nära eller efter minusgrader', at: iceFrom.intervalStart ?? iceFrom.time, until: iceTo.time, tone: 'cold' });
   // Freeze–thaw: from the first to the last crossing of 0° within 48 h.
   let sign: number | null = null, crossings = 0, last: string | null = null, crossFrom: string | null = null, crossTo: string | null = null;
-  for (const s of all.filter(s => Date.parse(s.time) > a && Date.parse(s.time) <= a + 48 * 3_600_000).sort((x,y) => x.time.localeCompare(y.time))) {
+  for (const s of steps) {
     if (s.airTemperature == null || (last && s.intervalStart !== last)) sign = null;
     const next = s.airTemperature == null ? null : Math.sign(s.airTemperature);
     if (next && sign && next !== sign) {

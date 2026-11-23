@@ -2,13 +2,12 @@
 
 import type { OverviewVM } from '@/lib/view-models/overview';
 import { useUpcoming } from '../upcoming/use-upcoming';
-import { UpcomingChips, UpcomingHeader, UpcomingHeadline, UpcomingMobileAxis, UpcomingMobilePlaces } from '../upcoming/UpcomingParts';
+import { UpcomingChips, UpcomingHeader, UpcomingHeadline, UpcomingMobileAxis, UpcomingMobilePlaces, UpcomingScroll } from '../upcoming/UpcomingParts';
 import styles from './mobile.module.css';
 import up from '../upcoming/Upcoming.module.css';
 
 /**
- * Mobile "Kommande förhållanden" (designer's 1b): a top card with the headline, chips and the 48 h
- * axis, then one card per shared condition or address.
+ * Mobile "Kommande förhållanden": a headline and filters above a scrollable 48 h timeline.
  */
 export function MobileUpcoming({ vm }: { vm: OverviewVM }) {
   const st = useUpcoming(vm);
@@ -23,11 +22,15 @@ export function MobileUpcoming({ vm }: { vm: OverviewVM }) {
           <>
             <UpcomingHeadline st={st} />
             {!st.view.empty && <UpcomingChips st={st} variant="mobile" />}
-            <UpcomingMobileAxis st={st} />
+            {!st.view.empty && (
+              <UpcomingScroll st={st} variant="mobile">
+                <UpcomingMobileAxis st={st} />
+                <UpcomingMobilePlaces st={st} />
+              </UpcomingScroll>
+            )}
           </>
         )}
       </div>
-      {!unavailable && <UpcomingMobilePlaces st={st} cardClassName={styles.surface} />}
     </section>
   );
 }

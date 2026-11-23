@@ -203,3 +203,7 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
 - Avbrottsbevakningen erbjuder el och vatten/avlopp. En aktuell hämtning med enstaka överhoppade poster räknas som bevakning och markeras med en varning i källhälsan.
 - [VA-kartläggningen](plans/va-kartlaggning.md) omfattar 52 kommuner. Åtta nya källor har stöd i kod bakom uttrycklig aktivering. Täckningsrapporten visar när ett vattenbolag saknar en källa som går att läsa.
 - Kundvyn visar avbrott som kan kopplas till fastigheten. Täckningsdiagnostiken finns kvar internt. Osäkra adressförslag kräver bekräftelse på kartan. Importen räknar fastigheter med position att kontrollera. [Avtalsförslag om bevakningens omfattning](legal/forslag-bevakningsomfang.md) för granskning.
+- ”Kommande förhållanden” söker över 48 timmar och placerar kraftig nederbörd vid det blötaste
+  sammanhängande dygnet. Upp till tio berörda fastigheter visas var för sig. Större grupper har en
+  egen knapp och visar gruppens värde. Listan rullar med fast tidsrubrik på dator och mobil, och
+  temperaturer och adresser visas i ett mer lättläst format.

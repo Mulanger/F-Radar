@@ -15,7 +15,7 @@ const router = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock('next/navigation', () => ({ usePathname: () => '/demo/overview', useRouter: () => router }));
 
 beforeEach(() => sessionStorage.clear());
-afterEach(() => { cleanup(); router.push.mockClear(); });
+afterEach(() => { cleanup(); router.push.mockClear(); vi.unstubAllGlobals(); });
 
 function fixture(n: number): Portfolio {
   const properties = scaleDemoPortfolio(demoPortfolio, n).properties.slice(0, n).map((s, i) => ({
@@ -38,21 +38,30 @@ function renderUpcoming(portfolio: Portfolio, mobile = false) {
 }
 
 describe('kommande förhållanden – overview groups', () => {
-  it.each([false, true])('renders a warning shared by many properties as one row (mobile: %s)', (mobile) => {
-    const panel = renderUpcoming(fixture(20), mobile);
+  it.each([false, true])('renders one group with a clear button and its lowest temperature (mobile: %s)', (mobile) => {
+    const portfolio = fixture(30);
+    const frost = demoPortfolio.upcoming.find((u) => u.id.startsWith('frost-'))!;
+    portfolio.upcoming = portfolio.properties.map(({ property }, i) => ({
+      ...frost, id: `frost-${property.id}`, propertyId: property.id, where: property.name, value: i === 29 ? '-13°' : '-3°',
+    }));
+    const panel = renderUpcoming(portfolio, mobile);
     const rows = panel.getAllByTestId('upcoming-row');
     expect(rows).toHaveLength(1);
-    expect(rows[0]!.textContent).toContain('20 fastigheter');
-    expect(rows[0]!.textContent).toContain('SMHI · varning');
-    expect(rows[0]!.getAttribute('aria-expanded')).toBe('false');
+    expect(rows[0]!.textContent).toMatch(/^Minusgrader.*30 fastigheter · Visa fastigheter.*−13°lägst/);
+    expect(within(rows[0]!).getByRole('button', { name: '30 fastigheter · Visa fastigheter' }).getAttribute('aria-expanded')).toBe('false');
     expect(panel.queryByRole('list', { name: 'Berörda fastigheter' })).toBeNull();
   });
 
-  it('shows the usual individual rows for three properties', () => {
-    const panel = renderUpcoming(fixture(3));
-    expect(panel.getAllByTestId('upcoming-row')).toHaveLength(3);
-    expect(panel.getByRole('button', { name: 'Fastighet 3' })).toBeTruthy();
-    expect(panel.queryByText('3 fastigheter')).toBeNull();
+  it('shows individual addresses across 11 properties when at most 10 share a condition', () => {
+    const portfolio = fixture(11);
+    const last = portfolio.upcoming[10]!;
+    last.validAt = new Date(Date.parse(last.validAt!) + 3_600_000).toISOString();
+    portfolio.properties[0]!.property.address = 'Subway, Kampenhofgatan 2, 451 42 Uddevalla, Sverige';
+    const panel = renderUpcoming(portfolio);
+    expect(panel.getAllByTestId('upcoming-row')).toHaveLength(11);
+    expect(panel.getByText('Kampenhofgatan 2, 451 42 Uddevalla')).toBeTruthy();
+    expect(panel.getByRole('button', { name: 'Fastighet 11' })).toBeTruthy();
+    expect(panel.queryByRole('button', { name: /Visa fastigheter/ })).toBeNull();
   });
 
   it('opens and closes the list and navigates to a selected property', () => {
@@ -71,7 +80,9 @@ describe('kommande förhållanden – overview groups', () => {
   });
 
   it('pages through at most 100 properties and searches the entire group by name or address', () => {
-    const panel = renderUpcoming(fixture(120));
+    const portfolio = fixture(120);
+    portfolio.properties[119]!.property.address = 'Subway, Testgatan 120, 45142 Uddevalla, Sverige';
+    const panel = renderUpcoming(portfolio);
     fireEvent.click(panel.getByRole('button', { name: /120 fastigheter/ }));
     const results = () => within(panel.getByRole('list', { name: 'Berörda fastigheter' }));
     expect(results().getAllByRole('listitem')).toHaveLength(100);
@@ -85,6 +96,7 @@ describe('kommande förhållanden – overview groups', () => {
     fireEvent.change(search, { target: { value: ' TESTGATAN 120 ' } });
     expect(results().getAllByRole('listitem')).toHaveLength(1);
     expect(results().getByRole('button', { name: /^Fastighet 120 / })).toBeTruthy();
+    expect(results().getByText('Testgatan 120, 451 42 Uddevalla')).toBeTruthy();
     fireEvent.change(search, { target: { value: 'fastighet 109' } });
     expect(results().getAllByRole('listitem')).toHaveLength(1);
     expect(results().getByRole('button', { name: /^Fastighet 109 / })).toBeTruthy();
@@ -92,14 +104,48 @@ describe('kommande förhållanden – overview groups', () => {
     expect(panel.getByRole('status').textContent).toBe('Inga fastigheter matchar sökningen.');
   });
 
-  it('recounts and restricts the expanded list to the selected property group', () => {
+  it('shows individual properties again when the selected group is below the threshold', () => {
     const panel = renderUpcoming(fixture(12));
     fireEvent.click(panel.getByRole('button', { name: /12 fastigheter/ }));
     fireEvent.click(screen.getByRole('tab', { name: /^Innerstad/ }));
-    expect(panel.getByRole('button', { name: /5 fastigheter/ })).toBeTruthy();
     expect(panel.queryByRole('button', { name: /12 fastigheter/ })).toBeNull();
-    const list = within(panel.getByRole('list', { name: 'Berörda fastigheter' }));
-    expect(list.getAllByRole('listitem')).toHaveLength(5);
-    expect(list.queryByRole('button', { name: /^Fastighet 6 / })).toBeNull();
+    expect(panel.queryByRole('list', { name: 'Berörda fastigheter' })).toBeNull();
+    expect(panel.getAllByTestId('upcoming-row')).toHaveLength(5);
+    expect(panel.getByRole('button', { name: 'Fastighet 5' })).toBeTruthy();
+    expect(panel.queryByRole('button', { name: 'Fastighet 6' })).toBeNull();
+  });
+
+  it.each([false, true])('keeps the axis and the rows together in a bounded scroll region (mobile: %s)', (mobile) => {
+    const panel = renderUpcoming(fixture(120), mobile);
+    const scroll = panel.getByRole('region', { name: 'Tidslinje' });
+    expect(scroll.style.overflowY).toBe('auto');
+    expect(scroll.style.overflowX).toBe('hidden');
+    expect(parseInt(scroll.style.maxHeight)).toBeGreaterThan(0);
+    expect(scroll.tabIndex).toBe(0);
+    expect(scroll.firstElementChild?.textContent).toContain('Nu');
+    expect(scroll.contains(panel.getByTestId('upcoming-row'))).toBe(true);
+    scroll.scrollTop = 250;
+    fireEvent.click(panel.getByRole('button', { name: /Varningar 120/ }));
+    expect(scroll.scrollTop).toBe(0);
+  });
+
+  it.each([false, true])('hides the midnight clock beside Nu but keeps later midnight visible (mobile: %s)', (mobile) => {
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(private readonly callback: () => void) {}
+      observe() { this.callback(); }
+      disconnect() {}
+    });
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      if (this.textContent === 'Nu 23') return new DOMRect(0, 0, 33, 10);
+      if (this.dataset.axisClock) return new DOMRect(300 * Number(this.dataset.axisClock) + 6, 0, 12, 10);
+      return new DOMRect(0, 0, 300, 38);
+    });
+    const portfolio = { ...fixture(1), generatedAt: '2026-11-12T22:55:00Z' };
+    const panel = renderUpcoming(portfolio, mobile);
+    expect(panel.getByText('Nu 23')).toBeTruthy();
+    const midnightClocks = panel.getAllByText('00', { exact: true });
+    expect(midnightClocks).toHaveLength(2);
+    expect(midnightClocks[0]!.style.visibility).toBe('hidden');
+    expect(midnightClocks[1]!.style.visibility).toBe('');
   });
 });

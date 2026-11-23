@@ -1,5 +1,5 @@
 import type { Portfolio, UpcomingCondition } from '@fastighetsradar/domain';
-import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE, formatClock, formatWeekdayClock } from '@fastighetsradar/domain';
+import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE, formatClock, formatPropertyAddress, formatWeekdayClock, WEATHER_WATER } from '@fastighetsradar/domain';
 import { SEV } from '../design/tokens';
 import { darkSpans } from './daylight';
 
@@ -38,8 +38,18 @@ interface Kind {
   action: string;
 }
 
-const minus = (v: string) => v.replace(/^-/, '−');
 const num = (v: string) => (/(\d+(?:[.,]\d+)?)/.exec(v)?.[1] ?? v);
+const decimal = new Intl.NumberFormat(DISPLAY_LOCALE, { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false });
+const integer = new Intl.NumberFormat(DISPLAY_LOCALE, { maximumFractionDigits: 0, useGrouping: false });
+function frostValue(value: string) {
+  const parsed = /^([−-]?\d+(?:[.,]\d+)?)\s*°/.exec(value.trim());
+  const tmin = parsed ? Number(parsed[1]!.replace('−', '-').replace(',', '.')) : null;
+  if (tmin === null) return { tmin, value };
+  const precision = tmin < 0 && tmin > -1 ? 1 : 0;
+  const rounded = Number(tmin.toFixed(precision)) || 0;
+  return { tmin, value: `${(precision ? decimal : integer).format(rounded)}°` };
+}
+
 const KINDS: Record<string, Kind> = {
   gust: {
     kind: 'wind', value: (u) => ({ value: u.value, unit: 'byvind' }),
@@ -48,7 +58,7 @@ const KINDS: Record<string, Kind> = {
   },
   rain: {
     kind: 'rain', value: (u) => ({ value: u.value, unit: 'på 24 h' }),
-    body: 'Summerad nederbörd det kommande dygnet ligger över tröskelvärdet för kraftig nederbörd.',
+    body: 'Prognosen visar kraftig nederbörd summerad över 24 timmar.',
     action: 'Kontrollera att dagvattenbrunnar och hängrännor är rensade och att källare och garage är skyddade.',
   },
   'intense-rain': {
@@ -63,7 +73,7 @@ const KINDS: Record<string, Kind> = {
   },
   snow: {
     kind: 'snow', value: (u) => ({ value: u.value.replace(/^ca\s+/, ''), unit: 'snö / 24 h' }),
-    body: 'Prognosen visar snöfall under det kommande dygnet.',
+    body: 'Prognosen visar snöfall. Mängden avser 24 timmar.',
     action: 'Säkerställ snöröjning och sandning av entréer och bevaka snölasten på tak.',
   },
   ice: {
@@ -77,7 +87,7 @@ const KINDS: Record<string, Kind> = {
     action: 'Bevaka takfot och stuprör för istappar och beställ snö- och isröjning vid behov.',
   },
   frost: {
-    kind: 'frost', value: (u) => ({ value: minus(u.value), unit: 'lägst' }),
+    kind: 'frost', value: (u) => ({ value: frostValue(u.value).value, unit: 'lägst' }),
     body: 'Prognosen visar minusgrader vid fastigheten. Skuggiga ytor kan få frost.',
     action: 'Kontrollera frysskydd på utvändiga vattenledningar och sanda skuggiga gångytor.',
   },
@@ -88,7 +98,7 @@ const OFFICIAL_ACTION = 'Läs varningen hos SMHI och följ myndigheternas råd. 
 const SOURCE_SV: Record<string, string> = { krisinformation: 'Krisinformation', smhi_warnings: 'SMHI', smhi_forecast: 'SMHI', smhi_oceanography: 'SMHI' };
 const stripTag = (label: string) => label.replace(/\s*\((prognos)[^)]*\)\s*$/i, '').trim();
 const HOUR = 3_600_000;
-const WINDOW = 48 * HOUR;
+const WINDOW = WEATHER_WATER.upcomingHours * HOUR;
 
 export interface UpcomingEvent {
   sourceUrl?: string;
@@ -130,10 +140,11 @@ export function buildUpcomingEvents(portfolio: Portfolio, propertyIds: Set<strin
       const end = u.kind === 'outage' ? Date.parse(u.validTo!) : u.validTo ? Math.max(Date.parse(u.validTo), start + 15 * 60_000) : start + HOUR;
       const src = u.kind === 'outage' ? u.sourceName ?? 'Leverantören' : (u.sourceId && SOURCE_SV[u.sourceId]) || 'SMHI';
       const level = u.official ? u.value.split(' ')[0]!.toLowerCase() : '';
-      const condition = stripTag(u.label);
+      const condition = k === KINDS.rain ? 'Kraftig nederbörd (24 h)' : stripTag(u.label);
       const kind: UpcomingKind = u.kind === 'outage' ? 'outage' : k?.kind ?? 'warning';
       const vu = k ? k.value(u, (end - start) / HOUR) : { value: u.value.replace(/\s*varning$/i, ''), unit: /varning/i.test(u.value) ? 'varning' : '' };
-      const temp = prefix === 'frost' ? Number(u.value.replace('−', '-').replace(',', '.').replace(/[^\d.-]/g, '')) : NaN;
+      const address = u.propertyId ? addresses.get(u.propertyId) ?? '' : '';
+      const displayAddress = formatPropertyAddress(address);
       const rank = u.official ? (u.tone === 'critical' ? 0 : u.tone === 'warning' ? 1 : 2) : kind === 'ice' ? 3 : u.tone === 'warning' ? 4 : kind === 'frost' ? 5 : 6;
       return {
         id: u.id,
@@ -142,9 +153,9 @@ export function buildUpcomingEvents(portfolio: Portfolio, propertyIds: Set<strin
         rank,
         official: !!u.official,
         hot: u.tone === 'warning' || u.tone === 'critical',
-        name: u.where,
+        name: address && u.where.trim() === address.trim() ? displayAddress || u.where : u.where,
         propertyId: u.propertyId ?? null,
-        address: u.propertyId ? addresses.get(u.propertyId) ?? '' : '',
+        address: displayAddress,
         condition,
         tone: u.tone,
         label: u.official ? `${u.value} · ${condition.toLowerCase()}` : condition,
@@ -157,7 +168,7 @@ export function buildUpcomingEvents(portfolio: Portfolio, propertyIds: Set<strin
         from: formatWeekdayClock(new Date(start).toISOString()),
         to: formatWeekdayClock(new Date(end).toISOString()),
         src: `${src} · ${kind === 'outage' ? 'avbrottsinformation' : u.official ? 'varning' : 'prognos'}`,
-        tmin: Number.isFinite(temp) ? temp : null,
+        tmin: kind === 'frost' ? frostValue(u.value).tmin : null,
       };
     });
 }
@@ -237,6 +248,12 @@ const byName = new Intl.Collator(DISPLAY_LOCALE, { numeric: true });
 
 type PropertyEvent = UpcomingEvent & { propertyId: string };
 
+function compareValue(a: UpcomingEvent, b: UpcomingEvent): number {
+  if (a.kind === 'frost') return (a.tmin ?? Infinity) - (b.tmin ?? Infinity);
+  if (a.official || a.kind === 'outage') return 0;
+  return Number(num(b.value).replace(',', '.')) - Number(num(a.value).replace(',', '.'));
+}
+
 /**
  * When a condition counts as "the same" for grouping. An official warning or an outage is one event with
  * one span. A forecast threshold is computed per property from its own point forecast, so frost over
@@ -271,9 +288,9 @@ export function groupUpcomingEvents(events: readonly UpcomingEvent[]) {
     const strongest = bucket.reduce((a, b) => compareTone(a, b) <= 0 ? a : b);
     for (const event of bucket) {
       const previous = properties.get(event.propertyId);
-      if (!previous || compareTone(event, previous) < 0) properties.set(event.propertyId, event);
+      if (!previous || (compareTone(event, previous) || compareValue(event, previous)) < 0) properties.set(event.propertyId, event);
     }
-    if (properties.size <= 3) {
+    if (properties.size <= 10) {
       individual.push(...bucket);
       continue;
     }
@@ -281,9 +298,10 @@ export function groupUpcomingEvents(events: readonly UpcomingEvent[]) {
       : strongest.tone === 'warning' && !strongest.official ? SEV.warning.c : strongest.bar;
     const start = Math.min(...bucket.map((e) => e.start));
     const end = Math.max(...bucket.map((e) => e.end));
+    const { value, unit } = bucket.reduce((a, b) => compareValue(b, a) < 0 ? b : a, strongest);
     groups.push({
       key,
-      event: { ...strongest, bar, start, end, from: formatWeekdayClock(new Date(start).toISOString()), to: formatWeekdayClock(new Date(end).toISOString()) },
+      event: { ...strongest, value, unit, bar, start, end, from: formatWeekdayClock(new Date(start).toISOString()), to: formatWeekdayClock(new Date(end).toISOString()) },
       properties: [...properties.values()].sort((a, b) => byName.compare(a.name, b.name) || byName.compare(a.address, b.address)),
     });
   }
@@ -291,7 +309,7 @@ export function groupUpcomingEvents(events: readonly UpcomingEvent[]) {
 }
 
 export type UpcomingBar = UpcomingEvent & { left: number; width: number; right: number; cross: boolean };
-export type UpcomingPlaceRow = { type: 'place'; key: string; name: string; propertyId: string | null; events: UpcomingBar[]; countText: string };
+export type UpcomingPlaceRow = { type: 'place'; key: string; name: string; address: string; propertyId: string | null; events: UpcomingBar[]; countText: string };
 export type UpcomingGroupRow = { type: 'group'; key: string; name: string; events: [UpcomingBar]; properties: PropertyEvent[]; countText: string };
 export type UpcomingRow = UpcomingPlaceRow | UpcomingGroupRow;
 
@@ -325,11 +343,11 @@ export function upcomingView(events: UpcomingEvent[], referenceIso: string, opts
 
   const shown = events.filter((e) => filter === 'all' || e.kind === filter);
   const { groups, individual } = groupUpcomingEvents(shown);
-  const places = new Map<string, { key: string; name: string; propertyId: string | null; events: UpcomingEvent[] }>();
+  const places = new Map<string, { key: string; name: string; address: string; propertyId: string | null; events: UpcomingEvent[] }>();
   const placeKey = (e: UpcomingEvent) => e.propertyId ? `property:${e.propertyId}` : `place:${e.name}`;
   for (const e of individual) {
     const key = placeKey(e);
-    if (!places.has(key)) places.set(key, { key, name: e.name, propertyId: e.propertyId, events: [] });
+    if (!places.has(key)) places.set(key, { key, name: e.name, address: e.address, propertyId: e.propertyId, events: [] });
     places.get(key)!.events.push(e);
   }
   const rows: UpcomingRow[] = [...places.values()].map((p) => ({
@@ -342,7 +360,8 @@ export function upcomingView(events: UpcomingEvent[], referenceIso: string, opts
   const midnights: Array<{ pos: number; day: string; date: string; short: string }> = [];
   const ticks: Array<{ pos: number; label: string }> = [];
   let current = dayKey(ref);
-  for (let t = Math.ceil(ref / (15 * 60_000)) * 15 * 60_000 + 15 * 60_000; t < ref + WINDOW; t += 15 * 60_000) {
+  const quarter = 15 * 60_000;
+  for (let t = (Math.floor(ref / quarter) + 1) * quarter; t < ref + WINDOW; t += quarter) {
     const k = dayKey(t);
     const d = new Date(t);
     if (k !== current) {
@@ -352,7 +371,7 @@ export function upcomingView(events: UpcomingEvent[], referenceIso: string, opts
       continue;
     }
     const hm = hourFmt.format(d);
-    if (hm.endsWith(':00') && hourOf(t) % 6 === 0 && pos(t) > 0.1 && pos(t) < 0.97) ticks.push({ pos: pos(t), label: hm.slice(0, 2) });
+    if (hm.endsWith(':00') && hourOf(t) % 6 === 0) ticks.push({ pos: pos(t), label: hm.slice(0, 2) });
   }
   const firstLabel = hourOf(ref) >= 17 ? 'Ikväll' : 'Idag';
   const night = opts.center ? darkSpans(ref, ref + WINDOW, opts.center.lat, opts.center.lon) : [];

@@ -25,6 +25,23 @@ const shortDate = new Intl.DateTimeFormat(DISPLAY_LOCALE, { day: 'numeric', mont
 
 const cap = (s: string) => (s ? s[0]!.toUpperCase() + s.slice(1) : s);
 
+const countyCode = /^(?:AB|AC|BD|[C-IKM-OS-UW-Z])$/;
+const streetNumber = /\s\d+(?:[-–]\d+)?\s*[a-zåäö]?$/i;
+const postcode = /^(\d{3})\s?(\d{2})(?=\s|$)/;
+
+/** A display label for both saved Swedish addresses and legacy geocoder strings. */
+export function formatPropertyAddress(address: string): string {
+  const parts = address.split(',').map((part) => part.trim()).filter(Boolean);
+  if (/^(?:sverige|sweden)$/i.test(parts.at(-1) ?? '')) parts.pop();
+  if (parts.length > 1 && countyCode.test(parts.at(-1)!)) parts.pop();
+  const postalIndex = parts.findIndex((part) => postcode.test(part));
+  const streetIndex = parts.findLastIndex((part, index) => (postalIndex < 0 || index < postalIndex) && streetNumber.test(part));
+  if (postalIndex >= 0) {
+    parts[postalIndex] = parts[postalIndex]!.replace(postcode, '$1 $2');
+  }
+  return parts.slice(streetIndex >= 0 ? streetIndex : Math.max(0, postalIndex - 1)).join(', ');
+}
+
 /** "14:32" */
 export function formatClock(iso: string | null | undefined): string {
   if (!iso) return '—';

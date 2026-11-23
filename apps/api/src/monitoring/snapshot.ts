@@ -761,8 +761,10 @@ export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForec
     for (const w of s.warnings) if(w.validFrom && Date.parse(w.validFrom)>now.getTime() && Date.parse(w.validFrom)<=now.getTime()+48*3600000) out.push({id:'official-'+s.property.id+'-'+w.id,label:w.type,where:s.property.name,propertyId:s.property.id,when:formatWeekdayClock(w.validFrom),validAt:w.validFrom,...(w.validTo?{validTo:w.validTo}:{}),sourceId:w.sourceId,sourceUpdatedAt:w.issuedAt,official:true,value:LEVEL_SV[w.level],tone:w.level==='Red'||w.level==='VMA'?'critical':w.level==='Orange'?'warning':'monitor',origin:w.origin});
     const row = forecastById.get(s.property.id);
     if (!row || now.getTime() - row.fetched_at.getTime() > WEATHER_WATER.forecastUsableHours * 3_600_000) continue;
-    for (const info of forecastInformation(forecastSteps(row), now)) out.push({ id: info.key + '-' + s.property.id, label: info.label, where: s.property.name, propertyId: s.property.id, when: formatWeekdayClock(info.at), validAt: info.at, validTo: info.until, sourceId: 'smhi_forecast', sourceUpdatedAt:iso(row.reference_time), value: info.value, explanation: info.explanation, tone: info.tone, origin: 'live' });
-    const steps = forecastSteps(forecastById.get(s.property.id)).filter((x) => Date.parse(x.time) > now.getTime() && Date.parse(x.time) <= now.getTime() + 24 * 3_600_000);
+    const series = forecastSteps(row);
+    for (const info of forecastInformation(series, now)) out.push({ id: info.key + '-' + s.property.id, label: info.label, where: s.property.name, propertyId: s.property.id, when: formatWeekdayClock(info.at), validAt: info.at, validTo: info.until, sourceId: 'smhi_forecast', sourceUpdatedAt:iso(row.reference_time), value: info.value, explanation: info.explanation, tone: info.tone, origin: 'live' });
+    const steps = series.filter((x) => Date.parse(x.time) > now.getTime() && Date.parse(x.time) <= now.getTime() + WEATHER_WATER.upcomingHours * 3_600_000)
+      .sort((x, y) => x.time.localeCompare(y.time));
     if (!steps.length) continue;
     const gust = steps.reduce<ForecastStep | null>((a, b) => ((b.windGust ?? -1) > (a?.windGust ?? -1) ? b : a), null);
     if (gust?.windGust !== null && gust && gust.windGust >= 15) {
@@ -771,24 +773,19 @@ export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForec
       const from = hard[0]!.intervalStart ?? hard[0]!.time;
       out.push({ id: `gust-${s.property.id}`, label: 'Hårda vindbyar (prognos)', where: s.property.name, propertyId: s.property.id, when: formatWeekdayClock(from), validAt: from, validTo: hard.at(-1)!.time, sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${gust.windGust.toFixed(0)} m/s`, tone: gust.windGust >= 21 ? 'warning' : 'monitor', origin: 'live' });
     }
-    const rain = precipitationTotal(forecastSteps(forecastById.get(s.property.id)), now, 24);
-    if (rain !== null && rain >= 15) {
-      out.push({ id: `rain-${s.property.id}`, label: 'Kraftig nederbörd (prognos, 24 h)', where: s.property.name, propertyId: s.property.id, when: 'Närmaste 24 h', validAt:now.toISOString(), validTo: new Date(now.getTime() + 24 * 3_600_000).toISOString(),sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${rain.toFixed(0)} mm`, tone: rain >= 30 ? 'warning' : 'monitor', origin: 'live' });
-    }
-    const cold = steps.find((x) => x.airTemperature !== null && x.airTemperature < 0);
-    if (cold && cold.airTemperature !== null) {
-      // The cold spell: consecutive hours below 0° from the first one (up to 48 h ahead); the value is its lowest temperature.
-      const all48 = forecastSteps(row).filter((x) => Date.parse(x.time) > now.getTime() && Date.parse(x.time) <= now.getTime() + 48 * 3_600_000).sort((x, y) => x.time.localeCompare(y.time));
-      // `all48` is a filtered, sorted copy: find the first cold hour in it by its time.
-      const first = all48.findIndex((x) => x.time === cold.time);
-      const spell: ForecastStep[] = [cold];
-      for (const x of first < 0 ? [] : all48.slice(first + 1)) {
-        if (x.airTemperature === null || x.airTemperature >= 0 || x.intervalStart !== spell.at(-1)!.time) break;
-        spell.push(x);
+    const firstCold = steps.findIndex((x) => x.airTemperature !== null && x.airTemperature < 0);
+    if (firstCold !== -1) {
+      // Keep the first contiguous cold spell and its lowest temperature.
+      const cold = steps[firstCold]!;
+      let lowest = cold.airTemperature!;
+      let until = cold.time;
+      for (const x of steps.slice(firstCold + 1)) {
+        if (x.airTemperature === null || x.airTemperature >= 0 || x.intervalStart !== until) break;
+        lowest = Math.min(lowest, x.airTemperature);
+        until = x.time;
       }
-      const lowest = Math.min(...spell.map((x) => x.airTemperature!));
       const from = cold.intervalStart ?? cold.time;
-      out.push({ id: `frost-${s.property.id}`, label: 'Minusgrader (prognos)', where: s.property.name, propertyId: s.property.id, when: formatWeekdayClock(from), validAt: from, validTo: spell.at(-1)!.time, sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${lowest.toFixed(0)}°`, tone: 'cold', origin: 'live' });
+      out.push({ id: `frost-${s.property.id}`, label: 'Minusgrader (prognos)', where: s.property.name, propertyId: s.property.id, when: formatWeekdayClock(from), validAt: from, validTo: until, sourceId:'smhi_forecast',sourceUpdatedAt:iso(row.reference_time), value: `${lowest}°`, tone: 'cold', origin: 'live' });
     }
   }
   return out.sort(compareUpcoming);

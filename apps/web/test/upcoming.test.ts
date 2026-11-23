@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Portfolio } from '@fastighetsradar/domain';
+import { formatPropertyAddress, type Portfolio } from '@fastighetsradar/domain';
 import { demoPortfolio } from '@fastighetsradar/domain/fixtures';
 import { buildUpcomingEvents, groupUpcomingEvents, upcomingCenter, upcomingView, whenPhrase } from '../lib/view-models/upcoming';
 import { darkSpans, sunTimes } from '../lib/view-models/daylight';
@@ -40,6 +40,22 @@ describe('kommande förhållanden – events', () => {
     const one = demoPortfolio.properties.find((s) => s.property.name === 'Ulvsunda Lager')!.property.id;
     expect(buildUpcomingEvents(demoPortfolio, new Set([one])).map((e) => e.name)).toEqual(['Ulvsunda Lager', 'Ulvsunda Lager']);
   });
+
+  it.each([['-0.2°', '−0,2°'], ['−0°', '0°'], ['-0.01°', '0,0°']])('formats frost %s as %s in the row and headline', (value, expected) => {
+    const source = demoPortfolio.upcoming.find((u) => u.id.startsWith('frost-'))!;
+    const forecast = buildUpcomingEvents({ ...demoPortfolio, upcoming: [{ ...source, value }] }, ids(demoPortfolio));
+    expect(forecast[0]).toMatchObject({ value: expected, unit: 'lägst' });
+    expect(upcomingView(forecast, ref).headline).toContain(`Minusgrader ner till ${expected} i`);
+  });
+
+  it.each([
+    ['Subway, Kampenhofgatan 2, 451 42 Uddevalla, Sverige', 'Kampenhofgatan 2, 451 42 Uddevalla'],
+    ['Spånga, C, Sverige', 'Spånga'],
+    ['Tving, K, Sverige', 'Tving'],
+    ['Sveavägen 42, 11135 Stockholm', 'Sveavägen 42, 111 35 Stockholm'],
+  ])('formats the saved address %s for display', (raw, formatted) => {
+    expect(formatPropertyAddress(raw)).toBe(formatted);
+  });
 });
 
 describe('kommande förhållanden – shared conditions', () => {
@@ -47,44 +63,54 @@ describe('kommande förhållanden – shared conditions', () => {
   const frost = events.find((e) => e.kind === 'frost')!;
   const wind = events.find((e) => e.kind === 'wind')!;
   const official = events.find((e) => e.official)!;
-  const copies = (event: typeof frost) => [1, 2, 3, 4].map((i) => ({ ...event, propertyId: `p${i}`, id: `${event.id}-${i}` }));
+  const copies = (event: typeof frost, count = 11) => Array.from({ length: count }, (_, i) => ({ ...event, propertyId: `p${i + 1}`, id: `${event.id}-${i + 1}` }));
 
   it('groups a forecast condition per six-hour window and unique property, keeping small and unassigned rows', () => {
     // Stockholm time (CET): 02:00 and 04:00 are the same night window, 07:00 the next one.
     const at = (iso: string, hours: number) => ({ start: Date.parse(iso), end: Date.parse(iso) + hours * H });
-    const night = copies({ ...frost, ...at('2026-11-13T01:00:00Z', 5) });
-    const laterSameNight = { ...frost, ...at('2026-11-13T03:00:00Z', 4), propertyId: 'p5', id: 'p5' };
+    const night = copies({ ...frost, ...at('2026-11-13T01:00:00Z', 5) }, 10);
+    const laterSameNight = { ...frost, ...at('2026-11-13T03:00:00Z', 4), propertyId: 'p11', id: 'p11' };
     const morning = copies({ ...frost, ...at('2026-11-13T06:00:00Z', 2) });
     const unassigned = { ...frost, propertyId: null };
     const duplicate = { ...night[0]!, id: 'duplicate' };
     const result = groupUpcomingEvents([...night, duplicate, laterSameNight, ...morning.slice(0, 3), unassigned]);
     expect(result.groups).toHaveLength(1);
     const group = result.groups[0]!;
-    expect(group.properties.map((p) => p.propertyId).sort()).toEqual(['p1', 'p2', 'p3', 'p4', 'p5']);
+    expect(group.properties.map((p) => p.propertyId)).toEqual([...night.map((p) => p.propertyId), 'p11']);
     // The group spans the earliest start to the latest end of its properties.
     expect([group.event.start, group.event.end]).toEqual([Date.parse('2026-11-13T01:00:00Z'), Date.parse('2026-11-13T07:00:00Z')]);
     expect(group.event.from).toMatch(/02:00$/);
     // Three in the morning window: shown one by one, like the unassigned row.
     expect(result.individual).toEqual([unassigned, ...morning.slice(0, 3)]);
-    expect(groupUpcomingEvents(night.slice(0, 3)).individual).toEqual(night.slice(0, 3));
+    expect(groupUpcomingEvents([...night, duplicate]).groups).toEqual([]);
   });
 
   it('keeps official warnings with different spans apart – they are different warnings', () => {
     const one = copies({ ...official, start: official.start, end: official.end });
     const other = copies({ ...official, start: official.start + H, end: official.end + H });
-    expect(groupUpcomingEvents([...one, ...other]).groups.map((g) => g.properties.length)).toEqual([4, 4]);
+    expect(groupUpcomingEvents([...one, ...other]).groups.map((g) => g.properties.length)).toEqual([11, 11]);
   });
 
   it('keeps official warnings distinct from forecasts and takes the strongest tone within each group', () => {
     const warning = { ...official, condition: wind.condition, start: wind.start, end: wind.end };
     const yellow = { ...warning, tone: 'monitor' as const, rank: 2, bar: 'yellow' };
-    const [w1, w2, w3, w4] = copies(yellow);
     const gusts = copies(wind);
-    gusts[3] = { ...gusts[3]!, tone: 'warning', rank: 4 };
-    const result = groupUpcomingEvents([w1!, w2!, w3!, { ...w4!, tone: warning.tone, rank: warning.rank, bar: warning.bar }, ...gusts]);
-    expect(result.groups.map((g) => [g.event.official, g.event.tone, g.event.bar, g.properties.length])).toEqual([
-      [true, 'warning', warning.bar, 4], [false, 'warning', SEV.warning.c, 4],
+    gusts[3] = { ...gusts[3]!, tone: 'warning', rank: 4, value: '21 m/s' };
+    gusts[4] = { ...gusts[4]!, value: '25 m/s' };
+    const result = groupUpcomingEvents([...copies(yellow, 10), { ...warning, propertyId: 'p11' }, ...gusts]);
+    expect(result.groups.map((g) => [g.event.official, g.event.tone, g.event.bar, g.properties.length, g.event.value])).toEqual([
+      [true, 'warning', warning.bar, 11, warning.value], [false, 'warning', SEV.warning.c, 11, '25 m/s'],
     ]);
+  });
+
+  it('shows the coldest temperature and most crossings in their groups', () => {
+    const freeze = events.find((e) => e.kind === 'freeze')!;
+    const cold = copies(frost, 30);
+    const crossings = copies(freeze, 30);
+    cold[29] = { ...cold[29]!, value: '−13°', tmin: -13 };
+    crossings[29] = { ...crossings[29]!, value: '12×' };
+    const { groups } = groupUpcomingEvents([...cold, ...crossings]);
+    expect(groups.map((g) => [g.properties.length, g.event.value, g.event.unit])).toEqual([[30, '−13°', 'lägst'], [30, '12×', 'passerar 0°']]);
   });
 });
 
@@ -133,7 +159,7 @@ describe('kommande förhållanden – view', () => {
     expect(v.axis.midnights.map((m) => `${m.day} ${m.date}`)).toEqual(['Torsdag 13 nov', 'Fredag 14 nov']);
     expect(v.axis.midnights.map((m) => m.short)).toEqual(['Tor 13', 'Fre 14']);
     expect(v.axis.midnights[0]!.pos).toBeCloseTo((9 * H + 28 * 60_000 + 15 * 60_000 - 15 * 60_000) / (48 * H), 1);
-    expect(v.axis.ticks.map((t) => t.label)).toEqual(['06', '12', '18', '06', '12']); // 18:00 sits too close to "Nu 14"
+    expect(v.axis.ticks.map((t) => t.label)).toEqual(['18', '06', '12', '18', '06', '12']);
   });
 
   it('shades darkness from sunset to sunrise', () => {

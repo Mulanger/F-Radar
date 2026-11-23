@@ -5,6 +5,7 @@ import { loadServerEnv } from '@fastighetsradar/config';
 import { PortfolioNowcastPatchSchema, PortfolioRowsPatchSchema, PortfolioSchema, PropertySnapshotSchema, ROWS_PATCH_MAX, type PropertyRecord } from '@fastighetsradar/domain';
 import { demoPortfolio } from '@fastighetsradar/domain/fixtures';
 import type { JobRow, OrgMonitoringData, Queryable } from '@fastighetsradar/db';
+import { LIST_FORECAST_WINDOW_H } from '@fastighetsradar/db';
 import { buildApp } from '../src/app';
 import { MonitoringBus } from '../src/monitoring/bus';
 import { MonitoringService } from '../src/monitoring/service';
@@ -289,6 +290,27 @@ describe('property snapshot from stored data', () => {
     const frost = buildUpcoming([s], [row], NOW).find((u) => u.id === `frost-${PID}`)!;
     expect(frost).toMatchObject({ value: '-3°', validAt: warmEnd[2]!.intervalStart, validTo: warmEnd[4]!.time });
     for (const u of buildUpcoming([s], [row], NOW)) if (u.validTo) expect(Date.parse(u.validTo)).toBeGreaterThan(Date.parse(u.validAt!));
+  });
+
+  it('finds a Stockholm cold spell starting in 42 hours with both list and detail forecast windows', () => {
+    const timeAt = (h: number) => new Date(NOW.getTime() + h * 3_600_000).toISOString();
+    const all = Array.from({ length: 120 }, (_, i) => ({
+      ...steps[0]!, intervalStart: timeAt(i), time: timeAt(i + 1),
+      airTemperature: i >= 42 && i <= 43 ? -0.2 : 3, windGust: i === 43 ? 22 : 0,
+      precipitationMean: i >= 24 && i < 48 ? 1 : 0,
+    }));
+    const fullRow = { ...data().forecasts[0]!, series: { v: 2, steps: all } };
+    const listRow = { ...fullRow, series: { v: 2, steps: all.filter((step) => step.time <= timeAt(LIST_FORECAST_WINDOW_H.after)) } };
+    const full = buildPropertySnapshot(record, 'o', data({ forecasts: [fullRow] }), statuses, NOW);
+    const list = buildPropertySnapshot(record, 'o', data({ forecasts: [listRow] }), statuses, NOW, undefined, { list: true });
+    const upcoming = buildUpcoming([list], [listRow], NOW);
+    expect(upcoming).toEqual(buildUpcoming([full], [fullRow], NOW));
+    expect(upcoming).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: `frost-${PID}`, value: '-0.2°', validAt: timeAt(42), validTo: timeAt(44) }),
+      expect.objectContaining({ id: `gust-${PID}`, value: '22 m/s', validAt: timeAt(43), validTo: timeAt(44) }),
+      expect.objectContaining({ id: `rain-${PID}`, value: '24 mm', validAt: timeAt(24), validTo: timeAt(48) }),
+    ]));
+    expect(full.forecast?.days?.find((d) => d.from <= timeAt(42) && timeAt(43) < d.to)?.temperatureMin).toBe(-0.2);
   });
 
   it('tones forecast gusts and 24 h rain at most as warning', () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { DISPLAY_LOCALE } from '@fastighetsradar/domain';
 import type { UpcomingBar, UpcomingGroupRow, UpcomingPlaceRow } from '@/lib/view-models/upcoming';
 import type { UpcomingState } from './use-upcoming';
@@ -52,14 +52,14 @@ function Legend({ st }: { st: UpcomingState }) {
   );
 }
 
-/** Kind filter: "Alla 8", "Halka 1", … – the mobile row scrolls sideways. */
+/** Kind filter: "Alla 8", "Halka 1", … */
 export function UpcomingChips({ st, variant }: { st: UpcomingState; variant: Variant }) {
   const chips = (
-    <div className={variant === 'desktop' ? s.chips : s.chipsScroll} role="group" aria-label="Filtrera typ av händelse">
+    <div className={s.chips} role="group" aria-label="Filtrera typ av händelse">
       {st.view.chips.map((c) => (
         <button key={c.k} type="button" aria-pressed={c.active} className={`${s.chip} ${c.active ? s.on : ''}`} onClick={() => st.setFilter(c.k)}>
           {c.sw && <span className={s.swatch} style={{ background: c.sw }} />}
-          <span>{c.label}</span>
+          <span>{c.label}</span>{' '}
           <span className={s.chipN}>{c.n}</span>
         </button>
       ))}
@@ -126,12 +126,15 @@ function Value({ e, inline }: { e: UpcomingBar; inline?: boolean }) {
 }
 
 function PlaceName({ r, st }: { r: UpcomingPlaceRow; st: UpcomingState }) {
-  return r.propertyId ? (
-    <button type="button" className={s.placeName} onClick={() => st.openProperty(r.propertyId!)} title={`Öppna ${r.name}`}>
-      {r.name}
-    </button>
-  ) : (
-    <span className={s.placeName}>{r.name}</span>
+  return (
+    <div className={s.placeIdentity}>
+      {r.propertyId ? (
+        <button type="button" className={s.placeName} onClick={() => st.openProperty(r.propertyId!)} title={`Öppna ${r.name}`}>
+          {r.name}
+        </button>
+      ) : <span className={s.placeName}>{r.name}</span>}
+      {r.address && r.address !== r.name && <span className={s.groupAddress}>{r.address}</span>}
+    </div>
   );
 }
 
@@ -178,34 +181,87 @@ function GroupProperties({ r, st, id }: { r: UpcomingGroupRow; st: UpcomingState
   );
 }
 
-function GroupRow({ r, st, variant, cardClassName }: { r: UpcomingGroupRow; st: UpcomingState; variant: Variant; cardClassName?: string }) {
+function GroupRow({ r, st, variant }: { r: UpcomingGroupRow; st: UpcomingState; variant: Variant }) {
   const id = useId();
   const e = r.events[0];
   const open = st.openId === r.key;
-  const heading = (
-    <span className={s.groupHeading}>
-      <span className={s.label}><span aria-hidden="true" className={s.swatch} style={{ background: e.bar }} /><strong>{r.name}</strong></span>
-      <span className={s.groupMeta}>{e.from}–{e.to} · {e.src}</span>
-    </span>
-  );
-  const chev = <span className={`${s.chev} ${open ? s.up : ''}`} aria-hidden="true" />;
   return (
-    <div className={variant === 'desktop' ? s.group : `${cardClassName} ${s.mPlaceCard}`}>
-      <button type="button" data-testid="upcoming-row" className={variant === 'desktop' ? `${s.line} ${s.groupLine}` : s.mLine} aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => st.toggle(r.key)} aria-label={`${r.name}, ${r.countText}, ${e.from} till ${e.to}, ${e.src}`}>
-        {variant === 'desktop' ? (
-          <>
-            <span className={s.groupCount}>{r.countText}</span>
-            <span className={`${s.lineGrid} ${s.groupTrack}`}>{heading}<Track e={e} st={st} variant={variant} /><span />{chev}</span>
-          </>
-        ) : (
-          <>
-            <span className={s.mGroupTop}>{heading}{chev}</span>
-            <span className={s.groupCount}>{r.countText}</span>
-            <Track e={e} st={st} variant={variant} />
-          </>
-        )}
-      </button>
+    <div className={variant === 'desktop' ? s.group : s.mPlaceCard}>
+      <div data-testid="upcoming-row" className={variant === 'desktop' ? `${s.lineGrid} ${s.groupLine}` : s.mGroupLine}>
+        <div className={s.groupHeading}>
+          <div className={s.label}><span aria-hidden="true" className={s.swatch} style={{ background: e.bar }} /><strong id={`${id}-label`}>{r.name}</strong></div>
+          <div className={s.groupMeta}>{e.from}–{e.to} · {e.src}</div>
+          <button type="button" className={s.groupToggle} aria-expanded={open} aria-controls={open ? id : undefined} aria-describedby={`${id}-label`} onClick={() => st.toggle(r.key)}>
+            {r.countText} · {open ? 'Dölj fastigheter' : 'Visa fastigheter'}
+            <span className={`${s.chev} ${open ? s.up : ''}`} aria-hidden="true" />
+          </button>
+        </div>
+        <Track e={e} st={st} variant={variant} />
+        <Value e={e} />
+      </div>
       {open && <GroupProperties key={st.group} r={r} st={st} id={id} />}
+    </div>
+  );
+}
+
+function Axis({ axis, variant }: { axis: UpcomingState['view']['axis']; variant: Variant }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const now = useRef<HTMLSpanElement>(null);
+  const [hidden, setHidden] = useState<Set<string> | null>(null);
+  useEffect(() => {
+    if (!ref.current || !now.current || typeof ResizeObserver === 'undefined') return;
+    const node = ref.current;
+    const nowLabel = now.current;
+    const observer = new ResizeObserver(() => {
+      const right = node.getBoundingClientRect().right;
+      const kept = [nowLabel.getBoundingClientRect()];
+      const hidden = new Set<string>();
+      // Midnight labels first: in a narrow card a crowded 06 or 18 gives way to the 00 beside the day line.
+      const labels = [...node.querySelectorAll<HTMLElement>('[data-axis-clock]')]
+        .sort((a, b) => Number('axisMidnight' in b.dataset) - Number('axisMidnight' in a.dataset));
+      for (const label of labels) {
+        const bounds = label.getBoundingClientRect();
+        const crowded = kept.some((k) => bounds.left < k.right + 4 && bounds.right + 4 > k.left);
+        if (crowded || bounds.right > right) hidden.add(label.dataset.axisClock!);
+        else kept.push(bounds);
+      }
+      setHidden(hidden);
+    });
+    observer.observe(node);
+    observer.observe(nowLabel);
+    return () => observer.disconnect();
+  }, [axis, variant]);
+
+  const mobile = variant === 'mobile';
+  const hourClass = mobile ? s.mAxisHour : s.axisHour;
+  const hours = [
+    ...axis.midnights.map((m) => ({ pos: m.pos, label: '00', align: s.afterLine, midnight: true })),
+    ...axis.ticks.filter((t) => !mobile || t.label === '12').map((t) => ({ ...t, align: s.centred, midnight: false })),
+  ];
+  return (
+    <div ref={ref} className={mobile ? s.mAxis : s.axis} aria-hidden="true">
+      {axis.midnights.map((m) => (
+        <span key={m.pos} className={mobile ? s.mAxisLine : s.axisLine} style={{ left: pct(m.pos) }} />
+      ))}
+      {axis.today && <span className={s.axisDay} style={{ left: 0 }}>{axis.today}</span>}
+      {axis.midnights.map((m) => (
+        <span key={m.pos} className={`${s.axisDay} ${m.pos > 0.78 ? s.beforeLine : s.afterLine}`} style={{ left: pct(m.pos) }}>
+          {mobile ? m.short : <>{m.day} <span>{m.date}</span></>}
+        </span>
+      ))}
+      <span ref={now} className={`${hourClass} ${s.nowHour}`} style={{ left: 0 }}>{axis.now}</span>
+      {hours.map(({ pos, label, align, midnight }) => (
+        <span key={pos} data-axis-clock={pos} data-axis-midnight={midnight || undefined} className={`${hourClass} ${align}`} style={{ left: pct(pos), visibility: !hidden || hidden.has(String(pos)) ? 'hidden' : undefined }}>{label}</span>
+      ))}
+    </div>
+  );
+}
+
+export function UpcomingScroll({ st, variant, children }: { st: UpcomingState; variant: Variant; children: ReactNode }) {
+  const mobile = variant === 'mobile';
+  return (
+    <div ref={st.scrollRef} className={`${s.scroll} ${mobile ? s.mobileScroll : s.table}`} style={{ maxHeight: mobile ? 780 : 640, overflowY: 'auto', overflowX: 'hidden' }} role="region" aria-label="Tidslinje" tabIndex={0}>
+      {children}
     </div>
   );
 }
@@ -215,27 +271,12 @@ export function UpcomingTimeline({ st }: { st: UpcomingState }) {
   const { view } = st;
   if (view.empty) return null;
   return (
-    <div className={s.table}>
+    <UpcomingScroll st={st} variant="desktop">
       <div className={s.thead}>
         <div className={s.th}>Plats</div>
         <div className={s.lineGrid}>
           <div className={s.th}>Händelse</div>
-          <div className={s.axis} aria-hidden="true">
-            {view.axis.midnights.map((m) => (
-              <span key={m.pos} className={s.axisLine} style={{ left: pct(m.pos) }} />
-            ))}
-            {view.axis.today && <span className={s.axisDay} style={{ left: 0 }}>{view.axis.today}</span>}
-            {view.axis.midnights.map((m) => (
-              <span key={`d${m.pos}`} className={`${s.axisDay} ${s.afterLine}`} style={{ left: pct(m.pos) }}>{m.day} <span>{m.date}</span></span>
-            ))}
-            <span className={`${s.axisHour} ${s.nowHour}`} style={{ left: 0 }}>{view.axis.now}</span>
-            {view.axis.midnights.map((m) => (
-              <span key={`h${m.pos}`} className={`${s.axisHour} ${s.afterLine}`} style={{ left: pct(m.pos) }}>00</span>
-            ))}
-            {view.axis.ticks.map((t) => (
-              <span key={t.pos} className={`${s.axisHour} ${s.centred}`} style={{ left: pct(t.pos) }}>{t.label}</span>
-            ))}
-          </div>
+          <Axis axis={view.axis} variant="desktop" />
           <div className={`${s.th} ${s.right}`}>Värde</div>
           <div />
         </div>
@@ -267,7 +308,7 @@ export function UpcomingTimeline({ st }: { st: UpcomingState }) {
           </div>
         </div>
       ))}
-    </div>
+    </UpcomingScroll>
   );
 }
 
@@ -277,22 +318,7 @@ export function UpcomingMobileAxis({ st }: { st: UpcomingState }) {
   if (view.empty) return null;
   return (
     <div className={s.mList}>
-      <div className={s.mAxis} aria-hidden="true">
-        {view.axis.midnights.map((m) => (
-          <span key={m.pos} className={s.mAxisLine} style={{ left: pct(m.pos) }} />
-        ))}
-        {view.axis.today && <span className={s.axisDay} style={{ left: 0 }}>{view.axis.today}</span>}
-        {view.axis.midnights.map((m) => (
-          <span key={`d${m.pos}`} className={`${s.axisDay} ${s.afterLine}`} style={{ left: pct(m.pos) }}>{m.short}</span>
-        ))}
-        <span className={`${s.mAxisHour} ${s.nowHour}`} style={{ left: 0 }}>Nu</span>
-        {view.axis.midnights.map((m) => (
-          <span key={`h${m.pos}`} className={`${s.mAxisHour} ${s.afterLine}`} style={{ left: pct(m.pos) }}>00</span>
-        ))}
-        {view.axis.ticks.filter((t) => t.label === '12').map((t) => (
-          <span key={t.pos} className={`${s.mAxisHour} ${s.centred}`} style={{ left: pct(t.pos) }}>{t.label}</span>
-        ))}
-      </div>
+      <Axis axis={view.axis} variant="mobile" />
       <div className={s.mFoot}>
         <span>{view.countText}</span>
         <Legend st={st} />
@@ -304,9 +330,9 @@ export function UpcomingMobileAxis({ st }: { st: UpcomingState }) {
 /**
  * Mobile: a card per group or address, with the timeline under the condition label.
  */
-export function UpcomingMobilePlaces({ st, cardClassName }: { st: UpcomingState; cardClassName: string }) {
-  return st.view.rows.map((r) => r.type === 'group' ? <GroupRow key={r.key} r={r} st={st} variant="mobile" cardClassName={cardClassName} /> : (
-    <section key={r.key} className={`${cardClassName} ${s.mPlaceCard}`} aria-label={r.name}>
+export function UpcomingMobilePlaces({ st }: { st: UpcomingState }) {
+  return st.view.rows.map((r) => r.type === 'group' ? <GroupRow key={r.key} r={r} st={st} variant="mobile" /> : (
+    <section key={r.key} className={s.mPlaceCard} aria-label={r.name}>
       <div className={s.mPlaceHead}>
         <PlaceName r={r} st={st} />
         {r.countText && <div className={s.placeCount}>{r.countText}</div>}
