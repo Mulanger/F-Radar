@@ -60,6 +60,12 @@ interface Trigger {
   source: string;
   timestamp: Date;
   emergency: boolean;
+  /**
+   * Order in the queue and on the daily caps (docs/plans/skalning.md, Fas 5 / S-23, S-24):
+   * 2 = VMA or red warning (sent first, exempt from the daily caps, own emergency cap),
+   * 1 = orange warning or an outage starting, 0 = everything else.
+   */
+  priority?: number;
   eligible: boolean;
   detail?: string;
   /** Outage follow-ups (restored/changed) need an earlier SMS about the same outage: dedup-key suffixes. */
@@ -281,6 +287,7 @@ export class NotificationService {
                 : "Trafikverket",
           timestamp: e.source_updated_at ?? e.published_at ?? e.created_at,
           emergency: e.level === "Red" || e.level === "VMA",
+          priority: e.level === "Red" || e.level === "VMA" ? 2 : e.level === "Orange" ? 1 : 0,
           eligible: eligible && typeMatches,
           evidence: { eventId: e.event_id, version: e.version, ended: end },
         });
@@ -488,6 +495,7 @@ export class NotificationService {
         source: x.operator_name ?? "Nätbolaget",
         timestamp: x.source_updated_at ?? x.created_at,
         emergency: phase === "start",
+        priority: phase === "start" ? 1 : 0,
         eligible: phase !== null,
         bypassCooldown: phase === "restored" || phase === "change" || phase === "reminder",
         requiresPrior:
@@ -586,43 +594,44 @@ export class NotificationService {
       this.link(t),
     );
   }
+  /**
+   * Turns new source changes into queued SMS. One transaction per RULE (docs/plans/skalning.md,
+   * Fas 5 / S-26): a county warning over 300 properties no longer holds the global SMS lock for the
+   * whole organization, and a failure rolls back one rule, not all. VMA rules go first, and within a
+   * rule the most urgent triggers, so they are queued before anything that could use up a cap.
+   */
   async evaluateOrganization(
     org: string,
     testRuleId?: string,
     scenario: SimulationScenario = "success",
   ): Promise<number> {
-    return notificationTransaction(this.db, async (tx) => {
-      const now = new Date();
-      const rules = (await loadRules(tx, org)).filter((r) =>
-        testRuleId ? r.id === testRuleId : r.enabled,
-      );
-      if (testRuleId && !rules.length)
-        throw new HttpProblem(404, "Rule not found");
-      let n = 0;
-      for (const r of rules) {
+    const rules = (await loadRules(this.db, org))
+      .filter((r) => (testRuleId ? r.id === testRuleId : r.enabled))
+      .sort((a, b) => Number(b.config.condition.category === "vma") - Number(a.config.condition.category === "vma"));
+    if (testRuleId && !rules.length)
+      throw new HttpProblem(404, "Rule not found");
+    let n = 0;
+    for (const rule of rules) {
+      n += await notificationTransaction(this.db, async (tx) => {
+        const now = new Date();
+        // Re-read inside the transaction: last_change_id may have moved since the list was loaded.
+        const r = (await loadRules(tx, org)).find((x) => x.id === rule.id);
+        if (!r) return 0;
         const recipients = await tx.query<RecipientRow>(
           `SELECT * FROM sms_recipients WHERE organization_id=$1 AND id IN
           (SELECT recipient_id FROM alert_rule_recipients WHERE organization_id=$1 AND rule_id=$2)`,
           [org, r.id],
         );
-        const triggers = await this.triggers(tx, r, now, !!testRuleId);
+        const triggers = (await this.triggers(tx, r, now, !!testRuleId))
+          .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+        let queued = 0;
         for (const t of triggers)
           for (const recipient of recipients.rows)
-            if (
-              await this.enqueue(
-                tx,
-                r,
-                recipient,
-                t,
-                now,
-                !!testRuleId,
-                scenario,
-              )
-            )
-              n++;
-      }
-      return n;
-    });
+            if (await this.enqueue(tx, r, recipient, t, now, !!testRuleId, scenario)) queued++;
+        return queued;
+      });
+    }
+    return n;
   }
   private async enqueue(
     tx: Queryable,
@@ -653,10 +662,12 @@ export class NotificationService {
       );
       if (!prior.rows.length) return false;
     }
-    const message = this.message(t),
+    let message = this.message(t),
       parts = estimateSmsParts(message),
-      price = unitPrice(this.env),
-      cost = price === null ? null : Math.ceil(parts * price * 10000) / 10000;
+      cost: number | null = null;
+    const price = unitPrice(this.env);
+    const costOf = (n: number) => (price === null ? null : Math.ceil(n * price * 10000) / 10000);
+    cost = costOf(parts);
     if (!test && t.evidence?.eventId && t.evidence.outagePhase) {
       const duplicate = await tx.query(`SELECT 1 FROM notification_outbox WHERE organization_id=$1 AND recipient_id=$2
         AND trigger_evidence->>'eventId'=$3 AND trigger_evidence->>'outagePhase'=$4
@@ -698,8 +709,8 @@ export class NotificationService {
           [org, now],
         )
       ).rows;
-      const count = (key: string) =>
-        daily.find((x) => x.scope_key === key)?.messages ?? 0;
+      const usage = new Map(daily.map((x) => [x.scope_key, x.messages]));
+      const count = (key: string) => usage.get(key) ?? 0;
       const month = (
         await tx.query<{
           simulated_messages: number;
@@ -709,27 +720,38 @@ export class NotificationService {
           [org, now],
         )
       ).rows[0];
-      // Sum both minute buckets touching the rolling 60-second window (conservative at boundaries).
-      const perMinute = Number(
-        (
-          await tx.query<{ n: string }>(
-            "SELECT coalesce(sum(messages),0) AS n FROM notification_rate_buckets WHERE minute>=date_trunc('minute',now()-interval '1 minute')",
-          )
-        ).rows[0]!.n,
-      );
-      if (
-        status === "queued" &&
-        (count("org") >= this.env.SMS_DAILY_LIMIT_PER_ORG ||
-          count(`recipient:${scopeKey(recipient.phone_e164)}`) >=
-            r.config.dailyRecipientLimit ||
-          t.properties.some(
-            (p) => count(`property:${p.id}`) >= r.config.dailyPropertyLimit,
-          ) ||
-          (month?.simulated_messages ?? 0) >=
-            this.env.SMS_SIMULATION_MONTHLY_LIMIT ||
-          perMinute >= this.env.SMS_MAX_MESSAGES_PER_MINUTE)
-      )
-        status = "suppressed_limit";
+      // The platform's per-minute rate is applied when SENDING (processOutbox): over it a message
+      // waits in the queue instead of being dropped for good (docs/plans/skalning.md, S-23).
+      const urgent = (t.priority ?? 0) >= 2;
+      if (status === "queued") {
+        if (urgent) {
+          // VMA and red warnings: not stopped by the organization, recipient or property caps,
+          // only by a higher emergency cap of their own (S-24).
+          if (count("emergency") >= this.env.SMS_EMERGENCY_DAILY_LIMIT_PER_ORG) status = "suppressed_limit";
+        } else if (
+          count("org") >= this.env.SMS_DAILY_LIMIT_PER_ORG ||
+          count(`recipient:${scopeKey(recipient.phone_e164)}`) >= r.config.dailyRecipientLimit
+        )
+          status = "suppressed_limit";
+        else {
+          // A property over its cap leaves the group; the SMS goes for the rest (S-25).
+          const over = t.properties.filter((p) => count(`property:${p.id}`) >= r.config.dailyPropertyLimit);
+          if (over.length === t.properties.length) status = "suppressed_limit";
+          else if (over.length) {
+            const left = new Set(over.map((p) => p.id));
+            t = { ...t, properties: t.properties.filter((p) => !left.has(p.id)) };
+            message = this.message(t);
+            parts = estimateSmsParts(message);
+            cost = costOf(parts);
+            const names = over.slice(0, 3).map((p) => p.name).join(", ");
+            const dropped = `${over.length} ${over.length === 1 ? "fastighet" : "fastigheter"} hade redan fått ${r.config.dailyPropertyLimit} SMS i dag och togs bort ur meddelandet: ${names}${over.length > 3 ? ` och ${over.length - 3} till` : ""}.`;
+            detail = detail ? `${detail} ${dropped}` : dropped;
+            if (parts > 12) status = "not_eligible";
+          }
+        }
+        if (status === "queued" && (month?.simulated_messages ?? 0) >= this.env.SMS_SIMULATION_MONTHLY_LIMIT)
+          status = "suppressed_limit";
+      }
       // A positive configured cost cap can also exercise budget suppression in simulation.
       // Real caps stay zero; simulator can run without a price because it incurs no cost.
       if (status === "queued" && this.env.SMS_MAX_GLOBAL_MONTHLY_COST_SEK > 0) {
@@ -758,8 +780,8 @@ export class NotificationService {
         "Simulerad även utan verifiering. Riktig leverans kräver verifierat nummer.";
     const row = (
       await tx.query<{ id: string }>(
-        `INSERT INTO notification_outbox(organization_id,rule_id,recipient_id,dedup_key,rule_name,property_names,message,parts,estimated_cost_sek,status,is_test,verification_required,simulation_scenario,detail,eligible_until)
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) ON CONFLICT(dedup_key) DO NOTHING RETURNING id`,
+        `INSERT INTO notification_outbox(organization_id,rule_id,recipient_id,dedup_key,rule_name,property_names,message,parts,estimated_cost_sek,status,is_test,verification_required,simulation_scenario,detail,eligible_until,priority)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) ON CONFLICT(dedup_key) DO NOTHING RETURNING id`,
         [
           org,
           r.id,
@@ -776,6 +798,7 @@ export class NotificationService {
           scenario,
           detail,
           new Date(now.getTime() + 30 * 60000),
+          t.priority ?? 0,
         ],
       )
     ).rows[0];
@@ -795,33 +818,33 @@ export class NotificationService {
         [now, parts, cost ?? 0],
       );
       await tx.query(
-        `INSERT INTO notification_rate_buckets(minute,messages) VALUES(date_trunc('minute',$1::timestamptz),1)
-        ON CONFLICT(minute) DO UPDATE SET messages=notification_rate_buckets.messages+1`,
-        [now],
-      );
-      await tx.query(
         `INSERT INTO notification_usage(organization_id,month,simulated_messages,simulated_parts,estimated_cost_sek)
         VALUES($1,date_trunc('month',$2::timestamptz AT TIME ZONE 'UTC')::date,1,$3,$4)
         ON CONFLICT(organization_id,month) DO UPDATE SET simulated_messages=notification_usage.simulated_messages+1,simulated_parts=notification_usage.simulated_parts+$3,estimated_cost_sek=notification_usage.estimated_cost_sek+$4`,
         [org, now, parts, cost ?? 0],
       );
-      for (const scope of [
-        "org",
-        `recipient:${scopeKey(recipient.phone_e164)}`,
-        ...t.properties.map((p) => `property:${p.id}`),
-      ]) {
-        await tx.query(
-          `INSERT INTO notification_daily_usage(organization_id,day,scope_key,messages,estimated_cost_sek) VALUES($1,($2::timestamptz AT TIME ZONE 'UTC')::date,$3,1,$4)
-          ON CONFLICT(organization_id,day,scope_key) DO UPDATE SET messages=notification_daily_usage.messages+1,estimated_cost_sek=notification_daily_usage.estimated_cost_sek+$4`,
-          [org, now, scope, cost ?? 0],
-        );
-      }
+      // One statement for every scope (S-26): a group of 300 properties was 302 statements.
+      const scopes = (t.priority ?? 0) >= 2
+        ? ["emergency", ...t.properties.map((p) => `property:${p.id}`)]
+        : ["org", `recipient:${scopeKey(recipient.phone_e164)}`, ...t.properties.map((p) => `property:${p.id}`)];
+      await tx.query(
+        `INSERT INTO notification_daily_usage(organization_id,day,scope_key,messages,estimated_cost_sek)
+         SELECT $1,($2::timestamptz AT TIME ZONE 'UTC')::date,scope,1,$4 FROM unnest($3::text[]) AS scope
+         ON CONFLICT(organization_id,day,scope_key) DO UPDATE SET messages=notification_daily_usage.messages+1,estimated_cost_sek=notification_daily_usage.estimated_cost_sek+$4`,
+        [org, now, scopes, cost ?? 0],
+      );
     }
     return true;
   }
-  async processOutbox(max = 25): Promise<number> {
+  /**
+   * Sends queued SMS until the queue is empty, the platform's per-minute rate is used up or the time
+   * budget runs out (docs/plans/skalning.md, Fas 5 / S-23, S-26). Most urgent first (VMA, red),
+   * then oldest. Over the rate, messages wait for the next minute instead of being dropped.
+   */
+  async processOutbox(budgetMs = 20_000, max = 1_000): Promise<number> {
     let processed = 0;
-    for (let i = 0; i < max; i++) {
+    const started = Date.now();
+    for (let i = 0; i < max && Date.now() - started < budgetMs; i++) {
       const owner = randomUUID();
       const row = await notificationTransaction(this.db, async (tx) => {
         // Only the simulator can be retried after a crash. Future live attempts become unknown.
@@ -834,13 +857,28 @@ export class NotificationService {
         await tx.query(
           "UPDATE notification_outbox SET status='not_eligible',message=NULL,detail='Aktualitetsfönstret har löpt ut' WHERE status IN ('queued','retry') AND eligible_until<now()",
         );
-        return (
+        // Sum both minute buckets touching the rolling 60-second window (conservative at boundaries).
+        const perMinute = Number(
+          (
+            await tx.query<{ n: string }>(
+              "SELECT coalesce(sum(messages),0) AS n FROM notification_rate_buckets WHERE minute>=date_trunc('minute',now()-interval '1 minute')",
+            )
+          ).rows[0]!.n,
+        );
+        if (perMinute >= this.env.SMS_MAX_MESSAGES_PER_MINUTE) return null;
+        const leased = (
           await tx.query<OutboxRow>(
             `UPDATE notification_outbox SET status='processing',lease_owner=$1,lease_until=now()+interval '60 seconds',attempt_count=attempt_count+1,updated_at=now()
-          WHERE id=(SELECT id FROM notification_outbox WHERE status IN ('queued','retry') AND next_attempt_at<=now() AND attempt_count<3 ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING *`,
+          WHERE id=(SELECT id FROM notification_outbox WHERE status IN ('queued','retry') AND next_attempt_at<=now() AND attempt_count<3 ORDER BY priority DESC, created_at FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING *`,
             [owner],
           )
         ).rows[0];
+        if (leased)
+          await tx.query(
+            `INSERT INTO notification_rate_buckets(minute,messages) VALUES(date_trunc('minute',now()),1)
+            ON CONFLICT(minute) DO UPDATE SET messages=notification_rate_buckets.messages+1`,
+          );
+        return leased ?? null;
       });
       if (!row) break;
       processed++;

@@ -173,6 +173,17 @@ describe("SMS management dashboard", () => {
     expect(screen.getByText("Simulerad")).toBeTruthy();
     expect(screen.getByText(/gallras efter 30 dagar/)).toBeTruthy();
   });
+  it("suggests grouping when a rule would send one SMS per property for more than 10 properties (Fas 5 / S-24)", () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({ id: `00000000-0000-4000-8000-0000000001${String(i).padStart(2, "0")}`, name: `Fastighet ${i + 1}` }));
+    render(<SmsManagement initial={{ ...data(), properties: many }} />);
+    fireEvent.change(screen.getByLabelText("Fastigheter"), { target: { value: "all_current" } });
+    expect(screen.queryByRole("note")).toBeNull();
+    fireEvent.click(screen.getByLabelText("Samla samma källhändelse för flera fastigheter i ett SMS"));
+    expect(screen.getByRole("note").textContent).toContain("12 SMS per mottagare");
+    fireEvent.click(screen.getByLabelText("Samla samma källhändelse för flera fastigheter i ett SMS"));
+    expect(screen.queryByRole("note")).toBeNull();
+  });
+
   it("keeps read-only members from editing notification settings", () => {
     render(<SmsManagement initial={{ ...data(), canManage: false }} />);
     expect(screen.getByText("Spara regel").matches(":disabled")).toBe(true);

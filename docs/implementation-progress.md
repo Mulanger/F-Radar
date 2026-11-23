@@ -158,4 +158,14 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
 - Steg 4: kvitteringsrapporten grupperad per händelse (texten en gång), hämtad i ett anrop
   (`/v1/feed/acknowledgements/export`, högst 10 000), byggd i en Web Worker; CSV och sökbart
   fastighetsfilter. 3 000 kvitteringar: 113 s → 0,9 s för den fullständiga rapporten.
+- Steg 4 driftsatt efter en rättning (`24b2146`): PDF-workern importerade modulen som startade den, och
+  då hängde produktionsbygget.
+
+# Skalning – Fas 5: SMS vid stora händelser (2026-11-23)
+
+- Plan: [`plans/skalning.md`](plans/skalning.md), Fas 5 (S-23–S-26). Gren `claude/skalning-fas0`.
+- Minuttakten köar i stället för att spärra; kön går i allvarsordning (VMA och röda först); VMA och röda
+  varningar går förbi dagstaken med ett eget nödtak; fastigheter över sitt tak tas bort ur ett samlat
+  SMS i stället för att spärra det; dagsräknare i en sats och en transaktion per regel. Regelredigeraren
+  föreslår samling när en regel utan samling omfattar fler än 10 fastigheter. Migrering 0023.
 

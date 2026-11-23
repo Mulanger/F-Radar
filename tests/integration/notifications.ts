@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { describe, it } from "node:test";
 import type pg from "pg";
 import { loadServerEnv } from "../../packages/config/src";
@@ -381,6 +381,97 @@ export function registerNotificationTests(pool: pg.Pool) {
       }
     });
 
+    it("Fas 5: a large event queues instead of dropping, VMA passes the daily caps, a group drops only properties over their cap, VMA goes first", async (t) => {
+      const f = await fixture();
+      const day = "(now() AT TIME ZONE 'UTC')::date";
+      try {
+        const ids = [f.p.id, f.p2.id];
+        for (let i = 0; i < 298; i++) {
+          ids.push((await createProperty(pool, { organizationId: f.org, userId: "user_smsAdmin" }, {
+            name: `Länsfastighet ${i}`, address: `Länsgatan ${i}`,
+            location: { lat: 59.21 + (i % 20) * 0.008, lon: 17.91 + Math.floor(i / 20) * 0.012 },
+            geocode: { provider: "manual_pin", precision: "unknown" },
+          })).id);
+        }
+        const byRule = async (rule: string) => (await pool.query<{ status: string; n: number; detail: string | null }>(
+          "SELECT status, cardinality(property_names) AS n, detail FROM notification_outbox WHERE organization_id=$1 AND rule_id=$2 ORDER BY created_at", [f.org, rule])).rows;
+        // The platform minute is full, and five properties already had their three SMS today.
+        await pool.query("INSERT INTO notification_rate_buckets(minute,messages) VALUES(date_trunc('minute',now()),100) ON CONFLICT(minute) DO UPDATE SET messages=100");
+        await pool.query(`INSERT INTO notification_daily_usage(organization_id,day,scope_key,messages,estimated_cost_sek) SELECT $1,${day},'property:'||x,3,0 FROM unnest($2::uuid[]) x`, [f.org, ids.slice(0, 5)]);
+        const grouped = await saveRule(pool, f.org, { ...f.config, name: "Samlad länsvarning", propertyIds: ids });
+        await f.publish();
+        let t0 = performance.now();
+        await f.service.evaluateOrganization(f.org);
+        const groupedMs = Math.round(performance.now() - t0);
+        const g = await byRule(grouped);
+        t.diagnostic(`grouped Orange over 300 (minute full, 5 at cap): ${JSON.stringify(g)} in ${groupedMs} ms`);
+
+        // The recipient has used its daily SMS and the organization its day: a VMA arrives.
+        const phoneKey = `recipient:${createHash("sha256").update("+46701234567").digest("hex")}`;
+        await pool.query(`INSERT INTO notification_daily_usage(organization_id,day,scope_key,messages,estimated_cost_sek) VALUES($1,${day},$2,20,0),($1,${day},'org',20,0)
+          ON CONFLICT(organization_id,day,scope_key) DO UPDATE SET messages=20`, [f.org, phoneKey]);
+        const vmaRule = await saveRule(pool, f.org, { ...f.config, name: "VMA", propertyIds: ids, condition: { category: "vma", updates: true, cancellations: true } as NotificationRuleInput["condition"] });
+        const vmaId = `vma-${randomUUID()}`;
+        await upsertSourceEvents(pool, "krisinformation", [{
+          externalId: vmaId, dataClass: "OFFICIAL_WARNING", category: "Crisis", level: "VMA", severity: "critical", eventType: "VMA",
+          headline: "Testfixture VMA", description: "Isolerad testdata", areaLabel: "Hela landet", countyNames: ["*"],
+          geometry: { type: "Polygon", coordinates: [[[17.9, 59.2], [18.1, 59.2], [18.1, 59.4], [17.9, 59.4], [17.9, 59.2]]] },
+          publishedAt: new Date().toISOString(), sourceUpdatedAt: new Date().toISOString(), validFrom: new Date().toISOString(),
+          validTo: new Date(Date.now() + 3600000).toISOString(), status: "active", sourceUrl: null, attribution: "Testfixture", extra: {},
+        }]);
+        await rematchEvents(pool);
+        await f.service.evaluateOrganization(f.org);
+        const v = await byRule(vmaRule);
+        t.diagnostic(`VMA after the daily caps: ${JSON.stringify(v)}`);
+
+        // One more message fits in this minute: the VMA must go before the earlier Orange warning.
+        await pool.query("UPDATE notification_rate_buckets SET messages=$1 WHERE minute=date_trunc('minute',now())", [f.service.env.SMS_MAX_MESSAGES_PER_MINUTE - 1]);
+        await f.service.processOutbox();
+        const sent = (await pool.query<{ rule_name: string; status: string }>(
+          "SELECT rule_name, status FROM notification_outbox WHERE organization_id=$1 AND status='simulated' ORDER BY updated_at", [f.org])).rows;
+        t.diagnostic(`sent with one free slot: ${JSON.stringify(sent)}`);
+
+        assert.deepEqual(g.map((r) => [r.status, r.n]), [["queued", 295]], "queued for the 295 properties under their cap");
+        assert.match(g[0]!.detail ?? "", /5 fastigheter/);
+        assert.equal(v[0]?.status === "queued" || v[0]?.status === "simulated", true, "the VMA is not stopped by the daily caps");
+        assert.deepEqual(sent.map((r) => r.rule_name), ["VMA"], "only the VMA in the one free slot");
+        await pool.query("UPDATE notification_rate_buckets SET messages=0 WHERE minute=date_trunc('minute',now())");
+        t0 = performance.now();
+        await f.service.processOutbox();
+        t.diagnostic(`drained the rest in ${Math.round(performance.now() - t0)} ms`);
+        await pool.query(`DELETE FROM source_events WHERE external_id=$1`, [vmaId]);
+      } finally {
+        await pool.query("DELETE FROM notification_rate_buckets WHERE minute>=date_trunc('minute',now()-interval '2 minutes')");
+        await f.dispose();
+      }
+    });
+
+    it("Fas 5: an ungrouped rule over 300 properties is evaluated without holding up others for long", async (t) => {
+      const f = await fixture();
+      try {
+        const ids = [f.p.id, f.p2.id];
+        for (let i = 0; i < 298; i++) {
+          ids.push((await createProperty(pool, { organizationId: f.org, userId: "user_smsAdmin" }, {
+            name: `Ensam ${i}`, address: `Ensamgatan ${i}`,
+            location: { lat: 59.21 + (i % 20) * 0.008, lon: 17.91 + Math.floor(i / 20) * 0.012 },
+            geocode: { provider: "manual_pin", precision: "unknown" },
+          })).id);
+        }
+        const rule = await saveRule(pool, f.org, { ...f.config, name: "En per fastighet", propertyIds: ids, groupProperties: false });
+        await f.publish();
+        const t0 = performance.now();
+        await f.service.evaluateOrganization(f.org);
+        const ms = Math.round(performance.now() - t0);
+        const rows = (await pool.query<{ status: string; n: number }>(
+          "SELECT status, count(*)::int AS n FROM notification_outbox WHERE organization_id=$1 AND rule_id=$2 GROUP BY status ORDER BY status", [f.org, rule])).rows;
+        t.diagnostic(`ungrouped Orange over 300: ${JSON.stringify(rows)} in ${ms} ms`);
+        assert.equal(rows.reduce((a, r) => a + r.n, 0), 300);
+      } finally {
+        await pool.query("DELETE FROM notification_rate_buckets WHERE minute>=date_trunc('minute',now()-interval '2 minutes')");
+        await f.dispose();
+      }
+    });
+
     it("does not backfill old events, suppresses quiet hours permanently and enforces daily/monthly/cost caps", async () => {
       for (const type of [
         "old",
@@ -509,11 +600,16 @@ export function registerNotificationTests(pool: pg.Pool) {
           await f.service.evaluateOrganization(f.org, id);
           await f.service.evaluateOrganization(f.org, id);
           const rows = await f.service.activity(f.org);
-          assert.equal(
-            rows.filter((r) => r.status === "queued").length,
-            scope === "minute" ? 0 : 1,
-          );
-          assert.ok(rows.some((r) => r.status === "suppressed_limit"));
+          if (scope === "minute") {
+            // Over the per-minute rate a message waits in the queue instead of being dropped (Fas 5 / S-23).
+            assert.equal(rows.filter((r) => r.status === "queued").length, 2);
+            assert.ok(!rows.some((r) => r.status === "suppressed_limit"));
+            assert.equal(await f.service.processOutbox(), 0, "nothing is sent while the minute is full");
+            assert.equal((await f.service.activity(f.org)).filter((r) => r.status === "queued").length, 2);
+          } else {
+            assert.equal(rows.filter((r) => r.status === "queued").length, 1);
+            assert.ok(rows.some((r) => r.status === "suppressed_limit"));
+          }
         } finally {
           await f.dispose();
         }

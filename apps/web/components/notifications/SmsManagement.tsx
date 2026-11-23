@@ -135,6 +135,12 @@ export async function notificationRequest<T>(
   return data as T;
 }
 
+
+/** A rule that sends one SMS per property: above this many properties the editor suggests grouping (Fas 5 / S-24). */
+export const SPLIT_RULE_WARNING_AT = 10;
+/** How many properties a rule reaches: every property for the "all" scopes, else the selection. */
+export const ruleReach = (scope: string, selected: number, all: number) => (scope === "selected" ? selected : all);
+
 export function SmsManagement({
   initial,
   propertyId,
@@ -1037,6 +1043,12 @@ export function SmsManagement({
                 />
                 Samla samma källhändelse för flera fastigheter i ett SMS
               </label>
+              {!draft.groupProperties && ruleReach(draft.scope, draft.propertyIds.length, data.properties.length) > SPLIT_RULE_WARNING_AT && (
+                <p role="note" style={{ ...cardSub, margin: 0, color: "oklch(0.47 0.12 60)" }}>
+                  En länsvarning kan bli {ruleReach(draft.scope, draft.propertyIds.length, data.properties.length)} SMS per mottagare med
+                  den här regeln, och dagstaket stoppar dem efter {draft.dailyRecipientLimit}. Samla dem i ett SMS?
+                </p>
+              )}
               <div style={row}>
                 <label style={{ ...row, fontSize: 13 }}>
                   <input

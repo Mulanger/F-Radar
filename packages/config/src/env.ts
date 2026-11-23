@@ -143,6 +143,8 @@ export const ServerEnvSchema = z.object({
   ELKS_API_USERNAME: optionalString,
   ELKS_API_PASSWORD: optionalString,
   SMS_DAILY_LIMIT_PER_ORG: intWithDefault(20),
+  /** VMA and red warnings per organization and day: exempt from the ordinary caps, not unlimited (Fas 5 / S-24). */
+  SMS_EMERGENCY_DAILY_LIMIT_PER_ORG: intWithDefault(100),
   SMS_MONTHLY_LIMIT_PER_ORG: intWithDefault(0),
   SMS_GLOBAL_DAILY_BUDGET_SEK: intWithDefault(0),
   /** Explicit owner approval flag required in addition to SMS_ENABLED + SMS_DRY_RUN=false. */

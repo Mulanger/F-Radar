@@ -446,6 +446,8 @@ just de händelser tjänsten finns till för.
   de försöker aldrig igen. Det gäller även VMA.
 - **Åtgärd:** Minuttaket ska **köa** (`queued` med `next_attempt_at` i nästa lediga minut), aldrig
   spärra. Sortera kön så att VMA och röda varningar går först.
+- **Gjort 2026-11-23 (Fas 5 steg 1):** minuttaket gäller när utkorgen SKICKAR; över det väntar meddelandet
+  till nästa minut. Kön sorteras på `priority` (migrering 0023) och sedan ålder.
 
 **S-24 Dagstaken stoppar VMA och tar fel meddelanden först** · P1 · Fas 5
 - **Var:** `SMS_DAILY_LIMIT_PER_ORG` = 20, `dailyRecipientLimit` 5, `dailyPropertyLimit` 3 (`service.ts:711–716`); `evaluateOrganization` (rad 578) går regel för regel i skapandeordning.
@@ -457,12 +459,18 @@ just de händelser tjänsten finns till för.
   ett eget, högre nödtak). Bearbeta utlösare i allvarsordning. Varna i regelredigeraren när en regel
   med `groupProperties: false` omfattar fler än t.ex. 10 fastigheter ("En länsvarning kan bli 300
   SMS – samla i ett SMS?"). Koppla taken till prisnivån i stället för en env-konstant.
+- **Gjort 2026-11-23 (Fas 5 steg 2)** utom taken per prisnivå (datamodellen har inga prisnivåer ännu): VMA
+  och röda varningar går förbi organisationens, mottagarens och fastighetens dagstak men har ett eget
+  nödtak (`SMS_EMERGENCY_DAILY_LIMIT_PER_ORG`, 100); VMA-regler utvärderas först och utlösare i
+  allvarsordning; regelredigeraren varnar när en regel utan samling omfattar fler än 10 fastigheter.
 
 **S-25 En fastighet över sitt dagstak tystar hela det samlade SMS:et** · P1 · Fas 5
 - **Var:** `t.properties.some((p) => count(\`property:${p.id}\`) >= r.config.dailyPropertyLimit)` på [`service.ts:714`](../../apps/api/src/notifications/service.ts).
 - **Vid 200+:** Om en av 300 fastigheter redan fått tre SMS i dag spärras meddelandet för alla 300.
 - **Åtgärd:** Ta bort de fastigheter som nått taket ur gruppen och skicka för resten; spärra bara om
   ingen fastighet återstår. Visa i aktivitetsloggen vilka som togs bort.
+- **Gjort 2026-11-23 (Fas 5 steg 3):** meddelandet byggs om utan dem, och aktivitetsloggen säger hur många
+  och vilka ("5 fastigheter hade redan fått 3 SMS i dag och togs bort ur meddelandet: …").
 
 **S-26 Stora utskick riskerar att aldrig bli klara** · P2 · Fas 5
 - **Var:** `evaluateOrganization` (en transaktion för hela organisationen), `enqueue` (~10 frågor per
@@ -475,6 +483,9 @@ just de händelser tjänsten finns till för.
 - **Åtgärd:** Batcha användningsräknarna (`unnest`), en transaktion per regel, och låt
   `processOutbox` tömma kön inom en tidsbudget i stället för fast 25. Lasttest med en syntetisk
   organisation (Fas 0) innan riktiga SMS.
+- **Gjort 2026-11-23 (Fas 5 steg 4):** dagsräknarna i en sats (`unnest`), en transaktion per regel (det
+  globala SMS-låset hålls per regel i stället för per organisation), `processOutbox` tömmer kön inom
+  20 s eller tills minuttakten är nådd. Lasttest mot riktig PostgreSQL med 300 fastigheter (se Fas 5).
 
 **S-34 Alla bakgrundsjobb körs i en enda kö – larm väntar bakom tunga hämtningar** · P1 · Fas 5
 - **Var:** `MonitoringScheduler.tick` i [`scheduler.ts:64`](../../apps/api/src/monitoring/scheduler.ts) kör varje förfallet jobb med `await` i tur och ordning; ett nytt varv startar 10 s efter att det förra är klart.
@@ -978,6 +989,26 @@ medvetet spärrade med skäl, och att körningen ryms i jobbets tidsgräns.
 API-loggen på podden visar att `sms_notifications` inte väntat mer än 45 s under ett dygn efter
 driftsättning (mäts på samma sätt som i avsnitt 2.3).
 
+**Genomfört steg 1–4 (gren `claude/skalning-fas0`; steg 5 – samlade SMS länkar till händelsesidan –
+gjordes i Fas 2 steg 3):**
+- **Mätning mot riktig PostgreSQL** (organisation med 300 fastigheter, en orange länsvarning,
+  `tests/integration/notifications.ts`, "Fas 5"):
+
+  | Läge | Före | Efter |
+  |---|---|---|
+  | Samlat SMS över 300 fastigheter när minuttakten är full och 5 fastigheter nått dagstaket | `suppressed_limit` för alla 300 – skickas aldrig | köat för 295; loggen namnger de 5 som togs bort |
+  | VMA när mottagaren och organisationen nått dagstaket | `suppressed_limit` | köat för alla 300 |
+  | En ledig plats i minuten, en orange varning och ett VMA i kön | – (inget köat) | VMA:t skickas först |
+  | Regel utan samling över 300 fastigheter (orange) | 5 köade, 295 spärrade, 0,21 s | samma (avsiktligt, mottagarens dagstak), 0,19 s; redigeraren föreslår samling |
+
+- **Ändringar:** minuttakt vid utskick i stället för vid köning (S-23); prioritet i kön (migrering
+  0023); nödundantag med eget tak, VMA-regler och allvarsordning först, varning i regelredigeraren
+  (S-24); fastigheter över taket tas bort ur gruppen (S-25); dagsräknare i en sats, en transaktion per
+  regel, tidsbudget i `processOutbox` (S-26). Befintligt test för minuttakten ändrat: över takten köas
+  meddelandet och skickas inte förrän det finns plats.
+- **Inte gjort:** tak per prisnivå (inga prisnivåer i datamodellen); riktiga SMS är fortfarande
+  avstängda – allt ovan är mätt i simuleringsläget.
+
 ### Fas 6 – Stora kunder in
 
 **Mål:** En kund kan lägga in 500–1000 fastigheter på en eftermiddag.
@@ -1040,5 +1071,6 @@ fastigheter (siffror i Fasloggen).
 | Fas 2 steg 1 | 2026-11-22 | `claude/skalning-fas0` / `8138410`, driftsatt 2026-11-22 18:32 UTC | Flödet vid 500 (testdatabas, länsvarning över 320 + Krisinformation över 500): 1 kort med "30 berörda" → 30 kort, Krisinformation med 500, länsvarningen med 320, trafiken kvar. Menyns larmräknare i demo vid 500: 625 → 126. | Flödet blir 848 rader (~0,5 MB okomprimerat) vid två stora händelser; nyckeltalet "Aktiva larm" räknar fortfarande varning × fastighet |
 | Fas 2 steg 2 | 2026-11-22 | `claude/skalning-fas0` / `3d22f6f`, driftsatt 2026-11-22 19:32 UTC | Kvittera en varning över 500 fastigheter (demo): 500 klick, spärr efter 60 → 1 klick, ett anrop. Riktig PostgreSQL: 300 rader i en sats, 300 historikrader. | "Ångra" efter "Kvittera alla" finns bara tills sidan lämnas (sedan per rad på kvitteringssidan); kvitteringssidan visar 30 rader åt gången (steg 4) |
 | Fas 2 steg 3 | 2026-11-22 | `claude/skalning-fas0` / `dbf4306`, driftsatt 2026-11-22 19:47 UTC | Händelse över 500 fastigheter (demo): en rad per fastighet i flödet → en egen sida med texten en gång, karta, sök och "Kvittera alla". Grupperat SMS: länk till första fastigheten → till händelsesidan. | SMS skickas fortfarande simulerat, så länken i ett riktigt SMS är bara testad via förhandsvisningen; kartans rubrik säger "Portföljkarta" även på händelsesidan |
-| Fas 2 steg 4 | 2026-11-22 | `claude/skalning-fas0` | Kvitteringsrapport för 3 000 kvitteringar (10 händelser à 300): fullständig 113 s / 2,1 MB i huvudtråden → 0,9 s / 388 KB i en Web Worker; hämtning 100 anrop à 30 → 1 anrop. CSV och sökbart fastighetsfilter. | Kvitteringssidans lista på skärmen är fortfarande en rad per fastighet; PDF i workern bara provad i Chromium (webbläsarpanelen) |
+| Fas 2 steg 4 | 2026-11-22 | `claude/skalning-fas0` / `62ab6b9` + `24b2146`, driftsatt 2026-11-23 07:56 UTC | Kvitteringsrapport för 3 000 kvitteringar (10 händelser à 300): fullständig 113 s / 2,1 MB i huvudtråden → 0,9 s / 388 KB i en Web Worker; hämtning 100 anrop à 30 → 1 anrop. CSV och sökbart fastighetsfilter. | Kvitteringssidans lista på skärmen är fortfarande en rad per fastighet; PDF i workern bara provad i Chromium (webbläsarpanelen) |
+| Fas 5 steg 1–4 | 2026-11-23 | `claude/skalning-fas0` | Riktig PostgreSQL, 300 fastigheter: samlat SMS vid full minut och 5 fastigheter vid tak spärrat för alla → köat för 295; VMA efter dagstaken spärrat → köat; VMA skickas före tidigare orange varning. | Tak per prisnivå; riktiga SMS (allt mätt i simulering) |
 
