@@ -1,0 +1,85 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 106,
+    "defaultMapCenterCoords": {
+      "lat": 57.654380798339844,
+      "lng": 11.957380294799805
+    },
+    "hasSearchInput": true,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": false,
+    "showPolygons": true,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": false,
+    "showArchiveDays": null,
+    "showClusterMarkers": false,
+    "id": 225
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 5331,
+      "profileName": "Drift",
+      "profileTitle": "VA",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/waste_water_dark_blue.png",
+      "sortOrder": null,
+      "webMessages": [
+        {
+          "id": 235348,
+          "smsGroupId": 3410837,
+          "smsGroupSendMethod": "ByAddress",
+          "smsGroupGeoObjects": null,
+          "title": "Järnbrott",
+          "text": "<p>Vi kommer att utföra ett arbete på vattenledningarna på Marconigatan under tisdag 24 november mellan klockan 06:00 och 07:45 och i samband med detta så stänger vi av vattnet för markerade fastigheter. Vi arbetar för att få tillbaka vattnet så fort som möjligt.&nbsp;</p><br /><p>Gör inga arbeten på dina egna ledningar under tiden vårt arbete pågår eftersom vattnet kan stängas av senare och sättas på tidigare än planerat.&nbsp;</p><p>Observera att tidsangivelserna är ungefärliga och kan komma att ändras utan att vi särskilt meddelar detta. Det innebär att vattnet kan stängas tidigare eller senare än angivet klockslag</p><br /><p>Tappa upp vatten för behov i förväg.</p>",
+          "profileId": 5331,
+          "criticalStatus": true,
+          "dateExpireUtc": "2026-11-26T07:00:00Z",
+          "dateDelayUtc": "2026-11-23T09:50:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 57.652,
+              "lng": 11.915
+            },
+            {
+              "lat": 57.652,
+              "lng": 11.915
+            }
+          ]
+        },
+        {
+          "id": 235347,
+          "smsGroupId": 3410838,
+          "smsGroupSendMethod": "ByAddress",
+          "smsGroupGeoObjects": null,
+          "title": "Tolered",
+          "text": "<p>Vi kommer att utföra ett arbete på vattenledningarna på Krabbeliderna under tisdag 24 november mellan klockan 09:30 och 14:00 och i samband med detta så stänger vi av vattnet för markerade fastigheter. Vi arbetar för att få tillbaka vattnet så fort som möjligt.&nbsp;</p><br /><p>Gör inga arbeten på dina egna ledningar under tiden som vårt arbete pågår eftersom vattnet kan stängas av senare och sättas på tidigare än planerat.&nbsp;</p><br /><p>Observera att tidsangivelserna är ungefärliga och kan komma att ändras utan att vi särskilt meddelar detta. Det innebär att vattnet kan stängas tidigare eller senare än angivet klockslag</p><p>&nbsp;</p><p>Tappa gärna upp vatten för behov i förväg. När vattnet är avstängt kan du hämta dricksvatten i en vattenpost vid Krabbeliderna 41.</p>",
+          "profileId": 5331,
+          "criticalStatus": true,
+          "dateExpireUtc": "2026-11-26T07:00:00Z",
+          "dateDelayUtc": "2026-11-23T09:50:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 57.734,
+              "lng": 11.907
+            },
+            {
+              "lat": 57.732,
+              "lng": 11.911
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5334,
+      "profileName": "Kundservice",
+      "profileTitle": "VA",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/waste_water_dark_blue.png",
+      "sortOrder": null,
+      "webMessages": []
+    }
+  ]
+}

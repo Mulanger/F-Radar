@@ -1,0 +1,99 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 100,
+    "defaultMapCenterCoords": {
+      "lat": 65.67681884765625,
+      "lng": 22.189680099487305
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": true,
+    "showPolygons": true,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": false,
+    "showArchiveDays": null,
+    "showClusterMarkers": false,
+    "id": 266
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 4404,
+      "profileName": null,
+      "profileTitle": "Vatten och avlopp",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/water-drop-2.png",
+      "sortOrder": null,
+      "webMessages": [
+        {
+          "id": 235302,
+          "smsGroupId": 3410166,
+          "smsGroupSendMethod": "ByAddress",
+          "smsGroupGeoObjects": null,
+          "title": "Vattenläcka i Måttsund",
+          "text": "<p><strong>Uppdatering (22:00):</strong></p><p>Vattenläckan är mer omfattande än vi först bedömde och lagningen tar därför längre tid.</p><p>Kl. 22.00 stänger vi av vattnet i Ersnäs och Antnäs för att skapa en vattenreserv inför morgondagen.</p><p> </p><p>Vatten finns fortsatt att hämta vid:</p><p> •Ersnäs förskola</p><p> •Ersnäs skola</p><p> •Antnäs förskola</p><p> •Antnäs skola</p><p> </p><p>När vattnet slås på igen ska det kokas innan det används till dryck och matlagning, tills provtagning visar att vattnet är tjänligt.</p><br /><p><strong>Uppdatering (18:00):</strong></p><p>Arbetet med att laga läckan är i full gång och förväntas vara klar senare ikväll. Tänk på att vara sparsamma med vattnet under tiden.</p><br /><br /><p><strong>Vattnet är tillbaka i Antnäs och Ersnäs</strong></p><p>Vattnet har nu återkommit, men kan till en början vara missfärgat eller brunt.&nbsp;</p><p>Vi ber alla att <strong>hushålla med vattnet</strong>, eftersom tillgången fortfarande är begränsad.</p><p>Lagningsarbetet av vattenläckan påbörjas inom kort. Vissa hushåll i Måttsund är också påverkade.</p><p>Från <strong>kl. 13.00</strong> finns vattentankar på följande platser:</p><br /><ul><li>Antnäs förskola</li><li>Antnäs skola</li><li>Ersnäs skola</li><li>Ersnäs förskola</li></ul><br /><p>Vi återkommer med mer information när läget förändras.</p>",
+          "profileId": 4404,
+          "criticalStatus": true,
+          "dateExpireUtc": "2026-11-24T11:00:00Z",
+          "dateDelayUtc": "2026-11-23T21:20:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 65.521,
+              "lng": 21.801
+            },
+            {
+              "lat": 65.52,
+              "lng": 21.802
+            }
+          ]
+        },
+        {
+          "id": 232154,
+          "smsGroupId": 3355672,
+          "smsGroupSendMethod": "ByAddress",
+          "smsGroupGeoObjects": null,
+          "title": "Information om reparationsarbete – Klöverträsk Byaväg",
+          "text": "<p>Information om reparationsarbete - Klöverträsk Byaväg</p><br /><p>Med anledning av planerat reparationsarbete kommer framkomligheten att vara begränsad och störningar i vattenleveransen kan förekomma längs Klöverträsk Byaväg.</p><br /><p>Arbetet påbörjas onsdag den 4 november och beräknas pågå i cirka en månad.</p><br /><p>I samband med arbetet kan vattnet tillfälligt bli grumligt. Om detta inträffar rekommenderar vi att spola kallvatten i cirka 15 minuter under uppsikt, eller tills vattnet åter är klart.</p><br /><p>Vi beklagar de eventuella störningar som arbetet kan medföra och tackar för er förståelse.</p><br /><p>Mvh Lumire, Vatten och avlopp.</p>",
+          "profileId": 4404,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-12-04T07:00:00Z",
+          "dateDelayUtc": "2026-11-04T09:50:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 65.634,
+              "lng": 21.407
+            },
+            {
+              "lat": 65.634,
+              "lng": 21.407
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5527,
+      "profileName": null,
+      "profileTitle": "Återvinning och avfall",
+      "cssColor": "Green",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/SilkeborgForsyning/Affald_color.png",
+      "sortOrder": null,
+      "webMessages": [
+        {
+          "id": 235498,
+          "smsGroupId": 0,
+          "smsGroupSendMethod": null,
+          "smsGroupGeoObjects": null,
+          "title": " Försenad insamling delar av Sunderbyn",
+          "text": "<p>Försenad insamling gällande kärl A för villor i Sunderbyn med insamlingsdag 23/11. Insamlingen kommer ske tisdag 24/11. </p>",
+          "profileId": 5527,
+          "criticalStatus": true,
+          "dateExpireUtc": "2026-11-24T15:00:00Z",
+          "dateDelayUtc": "2026-11-23T14:30:00Z",
+          "affectedAddressesCoordinates": null
+        }
+      ]
+    }
+  ]
+}

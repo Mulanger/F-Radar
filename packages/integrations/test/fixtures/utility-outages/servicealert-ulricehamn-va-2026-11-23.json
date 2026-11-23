@@ -1,0 +1,162 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 110,
+    "defaultMapCenterCoords": {
+      "lat": 57.85280990600586,
+      "lng": 13.4514799118042
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": true,
+    "showPolygons": false,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": false,
+    "showArchiveDays": null,
+    "showClusterMarkers": false,
+    "id": 292
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 693,
+      "profileName": null,
+      "profileTitle": "Avfall",
+      "cssColor": "Green",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/waste_dark.png",
+      "sortOrder": null,
+      "webMessages": []
+    },
+    {
+      "id": 689,
+      "profileName": null,
+      "profileTitle": "Elnät",
+      "cssColor": "Yellow",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/electricity.png",
+      "sortOrder": null,
+      "webMessages": [
+        {
+          "id": 234941,
+          "smsGroupId": 0,
+          "smsGroupSendMethod": null,
+          "smsGroupGeoObjects": null,
+          "title": "Planerat Strömavbrott",
+          "text": "<p><span style=\"background-color: rgb(255, 255, 255); color: rgb(64, 64, 64);\">På grund av arbete med vårt ledningsnät kommer strömleveransen att brytas till Bondarp, Åstorp, Ambo, Granared, Stora Björken och Djupedal med omnejd på tisdag 24/11 mellan kl. 10:00-13:00 Med vänlig hälsning Ulricehamns Energi</span></p>",
+          "profileId": 689,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-24T14:00:00Z",
+          "dateDelayUtc": "2026-11-19T13:00:00Z",
+          "affectedAddressesCoordinates": null
+        }
+      ]
+    },
+    {
+      "id": 690,
+      "profileName": null,
+      "profileTitle": "Fibernät",
+      "cssColor": "White",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/cloud_signal.png",
+      "sortOrder": null,
+      "webMessages": []
+    },
+    {
+      "id": 691,
+      "profileName": null,
+      "profileTitle": "Fjärrvärme",
+      "cssColor": "Red",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/radiator.png",
+      "sortOrder": null,
+      "webMessages": []
+    },
+    {
+      "id": 4289,
+      "profileName": null,
+      "profileTitle": "Fordonsgas",
+      "cssColor": "Red",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/exclamation_v2_blue.png",
+      "sortOrder": null,
+      "webMessages": []
+    },
+    {
+      "id": 692,
+      "profileName": null,
+      "profileTitle": "Väg",
+      "cssColor": "Black",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/road.png",
+      "sortOrder": null,
+      "webMessages": [
+        {
+          "id": 234873,
+          "smsGroupId": 0,
+          "smsGroupSendMethod": null,
+          "smsGroupGeoObjects": null,
+          "title": "Avstängning Sanatorievägen, Ulricehamn från v.48",
+          "text": "<p><span style=\"background-color: rgb(255, 255, 255); color: rgb(64, 64, 64);\">Måndag 23 november stängs Sanatorievägen av i höjd med Bäckebovägen.</span></p><p><span style=\"background-color: rgb(255, 255, 255); color: rgb(64, 64, 64);\">Jobbet beräknas pågå i tre veckor. </span>Följ tillfälliga trafikhänvisningar. </p><p><span style=\"background-color: rgb(255, 255, 255); color: rgb(64, 64, 64);\">Tack för visad hänsyn.</span></p><br />",
+          "profileId": 692,
+          "criticalStatus": true,
+          "dateExpireUtc": "2026-12-20T07:00:00Z",
+          "dateDelayUtc": "2026-11-19T09:50:00Z",
+          "affectedAddressesCoordinates": null
+        },
+        {
+          "id": 233483,
+          "smsGroupId": 0,
+          "smsGroupSendMethod": null,
+          "smsGroupGeoObjects": null,
+          "title": "Korsningen Ryttarevägen/Skansörvägen Ulricehamn avstängde från v 46",
+          "text": "<p>Pga omkopplingsarbetet i VA-nätet kommer korsningen Ryttarevägen/Skansörvägen att vara helt avstängd för biltrafik under ett par veckor framöver.</p><p>Tack för visad hänsyn.</p>",
+          "profileId": 692,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-12-04T07:00:00Z",
+          "dateDelayUtc": "2026-11-11T13:40:00Z",
+          "affectedAddressesCoordinates": null
+        }
+      ]
+    },
+    {
+      "id": 694,
+      "profileName": null,
+      "profileTitle": "Vatten & Avlopp",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/water-drop-2.png",
+      "sortOrder": null,
+      "webMessages": [
+        {
+          "id": 234875,
+          "smsGroupId": 0,
+          "smsGroupSendMethod": null,
+          "smsGroupGeoObjects": null,
+          "title": "Underhållsarbete Bäckebovägen, Ulricehamn",
+          "text": "<p>Vi utför underhållsarbeten på ledningsnätet (VA) på Bäckebovägen.</p><p>Följ trafikhänvisningar. Beräknas vara klart under våren 2027. Tack för visad hänsyn.</p>",
+          "profileId": 694,
+          "criticalStatus": true,
+          "dateExpireUtc": "2027-04-01T06:00:00Z",
+          "dateDelayUtc": "2026-11-19T09:50:00Z",
+          "affectedAddressesCoordinates": null
+        },
+        {
+          "id": 233479,
+          "smsGroupId": 3378927,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[13.432975,57.8014],[13.432267,57.801191],[13.432041,57.801266],[13.43158,57.800917],[13.431848,57.800654],[13.432041,57.800417],[13.432428,57.800448],[13.43261,57.800136],[13.433661,57.800282],[13.433361,57.800968],[13.432975,57.8014]]]}}]",
+          "title": "Omkopplingsarbetet Ryttarevägen Ulricehamn från v 46",
+          "text": "<p>Pga omkopplingsarbetet i VA-nätet kommer korsningen Ryttarevägen/Skansörvägen att vara helt avstängd för biltrafik under ett par veckor framöver.</p><p>Tack för visad hänsyn.</p>",
+          "profileId": 694,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-12-04T07:00:00Z",
+          "dateDelayUtc": "2026-11-11T13:40:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 57.801,
+              "lng": 13.432
+            },
+            {
+              "lat": 57.801,
+              "lng": 13.432
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

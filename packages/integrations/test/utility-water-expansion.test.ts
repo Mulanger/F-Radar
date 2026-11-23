@@ -65,3 +65,71 @@ describe('verified national water feeds', () => {
     expect(make('Bevattningsförbud').outages).toHaveLength(0);
   });
 });
+
+const newFixture = (name: string) => readFileSync(new URL(`./fixtures/utility-outages/${name}-2026-11-23.json`, import.meta.url), 'utf8');
+const nsvaFixture = `<script>\nvar nsvaGoogleMaps = ${JSON.stringify(JSON.parse(newFixture('nsva-map')))};\n</script>`;
+const newFeeds = [
+  ['servicealert:goteborg', 'servicealert-goteborg-va', 'point'],
+  ['servicealert:malarenergi-va', 'servicealert-malarenergi-va', 'point'],
+  ['servicealert:gastrike-vatten', 'servicealert-gastrike-va', 'area'],
+  ['servicealert:msva', 'servicealert-msva-va', 'area'],
+  ['servicealert:vaxjo-va', 'servicealert-vaxjo-va', null],
+  ['servicealert:lumire', 'servicealert-lumire-va', 'point'],
+  ['servicealert:molndal-va', 'servicealert-molndalva-va', 'area'],
+] as const;
+const newProbeTime = new Date('2026-11-23T22:00:00Z');
+
+describe('municipal VA expansion with published map responses', () => {
+  it.each(newFeeds)('fetches %s through ServiceAlert with the configured scope', async (id, fixture, precision) => {
+    const op = operatorById(id)!;
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => new Response(newFixture(fixture)));
+    const ctx = { ...context(fetch), now: () => newProbeTime, env: { ...env, UTILITY_OUTAGE_WATER_OPERATORS: id } };
+    const r = await fetchOperatorOutages(op, ctx);
+    expect(fetch.mock.calls[0]?.[1]).toMatchObject({ method: 'POST' });
+    expect(r).toMatchObject({ ok: true, data: { skipped: 0 } });
+    if (!r.ok) throw new Error('Unexpected failure');
+    if (precision === null) expect(r.data.outages).toHaveLength(0);
+    else {
+      expect(r.data.outages.length).toBeGreaterThan(0);
+      for (const row of r.data.outages) expect(row).toMatchObject({
+        utility: 'water', operatorId: id, precision, estimatedRestore: null, actualStart: null, plannedStart: null,
+        geometry: { type: precision === 'point' ? 'MultiPoint' : expect.stringMatching(/Polygon$/) },
+      });
+    }
+  });
+
+  it('requires explicit allowlist entries for all new water sources', () => {
+    const ids = [...newFeeds.map(([id]) => id), 'nsva'];
+    const active = (settings: typeof env) => enabledOperators(undefined, undefined, settings).map((o) => o.id);
+    expect(active(env).filter((id) => ids.includes(id))).toEqual([]);
+    expect(active({ ...env, UTILITY_OUTAGE_WATER_OPERATORS: ids.join(',') }).sort()).toEqual(expect.arrayContaining(ids));
+    expect(active({ ...env, SOURCE_UTILITY_WATER_ENABLED: false, UTILITY_OUTAGE_WATER_OPERATORS: ids.join(',') }).filter((id) => ids.includes(id))).toEqual([]);
+  });
+
+  it('distinguishes an empty water profile from a missing water profile and skips point-only boiling notices', () => {
+    const op = operatorById('servicealert:goteborg')!;
+    const data = JSON.parse(newFixture('servicealert-goteborg-va'));
+    const profile = data.profileSettingsAndMessages[0];
+    const message = profile.webMessages[0];
+    const response = (webMessages: unknown) => ({ ...data, profileSettingsAndMessages: [{ ...profile, webMessages }] });
+    expect(parseServiceAlert(response([]), op, ['water'], newProbeTime)).toMatchObject({ skipped: 0, outages: [] });
+    expect(parseServiceAlert(response(null), op, ['water'], newProbeTime)).toBeNull();
+    expect(parseServiceAlert({ ...data, profileSettingsAndMessages: [] }, op, ['water'], newProbeTime)).toBeNull();
+    expect(parseServiceAlert(response([{ ...message, title: 'Kokningsrekommendation' }]), op, ['water'], newProbeTime)).toMatchObject({ skipped: 1, outages: [] });
+  });
+
+  it('reads current and upcoming NSVA incidents and distinguishes missing map data from an empty map', async () => {
+    const op = operatorById('nsva')!;
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => new Response(nsvaFixture));
+    const ctx = { ...context(fetch), env: { ...env, UTILITY_OUTAGE_WATER_OPERATORS: 'nsva' } };
+    const r = await fetchOperatorOutages(op, ctx);
+    expect(r).toMatchObject({ ok: true, data: { skipped: 0, ignored: 3, outages: [
+      { utility: 'water', kind: 'planned', state: 'upcoming', precision: 'point', plannedStart: null },
+      { utility: 'water', kind: 'unknown', state: 'ongoing', precision: 'point', actualStart: null },
+    ] } });
+    fetch.mockResolvedValueOnce(new Response('<html>Driftinformation</html>'));
+    expect(await fetchOperatorOutages(op, ctx)).toMatchObject({ ok: false, error: 'invalid_payload' });
+    fetch.mockResolvedValueOnce(new Response('var nsvaGoogleMaps = {"items":[]};'));
+    expect(await fetchOperatorOutages(op, ctx)).toMatchObject({ ok: true, data: { skipped: 0, outages: [] } });
+  });
+});

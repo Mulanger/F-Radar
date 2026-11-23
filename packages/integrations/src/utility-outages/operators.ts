@@ -192,12 +192,35 @@ export const UTILITY_OPERATORS: UtilityOperator[] = [
     mapUrl,
     eiNames: [eiName],
   })),
+  {
+    id: 'nsva', name: 'Nordvästra Skånes Vatten och Avlopp', platform: 'nsva', utilities: ['water'],
+    mapUrl: 'https://nsva.se/driftinformation/', pollSeconds: 900, reportsRestored: true, eiNames: [],
+  },
+  ...([
+    ['goteborg', 'Göteborgs Stad, Kretslopp och vatten', 'se.sms-service.dk', 'fa77564a-b727-49a0-ac51-5c748b1d17a5', 'https://goteborg.se/wps/portal/start/bygga-bo-och-leva-hallbart/vatten-och-avlopp/vattenavstangningar-och-andra-storningar/vattenavstangningar', true],
+    ['malarenergi-va', 'Mälarenergi Vatten', 'se.sms-service.dk', '7a1b4c7f-3bfb-4c16-b801-e9fa041fb3fa', 'https://www.malarenergi.se/avbrott/', true],
+    ['gastrike-vatten', 'Gästrike Vatten', 'servicealert.se', 'dc76ea07-473a-4766-a084-bbc7919f1e85', 'https://www.gastrikevatten.se/vattenavlopp/driftstorningar.202.html', false],
+    ['msva', 'MittSverige Vatten & Avfall', 'se.sms-service.dk', '6b6db1c5-bcfa-437b-917d-64a63f77d67c', 'https://msva.se/driftstorningar', false],
+    ['vaxjo-va', 'Växjö kommun', 'se.sms-service.dk', 'e8060849-abad-4481-8327-3afeaeb4feb0', 'https://www.vaxjo.se/sidor/bygga-och-bo/vatten-och-avlopp/aktuella-driftstorningar-for-vatten-och-avlopp.html', false],
+    ['lumire', 'Luleå Miljöresurs', 'se.sms-service.dk', '0e6aba9c-c50e-433f-84d0-a4be23491e89', 'https://lumire.se/driftinformation/', true],
+    ['molndal-va', 'Mölndals stad', 'se.sms-service.dk', 'ad04ffd5-0030-4d77-af1a-bf08680dc18a', 'https://www.molndal.se/bygga-bo-och-miljo/vatten-och-avlopp/vattenavstangningar-och-avbrott', false],
+  ] as const).map(([id, name, host, customerIds, mapUrl, waterAddressPoints]): UtilityOperator => ({
+    id: `servicealert:${id}`, name, platform: 'servicealert', apiBase: `https://${host}/api`,
+    customerIds, mapUrl, utilities: ['water'], eiNames: [],
+    ...(waterAddressPoints ? { waterAddressPoints: true } : {}),
+  })),
 ];
+
+// Keep installations with an unset allowlist on their existing sources.
+const DEFAULT_WATER_OPERATORS = new Set([
+  'svoa', 'tekniskaverken', 'servicealert:soderhamn', 'servicealert:oxelo', 'servicealert:emmaboda',
+  'servicealert:eem', 'servicealert:ljusdal', 'servicealert:ulricehamn',
+]);
 
 export function isWaterOutageEnabled(operatorId: string, flags?: Partial<ServerEnv>): boolean {
   const setting = flags?.UTILITY_OUTAGE_WATER_OPERATORS?.trim();
   return flags?.SOURCE_UTILITY_WATER_ENABLED === true
-    && (!setting || setting.split(',').some((id) => id.trim() === operatorId));
+    && (setting ? setting.split(',').some((id) => id.trim() === operatorId) : DEFAULT_WATER_OPERATORS.has(operatorId));
 }
 
 export function operatorWithEnabledUtilities(op: UtilityOperator, flags?: Partial<ServerEnv>): UtilityOperator {

@@ -140,7 +140,7 @@ export const UtilityOutageViewSchema = z.object({
 });
 export type UtilityOutageView = z.infer<typeof UtilityOutageViewSchema>;
 
-export const OutageCoverageSchema = z.enum(['monitored', 'stale', 'not_monitored', 'unknown']);
+export const OutageCoverageSchema = z.enum(['monitored', 'stale', 'not_monitored', 'no_readable_source', 'unknown']);
 export type OutageCoverage = z.infer<typeof OutageCoverageSchema>;
 
 export const PropertyUtilityStatusSchema = z.object({

@@ -166,6 +166,28 @@ export function registerUtilityOutageTests(pool: pg.Pool) {
       assert.match(row.headline, /inget besked om att den upphört/);
     });
 
+    it('matches public VA address points only as nearby information and keeps drawn areas separate', async () => {
+      const f = await fixture();
+      const points = outage({
+        utility: 'water', kind: 'unknown', state: 'unknown', noticeKind: 'information', precision: 'point',
+        geometry: { type: 'MultiPoint', coordinates: [[LON, LAT], [LON + 0.001, LAT]] },
+      });
+      const area = outage({ utility: 'water', kind: 'unknown', state: 'unknown', noticeKind: 'information', precision: 'area' });
+      await storeUtilityOutages(pool, OP.id, [points, area], true, new Date(), { utilities: ['water'], reportsRestored: true });
+      await rematchUtilityOutages(pool);
+      const pointMatches = await matchesFor(points.externalId);
+      assert.deepEqual(pointMatches.find((m) => m.property_id === f.inside.id), {
+        property_id: f.inside.id, match_method: 'outage_point', effective_severity: null,
+      });
+      assert.ok(!pointMatches.some((m) => m.property_id === f.outside.id || m.property_id === f.adjacent.id));
+      assert.deepEqual(await changesFor(points.externalId), []);
+      const areaMatches = await matchesFor(area.externalId);
+      assert.deepEqual(areaMatches.find((m) => m.property_id === f.inside.id), {
+        property_id: f.inside.id, match_method: 'outage_area', effective_severity: 'info',
+      });
+      assert.ok(!areaMatches.some((m) => m.property_id === f.adjacent.id));
+    });
+
     it('precision per property: inside red, approximate orange, edge panel-only, 200 m nothing', async () => {
       const f = await fixture();
       const o = outage();

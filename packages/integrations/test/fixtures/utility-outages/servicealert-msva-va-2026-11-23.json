@@ -1,0 +1,76 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 194,
+    "mapZoomLevel": 91,
+    "defaultMapCenterCoords": {
+      "lat": 62.16210174560547,
+      "lng": 16.947040557861328
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": true,
+    "showPolygons": true,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": false,
+    "showArchiveDays": null,
+    "showClusterMarkers": false,
+    "id": 541
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 6734,
+      "profileName": null,
+      "profileTitle": "Vatten och avlopp",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/drops.png",
+      "sortOrder": 1,
+      "webMessages": [
+        {
+          "id": 235508,
+          "smsGroupId": 3413266,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[17.031819,61.852426],[17.035398,61.852623],[17.043497,61.84993],[17.051456,61.849552],[17.053272,61.85063],[17.053534,61.853183],[17.052312,61.855373],[17.051579,61.855999],[17.050479,61.855851],[17.048873,61.856073],[17.047093,61.856419],[17.04608,61.856427],[17.044335,61.856641],[17.040599,61.857555],[17.037248,61.856279],[17.031697,61.852986],[17.031819,61.852426]]]}},{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[17.02916,61.860672],[17.027533,61.859761],[17.022704,61.860753],[17.022255,61.861533],[17.022016,61.862631],[17.022942,61.862618],[17.026726,61.861994],[17.02916,61.860672]]]}},{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[17.063801,61.855519],[17.062728,61.855372],[17.062781,61.855078],[17.06349,61.855091],[17.063838,61.855243],[17.063801,61.855519]]]}}]",
+          "title": "Vattenavstängning, Ilsbo",
+          "text": "<p>På tisdag 24 november&nbsp;stänger vi av vattnet från klockan: 08:00 till 16:00&nbsp;&nbsp;på följande adresser:&nbsp;</p><p>Bergsjövägen, Björkstrandsvägen, Bönhusvägen, Idsjövägen, Krogvägen, Sandvägen, Västervägen, Västtjär, Västtjärsvägen, Ågränd, Åstigen, Östervägen</p><p><strong>&nbsp;</strong></p>",
+          "profileId": 6734,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-25T07:00:00Z",
+          "dateDelayUtc": "2026-11-23T15:10:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 61.856,
+              "lng": 17.049
+            },
+            {
+              "lat": 61.852,
+              "lng": 17.047
+            }
+          ]
+        },
+        {
+          "id": 235492,
+          "smsGroupId": 3412941,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[17.377182,62.50517],[17.377107,62.506016],[17.377681,62.506401],[17.376485,62.5066],[17.375692,62.506152],[17.375754,62.505145],[17.377182,62.50517]]]}}]",
+          "title": "Vattenavstängning, Sörberge",
+          "text": "<p>På tisdag 24 november&nbsp;stänger vi av vattnet från klockan: 09:30 till 12:30&nbsp;&nbsp;på följande adresser:&nbsp;</p><p>Radhusgatan</p><p><strong>&nbsp;</strong></p>",
+          "profileId": 6734,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-25T07:00:00Z",
+          "dateDelayUtc": "2026-11-23T14:20:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 62.506,
+              "lng": 17.377
+            },
+            {
+              "lat": 62.506,
+              "lng": 17.377
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

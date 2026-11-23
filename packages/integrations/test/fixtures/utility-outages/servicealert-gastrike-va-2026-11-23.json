@@ -1,0 +1,76 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 90,
+    "defaultMapCenterCoords": {
+      "lat": 60.38875961303711,
+      "lng": 17.542770385742188
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": true,
+    "showPolygons": true,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": false,
+    "showArchiveDays": 30,
+    "showClusterMarkers": false,
+    "id": 733
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 8047,
+      "profileName": null,
+      "profileTitle": "VA",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/SilkeborgForsyning/Vand_color.png",
+      "sortOrder": 1,
+      "webMessages": [
+        {
+          "id": 235331,
+          "smsGroupId": 3410579,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[18.37343,60.261167],[18.373862,60.261251],[18.374648,60.260447],[18.374223,60.260331],[18.37343,60.261167]]]}},{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[18.37515,60.260619],[18.372404,60.25979],[18.372651,60.259618],[18.375341,60.26044],[18.37515,60.260619]]]}},{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[18.371448,60.259425],[18.371802,60.259594],[18.372142,60.259408],[18.371745,60.259285],[18.371448,60.259425]]]}},{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[18.372404,60.259783],[18.372071,60.259696],[18.373239,60.258832],[18.373083,60.25879],[18.373473,60.258779],[18.373593,60.258832],[18.372404,60.259783]]]}},{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[18.374124,60.25938],[18.374216,60.259306],[18.373862,60.259158],[18.373869,60.259004],[18.373607,60.258944],[18.373267,60.259172],[18.373267,60.25932],[18.374124,60.25938]]]}}]",
+          "title": "Vattenavstängning Östhammar",
+          "text": "<p>Uppdatering - Ny tid och dag. Vattnet stängs av till din fastighet vid Engelbrektsgatan samt omkringliggande gator i Östhammars kommun från tisdag 24 november klockan 07:00 till tisdag 24 november cirka klockan 16:00 på grund av ett ledningsarbete. </p><p>Innan dess kan du tappa upp vatten för att kunna dricka och spola toaletten. När vattnet är avstängt använd inte disk- eller tvättmaskiner. Se till att alla vattenkranar är stängda. När vattnet kommer tillbaka kan det bubbla av luft och vara missfärgat. Det är inte farligt. Låt kallt vatten rinna ur flera kranar tills vattnet ser klart ut igen. </p><br /><p>More information and in other languages please visit <a href=\"http://www.gastrikevatten.se\" rel=\"noopener noreferrer\" target=\"_blank\">www.gastrikevatten.se.</a></p>",
+          "profileId": 8047,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-24T15:10:00Z",
+          "dateDelayUtc": "2026-11-23T09:00:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 60.26,
+              "lng": 18.373
+            },
+            {
+              "lat": 60.26,
+              "lng": 18.372
+            }
+          ]
+        },
+        {
+          "id": 235295,
+          "smsGroupId": 3410090,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[17.415749,60.641692],[17.417488,60.642186],[17.418271,60.64192],[17.418609,60.641347],[17.418303,60.640821],[17.416785,60.640747],[17.415567,60.641126],[17.415749,60.641692]]]}}]",
+          "title": "Vattenavstängning Fyrtornet  Skutskär",
+          "text": "<p>Vattnet stängs av till din fastighet vid Fyrtornet 3,5,7,9,11,13,15,8,10,12,14,16,18,20,22,24,26 i Skutskär, Älvkarleby kommun från tisdag 24 november klockan 08:00 till tisdag 24 november cirka klockan 11:00 på grund av ett ledningsarbete. </p><p>Innan dess kan du tappa upp vatten för att kunna dricka och spola toaletten. När vattnet är avstängt använd inte disk- eller tvättmaskiner. Se till att alla vattenkranar är stängda. När vattnet kommer tillbaka kan det bubbla av luft och vara missfärgat. Det är inte farligt. Låt kallt vatten rinna ur flera kranar tills vattnet ser klart ut igen. </p><br /><p>More information and in other languages please visit <a href=\"http://www.gastrikevatten.se\" rel=\"noopener noreferrer\" target=\"_blank\">www.gastrikevatten.se.</a></p>",
+          "profileId": 8047,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-24T10:10:00Z",
+          "dateDelayUtc": "2026-11-23T08:00:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 60.642,
+              "lng": 17.416
+            },
+            {
+              "lat": 60.641,
+              "lng": 17.417
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

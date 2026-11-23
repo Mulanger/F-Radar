@@ -1,0 +1,112 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 105,
+    "defaultMapCenterCoords": {
+      "lat": 59.31727981567383,
+      "lng": 16.53692054748535
+    },
+    "hasSearchInput": true,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": true,
+    "showPolygons": true,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": false,
+    "showArchiveDays": 20,
+    "showClusterMarkers": false,
+    "id": 412
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 6541,
+      "profileName": null,
+      "profileTitle": "Elnät",
+      "cssColor": "Red",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/power-plug.png",
+      "sortOrder": 3,
+      "webMessages": []
+    },
+    {
+      "id": 6547,
+      "profileName": null,
+      "profileTitle": "Fjärrvärme",
+      "cssColor": "Black",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/factory.png",
+      "sortOrder": 4,
+      "webMessages": []
+    },
+    {
+      "id": 6549,
+      "profileName": null,
+      "profileTitle": "Vatten",
+      "cssColor": "Red",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/water_drop.png",
+      "sortOrder": 6,
+      "webMessages": [
+        {
+          "id": 235416,
+          "smsGroupId": 3411701,
+          "smsGroupSendMethod": "ByAddress",
+          "smsGroupGeoObjects": null,
+          "title": "Planerad vattenavstängning",
+          "text": "<p>Vattnet stängs av på grund av ett planerat arbete på ledningsnätet.</p><br /><p><strong style=\"color: rgb(51, 51, 51);\">Berört område:</strong><span style=\"color: rgb(51, 51, 51);\"> Eskilstuna: Kamhagsvägen</span></p><p><strong style=\"color: rgb(51, 51, 51);\">Antal berörda adresser:</strong> 3</p><p><strong>Arbetstyp:</strong> Omkopplingsarbete&nbsp;</p><p><strong>Starttid:</strong> tisdag 24 november 10:00&nbsp;</p><p><strong>Beräknad sluttid:</strong> tisdag 24 november 13:00&nbsp;</p><p>&nbsp;</p><p>Under tiden vi utför arbetet behöver vi stänga av vattnet på ovanstående adresser. Vid behov ber vi er att tappa upp vatten innan avstängningen. Efter avstängningen kan missfärgat vatten förekomma. Undvik att tvätta vittvätt om du upplever missfärgat vatten då det kan missfärga din tvätt. Spola vattnet tills det är klart igen, med fördel så nära vattenmätaren som möjligt.</p>",
+          "profileId": 6549,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-25T07:00:00Z",
+          "dateDelayUtc": "2026-11-23T12:00:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 59.392,
+              "lng": 16.415
+            },
+            {
+              "lat": 59.392,
+              "lng": 16.416
+            }
+          ]
+        },
+        {
+          "id": 235236,
+          "smsGroupId": 3409487,
+          "smsGroupSendMethod": "ByAddress",
+          "smsGroupGeoObjects": null,
+          "title": "Vattenläcka",
+          "text": "<p>Vattenläckan är nu åtgärdad och vattnet påkopplat.</p><br /><p><strong style=\"color: rgb(51, 51, 51);\">Berört område:</strong><span style=\"color: rgb(51, 51, 51);\"> Eskilstuna: Albanovägen, Brunnsallén, Hällbyvägen, Stationsvägen</span></p><p><strong>Avhjälpt:</strong> måndag 23 november 00:40</p><br /><p>Efter en vattenavstängning kan missfärgat vatten förekomma. Undvik att tvätta vittvätt om du upplever missfärgat vatten då det kan missfärga din tvätt. Spola vattnet tills det är klart igen och med fördel så nära vattenmätaren som möjligt.&nbsp;</p><br /><p>--------------</p><p><span style=\"color: rgb(51, 51, 51);\">Just nu har vi en vattenläcka som påverkar dig som bor på någon av nedanstående adresser. Vi behöver därför stänga av vattnet för alla boende och verksamheter i området.</span></p><br /><p><strong style=\"color: rgb(51, 51, 51);\">Berört område:</strong><span style=\"color: rgb(51, 51, 51);\"> Eskilstuna: Albanovägen, Brunnsallén, Hällbyvägen, Stationsvägen</span></p><p><strong style=\"color: rgb(51, 51, 51);\">Antal berörda adresser:</strong> 63</p><p><strong>Starttid:</strong> söndag 22 november 13:30&nbsp;</p><p><strong>Status:</strong> Felsökning pågår</p><br /><p>Efter avstängningen kan missfärgat vatten förekomma. Undvik att tvätta vittvätt om du upplever missfärgat vatten då det kan missfärga din tvätt. Spola vattnet tills det är klart igen och med fördel så nära vattenmätaren som möjligt.</p>",
+          "profileId": 6549,
+          "criticalStatus": true,
+          "dateExpireUtc": "2026-11-23T23:35:00Z",
+          "dateDelayUtc": "2026-11-22T23:30:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 59.388,
+              "lng": 16.435
+            },
+            {
+              "lat": 59.388,
+              "lng": 16.435
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6542,
+      "profileName": null,
+      "profileTitle": "Stadsnät",
+      "cssColor": "Yellow",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/wifi_network.png",
+      "sortOrder": 5,
+      "webMessages": []
+    },
+    {
+      "id": 6544,
+      "profileName": null,
+      "profileTitle": "Återvinning",
+      "cssColor": "Green",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/SilkeborgForsyning/Affald_color.png",
+      "sortOrder": 1,
+      "webMessages": []
+    }
+  ]
+}

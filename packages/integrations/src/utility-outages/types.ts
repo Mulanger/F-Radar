@@ -67,7 +67,7 @@ export interface ConcessionArea {
   geometry: GeoJsonGeometry;
 }
 
-export type UtilityOperatorPlatform = 'vattenfall' | 'digpro' | 'goteborg_energi' | 'ellevio' | 'tekniskaverken' | 'trimble' | 'eon' | 'servicealert' | 'umea' | 'skekraft' | 'svoa';
+export type UtilityOperatorPlatform = 'vattenfall' | 'digpro' | 'goteborg_energi' | 'ellevio' | 'tekniskaverken' | 'trimble' | 'eon' | 'servicealert' | 'umea' | 'skekraft' | 'svoa' | 'nsva';
 
 interface OperatorBase {
   /** Observed connection/blocking failures from France; optional Swedish CONNECT egress. */
@@ -94,6 +94,7 @@ export type UtilityOperator =
   | (OperatorBase & { platform: 'umea'; dataUrl: string })
   | (OperatorBase & { platform: 'skekraft'; dataUrl: string })
   | (OperatorBase & { platform: 'svoa'; dataUrl: string })
+  | (OperatorBase & { platform: 'nsva' })
   | (OperatorBase & { platform: 'goteborg_energi'; apiBase: string; utilityTypeIds: Partial<Record<UtilityKind, string>> })
   | (OperatorBase & { platform: 'ellevio'; loadUrl: string; version: string })
   | (OperatorBase & { platform: 'tekniskaverken'; apiBase: string; brand: string })
@@ -101,4 +102,4 @@ export type UtilityOperator =
   | (OperatorBase & { platform: 'trimble'; base: string; scope: string; utilityScopes?: Partial<Record<UtilityKind, string>> })
   | (OperatorBase & { platform: 'eon'; base: string })
   /** ServiceAlert (sms-service.dk / servicealert.se) driftstatus map. */
-  | (OperatorBase & { platform: 'servicealert'; apiBase: string; customerIds: string; profileUtilities?: Record<string, UtilityKind> });
+  | (OperatorBase & { platform: 'servicealert'; apiBase: string; customerIds: string; profileUtilities?: Record<string, UtilityKind>; waterAddressPoints?: true });

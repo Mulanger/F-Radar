@@ -1,0 +1,61 @@
+{
+  "frontend": "yes",
+  "lat": "56.105000",
+  "lng": "13.308941",
+  "zoom": "9",
+  "items": [
+    {
+      "id": 18332,
+      "lat": 55.9993317,
+      "lng": 13.0849232,
+      "title": "Vattenläcka",
+      "statusTypeLabel": "Avslutad driftstörning",
+      "url": "https://nsva.se/driftinformation/vattenlacka/",
+      "mapIcon": "incident_finished"
+    },
+    {
+      "id": 18331,
+      "lat": 56.138784,
+      "lng": 12.7942421,
+      "title": "Underhåll med vattenavstängning – Helsingborg (Kattarp)",
+      "statusTypeLabel": "Kommande driftstörning",
+      "url": "https://nsva.se/driftinformation/underhall-med-vattenavstangning-helsingborg-kattarp/",
+      "mapIcon": "incident_future"
+    },
+    {
+      "id": 18327,
+      "lat": 55.9981096,
+      "lng": 12.9612327,
+      "title": "Reparation av spillvattenledning, Grågatan m.fl.",
+      "statusTypeLabel": "Pågående driftstörning",
+      "url": "https://nsva.se/driftinformation/reparation-av-spillvattenledning-gragatan-m-fl/",
+      "mapIcon": "incident_publish"
+    },
+    {
+      "id": 18254,
+      "lat": 55.8474733,
+      "lng": 12.9733882,
+      "title": "Inkoppling till kommunala vatten- och avloppsnätet, Markhögsvägen",
+      "statusTypeLabel": "Pågående arbete",
+      "url": "https://nsva.se/driftinformation/inkoppling-till-vatten-och-avloppsnatet-markhogsvagen/",
+      "mapIcon": "maintenance_publish"
+    },
+    {
+      "id": 18138,
+      "lat": null,
+      "lng": null,
+      "title": "Separering av ledningar, Stora Norregatan med flera",
+      "statusTypeLabel": "Kommande arbete",
+      "url": "https://nsva.se/driftinformation/separering-av-ledningar-stora-norregatan-med-flera/",
+      "mapIcon": "maintenance_future"
+    }
+  ],
+  "icons": {
+    "maintenance_publish": "https://nsva.se/wp-content/plugins/modularity-nsva-addons/inc/images/PinBlue.svg",
+    "maintenance_future": "https://nsva.se/wp-content/plugins/modularity-nsva-addons/inc/images/PinOutlineBlue.svg",
+    "maintenance_finished": "https://nsva.se/wp-content/plugins/modularity-nsva-addons/inc/images/PinGreyBlue.svg",
+    "incident_publish": "https://nsva.se/wp-content/plugins/modularity-nsva-addons/inc/images/PinYellow.svg",
+    "incident_future": "https://nsva.se/wp-content/plugins/modularity-nsva-addons/inc/images/PinOutlineYellow.svg",
+    "incident_finished": "https://nsva.se/wp-content/plugins/modularity-nsva-addons/inc/images/PinGreyYellow.svg"
+  }
+}

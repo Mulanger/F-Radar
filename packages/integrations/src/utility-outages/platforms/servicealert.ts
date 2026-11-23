@@ -10,9 +10,8 @@ import { waterNoticeHeading, boilingEndedHeading } from './water-notices';
  * ServiceAlert (sms-service.dk) "driftstatus" map – POST https://se.sms-service.dk/api/WebMessage/
  * GetDriftstatusWebMessagesMapModel with body { customerIds: "<uuid>" } (verified 2026-11-14).
  * Messages per profile ("Elnät", "Fjärrvärme", …) with an operator-drawn area (point + radius or
- * polygon), a title and HTML text. There is no structured start time or planned/fault flag – only
- * free text – so messages are kind 'unknown', state 'unknown', precision 'area': shown in the property
- * panel, never in the feed as a fact and never as SMS. `dateExpireUtc` is kept as the end time.
+ * polygon), a title and HTML text. Some water profiles publish address coordinates instead.
+ * Publication and expiry times describe the message. They do not establish the interruption times.
  */
 export const ServiceAlertPayload = z
   .object({
@@ -32,6 +31,8 @@ const Message = z
     title: z.string().nullish(),
     text: z.string().nullish(),
     smsGroupGeoObjects: z.string().nullish(),
+    smsGroupSendMethod: z.string().nullish(),
+    affectedAddressesCoordinates: z.unknown(),
     dateExpireUtc: z.string().nullish(),
     dateDelayUtc: z.string().nullish(),
     criticalStatus: z.boolean().nullish(),
@@ -44,7 +45,7 @@ const Message = z
  */
 export function serviceAlertProfile(title: string | null | undefined): { utility: UtilityKind; kind: OutageKind } | null {
   const t = (title ?? '').trim().toLowerCase();
-  const utility: UtilityKind | null = t.startsWith('elnät') || t === 'el' ? 'electricity' : t.startsWith('fjärrvärme') ? 'district_heating' : t.startsWith('fjärrkyla') ? 'district_cooling' : t === 'va' || /^vatten(?:$|\s)/.test(t) ? 'water' : null;
+  const utility: UtilityKind | null = t.startsWith('elnät') || t === 'el' ? 'electricity' : t.startsWith('fjärrvärme') ? 'district_heating' : t.startsWith('fjärrkyla') ? 'district_cooling' : t === 'va' || t === 'va distribution' || /^vatten(?:$|\s)/.test(t) ? 'water' : null;
   if (!utility) return null;
   const kind: OutageKind = /akut|driftstörning|oplanerad/.test(t) ? 'unplanned' : /planer/.test(t) ? 'planned' : 'unknown';
   return { utility, kind };
@@ -93,16 +94,27 @@ export function serviceAlertAreas(geo: string | null | undefined): LonLat[][][] 
   return polys.length ? polys : null;
 }
 
+const AddressPoints = z.array(z.object({ lat: z.number(), lng: z.number() })).min(1);
+
+function serviceAlertAddressPoints(raw: unknown): LonLat[] | null {
+  const parsed = AddressPoints.safeParse(raw);
+  if (!parsed.success) return null;
+  const points = parsed.data.map(({ lat, lng }): LonLat => [lng, lat]);
+  return points.every(inSweden) ? points : null;
+}
+
 export function parseServiceAlert(raw: unknown, op: UtilityOperator, utilities: UtilityKind[], now: Date): OutageFetchResult | null {
   const p = ServiceAlertPayload.safeParse(raw);
   if (!p.success) return null;
   const outages: NormalizedUtilityOutage[] = [];
   const skipped = new Map<UtilityKind, number>();
+  let hasWaterProfile = false;
   let ignored = 0;
   for (const profile of p.data.profileSettingsAndMessages) {
     const mapped = op.platform === 'servicealert' ? op.profileUtilities?.[profile.profileTitle ?? ''] : undefined;
     const prof = mapped ? { utility: mapped, kind: 'unknown' as const } : serviceAlertProfile(profile.profileTitle);
     const utility = prof?.utility;
+    if (utility === 'water' && Array.isArray(profile.webMessages)) hasWaterProfile = true;
     for (const rawMsg of profile.webMessages ?? []) {
       if (!prof || !utility || !utilities.includes(utility)) {
         ignored++;
@@ -118,19 +130,22 @@ export function parseServiceAlert(raw: unknown, op: UtilityOperator, utilities: 
         ignored++;
         continue;
       }
-      const polys = serviceAlertAreas(m.data.smsGroupGeoObjects);
-      const geometry = polys ? polygonsToGeoJson(polys) : null;
-      if (!geometry) {
-        // Recognised notices without a published area cannot mean "no outages". Coordinate-only
-        // address dots are not an outage polygon; do not draw an invented hull or radius around them.
-        skipped.set(utility, (skipped.get(utility) ?? 0) + 1);
-        continue;
-      }
       const title = m.data.title?.trim() || null;
       const body = htmlToText(m.data.text);
       const notice = utility === 'water' ? waterNoticeHeading(title ?? '') : null;
       if (notice === 'water_restriction') { ignored++; continue; }
       const boiling = notice === 'boil_water';
+      const area = serviceAlertAreas(m.data.smsGroupGeoObjects);
+      // Only the documented ByAddress representation may fall back to points. A boiling
+      // recommendation needs a published area; a nearby marker cannot establish that scope.
+      const points = !area && utility === 'water' && !boiling && m.data.smsGroupSendMethod === 'ByAddress'
+        && op.platform === 'servicealert' && op.waterAddressPoints
+        ? serviceAlertAddressPoints(m.data.affectedAddressesCoordinates) : null;
+      const geometry = area ? polygonsToGeoJson(area) : points ? { type: 'MultiPoint' as const, coordinates: points } : null;
+      if (!geometry) {
+        skipped.set(utility, (skipped.get(utility) ?? 0) + 1);
+        continue;
+      }
       const boilingEnded = boiling && boilingEndedHeading(title ?? '');
       outages.push({
         noticeKind: notice ?? (utility === 'water' && prof.kind === 'unknown' ? 'information' : 'outage'),
@@ -146,9 +161,9 @@ export function parseServiceAlert(raw: unknown, op: UtilityOperator, utilities: 
         plannedStart: null,
         plannedEnd: null,
         actualStart: null,
-        estimatedRestore: end,
+        estimatedRestore: utility === 'water' ? null : end,
         restoredAt: null,
-        precision: 'area',
+        precision: points ? 'point' : 'area',
         geometry,
         addresses: null,
         postalCodes: [],
@@ -161,6 +176,7 @@ export function parseServiceAlert(raw: unknown, op: UtilityOperator, utilities: 
       });
     }
   }
+  if (utilities.includes('water') && !hasWaterProfile) return null;
   return { outages, skipped: [...skipped.values()].reduce((n, count) => n + count, 0), ignored, sourceUpdatedAt: null,
     ...(utilities.length > 1 && hasIncompleteUtilityLayer(outages, skipped) ? { incomplete: true } : {}) };
 }

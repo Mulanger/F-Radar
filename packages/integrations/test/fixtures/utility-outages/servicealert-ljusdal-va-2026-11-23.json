@@ -1,0 +1,95 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 93,
+    "defaultMapCenterCoords": {
+      "lat": 61.8920783996582,
+      "lng": 15.892939567565918
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": true,
+    "showPolygons": true,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": true,
+    "showArchiveDays": 30,
+    "showClusterMarkers": false,
+    "id": 656
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 7822,
+      "profileName": null,
+      "profileTitle": "Elnät",
+      "cssColor": "Red",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/power-plug-2.png",
+      "sortOrder": 1,
+      "webMessages": [
+        {
+          "id": 234203,
+          "smsGroupId": 3390952,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[16.10679,61.833898],[16.102171,61.834979],[16.102094,61.834993],[16.102013,61.834999],[16.101931,61.834998],[16.101851,61.83499],[16.101776,61.834974],[16.101709,61.834951],[16.101653,61.834923],[16.10161,61.83489],[16.10158,61.834854],[16.101567,61.834815],[16.101569,61.834777],[16.101588,61.834739],[16.101622,61.834703],[16.101669,61.834672],[16.101729,61.834645],[16.101799,61.834625],[16.106462,61.833533],[16.106555,61.833517],[16.118089,61.832276],[16.11817,61.832271],[16.118252,61.832274],[16.118332,61.832284],[16.118405,61.832301],[16.11847,61.832325],[16.118524,61.832355],[16.118565,61.832388],[16.118591,61.832425],[16.118601,61.832463],[16.118595,61.832502],[16.118574,61.83254],[16.118537,61.832574],[16.118487,61.832605],[16.118424,61.83263],[16.118353,61.83265],[16.118275,61.832662],[16.10679,61.833898]]]}}]",
+          "title": "Begränsad framkomlighet på Gärdeåsvägen Ljusdal",
+          "text": "<p><span style=\"color: black;\">Ljusdal Elnät kommer att utföra underhållsarbeten på Gärdåsvägen vilket kommer leda till begränsad framkomlighet under arbetet.</span></p><br /><p><span style=\"color: black;\">Arbetet startar 2026-11-16&nbsp;och pågå i ca 1 månad framåt mellan 07:00-16:00</span></p><p>Kontakta Kundservice vid eventuella frågor, tel [telefon borttagen].</p>",
+          "profileId": 7822,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-12-04T07:00:00Z",
+          "dateDelayUtc": "2026-11-16T12:30:00Z",
+          "affectedAddressesCoordinates": null
+        }
+      ]
+    },
+    {
+      "id": 7839,
+      "profileName": null,
+      "profileTitle": "Fjärrvärme",
+      "cssColor": "Green",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/radiator.png",
+      "sortOrder": 2,
+      "webMessages": []
+    },
+    {
+      "id": 7841,
+      "profileName": null,
+      "profileTitle": "Renhållning",
+      "cssColor": "Yellow",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/waste_dark.png",
+      "sortOrder": 3,
+      "webMessages": []
+    },
+    {
+      "id": 7840,
+      "profileName": null,
+      "profileTitle": "Stadsnät",
+      "cssColor": "Black",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/segment-icons/tv_pink.png",
+      "sortOrder": 4,
+      "webMessages": []
+    },
+    {
+      "id": 7821,
+      "profileName": null,
+      "profileTitle": "Vatten och avlopp",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/waste_water_dark_blue.png",
+      "sortOrder": 5,
+      "webMessages": [
+        {
+          "id": 235322,
+          "smsGroupId": 3410419,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{  \"type\": \"Feature\",  \"properties\": {    \"radius\": 1183.437784252661  },  \"geometry\": {    \"type\": \"Point\",    \"coordinates\": [      16.19881759263412,      61.79901471213339    ]  }}]",
+          "title": "Driftstörning vatten - Hybo",
+          "text": "<p>2026-11-23 09:46</p><p>Vi har en driftstörning som drabbar kunder anslutna till det kommunala vattennätet i ditt område.</p><p>Reparation pågår och förväntas vara klart till ca 12.00 idag.</p>",
+          "profileId": 7821,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-26T07:00:00Z",
+          "dateDelayUtc": "2026-11-23T08:40:00Z",
+          "affectedAddressesCoordinates": null
+        }
+      ]
+    }
+  ]
+}

@@ -141,6 +141,16 @@ describe('<LocalEventsPanel /> with outages', () => {
     expect(row).not.toContain('Berör fastigheten');
   });
 
+  it('shows water point notices as nearby with a source and no claim of impact', () => {
+    const point = view({ utility: 'water', operatorName: 'VA-bolaget', matchMethod: 'outage_point', precisionLevel: 'low', severity: null });
+    const water = { ...status({ nearby: [point] }), utility: 'water' as const };
+    render(<LocalEventsPanel d={d(outageEventsFor(snap(water)))} />);
+    const row = screen.getByTestId('outage-event').textContent!;
+    expect(row).toContain('Det är oklart om fastigheten berörs');
+    expect(row).not.toContain('Berör fastigheten');
+    expect(screen.getByRole('link', { name: /VA-bolaget · avbrottskarta/ })).toBeTruthy();
+  });
+
   it('opens an outage with an area on the map – also when it is over – and not one known only by addresses', async () => {
     const restored = view({ id: 'natur-1', state: 'restored', restoredAt: '2026-11-17T14:40:00.000Z', operatorName: 'Ellevio' });
     const addresses = view({ id: 'addr', geometry: null as never });

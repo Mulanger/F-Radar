@@ -1,0 +1,31 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 100,
+    "defaultMapCenterCoords": {
+      "lat": 56.89025115966797,
+      "lng": 14.817119598388672
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": false,
+    "showPolygons": false,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": true,
+    "showArchiveDays": null,
+    "showClusterMarkers": false,
+    "id": 35
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 726,
+      "profileName": "VA",
+      "profileTitle": "VA",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/water_valve_drop.png",
+      "sortOrder": null,
+      "webMessages": []
+    }
+  ]
+}

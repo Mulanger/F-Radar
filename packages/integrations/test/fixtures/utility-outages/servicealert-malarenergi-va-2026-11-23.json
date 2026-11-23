@@ -1,0 +1,54 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 102,
+    "defaultMapCenterCoords": {
+      "lat": 59.66984176635742,
+      "lng": 16.607330322265625
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": true,
+    "showPolygons": true,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": false,
+    "showArchiveDays": null,
+    "showClusterMarkers": false,
+    "id": 535
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 7174,
+      "profileName": null,
+      "profileTitle": "VA Distribution",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/water-drop-2.png",
+      "sortOrder": 1,
+      "webMessages": [
+        {
+          "id": 235404,
+          "smsGroupId": 3411485,
+          "smsGroupSendMethod": "ByAddress",
+          "smsGroupGeoObjects": null,
+          "title": "Planerat vattenavbrott",
+          "text": "<p>På grund av arbete på ledningsnätet kommer vi behöva stänga av vattnet till er fastighet i Västerås på Varmfrontsgatan 2026/11/24 13:00 till 2026/11/24 16:00. (Eventuellt kan vattnet slås på tidigare)</p><br /><p>Tappa gärna upp vatten för ditt eget behov. Arbetet kan tillfälligt göra vattnet missfärgat. Spola då tills vattnet blir klart.</p>",
+          "profileId": 7174,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-24T17:00:00Z",
+          "dateDelayUtc": "2026-11-23T11:40:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 59.607,
+              "lng": 16.604
+            },
+            {
+              "lat": 59.606,
+              "lng": 16.604
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

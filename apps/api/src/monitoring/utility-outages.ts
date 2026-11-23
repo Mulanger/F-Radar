@@ -37,6 +37,7 @@ import {
   type UtilityOperator,
 } from '@fastighetsradar/integrations';
 import type { JobContext, JobResult, MonitoringJob } from './jobs';
+import { municipalWaterProvider } from './water-operators';
 
 /**
  * Grid operators' outage maps (docs/plans/stromavbrott.md): one collector job per operator,
@@ -275,18 +276,20 @@ export function propertyUtilityStatus(propertyId: string, inputs: UtilityInputs,
     // by the same exact concession-holder mapping without editing production reference data.
     operator_id: utility === 'electricity' && c.operator_id.startsWith('ei:') ? operatorIdForEiName(c.operator_name ?? c.operator_id.slice(3)) : c.operator_id,
   }));
-  if (!rows.length && utility === 'water') {
-    const name = inputs.municipalities?.find((p) => p.property_id === propertyId)?.municipality?.trim().toLocaleLowerCase('sv').replace(/\s+(?:kommun|stad)$/, '');
-    // Verified principal areas: SVOA's official glossary and Tekniska verken's Linköping VA page.
-    const id = name && ['stockholm', 'stockholms', 'huddinge'].includes(name) ? 'svoa' : name && ['linköping', 'linköpings'].includes(name) ? 'tekniskaverken' : null;
-    if (id) rows.push({ property_id: propertyId, operator_id: id, operator_name: id === 'svoa' ? 'Stockholm Vatten och Avfall' : 'Tekniska verken' });
-  }
+  const water = !rows.length && utility === 'water'
+    ? municipalWaterProvider(inputs.municipalities?.find((p) => p.property_id === propertyId)?.municipality)
+    : undefined;
+  if (water?.publication === 'connected') rows.push({ property_id: propertyId, operator_id: water.id, operator_name: water.name });
   const ids = [...new Set(rows.map((c) => c.operator_id))];
-  const nameOf = (id: string) => inputs.operators.find((o) => o.operatorId === id)?.name ?? rows.find((r) => r.operator_id === id && r.operator_name)?.operator_name ?? id.replace(/^ei:/, '');
+  const nameOf = (id: string) => water?.id === id ? water.name
+    : inputs.operators.find((o) => o.operatorId === id)?.name ?? rows.find((r) => r.operator_id === id && r.operator_name)?.operator_name ?? id.replace(/^ei:/, '');
   let operator: PropertyUtilityStatus['operator'] = null;
   let coverage: PropertyUtilityStatus['coverage'] = 'unknown';
   let updatedAt: string | null = null;
-  if (ids.length === 1) {
+  if (water?.publication === 'no_readable_source') {
+    operator = { id: water.id, name: water.name, mapUrl: null };
+    coverage = 'no_readable_source';
+  } else if (ids.length === 1) {
     const st = inputs.operators.find((o) => o.operatorId === ids[0]);
     operator = { id: ids[0]!, name: nameOf(ids[0]!), mapUrl: st?.mapUrl ?? null };
     coverage = !st || !st.enabled || st.enabledUtilities && !st.enabledUtilities.includes(utility) ? 'not_monitored' : st.current ? 'monitored' : 'stale';

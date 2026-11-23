@@ -1,0 +1,76 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 116,
+    "defaultMapCenterCoords": {
+      "lat": 57.625579833984375,
+      "lng": 12.019060134887695
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": true,
+    "showPolygons": true,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": false,
+    "showArchiveDays": null,
+    "showClusterMarkers": false,
+    "id": 491
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 614,
+      "profileName": null,
+      "profileTitle": "Vatten och Avlopp",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/water-drop-2.png",
+      "sortOrder": 1,
+      "webMessages": [
+        {
+          "id": 235340,
+          "smsGroupId": 3410733,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[12.085193,57.586165],[12.084106,57.586059],[12.083616,57.585817],[12.084206,57.584546],[12.085962,57.584752],[12.085193,57.586165]]]}}]",
+          "title": "Planerat avbrott",
+          "text": "<p><strong>Vattnet är avstängt</strong></p><p>Vattnet är avstängt torsdag 03 december mellan cirka klockan 10:00 och 13:30.</p><p>Tiden är preliminär och kan bli längre eller kortare, utan att vi informerar mer.</p><br /><p>Tappa upp vatten för hushållsbehov i förväg.</p><br /><p><strong>Berörda gator</strong></p><p>Kalkstensvägen, Nr. 2, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42<br />Mineralvägen, Nr. 9 .</p><br /><p>Orsaken är att vi ska göra ett arbete med vattenledningarna som innebär att vi behöver stänga av vattnet tillfälligt.</p>",
+          "profileId": 614,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-12-05T07:00:00Z",
+          "dateDelayUtc": "2026-11-23T09:30:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 57.585,
+              "lng": 12.085
+            },
+            {
+              "lat": 57.585,
+              "lng": 12.085
+            }
+          ]
+        },
+        {
+          "id": 235274,
+          "smsGroupId": 3409900,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[12.047587,57.652284],[12.046778,57.651383],[12.043942,57.652548],[12.045477,57.653941],[12.048066,57.65312],[12.047587,57.652284]]]}}]",
+          "title": "Vattnet avstängt",
+          "text": "<p>Vattnet är tillfälligt avstängt.</p><p>Vi behöver göra ett akut arbete med vattenledningar. Vi beräknas vara klara under förmiddagen . Vi hoppas du har överseende när vi tar hand om våra ledningar.</p><p>När vattnet är åter kan det vara missfärgat. Spola då tills det blir klart!</p><br /><p><strong>Berörda adresser</strong></p><p>Mölndal<br />Glasbergsgatan, Nr. 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43<br /><br />Mölndal<br />Andgatan, Nr. 2, 3, 4, 5, 6, 8, 11, 13<br />Fiskmåsgatan, Nr. 5<br />Fisktärnegatan, Nr. 1, 2, 3, 4, 5</p>",
+          "profileId": 614,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-25T07:00:00Z",
+          "dateDelayUtc": "2026-11-23T07:20:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 57.653,
+              "lng": 12.048
+            },
+            {
+              "lat": 57.653,
+              "lng": 12.047
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

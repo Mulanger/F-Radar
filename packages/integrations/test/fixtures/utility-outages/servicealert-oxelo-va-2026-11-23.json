@@ -1,0 +1,127 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 125,
+    "defaultMapCenterCoords": {
+      "lat": 58.676368713378906,
+      "lng": 17.111129760742188
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": true,
+    "showPolygons": true,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": false,
+    "showArchiveDays": 14,
+    "showClusterMarkers": false,
+    "id": 513
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 7160,
+      "profileName": null,
+      "profileTitle": "El",
+      "cssColor": "Yellow",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/power-plug.png",
+      "sortOrder": 1,
+      "webMessages": [
+        {
+          "id": 234857,
+          "smsGroupId": 3403700,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[17.06122,58.675231],[17.061108,58.674272],[17.06269,58.674244],[17.06283,58.674924],[17.062771,58.674966],[17.062803,58.675225],[17.062181,58.675236],[17.06122,58.675231]]]}}]",
+          "title": "Planerat strömavbrott",
+          "text": "<p><strong>Vallsundsvägen</strong></p><br /><p><span style=\"background-color: rgb(255, 255, 255); color: rgb(51, 51, 51);\">Vi utför arbete på ledningsnätet och strömförsörjningen till er anläggning kommer att brytas under</span><strong style=\"background-color: rgb(255, 255, 255); color: rgb(51, 51, 51);\"> torsdag 26 november</strong><span style=\"background-color: rgb(255, 255, 255); color: rgb(51, 51, 51);\"> mellan klockan </span><strong style=\"background-color: rgb(255, 255, 255); color: rgb(51, 51, 51);\">09:45</strong><span style=\"background-color: rgb(255, 255, 255); color: rgb(51, 51, 51);\"> till </span><strong style=\"background-color: rgb(255, 255, 255); color: rgb(51, 51, 51);\">13:00</strong><span style=\"background-color: rgb(255, 255, 255); color: rgb(51, 51, 51);\">.</span></p>",
+          "profileId": 7160,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-26T22:00:00Z",
+          "dateDelayUtc": "2026-11-19T09:00:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 58.674,
+              "lng": 17.062
+            },
+            {
+              "lat": 58.675,
+              "lng": 17.062
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7161,
+      "profileName": null,
+      "profileTitle": "Fjärrvärme",
+      "cssColor": "Green",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/radiator.png",
+      "sortOrder": 2,
+      "webMessages": []
+    },
+    {
+      "id": 7162,
+      "profileName": null,
+      "profileTitle": "Stadsnät",
+      "cssColor": "Red",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/wifi_network.png",
+      "sortOrder": 1,
+      "webMessages": [
+        {
+          "id": 231728,
+          "smsGroupId": 0,
+          "smsGroupSendMethod": null,
+          "smsGroupGeoObjects": null,
+          "title": "Se även driftinformation hos GlobalConnect",
+          "text": "<p>Hittar du ingen information om din störning här? Kontrollera även <a href=\"https://globalconnect.se/driftinformation/\" rel=\"noopener noreferrer\" target=\"_blank\">driftinformationen hos vår kommunikationsoperatör GlobalConnect</a>. </p><br /><p>Där kan det finnas information om störningar som påverkar kunder i Oxelösund, även om de ännu inte visas på vår sida.</p>",
+          "profileId": 7162,
+          "criticalStatus": false,
+          "dateExpireUtc": "2029-10-31T07:00:00Z",
+          "dateDelayUtc": "2026-11-02T13:10:00Z",
+          "affectedAddressesCoordinates": null
+        }
+      ]
+    },
+    {
+      "id": 7159,
+      "profileName": null,
+      "profileTitle": "Vatten och Avlopp",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/drops.png",
+      "sortOrder": 4,
+      "webMessages": []
+    },
+    {
+      "id": 7325,
+      "profileName": null,
+      "profileTitle": "Avfall & Återvinning",
+      "cssColor": "Black",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/waste_blackNwhite.png",
+      "sortOrder": 1,
+      "webMessages": [
+        {
+          "id": 235335,
+          "smsGroupId": 3410474,
+          "smsGroupSendMethod": "ByExcel",
+          "smsGroupGeoObjects": null,
+          "title": "Förseningar i sophämtningen (fyrfackskärl) på grund av halka",
+          "text": "<p><strong>På grund av rådande väglag och halt underlag har vår entreprenör svårt att ta sig fram på vissa gator under dagen. Detta innebär att hämtningen av fyrfackskärl kan bli försenad i delar av kommunen.</strong></p><br /><p>Vi arbetar tillsammans med entreprenören för att hämta ikapp eventuella förseningar så snart väglaget och framkomligheten tillåter.</p><br /><p>Tänk på detta om du har hämtningsdag idag:</p><br /><ul><li><strong>Låt kärlen stå framme:</strong> Om dina kärl inte har blivit tömda på ordinarie tid, låt dem stå kvar vid tomtgränsen tills de är tömda. Vi hämtar så snart vi kommer fram, vilket kan ske senare under dagen eller under kommande dagar.</li><li><strong>Skotta och sanda:</strong> För att chaufförerna ska kunna dra fram de tunga kärlen på ett säkert sätt behöver det vara skottat och sandat vid tomtgränsen och runt kärlen. Ta även bort eventuell snö på kärllocken.</li><li><strong>Håll utkik här:</strong> Vi uppdaterar den här sidan löpande så snart vi får mer detaljerad information om vilka gator eller områden som berörs.</li></ul><br /><p>Tack för ditt tålamod och för att du hjälper oss att underlätta arbetet i vinterväglaget!</p><br /><p>Med vänliga hälsningar,</p><p>Avfall &amp; Återvinning, Oxelö Energi</p>",
+          "profileId": 7325,
+          "criticalStatus": true,
+          "dateExpireUtc": "2026-11-28T07:00:00Z",
+          "dateDelayUtc": "2026-11-23T09:10:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 58.674,
+              "lng": 17.099
+            },
+            {
+              "lat": 58.674,
+              "lng": 17.099
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

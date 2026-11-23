@@ -1,0 +1,81 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 110,
+    "defaultMapCenterCoords": {
+      "lat": 59.65903091430664,
+      "lng": 17.91558074951172
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": true,
+    "showPolygons": false,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": false,
+    "showArchiveDays": null,
+    "showClusterMarkers": false,
+    "id": 224
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 651,
+      "profileName": "Renhållning",
+      "profileTitle": "Renhållning",
+      "cssColor": "Green",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/waste_dark.png",
+      "sortOrder": null,
+      "webMessages": []
+    },
+    {
+      "id": 653,
+      "profileName": "VA",
+      "profileTitle": "VA",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/drinking_waste_water_blue.png",
+      "sortOrder": null,
+      "webMessages": [
+        {
+          "id": 230953,
+          "smsGroupId": 3332521,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Point\",\"coordinates\":[17.720068,59.614711]}}]",
+          "title": "Pågående VA-arbete – Lilla Vattugränd",
+          "text": "<p>Sigtuna Vatten &amp; Renhållning genomför ett renoveringsarbete av spill- och dagvattenledningarna vid Lilla Vattugränd i Sigtuna.</p><br /><p>Arbetet omfattar schaktning samt renovering och omläggning av befintliga ledningar för att säkerställa ledningsnätets funktion på lång sikt.</p>",
+          "profileId": 653,
+          "criticalStatus": false,
+          "dateExpireUtc": "2027-01-15T07:00:00Z",
+          "dateDelayUtc": "2026-10-28T09:00:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 59.615,
+              "lng": 17.72
+            }
+          ]
+        },
+        {
+          "id": 225366,
+          "smsGroupId": 3235862,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[17.691937,59.62422],[17.685434,59.623035],[17.683651,59.620597],[17.683585,59.61846],[17.685368,59.616991],[17.693224,59.615138],[17.700322,59.612533],[17.708244,59.611915],[17.71445,59.614052],[17.71554,59.615288],[17.716365,59.617692],[17.715969,59.618878],[17.721878,59.621365],[17.720161,59.622717],[17.717949,59.623035],[17.717652,59.624337],[17.712403,59.623101],[17.708772,59.6225],[17.707386,59.62659],[17.702896,59.626356],[17.700487,59.62437],[17.696624,59.624437],[17.691937,59.62422]]]}}]",
+          "title": "Underhållsspolning och filmning av avloppsledningar",
+          "text": "<p>Sigtuna Vatten utför underhållsspolning och filmning av avloppsledningar på flera gator i Sigtuna.</p><br /><p>Arbetet är en del av vårt löpande arbete med att kontrollera och underhålla ledningsnätet.</p><br /><p>I samband med arbetet kan det förekomma ljud från avloppet i berörda fastigheter. Detta är normalt vid spolning av ledningar och innebär oftast inte att det är något fel på fastighetens avlopp.</p><p>Vi beklagar eventuella störningar och tackar för er förståelse.</p><br /><p>Med vänlig hälsning</p><p>Sigtuna Vatten &amp; Renhållning AB</p>",
+          "profileId": 653,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-27T07:00:00Z",
+          "dateDelayUtc": "2026-09-25T06:50:00Z",
+          "affectedAddressesCoordinates": [
+            {
+              "lat": 59.62,
+              "lng": 17.72
+            },
+            {
+              "lat": 59.621,
+              "lng": 17.719
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

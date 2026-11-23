@@ -11,6 +11,7 @@ export const UtilityCoverageReportSchema = z.object({
   total: z.number().int().nonnegative(),
   monitored: z.number().int().nonnegative(),
   notMonitored: z.number().int().nonnegative(),
+  noReadableSource: z.number().int().nonnegative().optional(),
   unavailable: z.number().int().nonnegative(),
   unknown: z.number().int().nonnegative(),
   approximatePosition: z.number().int().nonnegative(),
@@ -36,6 +37,7 @@ export function buildUtilityCoverageReport(properties: Array<{
     if (approximatePosition) report.approximatePosition++;
     if (coverage === 'monitored') report.monitored++;
     else if (coverage === 'not_monitored') report.notMonitored++;
+    else if (coverage === 'no_readable_source') report.noReadableSource = (report.noReadableSource ?? 0) + 1;
     else if (coverage === 'stale') report.unavailable++;
     else report.unknown++;
     const operator = status?.operator;

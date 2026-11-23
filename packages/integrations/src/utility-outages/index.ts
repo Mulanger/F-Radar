@@ -16,7 +16,9 @@ import { withOperatorTransport } from './transport';
 import { parseUmea, parseSkekraft } from './platforms/published-json';
 import { operatorWithEnabledUtilities } from './operators';
 import { parseSvoa, SvoaPage } from './platforms/svoa';
+import { parseNsva } from './platforms/nsva';
 export { parseSvoa, waterNoticeHeading } from './platforms/svoa';
+export { parseNsva } from './platforms/nsva';
 
 export * from './types';
 export * from './time';
@@ -325,6 +327,12 @@ export async function fetchOperatorOutages(op: UtilityOperator, ctx: AdapterCont
     return parsed ? { ok: true, data: parsed, fetchedAt: r.fetchedAt } : { ok: false, error: 'invalid_payload', detail: `${op.id}: unexpected published outage payload` };
   }
   if (op.platform === 'svoa') return fetchSvoa(op, ctx);
+  if (op.platform === 'nsva') {
+    const r = await fetchText(op.mapUrl, ctx, `${op.id} map`, { accept: 'text/html' });
+    if (!r.ok) return r;
+    const parsed = parseNsva(r.data, op);
+    return parsed ? { ok: true, data: parsed, fetchedAt: r.fetchedAt } : { ok: false, error: 'invalid_payload', detail: `${op.id}: missing or invalid map data` };
+  }
   if (op.platform === 'ellevio') return fetchEllevio(op, ctx);
   if (op.platform === 'tekniskaverken') return fetchTekniskaVerken(op, ctx);
   if (op.platform === 'trimble') return fetchTrimble(op, ctx);

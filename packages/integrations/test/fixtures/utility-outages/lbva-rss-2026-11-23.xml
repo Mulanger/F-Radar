@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+   <channel>
+      <title>Driftmeddelanden - lbva.se</title>
+      <link>https://www.lbva.se/rss/driftmeddelande</link>
+      <description>RSS flöde som visar driftmeddelanden på lbva.se</description>
+      <language>sv</language>
+      <generator>Sitevision</generator>
+   </channel>
+</rss>

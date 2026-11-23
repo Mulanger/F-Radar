@@ -1,0 +1,67 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 116,
+    "defaultMapCenterCoords": {
+      "lat": 56.62849044799805,
+      "lng": 15.570090293884277
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": true,
+    "showPolygons": true,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": false,
+    "showArchiveDays": null,
+    "showClusterMarkers": false,
+    "id": 504
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 7120,
+      "profileName": null,
+      "profileTitle": "VA",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/water-drop-2.png",
+      "sortOrder": 1,
+      "webMessages": []
+    },
+    {
+      "id": 7121,
+      "profileName": null,
+      "profileTitle": "Avfall",
+      "cssColor": "Green",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/waste_dark.png",
+      "sortOrder": 1,
+      "webMessages": []
+    },
+    {
+      "id": 7117,
+      "profileName": null,
+      "profileTitle": "Elnät",
+      "cssColor": "Yellow",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/power-plug-2.png",
+      "sortOrder": 2,
+      "webMessages": []
+    },
+    {
+      "id": 7118,
+      "profileName": null,
+      "profileTitle": "Fibernät",
+      "cssColor": "Black",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/cloud_signal.png",
+      "sortOrder": 3,
+      "webMessages": []
+    },
+    {
+      "id": 7119,
+      "profileName": null,
+      "profileTitle": "Fjärrvärme",
+      "cssColor": "Red",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/segment-icons/factory_red.png",
+      "sortOrder": 4,
+      "webMessages": []
+    }
+  ]
+}

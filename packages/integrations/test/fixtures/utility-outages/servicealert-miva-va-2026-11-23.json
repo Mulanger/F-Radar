@@ -1,0 +1,85 @@
+{
+  "countryId": 2,
+  "customerSettings": {
+    "mapLayerId": 192,
+    "mapZoomLevel": 106,
+    "defaultMapCenterCoords": {
+      "lat": 63.310848236083984,
+      "lng": 18.590890884399414
+    },
+    "hasSearchInput": false,
+    "showInfoOnHover": false,
+    "showInfoAndZoomOnClick": true,
+    "showLegend": true,
+    "showPolygons": false,
+    "useAreaCirclesInsteadOfSingleAddressMarkers": true,
+    "showArchiveDays": null,
+    "showClusterMarkers": false,
+    "id": 723
+  },
+  "profileSettingsAndMessages": [
+    {
+      "id": 8048,
+      "profileName": null,
+      "profileTitle": "Vatten och avlopp",
+      "cssColor": "Blue",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/waste_water_dark_blue.png",
+      "sortOrder": 1,
+      "webMessages": [
+        {
+          "id": 235386,
+          "smsGroupId": 3411225,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{  \"type\": \"Feature\",  \"properties\": {    \"radius\": 500  },  \"geometry\": {    \"type\": \"Point\",    \"coordinates\": [      18.68904759227614,      63.261169562430965    ]  }}]",
+          "title": "Akut vattenavstängning Södra Doktorsgatan Domsjö",
+          "text": "<p>Med anledning av pågående läcksökning och/eller arbete med att åtgärda en vattenläcka kommer vattnet i Södra Doktorsgatan Domsjö att vara avstängt en tid. Även kunder i intilliggande områden kan beröras. Vi beklagar det besvär den akuta vattenavstängningen innebär och arbetar för att få vattnet tillbaka så snart som möjligt.</p><br /><p><strong>Berört område:</strong> Södra Doktorsgatan Domsjö</p><p><strong>Påbörjas: </strong>23 november 2026 kl 11:50</p><p><strong>Beräknas åtgärdat: </strong>23 november 2026 kl 21:00</p><br /><p>För karta över berört område, se <a href=\"https://www.miva.se/driftinfo\" rel=\"noopener noreferrer\" target=\"_blank\">www.miva.se/driftinfo</a>.</p><br /><p>Om det berörda området beräknas bli utan vatten längre än 24 timmar ställer vi upp en dricksvattentank i det område som är utan vatten. Läs mer på <a href=\"https://www.miva.se/tank\" rel=\"noopener noreferrer\" target=\"_blank\">www.miva.se/tank</a>.</p><br /><p>Efter en vattenavstängning kan vattnet vara grumligt, missfärgat eller innehålla luft. Det åtgärdas genom att spola kallvatten på flera tappställen (kök, badrum, tvättstuga etc). Låt vattnet rinna minst 10 minuter eller till dess att vattnet är klart igen, vilket i extrema fall kan innebära en hel dag. Om problemet kvarstår, kontakta kundservice.</p><br /><p>Missfärgat vatten beror på järnutfällning som släpper vid hastigt ändrade flödesriktningar i ledningarna, som beror avstängningar eller driftstörningar på ledningsnätet i samband med exempelvis läckor.</p><br /><p><strong>Frågor eller funderingar?</strong></p><p>Kontakta Mivas kundservice [telefon borttagen], <a href=\"mailto:[e-post borttagen]\" rel=\"noopener noreferrer\" target=\"_blank\">[e-post borttagen]</a></p><p>Felanmälan dygnet runt 0660-330&nbsp;330</p>",
+          "profileId": 8048,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-24T05:00:00Z",
+          "dateDelayUtc": "2026-11-23T11:00:00Z",
+          "affectedAddressesCoordinates": null
+        },
+        {
+          "id": 235378,
+          "smsGroupId": 3411188,
+          "smsGroupSendMethod": "ByMap",
+          "smsGroupGeoObjects": "[{  \"type\": \"Feature\",  \"properties\": {    \"radius\": 2794.3402552825296  },  \"geometry\": {    \"type\": \"Point\",    \"coordinates\": [      18.709400248687167,      63.25108470457189    ]  }}]",
+          "title": "Driftstörning med tryckförändring Gene/Domsjö",
+          "text": "<p>Med anledning av ett underhållsarbete kan vattnet i Gene/Domsjö tillfälligt ha ett lägre eller högre tryck än normalt. Även kunder i intilliggande områden kan beröras.</p><br /><p><strong>Berört område:</strong> Gene/Domsjö</p><p><strong>Påbörjas: </strong>23 november 2026 kl 11:30</p><p><strong>Beräknas åtgärdat: </strong>23 november 2026 kl 21:00</p><br /><p>För karta över berört område, se <a href=\"https://www.miva.se/driftinfo\" rel=\"noopener noreferrer\" target=\"_blank\">www.miva.se/driftinfo</a>.</p><br /><p><strong>Frågor eller funderingar?</strong></p><p>Kontakta Mivas kundservice [telefon borttagen], <a href=\"mailto:[e-post borttagen]\" rel=\"noopener noreferrer\" target=\"_blank\">[e-post borttagen]</a></p><p>Felanmälan dygnet runt [telefon borttagen]</p>",
+          "profileId": 8048,
+          "criticalStatus": false,
+          "dateExpireUtc": "2026-11-24T05:00:00Z",
+          "dateDelayUtc": "2026-11-23T10:50:00Z",
+          "affectedAddressesCoordinates": null
+        }
+      ]
+    },
+    {
+      "id": 8179,
+      "profileName": null,
+      "profileTitle": "KRIS",
+      "cssColor": "Red",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/arwos/alle_critical.png",
+      "sortOrder": 1,
+      "webMessages": []
+    },
+    {
+      "id": 8178,
+      "profileName": null,
+      "profileTitle": "Sophämtning",
+      "cssColor": "Black",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/recycle_container.png",
+      "sortOrder": 2,
+      "webMessages": []
+    },
+    {
+      "id": 8203,
+      "profileName": null,
+      "profileTitle": "Lämna själv-kort",
+      "cssColor": "Green",
+      "mapIconUrl": "/StaticFiles/images/MapIcons/exclamation_v2.png",
+      "sortOrder": 1,
+      "webMessages": []
+    }
+  ]
+}
