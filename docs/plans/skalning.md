@@ -414,6 +414,8 @@ Fasen anger var fyndet åtgärdas.
 - **Åtgärd:** Sortering per kolumn (status, risk, namn, område, varning, larm), filter på
   kommun/område och grupp (S-20), fast rubrikrad, `content-visibility: auto` som första steg och
   fönsterrendering (eller sidor om 100) om det inte räcker. Animera bara mätare som syns.
+- **Gjort 2026-11-23 (Fas 4 steg 3)** med sidor om 100: `content-visibility` räckte inte – att sortera
+  om 500 tabellrader tog 140–350 ms i utvecklingsbygget (själva sorteringen ~3 ms för 1 000).
 
 **S-20 Inga grupper i liveläget** · P2 · Fas 4
 - **Var:** [`apps/api/src/portfolio.ts:23`](../../apps/api/src/portfolio.ts) (`segment: 'all'`) och `:72` (`segments: []`), grupp-flikarna i [`PortfolioOverview.tsx`](../../apps/web/components/dashboard/PortfolioOverview.tsx) och `overview.ts:281`.
@@ -1034,6 +1036,25 @@ visar kluster med rätt färg; "Kommande" visar grupperade rader. Visat och godk
 - **Inte gjort:** nålar utanför kartans utsnitt ritas fortfarande när man zoomat in (som förut);
   mobilens lilla karta zoomar ut till hela regionen vid 500 fastigheter (som förut).
 
+**Genomfört steg 3 (gren `claude/skalning-fas0`):**
+- **Sortering per kolumn (S-19):** rubrikerna Fastighet, Område, Status, Officiell varning, Larm och
+  Riskpoäng är knappar (`aria-sort`); ett andra klick vänder ordningen. Saknade värden ("Ej bedömd",
+  ingen riskpoäng, inget område) hamnar sist åt båda hållen; lika värden ordnas efter risk och sedan
+  namn, med svensk alfabetisk ordning (Å, Ä, Ö sist). Mobilkorten sorteras från en meny med samma val.
+- **Filter på område:** en meny med kommunerna (eller områdesnamnet där adressökningen inte gav
+  kommun) i vald grupp, med antal; statusknapparnas antal räknas inom området. Valet sparas som de
+  andra filtren och "Rensa filter" tar bort det. Ny kolumn "Område" i tabellen.
+- **Fast rubrikrad:** långa listor rullar inuti tabellens kort med rubrikraden kvar överst.
+- **Renderingsbudget:** rader och mobilkort utanför synfältet ritas inte (`content-visibility: auto`),
+  så deras mätare animeras inte heller. Det räckte inte: listan ritar 100 rader i taget med
+  "Visa 100 till" och "Visa alla"; sök, filter och sortering gäller alla fastigheter, och en ny
+  sortering eller ett nytt filter börjar om på första sidan.
+- **Mätning:** sortering av 1 000 fastigheter ~3 ms (samma jämförare för alla, i stället för en ny per
+  `localeCompare`). Att sortera om tabellen i demon med 500 fastigheter: 140–350 ms med alla rader,
+  55–250 ms med 100 (utvecklingsbygget, med stora variationer; produktionsbygget inte mätt).
+- **Inte gjort:** riktig fönsterrendering (bara de rader som syns) – sidor om 100 valdes för att
+  raderna har olika höjd.
+
 ### Fas 5 – SMS vid stora händelser
 
 **Mål:** Inget larm tappas tyst, de viktigaste går först, och en länsvarning blir ett begripligt SMS.
@@ -1182,5 +1203,6 @@ fastigheter (siffror i Fasloggen).
 | Fas 6 steg 1 | 2026-11-23 | `claude/skalning-fas0` / `21da523`, driftsatt 2026-11-23 11:19 UTC | En sparad fastighet: omatchning av hela plattformen → av organisationen, en gång per 2 s. Tak 500 → 1000 per organisation (eget tak möjligt). | Importen (steg 2); omatchningstiden vid 1000 fastigheter ej mätt |
 | Fas 6 steg 2 | 2026-11-23 | `claude/skalning-fas0` / `98976da`, driftsatt 2026-11-23 11:19 UTC | Import av 500 rader mot riktig PostgreSQL: 490 skapade med status per rad och **en** omatchning (tidigare: 500 fastigheter för hand, en omatchning per fastighet). Demo: 500 inklistrade rader → förhandsvisning, 480 skapade, 40 i granskningslistan. | Riktig Geoapify-sökning i stor skala; grupper vid import (Fas 4) |
 | Fas 4 steg 1 | 2026-11-23 | `claude/skalning-fas0` / `a28948c`, driftsatt 2026-11-23 13:40 UTC | Grupper: livekunder hade bara "Alla" (demon hade två fasta) → egna grupper med flera grupper per fastighet, val i översikt, lista, karta, larm och kvitteringar, import med gruppkolumn. Riktig PostgreSQL: tenant-isolering även i databasens nycklar. | SMS-regel per grupp (steg 5); gruppval vid 100 grupper i mobilens meny inte provat på telefon |
-| Fas 4 steg 2 | 2026-11-23 | `claude/skalning-fas0` | Portföljkartan med 500 fastigheter: 500 nålar och 500 tabbstopp → 44 kluster och 2 nålar i värsta statusens färg, inga tabbstopp. | Nålar utanför utsnittet ritas vid inzoomning; mobilens lilla karta zoomar ut för långt vid 500 |
+| Fas 4 steg 2 | 2026-11-23 | `claude/skalning-fas0` / `4ec363a`, driftsatt 2026-11-23 14:08 UTC | Portföljkartan med 500 fastigheter: 500 nålar och 500 tabbstopp → 44 kluster och 2 nålar i värsta statusens färg, inga tabbstopp. | Nålar utanför utsnittet ritas vid inzoomning; mobilens lilla karta zoomar ut för långt vid 500 |
+| Fas 4 steg 3 | 2026-11-23 | `claude/skalning-fas0` | Fastighetslistan med 500: sortering bara risk/namn, rubriken rullade bort, 500 rader ritade → sortering på sex kolumner, filter på område, fast rubrik, 100 rader i taget. Omsortering 140–350 ms → 55–250 ms i utvecklingsbygget. | Produktionsbyggets renderingstid inte mätt |
 

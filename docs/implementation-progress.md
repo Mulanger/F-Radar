@@ -183,4 +183,6 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
   fastighetsdialogen, en egen dialog för att skapa och fylla grupper, och kolumnen "Grupp" i importen.
 - Fas 4 steg 2: kluster på portföljkartan (dator och mobil) i den allvarligaste statusens färg; klick
   zoomar in eller listar fastigheter på samma adresspunkt; inga tabbstopp per nål.
+- Fas 4 steg 3: fastighetslistan sorteras på sex kolumner (och från en meny på mobil), filtreras på
+  område, har fast rubrikrad och ritar 100 rader i taget med "Visa fler".
 

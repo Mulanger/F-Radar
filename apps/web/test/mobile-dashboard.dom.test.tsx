@@ -112,7 +112,7 @@ describe('mobile property list', () => {
     expect(screen.getByText('Inga fastigheter matchar')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Rensa filter' }));
     expect(screen.getAllByRole('link')).toHaveLength(8);
-    fireEvent.click(screen.getByRole('button', { name: 'Namn' }));
+    fireEvent.change(screen.getByRole('combobox', { name: /Sortera/ }), { target: { value: 'name' } });
     expect(screen.getAllByRole('link')[0]!.textContent).toContain('Arenastaden Hus C');
   });
 
