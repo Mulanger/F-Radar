@@ -28,7 +28,7 @@ describe('overview view-model reproduces the approved design values', () => {
 
   it('KPIs', () => {
     expect(vm.kpi.total).toBe(8);
-    expect(vm.kpi.alerts).toBe(14);
+    expect(vm.kpi.alerts).toBe(4);
     expect(vm.kpi.warnings).toBe(4);
     expect(vm.kpi.warnAffected).toBe(4);
     expect(vm.kpi.wx).toBe(7);
@@ -148,6 +148,7 @@ describe('overview view-model reproduces the approved design values', () => {
   it('group filter', () => {
     const inner = buildOverviewVM(demoPortfolio, { ...ui, group: 'inner' });
     expect(inner.kpi.total).toBe(4);
+    expect(inner.kpi.alerts).toBe(1);
     expect(inner.groups.map((g) => g.count)).toEqual([8, 4, 4]);
   });
 

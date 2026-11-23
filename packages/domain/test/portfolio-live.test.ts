@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activeAlarmKeys, compareUpcoming, filterActiveAlarms, mergeUpcoming, type UpcomingCondition } from '../src';
+import { activeAlarmKeys, compareUpcoming, countActiveAlertEvents, filterActiveAlarms, mergeUpcoming, type PropertyUtilityStatus, type UpcomingCondition, type UtilityOutageView } from '../src';
 import { demoPortfolio } from '../src/fixtures';
 
 /** Live row patches (docs/plans/skalning.md, Fas 3 / S-12): the portfolio-level parts rebuilt from patched rows. */
@@ -39,5 +39,43 @@ describe('active alarms after a row patch', () => {
     expect(activeAlarmKeys(demoPortfolio.properties).has(`${s.property.id}:${w.id}`)).toBe(true);
     const item = { id: 'chg-1', publishedAt: demoPortfolio.generatedAt, title: 't', sourceLabel: 'SMHI', sourceId: 'smhi_warnings' as const, severity: 'warning' as const, propertyId: s.property.id, origin: 'live' as const };
     expect(filterActiveAlarms([{ ...item, eventId: w.id }, { ...item, id: 'chg-2', eventId: 'gone' }, { ...item, id: 'chg-3' }], demoPortfolio.properties).map((i) => i.id)).toEqual(['chg-1']);
+  });
+});
+
+describe('counting active alert events', () => {
+  const sample = demoPortfolio.properties[0]!;
+  const warning = { ...sample.warnings[0]!, origin: 'live' as const };
+
+  it('counts a shared warning once even when SMHI has multiple areas, and excludes Info', () => {
+    const snapshots = Array.from({ length: 300 }, (_, i) => ({
+      ...sample,
+      property: { ...sample.property, id: `property-${i}` },
+      warnings: [{ ...warning, id: `area-${i % 3}`, externalId: `147:${i % 3}` }, { ...warning, level: 'Info' as const, externalId: '911:1' }],
+    }));
+    expect(countActiveAlertEvents(snapshots)).toBe(1);
+    expect(countActiveAlertEvents([...snapshots, { ...sample, warnings: [{ ...warning, externalId: '148:1' }] }])).toBe(2);
+  });
+
+  it('counts each current outage once and excludes low-severity, upcoming and restored events', () => {
+    const outage: UtilityOutageView = {
+      id: 'outage', operatorId: 'operator', operatorName: 'Operator', utility: 'electricity', kind: 'unplanned',
+      state: 'ongoing', matchMethod: 'outage_polygon', precisionLevel: 'high', precisionLabel: '',
+      severity: 'warning', distanceMeters: null, affectedCustomers: null, areaCustomerTotal: null,
+      reportedAt: null, plannedStart: null, plannedEnd: null, actualStart: null, estimatedRestore: null,
+      restoredAt: null, restoredInferred: false, operatorText: null, cause: null, placeLabel: null, sourceUrl: null, geometry: null,
+    };
+    const section: PropertyUtilityStatus = {
+      utility: 'electricity', operator: null, coverage: 'monitored', updatedAt: null,
+      current: [outage, { ...outage, id: 'info', severity: 'monitor' }],
+      upcoming: [{ ...outage, id: 'upcoming', state: 'upcoming' }],
+      recentlyRestored: [{ ...outage, id: 'restored', state: 'restored' }], nearby: [],
+    };
+    const snapshots = demoPortfolio.properties.slice(0, 2).map((s, i) => ({
+      ...s,
+      warnings: i ? [] : [{ ...warning, id: outage.id, externalId: null }],
+      utilityOutages: [section],
+    }));
+    expect(countActiveAlertEvents(snapshots)).toBe(2);
+    expect(countActiveAlertEvents(snapshots.slice(1))).toBe(1);
   });
 });

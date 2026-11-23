@@ -6,10 +6,12 @@ import {
   PropertySnapshotSchema,
   UpcomingConditionSchema,
   type FeedItem,
+  type OfficialWarning,
   type PropertySnapshot,
   type UpcomingCondition,
 } from './entities';
 import { NowcastSchema } from './nowcast';
+import type { UtilityOutageView } from './utility-outages';
 
 /**
  * Live updates by row (docs/plans/skalning.md, Fas 3 / S-12).
@@ -68,15 +70,40 @@ export function mergeUpcoming(previous: UpcomingCondition[], candidates: Upcomin
   return [...previous.filter((u) => !u.propertyId || !ids.has(u.propertyId)), ...candidates].sort(compareUpcoming);
 }
 
+function* activeAlerts(snapshots: readonly PropertySnapshot[]): Generator<[string, OfficialWarning | UtilityOutageView]> {
+  for (const s of snapshots) {
+    for (const warning of s.warnings) if (warning.level !== 'Info') yield [s.property.id, warning];
+    for (const section of s.utilityOutages ?? []) {
+      for (const outage of section.current) if (outage.severity === 'warning' || outage.severity === 'critical') yield [s.property.id, outage];
+    }
+  }
+}
+
+/** SMHI can publish separate areas under the same warning; fixture ids can differ by property. */
+export function officialWarningEventKey(warning: OfficialWarning): string {
+  const { externalId, sourceId } = warning;
+  const sourceKey = sourceId === 'smhi_warnings' ? externalId?.split(':', 1)[0] : externalId;
+  const fallback = warning.origin === 'demo_fixture'
+    ? JSON.stringify([warning.level, warning.type, warning.region, warning.validFrom, warning.validTo])
+    : warning.id;
+  return `${sourceId}:${sourceKey ?? fallback}`;
+}
+
+/** Count each active warning or outage once across the supplied properties. */
+export function countActiveAlertEvents(snapshots: readonly PropertySnapshot[]): number {
+  const warnings = new Set<string>();
+  const outages = new Set<string>();
+  for (const [, event] of activeAlerts(snapshots)) {
+    if ('sourceId' in event) warnings.add(officialWarningEventKey(event));
+    else outages.add(event.id);
+  }
+  return warnings.size + outages.size;
+}
+
 /** `propertyId:eventId` of every active alarm: an official warning above Info, or a current outage at warning/critical. */
 export function activeAlarmKeys(snapshots: PropertySnapshot[]): Set<string> {
   const active = new Set<string>();
-  for (const s of snapshots) {
-    for (const w of s.warnings) if (w.level !== 'Info') active.add(`${s.property.id}:${w.id}`);
-    for (const section of s.utilityOutages ?? []) {
-      for (const o of section.current) if (o.severity === 'warning' || o.severity === 'critical') active.add(`${s.property.id}:${o.id}`);
-    }
-  }
+  for (const [propertyId, event] of activeAlerts(snapshots)) active.add(`${propertyId}:${event.id}`);
   return active;
 }
 

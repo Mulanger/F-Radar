@@ -196,4 +196,8 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
   finns. Liveuppdateringar omfattar alla berörda fastigheter. Oanvända prognospunkter rensas.
 - Fas 7 steg 2: nowcast hämtar förfallna punkter med aktiva fastigheter äldst först i tidsbegränsade
   delvarv och fortsätter när fler väntar. Förfallna punkter utan aktiva fastigheter rensas.
+- Fas 7 steg 3: hälsosvaret visar API-processens strömräknare. Live-strömmen har ett tak på 1 000
+  samtidiga anslutningar och varnar en gång vid 800.
+- Efterarbete: ”Aktiva larm” i översikten och portföljsammanfattningen räknar unika varningar och
+  driftavbrott. Översiktens värde följer valt fastighetsurval på dator och mobil.
 

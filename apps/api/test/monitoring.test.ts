@@ -1,8 +1,9 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { AddressInfo } from 'node:net';
 import type { FastifyInstance } from 'fastify';
 import { loadServerEnv } from '@fastighetsradar/config';
 import { PortfolioNowcastPatchSchema, PortfolioRowsPatchSchema, PortfolioSchema, PropertySnapshotSchema, ROWS_PATCH_MAX, type PropertyRecord } from '@fastighetsradar/domain';
+import { demoPortfolio } from '@fastighetsradar/domain/fixtures';
 import type { JobRow, OrgMonitoringData, Queryable } from '@fastighetsradar/db';
 import { buildApp } from '../src/app';
 import { MonitoringBus } from '../src/monitoring/bus';
@@ -336,10 +337,11 @@ describe('monitoring HTTP endpoints', () => {
     return null;
   };
   const bus = new MonitoringBus();
+  const monitoring = new MonitoringService(db, env, bus);
   let app: FastifyInstance;
   let base = '';
   beforeAll(async () => {
-    app = await buildApp(env, { logger: false, db, verifyAuth: verify, monitoring: new MonitoringService(db, env, bus) });
+    app = await buildApp(env, { logger: false, db, verifyAuth: verify, monitoring });
     await app.listen({ host: '127.0.0.1', port: 0 });
     base = `http://127.0.0.1:${(app.server.address() as AddressInfo).port}`;
   });
@@ -363,6 +365,19 @@ describe('monitoring HTTP endpoints', () => {
     PortfolioSchema.parse(p.json());
     const sum = await app.inject({ method: 'GET', url: '/v1/portfolio/summary', headers: { authorization: 'Bearer org' } });
     expect(sum.json()).toMatchObject({ properties: 0, riskScore: null, statusMethod: 'highest_official_warning' });
+  });
+
+  it('returns unique active warning events in the portfolio summary', async () => {
+    const organizationList = monitoring.organizationList.bind(monitoring);
+    const mock = vi.spyOn(monitoring, 'organizationList').mockImplementationOnce(async (ctx) => ({
+      ...await organizationList(ctx), properties: demoPortfolio.properties,
+    }));
+    try {
+      const res = await app.inject({ url: '/v1/portfolio/summary', headers: { authorization: 'Bearer org' } });
+      expect(res.json()).toMatchObject({ properties: 8, activeOfficialWarnings: 4 });
+    } finally {
+      mock.mockRestore();
+    }
   });
 
   it('patches rows and nowcasts only for valid ids of the organization (S-12)', async () => {

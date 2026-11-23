@@ -206,14 +206,15 @@ button.feedRow { width: 100%; border: 0; background: none; text-align: left; fon
 .scrollFade::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 28px; pointer-events: none; background: linear-gradient(rgba(255,255,255,0), #fff); }
 .alertHistory { display: inline-block; margin-top: 9px; padding: 4px 0; font-size: 13px; font-weight: 570; text-decoration: underline; text-underline-offset: 3px; }
 
-.overviewStats { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.8fr); gap: 6px; margin-top: 8px; }
+.overviewStats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
 .overviewStat { display: grid; grid-template-rows: 24px 24px; align-items: center; text-align: center; gap: 2px; min-width: 0; padding: 7px; background: #ffffffe0; border: 1px solid #14171a0d; border-radius: 14px; }
+.overviewWeather { grid-column: 1 / -1; grid-template-columns: auto 1fr; grid-template-rows: minmax(24px, auto); gap: 6px; }
 .statContent { display: flex; align-items: center; justify-content: center; gap: 5px; min-width: 0; }
 .statContent .kpiIcon { width: 22px; height: 22px; border-radius: 7px; }
 .statContent strong { font-size: 20px; font-weight: 550; letter-spacing: -.035em; line-height: 1; }
 .statWeatherHeading { white-space: nowrap; }
 .smsStatus { display: grid; }
-.statWeatherPills { display: flex; align-items: center; justify-content: center; gap: 3px; }
+.statWeatherPills { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 3px; }
 .statWeatherPills .chip { flex: none; min-height: 24px; gap: 2px; padding: 2px 4px; font-size: 10px; white-space: nowrap; }
 .warningWrap { position: relative; margin-top: 8px; }
 .warningSummary { display: flex; align-items: center; gap: 9px; width: 100%; min-height: 56px; padding: 8px 10px; border: 1px solid #14171a0d; border-radius: 16px; background: #ffffffe0; color: inherit; text-align: left; font: inherit; cursor: pointer; }
@@ -242,7 +243,7 @@ button.feedRow { width: 100%; border: 0; background: none; text-align: left; fon
 .warningFooter { box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 10px 13px; min-height: 39px; border-top: 1px solid #14171a10; background: #f8f9f8; font-size: 12px; font-weight: 580; }
 .warningFooter:hover { background: #f0f3f1; }
 @media (max-width: 359.98px) {
-  .overviewStats { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.95fr); gap: 5px; }
+  .overviewStats { gap: 5px; }
   .overviewStat { padding-inline: 5px; }
   .overviewStat .weatherLabel { font-size: 10.5px; }
   .statContent { gap: 4px; }

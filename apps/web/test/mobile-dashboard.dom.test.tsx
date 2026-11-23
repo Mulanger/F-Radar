@@ -10,6 +10,8 @@ import { MobilePortfolioOverview } from '@/components/mobile/MobilePortfolioOver
 import { PropertyIndex } from '@/components/properties/PropertyIndex';
 import { MobileWeatherChart } from '@/components/mobile/MobileWeatherChart';
 import { MobileNavigation } from '@/components/mobile/MobileNavigation';
+import { MobileKPIs } from '@/components/mobile/MobileKPIs';
+import { PortfolioKPIs } from '@/components/dashboard/PortfolioKPIs';
 
 const mocks = vi.hoisted(() => ({ setGroup: vi.fn(), search: "", matchMobile: true, path: '/demo/overview' }));
 vi.mock('next/navigation', () => ({ usePathname: () => mocks.path, useSearchParams: () => new URLSearchParams(mocks.search) }));
@@ -34,6 +36,28 @@ beforeEach(() => {
   vi.stubGlobal('matchMedia', () => ({ matches: mocks.matchMobile, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+
+it.each(['desktop', 'mobile'])('shows distinct alert events for the chosen group in the %s KPI', (layout) => {
+  const sample = demoPortfolio.properties[0]!;
+  const warning = sample.warnings[0]!;
+  const portfolio = {
+    ...demoPortfolio,
+    properties: Array.from({ length: 300 }, (_, i) => ({
+      ...sample,
+      property: { ...sample.property, id: `property-${i}`, groupIds: [i === 299 ? 'outer' : 'inner'] },
+      warnings: [{ ...warning, externalId: '100:1' }, ...(i === 299 ? [{ ...warning, externalId: '101:1' }] : [])],
+      activeAlertCount: i === 299 ? 2 : 1,
+    })),
+  };
+  const build = (group: string) => buildOverviewVM(portfolio, { ...ui, group });
+  const kpis = (current: typeof vm) => layout === 'desktop' ? <PortfolioKPIs vm={current} /> : <MobileKPIs vm={current} alertsHref="/demo/alerts" />;
+  const all = build('all');
+  expect(all.rows.find((row) => row.id === 'property-299')?.alerts).toBe(2);
+  const { rerender } = render(kpis(all));
+  expect(screen.getByText('Aktiva larm').parentElement?.textContent).toBe('2Aktiva larm');
+  rerender(kpis(build('inner')));
+  expect(screen.getByText('Aktiva larm').parentElement?.textContent).toBe('1Aktiva larm');
+});
 
 describe('mobile portfolio overview', () => {
   it('scrolls long event and property lists inside their cards instead of expanding them, without SMS controls', () => {

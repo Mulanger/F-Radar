@@ -1,6 +1,6 @@
 import { nowcastBadge } from './nowcast';
 import type { FeedItem, OfficialWarning, Portfolio, PropertySnapshot, PropertyStatus } from '@fastighetsradar/domain';
-import { formatClock, formatLongDate, formatNumber, formatShortDate, swedishDateKey, type RiskFactorKey } from '@fastighetsradar/domain';
+import { countActiveAlertEvents, formatClock, formatLongDate, formatNumber, formatShortDate, officialWarningEventKey, swedishDateKey, type RiskFactorKey } from '@fastighetsradar/domain';
 import { C, EXPOSURE_SV, SEV, STATUS_ORDER, WL, riskStyle } from '../design/tokens';
 import { smooth } from './chart';
 import { filterByGroup, groupOptions } from './groups';
@@ -80,13 +80,7 @@ function buildWarningPreview(properties: PropertySnapshot[]) {
   for (const { property, warnings } of properties) {
     for (const warning of warnings) {
       if (!isOfficialLevel(warning.level)) continue;
-      const { externalId, sourceId } = warning;
-      const sourceKey = sourceId === 'smhi_warnings' ? externalId?.split(':', 1)[0] : externalId;
-      // Fixtures have an id per property. Match the same fixture warning by its area and validity.
-      const fallback = warning.origin === 'demo_fixture'
-        ? JSON.stringify([warning.level, warning.type, warning.region, warning.validFrom, warning.validTo])
-        : warning.id;
-      const key = `${sourceId}:${sourceKey ?? fallback}`;
+      const key = officialWarningEventKey(warning);
       const publishedAt = Date.parse(warning.issuedAt ?? warning.validFrom ?? '') || 0;
       let group = groups.get(key);
       if (!group) {
@@ -150,12 +144,14 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
   const smsProps = list.filter(ui.isSmsOn);
   const smsN = smsProps.reduce((a, s) => a + rulesFor(s, ui.isRuleOn).filter((r) => r.on).length, 0);
   const smsMax = list.reduce((a, s) => a + s.alertRules.length, 0);
-  const totalAlerts = list.reduce((a, s) => a + s.activeAlertCount, 0);
+  const totalAlerts = countActiveAlertEvents(list);
 
+  // The fixture supplies a relative shape, not a history of event totals.
   const weights = portfolio.demoTrends?.alertsSparkWeights ?? [];
-  const sp = weights.map((v) => (v * totalAlerts) / 14);
-  const spMax = Math.max(...sp, 1);
-  const spark = sp.length ? smooth(sp.map((v, i) => [(i / (sp.length - 1)) * 100, 28 - (v / spMax) * 24])) : '';
+  const peakWeight = Math.max(1, ...weights);
+  const spark = totalAlerts > 0 && weights.length > 1
+    ? smooth(weights.map((v, i) => [(i / (weights.length - 1)) * 100, 28 - (v / peakWeight) * 24]))
+    : '';
 
   const maxRainP = [...list].sort((a, b) => n0(rain(b)) - n0(rain(a)))[0];
   const gustP = [...list].sort((a, b) => n0(gust(b)) - n0(gust(a)))[0];

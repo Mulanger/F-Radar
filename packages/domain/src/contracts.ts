@@ -71,10 +71,19 @@ export const HealthCheckSchema = z.object({
   detail: z.string().optional(),
 });
 
+export const LiveStreamCountsSchema = z.object({
+  opened: z.number().int().nonnegative(),
+  closed: z.number().int().nonnegative(),
+  current: z.number().int().nonnegative(),
+  peak: z.number().int().nonnegative(),
+});
+export type LiveStreamCounts = z.infer<typeof LiveStreamCountsSchema>;
+
 export const ReadinessResponseSchema = z.object({
   status: z.enum(['ready', 'degraded', 'not_ready']),
   version: z.string(),
   time: IsoDateTimeSchema,
   checks: z.record(z.string(), HealthCheckSchema),
+  liveStreams: LiveStreamCountsSchema,
 });
 export type ReadinessResponse = z.infer<typeof ReadinessResponseSchema>;

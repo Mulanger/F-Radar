@@ -59,7 +59,7 @@ export function PortfolioKPIs({ vm }: { vm: OverviewVM }) {
         <div style={big}>{k.total}</div>
       </SmallKpi>
 
-      <SmallKpi icon={<IconBellSimple size={11} />} bg="oklch(0.95 0.035 30)" fg="oklch(0.56 0.17 28)" label="Aktiva larm" title={a.alerts ? undefined : 'Ej ansluten ännu'}>
+      <SmallKpi icon={<IconBellSimple size={11} />} bg="oklch(0.95 0.035 30)" fg="oklch(0.56 0.17 28)" label="Aktiva larm" title={a.alerts ? 'Unika officiella varningar och larm om driftavbrott för visade fastigheter' : 'Ej ansluten ännu'}>
         <div style={big}>{v(a.alerts, k.alerts)}</div>
       </SmallKpi>
 

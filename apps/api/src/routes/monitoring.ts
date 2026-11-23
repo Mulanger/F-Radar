@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest, preHandlerHookHandler } from 'fastify';
 import { z } from 'zod';
-import { ACTIVITY, portfolioRisk, EventIdParamSchema, PropertyIdParamSchema, ROWS_PATCH_MAX, type StreamUpdate } from '@fastighetsradar/domain';
+import { ACTIVITY, countActiveAlertEvents, portfolioRisk, EventIdParamSchema, PropertyIdParamSchema, ROWS_PATCH_MAX } from '@fastighetsradar/domain';
 import { resolveSmsMode, type ServerEnv } from '@fastighetsradar/config';
 import { resolveSourceStatuses } from '@fastighetsradar/integrations';
 import { orgContext } from '../auth';
@@ -14,12 +14,6 @@ export interface MonitoringRouteDeps {
   requireUser: preHandlerHookHandler;
   requireOrg: preHandlerHookHandler;
 }
-
-/** SSE limits (Build pod: keep connection count small). */
-export const STREAM_MAX_PER_ORG = 20;
-export const STREAM_MAX_TOTAL = 200;
-export const STREAM_MAX_DURATION_MS = 60_000;
-const HEARTBEAT_MS = 25_000;
 
 /** `?ids=a,b,c` – property UUIDs, at most `ROWS_PATCH_MAX`. */
 const IdsQuerySchema = z.object({
@@ -60,7 +54,7 @@ export function registerMonitoringRoutes(app: FastifyInstance, deps: MonitoringR
       statusMethod: 'highest_official_warning',
       riskScore: portfolioRisk(p.properties.map((s) => ({ name: s.property.name, risk: s.riskIndex }))).score,
       riskMethod: 'fr_risk_index_v1',
-      activeOfficialWarnings: p.properties.reduce((a, s) => a + s.activeAlertCount, 0),
+      activeOfficialWarnings: countActiveAlertEvents(p.properties),
       publicEvents: p.properties.reduce((a, s) => a + s.events.length, 0),
       sources: p.sources.map((s) => ({ sourceId: s.sourceId, status: s.status, freshness: s.freshness, lastSuccessAt: s.lastSuccessAt })),
     };
@@ -185,69 +179,6 @@ export function registerMonitoringRoutes(app: FastifyInstance, deps: MonitoringR
       smsMode: resolveSmsMode(deps.env),
       changes: rows.map((r) => ({ id: r.id, propertyId: r.property_id, sourceId: r.source_id, changeType: r.change_type, dataClass: r.data_class, severity: r.severity, headline: r.headline, createdAt: r.created_at.toISOString() })),
     };
-  });
-
-  /* ---------------- live stream (SSE) ---------------- */
-
-  const open = new Map<string, number>();
-  const connections = new Set<() => void>();
-  let total = 0;
-  app.addHook('preClose', async () => { for (const close of connections) close(); });
-
-  app.get('/v1/stream', { preHandler: deps.requireOrg }, async (req, reply) => {
-    const ctx = orgContext(req);
-    const service = svc();
-    const lifetime = Math.min(STREAM_MAX_DURATION_MS, (req.auth!.expiresAt ?? Date.now() + STREAM_MAX_DURATION_MS) - Date.now());
-    if (lifetime <= 0) throw new HttpProblem(401, 'Session expired');
-    const mine = open.get(ctx.organizationId) ?? 0;
-    if (mine >= STREAM_MAX_PER_ORG || total >= STREAM_MAX_TOTAL) throw new HttpProblem(429, 'Too many live connections');
-    open.set(ctx.organizationId, mine + 1);
-    total++;
-
-    reply.hijack();
-    const res = reply.raw;
-    res.writeHead(200, {
-      'content-type': 'text/event-stream; charset=utf-8',
-      'cache-control': 'no-store',
-      connection: 'keep-alive',
-      'x-accel-buffering': 'no',
-      'x-request-id': req.id,
-      'x-content-type-options': 'nosniff',
-    });
-    const send = (event: string, data: unknown) => {
-      if (!res.destroyed && !res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)) res.destroy();
-    };
-    res.write(`retry: 15000\n\n`);
-    send('hello', { at: gen(), maxDurationMs: lifetime });
-
-    let closed = false;
-    const unsubscribe = service.bus.subscribe(ctx.organizationId, (u) => {
-      const payload: StreamUpdate = { at: u.at, sources: u.sources, propertyIds: u.propertyIds, changes: u.changes, ...(u.all ? { all: true } : {}) };
-      send('update', payload);
-    });
-    const heartbeat = setInterval(() => { if (!res.write(`: hb ${Date.now()}\n\n`)) res.destroy(); }, HEARTBEAT_MS);
-    const cleanup = () => {
-      if (closed) return;
-      closed = true;
-      clearInterval(heartbeat);
-      clearTimeout(maxTimer);
-      unsubscribe();
-      const remaining = Math.max(0, (open.get(ctx.organizationId) ?? 1) - 1);
-      if (remaining) open.set(ctx.organizationId, remaining);
-      else open.delete(ctx.organizationId);
-      total = Math.max(0, total - 1);
-      connections.delete(close);
-    };
-    const close = () => {
-      send('bye', { reason: 'reauthenticate' });
-      cleanup();
-      res.end();
-    };
-    // Never retain tenant access beyond this JWT. Reconnection verifies a fresh session.
-    const maxTimer = setTimeout(close, lifetime);
-    connections.add(close);
-    req.raw.on('aborted', cleanup);
-    res.on('close', cleanup);
   });
 
   /* ---------------- source status (authenticated) ---------------- */

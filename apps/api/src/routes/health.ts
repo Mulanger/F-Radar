@@ -1,11 +1,12 @@
 import type { FastifyInstance } from 'fastify';
-import type { ReadinessResponse } from '@fastighetsradar/domain';
+import type { LiveStreamCounts, ReadinessResponse } from '@fastighetsradar/domain';
 
 export type ReadinessProbe = () => Promise<{ status: 'ok' | 'degraded' | 'error'; detail?: string }>;
 
 interface HealthOptions {
   version: string;
   probes: Record<string, ReadinessProbe>;
+  liveStreams: () => LiveStreamCounts;
   /** Probes whose failure makes the service not ready (others only degrade it). */
   critical?: string[];
 }
@@ -30,7 +31,9 @@ async function runProbe(probe: ReadinessProbe) {
 
 export function registerHealthRoutes(app: FastifyInstance, opts: HealthOptions) {
   /** Liveness: process is up. Never touches dependencies. */
-  app.get('/health/live', async () => ({ status: 'ok', version: opts.version, time: new Date().toISOString() }));
+  const liveness = async () => ({ status: 'ok', version: opts.version, time: new Date().toISOString(), liveStreams: opts.liveStreams() });
+  app.get('/health', liveness);
+  app.get('/health/live', liveness);
 
   /** Readiness: dependency checks. External data sources are NOT probed here. */
   app.get('/health/ready', async (_req, reply) => {
@@ -50,6 +53,7 @@ export function registerHealthRoutes(app: FastifyInstance, opts: HealthOptions) 
       version: opts.version,
       time: new Date().toISOString(),
       checks,
+      liveStreams: opts.liveStreams(),
     };
     reply.code(notReady ? 503 : 200).send(body);
   });

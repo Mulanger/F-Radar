@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 import type { SourceId } from '@fastighetsradar/domain';
+import { STREAM_MAX_TOTAL } from './live-stream-counts';
 
 /**
  * In-process change bus for the live stream (SSE).
@@ -34,7 +35,7 @@ export class MonitoringBus {
   private timer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(options: { centralGapMs?: number; now?: () => number } = {}) {
-    this.emitter.setMaxListeners(500);
+    this.emitter.setMaxListeners(STREAM_MAX_TOTAL);
     this.gapMs = options.centralGapMs ?? CENTRAL_SIGNAL_GAP_MS;
     this.now = options.now ?? Date.now;
   }

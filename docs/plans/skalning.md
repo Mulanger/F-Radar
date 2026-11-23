@@ -593,6 +593,7 @@ just de händelser tjänsten finns till för.
   sönder, men det är ett tecken på att en process bär alla strömmar.
 - **Åtgärd:** Höj taket med mätning av antal strömmar i `/health`, och planera för flera API-processer
   (då behövs en delad buss) när det blir aktuellt.
+- **Gjort 2026-11-23 (Fas 7 steg 3)** med processräknare i hälsosvaret, tak på 1 000 och en varning vid 800 samtidigt öppna strömmar.
 
 ---
 
@@ -1311,6 +1312,25 @@ fastigheter (siffror i Fasloggen).
 - **Inte gjort:** genomlopp mot MET med verklig nättrafik och mätning av radarålder i produktion,
   där väntan bakom andra jobb i bakgrundskön tillkommer.
 
+**Genomfört steg 3 (gren `claude/skalning-fas0`):**
+- `/health`, `/health/live` och `/health/ready` visar antal öppnade, stängda, samtidigt öppna
+  och som mest samtidigt öppna strömmar sedan API-processen startade. Svaret innehåller inga
+  användar- eller organisationsidentifierare för strömmarna. Räknaren delar avslutsväg för
+  klientavbrott, serverns sessionsgräns och avstängning av API:t.
+- Den interna bussen hade en varningsgräns på 500 lyssnare. SSE-routen hade dessutom ett tak på
+  200 anslutningar globalt. Båda gränserna är nu 1 000. Taket ger plats åt fler organisationer
+  med samtidiga flikar, och en varning per processstart vid 800 (80 %) ger mätbar marginal.
+  Gränsen per organisation är fortsatt 20. Testerna täcker 1 000 lyssnare i bussen,
+  tröskelvarningen, hälsosvaret och stängning av riktiga lokala HTTP-anslutningar.
+  Vitest gav 759 godkända och 6 överhoppade. PostgreSQL-sviten på testpodden gick 52 av 52.
+- Vid återkommande toppar kring 800 samtidiga strömmar blir flera API-processer aktuella. Det
+  kräver en delad publiceringskanal, till exempel Redis Pub/Sub, så att ändringssignaler når den
+  process som äger anslutningen. Varje process måste fortsatt filtrera på organisation innan
+  utskick. Återanslutning måste hämta ikapp förändringar och ett gemensamt organisationstak
+  kräver att flera processer samordnar antalet anslutningar.
+- **Inte gjort:** delad buss eller verifiering av minne, filbeskrivare och fördröjning vid hög
+  anslutningslast i produktionsmiljön.
+
 ---
 
 ## 7. Kända okända
@@ -1354,5 +1374,7 @@ fastigheter (siffror i Fasloggen).
 | Fas 4 steg 4 | 2026-11-23 | `claude/skalning-fas0` / `f74ef1d`, driftsatt 2026-11-23 15:16 UTC | Demo med 500 fastigheter: 499 rader → 8 grupper i ”Kommande förhållanden”; i liveläget visades tidigare bara 8 förhållanden, nu alla, grupperade. Den orange SMHI-varningen i panelen: 62 enskilda rader → 1 grupp med 62 fastigheter. Ingen horisontell rullning vid 375 px. | Liveflöde i webbläsaren och rendering i produktionsbygge |
 | Fas 4 steg 5 | 2026-11-23 | `claude/skalning-fas0` / `c49426d`, driftsatt 2026-11-23 16:01 UTC | Sparat fastighetsurval → grupp med aktuellt medlemskap. PostgreSQL 48/48: berörda fastigheter 1 → 2 → 1 efter medlemsbyten. Demo med 500 fastigheter: Innerstad 9, Förort & Kust 491. Gruppborttagning nekades i dator- och mobilvyn. | Riktiga SMS och driftsatt kundmiljö |
 | Fas 7 steg 1 | 2026-11-23 | `claude/skalning-fas0` / `8e2552f`, driftsatt 2026-11-23 16:41 UTC | 500/1 000 fastigheter, stubbad SMHI-hämtning: 500/1 000 anrop → 49 punktanrop + 1 kataloganrop, 13/26 → 2 körningar, 187/304 → 47/55 ms. `/v1/portfolio` med delade punkter: 370 → 327 ms vid 500 och 681 → 606 ms vid 1 000. I drift: första varvet 12 punkter för 13 fastigheter, 4,1 s inklusive katalogen, API 145 MB. | Genomloppets verkliga nät- och väntetider i produktion |
-| Fas 7 steg 2 | 2026-11-23 | `claude/skalning-fas0` (ocommittat) | Stubbad MET-hämtning, 1 000/2 000 punkter: 480 avklarade efter två körningar med timeout → alla på 3/5 körningar. Längsta körning 180 → 74 s. Äldsta punkt minst 25 min → 9 min 4,5 s respektive 13 min 10 s. | Radarålder och väntan i bakgrundskön i produktion |
+| Fas 7 steg 2 | 2026-11-23 | `claude/skalning-fas0` / `a2c4e4b`, driftsatt 2026-11-23 18:13 UTC | Stubbad MET-hämtning, 1 000/2 000 punkter: 480 avklarade efter två körningar med timeout → alla på 3/5 körningar. Längsta körning 180 → 74 s. Äldsta punkt minst 25 min → 9 min 4,5 s respektive 13 min 10 s. I drift: första körningen 12 punkter på 1,2 s (tidigare 2,3 s). | Radarålder och väntan i bakgrundskön i produktion |
+| Fas 7 steg 3 | 2026-11-23 | `claude/skalning-fas0` | Bussens lyssnargräns 500 → 1 000. SSE-routens globala gräns 200 → 1 000, varning en gång vid 800 och fyra räknare i hälsosvaret. | Delad buss och anslutningslast i produktion |
+| Efterarbete: Aktiva larm | 2026-11-23 | `claude/skalning-fas0` | Demo: 872 → 4 för 500 fastigheter, 11 → 1 för Innerstad (9 fastigheter). KPI:n visar samma värden på mobil vid 375 px. Översikt och portföljsammanfattning räknar unika varningar och avbrott. | Demons länsvarning finns i alla fastigheters flöde, men i fastighetssnapshoten bara där grundfixturen har vindvarningen. |
 

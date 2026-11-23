@@ -6,7 +6,9 @@ import { geoapifyAdapter, type GeocodingProvider } from '@fastighetsradar/integr
 import { registerErrorHandling } from './errors';
 import { registerHealthRoutes, type ReadinessProbe } from './routes/health';
 import { registerMonitoringRoutes } from './routes/monitoring';
+import { registerLiveStreamRoute } from './routes/live-stream';
 import { MonitoringBus } from './monitoring/bus';
+import { LiveStreamCounter, STREAM_MAX_TOTAL, STREAM_WARN_AT } from './monitoring/live-stream-counts';
 import { MonitoringService } from './monitoring/service';
 import { registerCustomerRoutes } from './routes/customer';
 import { createClerkVerifier, registerAuth, type AuthVerifier } from './auth';
@@ -58,7 +60,10 @@ export async function buildApp(env: ServerEnv, deps: AppDeps = {}): Promise<Fast
   });
 
   registerErrorHandling(app);
-  registerHealthRoutes(app, { version: API_VERSION, probes: deps.probes ?? {}, critical: deps.criticalProbes });
+  const streams = new LiveStreamCounter((counts) => app.log.warn(
+    { ...counts, threshold: STREAM_WARN_AT, limit: STREAM_MAX_TOTAL }, 'live stream count approaching limit',
+  ));
+  registerHealthRoutes(app, { version: API_VERSION, probes: deps.probes ?? {}, critical: deps.criticalProbes, liveStreams: () => streams.snapshot() });
 
   const verify = deps.verifyAuth !== undefined ? deps.verifyAuth : createClerkVerifier(env);
   const { requireUser, requireOrg } = registerAuth(app, { verify, db: deps.db ?? null });
@@ -77,6 +82,7 @@ export async function buildApp(env: ServerEnv, deps: AppDeps = {}): Promise<Fast
     importGeocodePerSecond: deps.importGeocodePerSecond,
   });
   registerMonitoringRoutes(app, { env, service: monitoring, requireUser, requireOrg });
+  registerLiveStreamRoute(app, { bus: monitoring?.bus, requireOrg, streams });
   registerNotificationRoutes(app, { env, db: deps.db ?? null, requireOrg, verification: deps.verification });
   registerFeedAcknowledgementRoutes(app, { db: deps.db ?? null, requireOrg });
   registerPropertyGroupRoutes(app, { db: deps.db ?? null, requireOrg });
