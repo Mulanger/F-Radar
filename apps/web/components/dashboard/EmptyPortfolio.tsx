@@ -15,8 +15,10 @@ export function EmptyPortfolio() {
       <div style={{ fontSize: 20, fontWeight: 500, letterSpacing: '-0.02em' }}>Inga fastigheter ännu</div>
       <div style={{ fontSize: 13.5, color: C.text3, maxWidth: 440, lineHeight: 1.5 }}>
         Lägg till din första fastighet genom att söka på dess adress. Du bekräftar positionen på kartan innan den sparas.
+        Har du många fastigheter kan du importera dem från Excel eller en CSV-fil.
       </div>
       {editor.enabled && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
         <button
           className="fr-hover-dark"
           onClick={editor.openCreate}
@@ -25,6 +27,13 @@ export function EmptyPortfolio() {
           <IconPlus />
           Lägg till din första fastighet
         </button>
+        <button
+          onClick={editor.openImport}
+          style={{ marginTop: 6, height: 44, padding: '0 18px', borderRadius: 22, background: C.white, color: C.ink, border: '1px solid rgba(20,23,26,0.1)', fontSize: 13.5, fontWeight: 500, cursor: 'pointer' }}
+        >
+          Importera från Excel eller CSV
+        </button>
+        </div>
       )}
     </div>
   );

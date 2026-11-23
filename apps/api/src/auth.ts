@@ -76,6 +76,12 @@ export interface AuthPluginOptions {
   db: Queryable | null;
 }
 
+/**
+ * Writes with their own, larger limit in the route: an import sends its rows in batches
+ * (docs/plans/skalning.md, S-28) and would otherwise spend the user's ordinary write allowance.
+ */
+export const BULK_WRITE_ROUTES = new Set(['/v1/properties/import']);
+
 export function registerAuth(app: FastifyInstance, opts: AuthPluginOptions) {
   app.decorateRequest('auth', null);
   const requests = createRateLimiter({ capacity: 120, refillPerSecond: 2 });
@@ -94,7 +100,8 @@ export function registerAuth(app: FastifyInstance, opts: AuthPluginOptions) {
       }
       if (!identity) throw new HttpProblem(401, 'Unauthorized', 'A valid Clerk session token is required');
       if (identity.expiresAt !== undefined && identity.expiresAt <= Date.now()) throw new HttpProblem(401, 'Unauthorized');
-      if (!requests.take(identity.userId) || (!['GET', 'HEAD'].includes(req.method) && !writes.take(identity.userId))) {
+      const write = !['GET', 'HEAD'].includes(req.method) && !BULK_WRITE_ROUTES.has(req.routeOptions.url ?? '');
+      if (!requests.take(identity.userId) || (write && !writes.take(identity.userId))) {
         _reply.header('retry-after', '2');
         throw new HttpProblem(429, 'Too many requests');
       }

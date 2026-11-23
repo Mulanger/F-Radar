@@ -37,6 +37,8 @@ const ROUTES: Array<{ pattern: RegExp; methods: string[] }> = [
   { pattern: /^changes$/, methods: ['GET'] },
   { pattern: /^stream$/, methods: ['GET'] },
   { pattern: /^properties$/, methods: ['GET', 'POST'] },
+  { pattern: /^properties\/import$/, methods: ['POST'] },
+  { pattern: /^properties\/position-review$/, methods: ['GET'] },
   { pattern: new RegExp(`^properties/${UUID}$`), methods: ['GET', 'PATCH', 'DELETE'] },
   { pattern: /^geocoding\/suggestions$/, methods: ['GET'] },
 ];

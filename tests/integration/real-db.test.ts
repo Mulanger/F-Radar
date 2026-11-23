@@ -53,6 +53,10 @@ import {
 } from '../../packages/db/src';
 import { buildApp } from '../../apps/api/src/app';
 import type { AuthVerifier, VerifiedIdentity } from '../../apps/api/src/auth';
+import { MonitoringBus } from '../../apps/api/src/monitoring/bus';
+import { MonitoringService } from '../../apps/api/src/monitoring/service';
+import type { GeocodingProvider } from '../../packages/integrations/src';
+import type { PositionReviewItem, PropertyImportResult } from '../../packages/domain/src';
 import { registerNotificationTests } from './notifications';
 import { registerUtilityOutageTests } from './utility-outages';
 
@@ -444,6 +448,116 @@ describe('real PostgreSQL / PostGIS', () => {
       await endEventsById(pool, 'smhi_warnings', [warning.externalId], 'test_finished');
       await deleteProperty(pool, a, pa.id);
       await deleteProperty(pool, b, pb.id);
+    }
+  });
+
+  it('imports 500 rows with a status per row and re-matches once (Fas 6 / S-28)', async () => {
+    const a = { organizationId: await ensureOrganization(pool, ORG_A, 'org-a'), userId: 'user_testA' };
+    const b = { organizationId: await ensureOrganization(pool, ORG_B, 'org-b'), userId: 'user_testB' };
+    // Address search stand-in: "Saknas …" finds nothing, "Gata …" only the street, the rest a building.
+    const searches: string[] = [];
+    const geocoder: GeocodingProvider = {
+      id: 'geoapify_geocoding',
+      suggest: async () => ({ ok: true, data: [], fetchedAt: new Date().toISOString() }),
+      resolve: async (text) => {
+        searches.push(text);
+        if (text.startsWith('Saknas')) return { ok: true, data: null, fetchedAt: new Date().toISOString() };
+        const n = Number(/(\d+)/.exec(text)?.[1] ?? 0);
+        return {
+          ok: true,
+          fetchedAt: new Date().toISOString(),
+          data: { label: `${text}, Sverige`, lat: 59.3 + n / 10_000, lon: 18 + n / 10_000, precision: text.startsWith('Gata') ? 'street' : 'building', placeId: `imp-${text}`, provider: 'geoapify' },
+        };
+      },
+    };
+    // Count the re-matches (and wait for them) by wrapping the service's private run.
+    const service = new MonitoringService(pool, loadServerEnv({ NODE_ENV: 'test' }), new MonitoringBus(), undefined, { propertyChangeDebounceMs: 50 });
+    const inner = service as unknown as { rematchOrganization(org: string, changes: number): Promise<void> };
+    const original = inner.rematchOrganization.bind(service);
+    const runs: Array<{ org: string; changes: number }> = [];
+    let running: Promise<void> = Promise.resolve();
+    inner.rematchOrganization = (org, changes) => {
+      runs.push({ org, changes });
+      running = original(org, changes);
+      return running;
+    };
+    const settle = async () => {
+      await new Promise((r) => setTimeout(r, 200));
+      await running;
+    };
+    const app = await buildApp(loadServerEnv({ NODE_ENV: 'test' }), { logger: false, verifyAuth: verify, db: pool, geocoder, monitoring: service, importGeocodePerSecond: 10_000 });
+    const A = { authorization: 'Bearer tok-a' };
+    const post = (token: string, rows: unknown[], final = true) =>
+      app.inject({ method: 'POST', url: '/v1/properties/import', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, payload: { rows, final } });
+    // 500 rows: 10 not found, 40 street hits, 64 with coordinates, 386 buildings.
+    const rows = Array.from({ length: 500 }, (_, i) => {
+      const n = i + 1;
+      const base = { row: n + 1, name: `Import ${n}` };
+      if (n % 50 === 0) return { ...base, address: `Saknas ${n}, Ingenstad` };
+      if (n % 10 === 0) return { ...base, address: `Gata ${n}, Uppsala` };
+      if (n % 7 === 0) return { ...base, address: `Koordinatvägen ${n}, Kista`, location: { lat: 59.4, lon: 17.95 } };
+      return { ...base, address: `Importvägen ${n}, Stockholm` };
+    });
+    try {
+      const results: PropertyImportResult[] = [];
+      for (let i = 0; i < rows.length; i += 25) {
+        const res = await post('tok-a', rows.slice(i, i + 25), i + 25 >= rows.length);
+        assert.equal(res.statusCode, 200, res.body);
+        results.push(...(res.json() as { results: PropertyImportResult[] }).results);
+      }
+      assert.equal(results.length, 500);
+      assert.deepEqual(results.map((r) => r.row), rows.map((r) => r.row), 'one status per row, in file order');
+      const count = (status: string) => results.filter((r) => r.status === status).length;
+      assert.deepEqual({ created: count('created'), notFound: count('not_found') }, { created: 490, notFound: 10 });
+      assert.equal(results.filter((r) => r.needsReview).length, 40);
+      assert.equal(searches.length, 500 - 64, 'rows with coordinates are not searched');
+      assert.equal((await listProperties(pool, a)).filter((p) => p.name.startsWith('Import ')).length, 490);
+      // One re-match for the whole import, after its last batch, counting every property it created.
+      await settle();
+      assert.deepEqual(runs, [{ org: a.organizationId, changes: 490 }]);
+
+      // Importing the same file again (an interrupted import resumed) creates nothing and searches nothing.
+      const againRes = await post('tok-a', rows.slice(0, 25));
+      assert.equal(againRes.statusCode, 200, againRes.body);
+      const again = againRes.json() as { results: PropertyImportResult[] };
+      assert.ok(again.results.every((r) => r.status === 'duplicate' && r.propertyId), JSON.stringify(again.results.slice(0, 3)));
+      assert.equal(searches.length, 500 - 64);
+      await settle();
+      assert.equal(runs.length, 1, 'no re-match when nothing was created');
+
+      // Review list: the 40 street hits; saving the pin where it is takes one off the list.
+      const review = async (token = 'tok-a') =>
+        ((await app.inject({ method: 'GET', url: '/v1/properties/position-review', headers: { authorization: `Bearer ${token}` } })).json() as { properties: PositionReviewItem[] }).properties.filter((p) =>
+          p.name.startsWith('Import '),
+        );
+      const listed = await review();
+      assert.equal(listed.length, 40);
+      assert.ok(listed.every((p) => p.precision === 'street' && p.label?.startsWith('Gata ')));
+      const patched = await app.inject({ method: 'PATCH', url: `/v1/properties/${listed[0]!.id}`, headers: A, payload: { location: listed[0]!.location } });
+      assert.equal(patched.statusCode, 200, patched.body);
+      assert.equal((await review()).length, 39);
+      assert.equal((await review('tok-b')).length, 0, 'B sees none of them');
+
+      // Another organization: the same addresses are new there, and its own limit applies.
+      const before = (await listProperties(pool, b)).length;
+      await pool.query('UPDATE organizations SET max_properties = $2 WHERE id = $1', [b.organizationId, before + 10]);
+      const forBRes = await post('tok-b', rows.slice(0, 25));
+      assert.equal(forBRes.statusCode, 200, forBRes.body);
+      const forB = forBRes.json() as { results: PropertyImportResult[]; remaining: number };
+      assert.equal(forB.results.filter((r) => r.status === 'created').length, 10);
+      assert.ok(forB.results.filter((r) => r.status !== 'created').every((r) => r.status === 'limit_reached'));
+      assert.equal(forB.remaining, 0);
+      assert.equal((await listProperties(pool, a)).filter((p) => p.name.startsWith('Import ')).length, 490, 'A is untouched');
+
+      // Validation: more than 25 rows, or coordinates outside Sweden, are refused as a whole.
+      assert.equal((await post('tok-a', rows.slice(0, 26))).statusCode, 400);
+      assert.equal((await post('tok-a', [{ row: 1, name: 'Paris', address: 'Rue de Rivoli 1', location: { lat: 48.86, lon: 2.35 } }])).statusCode, 400);
+      assert.equal((await app.inject({ method: 'POST', url: '/v1/properties/import', payload: { rows: rows.slice(0, 1) } })).statusCode, 401);
+      await settle();
+    } finally {
+      await app.close();
+      await pool.query('UPDATE organizations SET max_properties = NULL WHERE id = $1', [b.organizationId]);
+      await pool.query(`DELETE FROM properties WHERE organization_id = ANY($1::uuid[]) AND name LIKE 'Import %'`, [[a.organizationId, b.organizationId]]);
     }
   });
 

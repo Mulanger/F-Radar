@@ -11,6 +11,8 @@ import { buildOverviewVM } from '@/lib/view-models/overview';
 import { metricValue, show } from '@/lib/view-models/snapshot';
 import { C, SEV } from '@/lib/design/tokens';
 import { usePropertyEditor } from './PropertyEditorHost';
+import { PositionReview } from './PositionReview';
+import importStyles from './PropertyImport.module.css';
 import { IconPlus, IconSearch } from '../ui/icons';
 import { MobileStatusBadge, shortStatus } from '../mobile/MobilePrimitives';
 import styles from '../mobile/mobile.module.css';
@@ -39,7 +41,8 @@ export function PropertyIndex() {
   const tableVm = useMemo(() => ({ ...vm, rows }), [vm, rows]);
   const filters = [{ id: 'all', label: 'Alla', color: C.text3, count: vm.rows.length }, ...Object.entries(SEV).map(([id, style]) => ({ id, label: shortStatus(style.label), color: style.c, count: vm.rows.filter(r => r.snapshot.property.status === id).length })).filter(f => f.count > 0)];
   return <div className={`${styles.page} ${styles.listPage}`} data-screen-label="Fastighetslista">
-    <div className={`${styles.heading} ${styles.listHeading}`}><div><div className={styles.date}>{ds.portfolio.properties.length} fastigheter{ds.mode === 'demo' ? ' · Demodata' : ''}</div><h1>Fastigheter</h1></div><button className={styles.iconButton} style={{ background: C.ink, color: '#fff' }} aria-label="Lägg till fastighet" title={editor.enabled ? 'Lägg till fastighet' : 'Demodata kan inte redigeras'} disabled={!editor.enabled} onClick={editor.openCreate}><IconPlus size={18} /></button></div>
+    <div className={`${styles.heading} ${styles.listHeading}`}><div><div className={styles.date}>{ds.portfolio.properties.length} fastigheter{ds.mode === 'demo' ? ' · Demodata' : ''}</div><h1>Fastigheter</h1></div><div className={importStyles.headActions}><button className={importStyles.importButton} onClick={editor.openImport} title={editor.enabled ? 'Importera fastigheter från Excel eller CSV' : 'Prova importen – i demoläget sparas inget'}>Importera</button><button className={styles.iconButton} style={{ background: C.ink, color: '#fff' }} aria-label="Lägg till fastighet" title={editor.enabled ? 'Lägg till fastighet' : 'Demodata kan inte redigeras'} disabled={!editor.enabled} onClick={editor.openCreate}><IconPlus size={18} /></button></div></div>
+    <PositionReview />
     <label className={styles.search}><IconSearch /><span className="fr-sr-only">Sök fastighet, adress eller område</span><input value={query} onChange={e => setFilters({ ...filtersState, query: e.target.value })} placeholder="Sök fastighet, adress eller område" type="search" /></label>
     <div className={styles.filters} role="group" aria-label="Filtrera fastighetsstatus">{filters.map(f => <button key={f.id} className={styles.filter} aria-label={`${f.label} ${f.count}`} aria-pressed={status === f.id} onClick={() => setFilters({ ...filtersState, status: f.id })}><span className={styles.dot} style={{ color: f.color }} />{f.label}<span className={styles.count}>{f.count}</span></button>)}</div>
     <div className={styles.sortRow}><span role="status">{rows.length} {rows.length === 1 ? 'fastighet' : 'fastigheter'}</span><div className={styles.sort} role="group" aria-label="Sortera fastigheter"><button aria-pressed={sort === 'risk'} onClick={() => setFilters({ ...filtersState, sort: 'risk' })}>Risk</button><button aria-pressed={sort === 'name'} onClick={() => setFilters({ ...filtersState, sort: 'name' })}>Namn</button></div></div>

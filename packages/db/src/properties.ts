@@ -214,3 +214,43 @@ export async function deleteProperty(db: Queryable, ctx: Pick<OrgContext, 'organ
   };
   return (res.rowCount ?? 0) > 0;
 }
+
+/** What an import compares against (docs/plans/skalning.md, S-28): every address, search label and place. */
+export interface PropertyImportKeyRow {
+  id: string;
+  address: string;
+  label: string | null;
+  placeId: string | null;
+}
+
+export async function listPropertyImportKeys(db: Queryable, ctx: Pick<OrgContext, 'organizationId'>): Promise<PropertyImportKeyRow[]> {
+  const { rows } = await db.query<{ id: string; address: string; geocode_label: string | null; geocode_place_id: string | null }>(
+    'SELECT id, address, geocode_label, geocode_place_id FROM properties WHERE organization_id = $1',
+    [ctx.organizationId],
+  );
+  return rows.map((r) => ({ id: r.id, address: r.address, label: r.geocode_label, placeId: r.geocode_place_id }));
+}
+
+/**
+ * Properties whose position nobody has checked: a street or approximate hit from the address search,
+ * the same rule as `isPositionConfirmed`. Confirming the pin (moving it, or saving it where it is)
+ * sets position_source to manual_adjusted and takes the property off the list.
+ */
+export async function listPositionReview(db: Queryable, ctx: Pick<OrgContext, 'organizationId'>) {
+  const { rows } = await db.query<{ id: string; name: string; address: string; geocode_label: string | null; geocode_precision: string; lat: number; lon: number }>(
+    `SELECT p.id, p.name, p.address, p.geocode_label, p.geocode_precision,
+            ST_Y(p.location::geometry) AS lat, ST_X(p.location::geometry) AS lon
+       FROM properties p
+      WHERE p.organization_id = $1 AND p.position_source = 'geocoded' AND p.geocode_precision IS DISTINCT FROM 'building'
+      ORDER BY p.name, p.id`,
+    [ctx.organizationId],
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    address: r.address,
+    label: r.geocode_label,
+    precision: (r.geocode_precision === 'street' || r.geocode_precision === 'approximate' ? r.geocode_precision : 'unknown') as 'street' | 'approximate' | 'unknown',
+    location: { lat: Number(r.lat), lon: Number(r.lon) },
+  }));
+}

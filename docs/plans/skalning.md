@@ -528,6 +528,13 @@ just de händelser tjänsten finns till för.
   geokodning i en bakgrundskö som respekterar Geoapifys gränser, och en granskningslista för
   osäkra positioner (precision `street`/`approximate`) där kunden kan sätta nålen. Ingen SMS-regel
   slås på automatiskt för importerade fastigheter.
+- **Gjort 2026-11-23 (Fas 6 steg 2)** med en avvikelse: geokodningen sker inte i en bakgrundskö på
+  servern utan i små omgångar som webbläsaren skickar (25 rader per anrop), genom en gemensam
+  takthållare på servern (4 sökningar per sekund för alla importer, Geoapify tillåter 5). Skälet: status
+  per rad direkt i dialogen utan jobbtabell och avfrågning, och en avbruten import återupptas genom att
+  samma fil importeras igen – redan inlagda adresser hoppas över. Nackdelen: fönstret måste vara öppet
+  under importen (500 adresser ≈ 2 minuter). Excel läses genom inklistrade rader eller CSV, inte .xlsx.
+  Gruppkolumnen väntar på grupperna (S-20, Fas 4).
 
 **S-29 Varje sparad fastighet räknar om matchningar för hela plattformen** · P2 · Fas 6
 - **Var:** `propertyChanged` i [`monitoring/service.ts:170`](../../apps/api/src/monitoring/service.ts) → `rematchEvents(this.db)` och `rematchUtilityOutages(this.db)` (rad 180) utan organisationsfilter, plus täckningsrapport för hela organisationen och `requestJobRun(PER_PROPERTY_JOBS)`.
@@ -1043,6 +1050,33 @@ omatchning körs en gång.
 - **Test:** riktig PostgreSQL (avgränsad omatchning lämnar B:s matchning; eget tak 1 → 409, utan eget
   tak → 201); enhetstest (tre sparningar → en omatchning för rätt organisation; 25 sparningar → `ANALYZE`).
 
+**Genomfört steg 2 (gren `claude/skalning-fas0`):**
+- **Import (S-28):** "Importera" på sidan Fastigheter (och i tomläget). Rader inklistrade från Excel
+  eller en CSV-fil (semikolon eller komma, UTF-8 eller Windows-1252), med eller utan rubrikrad; kolumnerna
+  gissas från rubrikerna (Namn, Adress, Postnummer, Ort, Latitud, Longitud) och kan ändras.
+  Förhandsvisning med status per rad: klar, utan ort (varning), dubblett i filen, finns redan, fel
+  (adress saknas, koordinater utanför Sverige eller bara den ena). Sedan omgångar om 25 rader till
+  `POST /v1/properties/import`; servern söker adressen (eller tar koordinaterna som de står), skapar
+  fastigheten och svarar med status per rad – skapad, fanns redan (samma adress, sökträff eller plats),
+  hittades inte, tak nått, adressökning ej tillgänglig, eller väntar (skickas igen). Webbläsaren skickar
+  väntande rader igen och pausar efter tre varv utan framsteg; "Fortsätt" tar vid där den stannade.
+- **En omatchning per import:** omgångarna håller omatchningen (30 s efter senaste omgången), den sista
+  släpper den efter 2 s; `ANALYZE` räknas på antal skapade fastigheter. Importen har ett eget
+  anropstak per användare (40, sedan 1 per sekund) i stället för det vanliga skrivtaket (20, sedan 1
+  per 2 s), som annars stoppade omgång 21.
+- **Granskningslista:** "Kontrollera position (N)" överst på sidan Fastigheter – fastigheter vars träff
+  bara nådde gatan eller en ungefärlig punkt och som ingen har kontrollerat
+  (`GET /v1/properties/position-review`, samma regel som `isPositionConfirmed`). "Justera nålen" öppnar
+  fastighetsdialogen; "Stämmer" sparar nålen där den står och tar bort fastigheten från listan.
+- **Demoläget** simulerar utfallet (inget sparas, ingen adress söks), så dialogen och listan kan visas.
+- **Mätning mot riktig PostgreSQL** (`fastighetsradar_test`, adressökningen ersatt av en stubbe):
+  500 rader i 20 omgångar → 490 skapade, 10 hittades inte, 40 att kontrollera, 64 rader med
+  koordinater som inte söktes, **en** omatchning med 490 ändringar; samma fil igen → 25 av 25 "fanns
+  redan" utan någon sökning; organisation B med eget tak 10 → 10 skapade, 15 "tak nått", A orörd;
+  26 rader eller koordinater i Paris → 400. 1,8 s för hela testet.
+- **Inte gjort:** riktig Geoapify-sökning av 500 adresser (mot kvoten 3 000 per dag, varav 2 500 för
+  oss) är inte provad; grupper vid import (Fas 4).
+
 ### Fas 7 – Plattformslast
 
 **Mål:** Många stora kunder samtidigt utan att bakgrundsjobben eller live-strömmen blir flaskhalsen.
@@ -1090,5 +1124,6 @@ fastigheter (siffror i Fasloggen).
 | Fas 2 steg 3 | 2026-11-22 | `claude/skalning-fas0` / `dbf4306`, driftsatt 2026-11-22 19:47 UTC | Händelse över 500 fastigheter (demo): en rad per fastighet i flödet → en egen sida med texten en gång, karta, sök och "Kvittera alla". Grupperat SMS: länk till första fastigheten → till händelsesidan. | SMS skickas fortfarande simulerat, så länken i ett riktigt SMS är bara testad via förhandsvisningen; kartans rubrik säger "Portföljkarta" även på händelsesidan |
 | Fas 2 steg 4 | 2026-11-22 | `claude/skalning-fas0` / `62ab6b9` + `24b2146`, driftsatt 2026-11-23 07:56 UTC | Kvitteringsrapport för 3 000 kvitteringar (10 händelser à 300): fullständig 113 s / 2,1 MB i huvudtråden → 0,9 s / 388 KB i en Web Worker; hämtning 100 anrop à 30 → 1 anrop. CSV och sökbart fastighetsfilter. | Kvitteringssidans lista på skärmen är fortfarande en rad per fastighet; PDF i workern bara provad i Chromium (webbläsarpanelen) |
 | Fas 5 steg 1–4 | 2026-11-23 | `claude/skalning-fas0` / `baabbfe`, driftsatt 2026-11-23 08:20 UTC | Riktig PostgreSQL, 300 fastigheter: samlat SMS vid full minut och 5 fastigheter vid tak spärrat för alla → köat för 295; VMA efter dagstaken spärrat → köat; VMA skickas före tidigare orange varning. | Tak per prisnivå; riktiga SMS (allt mätt i simulering) |
-| Fas 6 steg 1 | 2026-11-23 | `claude/skalning-fas0` | En sparad fastighet: omatchning av hela plattformen → av organisationen, en gång per 2 s. Tak 500 → 1000 per organisation (eget tak möjligt). | Importen (steg 2); omatchningstiden vid 1000 fastigheter ej mätt |
+| Fas 6 steg 1 | 2026-11-23 | `claude/skalning-fas0` / `21da523` | En sparad fastighet: omatchning av hela plattformen → av organisationen, en gång per 2 s. Tak 500 → 1000 per organisation (eget tak möjligt). | Importen (steg 2); omatchningstiden vid 1000 fastigheter ej mätt |
+| Fas 6 steg 2 | 2026-11-23 | `claude/skalning-fas0` | Import av 500 rader mot riktig PostgreSQL: 490 skapade med status per rad och **en** omatchning (tidigare: 500 fastigheter för hand, en omatchning per fastighet). Demo: 500 inklistrade rader → förhandsvisning, 480 skapade, 40 i granskningslistan. | Riktig Geoapify-sökning i stor skala; grupper vid import (Fas 4) |
 

@@ -33,6 +33,8 @@ export interface AppDeps {
   fetch?: typeof fetch;
   /** Monitoring read service + live bus (defaults to one built on `db`). */
   monitoring?: MonitoringService | null;
+  /** Address searches per second for property imports (tests raise it; default IMPORT_GEOCODE_PER_SECOND). */
+  importGeocodePerSecond?: number;
 }
 
 export const API_VERSION = process.env.npm_package_version ?? '0.2.0';
@@ -68,6 +70,7 @@ export async function buildApp(env: ServerEnv, deps: AppDeps = {}): Promise<Fast
     requireUser,
     requireOrg,
     monitoring,
+    importGeocodePerSecond: deps.importGeocodePerSecond,
   });
   registerMonitoringRoutes(app, { env, service: monitoring, requireUser, requireOrg });
   registerNotificationRoutes(app, { env, db: deps.db ?? null, requireOrg, verification: deps.verification });

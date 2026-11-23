@@ -174,4 +174,8 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
 - Plan: [`plans/skalning.md`](plans/skalning.md), Fas 6 (S-28–S-30). Gren `claude/skalning-fas0`.
 - Steg 1: omatchning per organisation och en gång per 2 s i stället för hela plattformen per sparad
   fastighet; `ANALYZE` efter större ändringar; tak per organisation (migrering 0024, standard 1000).
+- Steg 2: import av fastigheter från inklistrade Excel-rader eller CSV med förhandsvisning, status per rad,
+  adressökning i omgångar inom Geoapifys takt och en omatchning per import; granskningslista
+  "Kontrollera position" för träffar som bara nådde gatan. Ingen SMS-regel slås på för importerade
+  fastigheter.
 

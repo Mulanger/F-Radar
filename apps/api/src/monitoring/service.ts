@@ -348,18 +348,24 @@ export class MonitoringService {
    * Saves within PROPERTY_CHANGE_DEBOUNCE_MS are coalesced, so an import of 500 properties re-matches
    * once; after a larger batch the planner statistics are refreshed (a fresh import of 1000 made the
    * portfolio query take 6 s until PostgreSQL had analyzed the tables). Resolves when that run is done.
+   *
+   * An import (S-28) passes how many properties a batch created, and `settleMs` while more batches
+   * follow: geocoding makes batches seconds apart, so the short window alone would re-match after each.
+   * The last call decides when the run happens; `changes: 0` only moves a pending run, never starts one.
    */
-  propertyChanged(organizationId: string): Promise<void> {
+  propertyChanged(organizationId: string, options: { changes?: number; settleMs?: number } = {}): Promise<void> {
+    const changes = options.changes ?? 1;
+    const pending = this.pendingChanges.get(organizationId);
+    if (!pending && changes <= 0) return Promise.resolve();
     return new Promise((resolve) => {
-      const pending = this.pendingChanges.get(organizationId);
       if (pending) clearTimeout(pending.timer);
       const entry = pending ?? { timer: undefined as unknown as ReturnType<typeof setTimeout>, count: 0, done: [] };
-      entry.count++;
+      entry.count += changes;
       entry.done.push(resolve);
       entry.timer = setTimeout(() => {
         this.pendingChanges.delete(organizationId);
         void this.rematchOrganization(organizationId, entry.count).finally(() => entry.done.forEach((d) => d()));
-      }, this.options.propertyChangeDebounceMs ?? PROPERTY_CHANGE_DEBOUNCE_MS);
+      }, options.settleMs ?? this.options.propertyChangeDebounceMs ?? PROPERTY_CHANGE_DEBOUNCE_MS);
       this.pendingChanges.set(organizationId, entry);
     });
   }

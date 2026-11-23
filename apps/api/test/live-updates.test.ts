@@ -163,5 +163,29 @@ describe('saving properties re-matches one organization, once per burst (Fas 6 /
     expect(rematches()).toHaveLength(1);
     expect(calls.some((c) => c.sql.startsWith('ANALYZE'))).toBe(true);
   });
+
+  it('holds the re-match of an import until its last batch, counting the properties it created (S-28)', async () => {
+    const calls: string[] = [];
+    const db = { async query<R>(sql: string) {
+      calls.push(sql);
+      return { rows: [] as R[], rowCount: 0 };
+    } };
+    const service = new MonitoringService(db, loadServerEnv({ NODE_ENV: 'test' }), new MonitoringBus(), undefined, { propertyChangeDebounceMs: 20 });
+    const rematches = () => calls.filter((c) => c.includes('WITH props AS') && c.includes('INSERT INTO monitoring_changes')).length;
+    // Nothing pending and nothing created: no run.
+    await service.propertyChanged('org-c', { changes: 0 });
+    expect(rematches()).toBe(0);
+    // Batches seconds apart (here 60 ms, three times the short window) wait for the last one.
+    const runs = [service.propertyChanged('org-c', { changes: 25, settleMs: 5_000 })];
+    await new Promise((r) => setTimeout(r, 60));
+    runs.push(service.propertyChanged('org-c', { changes: 25, settleMs: 5_000 }));
+    await new Promise((r) => setTimeout(r, 60));
+    expect(rematches()).toBe(0);
+    // The last batch created nothing but ends the import: the run follows shortly.
+    runs.push(service.propertyChanged('org-c', { changes: 0 }));
+    await Promise.all(runs);
+    expect(rematches()).toBe(1);
+    expect(calls.some((c) => c.startsWith('ANALYZE'))).toBe(true);
+  });
 });
 

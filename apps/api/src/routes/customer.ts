@@ -5,16 +5,23 @@ import {
   listPortfolio,
   PropertyCreateSchema,
   PropertyIdParamSchema,
+  PropertyImportRequestSchema,
   PropertyUpdateSchema,
   type GeocodingSuggestionsResponse,
+  type PositionReviewResponse,
+  type PropertyImportResponse,
 } from '@fastighetsradar/domain';
-import { createProperty, deleteProperty, getProperty, getPropertyLimit, listProperties, updateProperty, type Queryable } from '@fastighetsradar/db';
+import { createProperty, deleteProperty, getProperty, getPropertyLimit, listPositionReview, listProperties, updateProperty, type Queryable } from '@fastighetsradar/db';
 import { GEOAPIFY_ATTRIBUTION, resolveSourceStatuses, type AdapterContext, type GeocodingProvider } from '@fastighetsradar/integrations';
 import { orgContext } from '../auth';
 import { createRateLimiter } from '../rate-limit';
 import { HttpProblem } from '../errors';
 import { buildLivePortfolio } from '../portfolio';
 import type { MonitoringService } from '../monitoring/service';
+import { createPacer, IMPORT_GEOCODE_PER_SECOND, importPropertyBatch, serializeForOrganization, type ImportGeocoder } from '../property-import';
+
+/** While an import's batches keep coming, its re-match waits this long after the latest one (S-29). */
+export const IMPORT_SETTLE_MS = 30_000;
 
 export interface CustomerRouteDeps {
   env: ServerEnv;
@@ -24,6 +31,7 @@ export interface CustomerRouteDeps {
   requireUser: preHandlerHookHandler;
   requireOrg: preHandlerHookHandler;
   monitoring?: MonitoringService | null;
+  importGeocodePerSecond?: number;
 }
 
 /** Log fields for one portfolio response: how many properties, how big, how long, heap after serializing. */
@@ -78,6 +86,50 @@ export function registerCustomerRoutes(app: FastifyInstance, deps: CustomerRoute
     reply.code(201);
     return { property };
   });
+
+  /* ---------------- import (docs/plans/skalning.md, Fas 6 / S-28) ---------------- */
+
+  // One pacer for every import on this process: Geoapify's limit is per key, not per customer.
+  const importPacer = createPacer(deps.importGeocodePerSecond ?? IMPORT_GEOCODE_PER_SECOND);
+  // Batches per user instead of the ordinary write limit (BULK_WRITE_ROUTES): 1000 rows with
+  // coordinates is 40 batches; with address searches a batch takes seconds anyway.
+  const importLimiter = createRateLimiter({ capacity: 40, refillPerSecond: 1 });
+  app.post('/v1/properties/import', { preHandler: deps.requireOrg }, async (req, reply): Promise<PropertyImportResponse> => {
+    if (!importLimiter.take(req.auth!.userId)) {
+      reply.header('retry-after', '2');
+      throw new HttpProblem(429, 'Too many requests');
+    }
+    const { rows, final } = PropertyImportRequestSchema.parse(req.body);
+    const ctx = orgContext(req);
+    const abort = new AbortController();
+    // The request stream closes once its body is read; only a response closed before it ended means the client left.
+    reply.raw.on('close', () => !reply.raw.writableEnded && abort.abort());
+    const geocode: ImportGeocoder = async (address, signal) => {
+      await importPacer.wait(signal);
+      const r = await deps.geocoder.resolve(address, { env: deps.env, fetch: deps.fetch, logger: req.log, now: () => new Date(), signal });
+      if (r.ok) return { ok: true, data: r.data };
+      if (r.error === 'invalid_payload') return { ok: true, data: null };
+      // A passing error is retried by sending the row again; a missing key or the day's quota is not.
+      const retry = r.error === 'timeout' || r.error === 'upstream_error' || (r.error === 'rate_limited' && r.retryAfterSeconds !== undefined);
+      return { ok: false, retry };
+    };
+    const outcome = await serializeForOrganization(ctx.organizationId, async () =>
+      importPropertyBatch(db(), ctx, rows, { geocode, limit: await getPropertyLimit(db(), ctx.organizationId), signal: abort.signal }),
+    );
+    // One re-match for the whole import: held while batches follow, run shortly after the last one.
+    if (outcome.created > 0 || final) {
+      void deps.monitoring?.propertyChanged(ctx.organizationId, { changes: outcome.created, settleMs: final ? undefined : IMPORT_SETTLE_MS });
+    }
+    const statuses: Record<string, number> = {};
+    for (const r of outcome.results) statuses[r.status] = (statuses[r.status] ?? 0) + 1;
+    req.log.info({ propertyImport: { rows: rows.length, final, statuses } }, 'property import batch');
+    return { results: outcome.results, remaining: outcome.remaining };
+  });
+
+  // Street or approximate hits nobody has checked yet (the import's review list).
+  app.get('/v1/properties/position-review', { preHandler: deps.requireOrg }, async (req): Promise<PositionReviewResponse> => ({
+    properties: await listPositionReview(db(), orgContext(req)),
+  }));
 
   app.patch('/v1/properties/:id', { preHandler: deps.requireOrg }, async (req) => {
     const { id } = PropertyIdParamSchema.parse(req.params);
