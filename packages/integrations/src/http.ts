@@ -28,8 +28,9 @@ export interface HttpOptions {
 export const sleep = (ms: number, signal?: AbortSignal) =>
   new Promise<void>((resolve, reject) => {
     if (signal?.aborted) return reject(signal.reason);
-    const t = setTimeout(resolve, ms);
-    signal?.addEventListener('abort', () => (clearTimeout(t), reject(signal.reason)), { once: true });
+    const abort = () => { clearTimeout(t); reject(signal?.reason); };
+    const t = setTimeout(() => { signal?.removeEventListener('abort', abort); resolve(); }, ms);
+    signal?.addEventListener('abort', abort, { once: true });
   });
 
 export async function httpRequest(url: string | URL, ctx: AdapterContext, opts: HttpOptions): Promise<AdapterResult<Response>> {
@@ -52,7 +53,10 @@ export async function httpRequest(url: string | URL, ctx: AdapterContext, opts: 
       }
       if (res.status === 429) {
         await res.body?.cancel().catch(() => undefined);
-        const ra = Number(res.headers.get('retry-after')) || 2 ** attempt;
+        const header = res.headers.get('retry-after');
+        const seconds = header && /^\d+$/.test(header) ? Number(header)
+          : header ? Math.ceil((Date.parse(header) - ctx.now().getTime()) / 1000) : NaN;
+        const ra = Number.isFinite(seconds) ? Math.max(0, seconds) : 2 ** attempt;
         last = { ok: false, error: 'rate_limited', detail: `${opts.label}: HTTP 429`, retryAfterSeconds: ra };
         if (attempt < attempts - 1 && ra <= (opts.maxRetryAfterSeconds ?? 10)) {
           await sleep(ra * 1000, ctx.signal);

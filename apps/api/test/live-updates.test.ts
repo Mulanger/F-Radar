@@ -45,20 +45,16 @@ describe('per-property jobs name the properties they changed', () => {
   });
 
   it('the nowcast job names only the properties at the points it refreshed', async () => {
-    const targets = [
-      { id: 'p-sthlm', organization_id: 'org-a', lat: 59.331, lon: 18.061, municipality: null, updated_at: now, traffic_radius_m: 1000 },
-      { id: 'p-gbg', organization_id: 'org-b', lat: 57.701, lon: 11.971, municipality: null, updated_at: now, traffic_radius_m: 1000 },
-    ];
     const cache = [
-      { point_key: '59.33,18.06', expires_at: new Date(+now - 1), last_modified: 'Fri, 13 Nov 2026 17:00:00 GMT' },
-      { point_key: '57.70,11.97', expires_at: new Date(+now + 60_000), last_modified: 'Fri, 13 Nov 2026 17:00:00 GMT' },
+      { point_key: '59.33,18.06', fetched_at: new Date(+now - 360_000), last_modified: 'Fri, 13 Nov 2026 17:00:00 GMT' },
     ];
+    const properties = [{ organizationId: 'org-a', propertyId: 'p-sthlm-a' }, { organizationId: 'org-b', propertyId: 'p-sthlm-b' }];
     const ctx = context({ NODE_ENV: 'test', MET_NORWAY_CONTACT: 'https://f-radar.fr-2.instapods.app' },
       async () => new Response(null, { status: 304, headers: { Expires: 'Fri, 13 Nov 2026 17:10:00 GMT' } }),
-      (sql) => (sql.includes('JOIN organizations o') ? targets : sql.includes('FROM nowcast_points') ? cache : []));
+      (sql) => sql.includes('WITH active_points AS') ? cache : sql.includes('AS "organizationId"') ? properties : []);
     const r = await runNowcast(ctx);
     expect(r).toMatchObject({ status: 'ok', items: 1 });
-    expect(r.changed).toEqual({ properties: [{ organizationId: 'org-a', propertyId: 'p-sthlm' }] });
+    expect(r.changed).toEqual({ properties });
   });
 });
 

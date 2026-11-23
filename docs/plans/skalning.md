@@ -585,6 +585,7 @@ just de händelser tjänsten finns till för.
 - **Åtgärd:** Dela upp i delmängder per varv (äldst först, `moreWork`) i stället för alla förfallna
   punkter, och fler parallella hämtningar inom MET Norways villkor. Hämta nowcast bara för fastigheter
   där det ska visas (t.ex. inte för pausade).
+- **Gjort 2026-11-23 (Fas 7 steg 2)** med arbetstak, äldst först och fortsatt körning vid kö.
 
 **S-32 Live-strömmen har ett tak på 500 lyssnare** · P3 · Fas 7
 - **Var:** [`bus.ts`](../../apps/api/src/monitoring/bus.ts) `setMaxListeners(500)`.
@@ -1272,6 +1273,44 @@ fastigheter (siffror i Fasloggen).
 - **Inte gjort:** fullskaligt genomlopp mot SMHI i produktion. Punktvalet vid varje gräns mellan
   rutnätsceller är inte verifierat. De tidigare prognosraderna behålls för övergång och återgång.
 
+**Genomfört steg 2 (gren `claude/skalning-fas0`):**
+- SQL väljer förfallna punkter som har minst en aktiv fastighet. Tidigare ohämtade punkter går
+  först, sedan de med äldst hämtningstid. Jobbet tar högst 400 punkter med en arbetsbudget på 90 s
+  inom den befintliga tidsgränsen på 180 s. När punkter återstår efter ett lyckat delvarv anger
+  `moreWork` nästa körning efter 30 s.
+- Högst åtta samtidiga anrop och minst en sekunds paus efter varje avslutad omgång. METs villkor
+  anger under 20 anrop/s för hela applikationen, identifierande `User-Agent` med kontaktuppgift och
+  högst fyra decimaler i koordinaterna. Adaptern använder servercache, väntar till `Expires`,
+  skickar föregående `Last-Modified` som `If-Modified-Since` och behåller serien vid 304. Vid 429
+  startas ingen ny omgång. Längsta `Retry-After` i omgången gäller i både sekunder och HTTP-datum.
+  [MET Norways villkor](https://docs.api.met.no/doc/TermsOfService) · [Nowcast 2.0](https://api.met.no/weatherapi/nowcast/2.0/documentation)
+- Rensningen tar bort förfallna punkter som saknar aktiva fastigheter, utöver den befintliga
+  dygnsgränsen. Oanvända cacheposter behålls fram till `Expires` så att en återaktiverad plats
+  inte hämtas för tidigt. Efter skrivningen hämtar jobbet de aktuella fastigheterna vid varje
+  uppdaterad punkt för radvis avisering, även när flera organisationer delar punkten. Befintliga
+  tabeller och nycklar räcker för ändringen.
+- Före- och eftertestet körde respektive version av insamlaren med simulerad klocka, 0,5 s
+  stubbad svarstid per anrop, 1 s omgångspaus och 5 min cachetid. Alla punkter var 5 min gamla
+  och förfallna vid start. Åldern mäts fram till första kompletta genomloppet eller till slutet
+  av det 20 minuter långa observationsfönstret om genomloppet inte blev klart.
+
+  | Punkter | Körningar till komplett genomlopp, före → efter | Längsta körning före → efter | Äldsta punkt före → efter |
+  |---:|---|---:|---:|
+  | 1 000 | Inte klart efter två körningar, 480 uppdaterade → 3 körningar | 180 → 74 s | minst 25 min → 9 min 4,5 s |
+  | 2 000 | Inte klart efter två körningar, 480 uppdaterade → 5 körningar | 180 → 74 s | minst 25 min → 13 min 10 s |
+
+- Vitest gav 748 godkända och 6 överhoppade tester. PostgreSQL-sviten på `fastighetsradar_test`
+  gav 52 godkända tester. Testerna täcker avbrutna hämtningar inom arbetsbudgeten, spärrtid vid 429,
+  urval utifrån cacheålder och `Expires`, borttagna fastigheter och avisering över
+  organisationsgränser. ESLint och typkontrollerna för appen och integrationstesterna passerade.
+- **Granskning (Claude):** en enskild punkt som misslyckas (t.ex. utanför radarn) gjorde körningen
+  "partial" och stängde av nästa delvarv efter 30 s – med 2 000 punkter hade ett helt varv då tagit
+  ~25 minuter. Nu stoppar bara 429, nekad åtkomst, skrivfel och avbrott det snabba delvarvet; den
+  felande punkten förblir förfallen och provas igen. Enhetstest tillagt. Databassviten kördes om av
+  granskaren.
+- **Inte gjort:** genomlopp mot MET med verklig nättrafik och mätning av radarålder i produktion,
+  där väntan bakom andra jobb i bakgrundskön tillkommer.
+
 ---
 
 ## 7. Kända okända
@@ -1314,5 +1353,6 @@ fastigheter (siffror i Fasloggen).
 | Fas 4 steg 3 | 2026-11-23 | `claude/skalning-fas0` / `91b8b03`, driftsatt 2026-11-23 14:37 UTC | Fastighetslistan med 500: sortering bara risk/namn, rubriken rullade bort, 500 rader ritade → sortering på sex kolumner, filter på område, fast rubrik, 100 rader i taget. Omsortering 140–350 ms → 55–250 ms i utvecklingsbygget. | Produktionsbyggets renderingstid inte mätt |
 | Fas 4 steg 4 | 2026-11-23 | `claude/skalning-fas0` / `f74ef1d`, driftsatt 2026-11-23 15:16 UTC | Demo med 500 fastigheter: 499 rader → 8 grupper i ”Kommande förhållanden”; i liveläget visades tidigare bara 8 förhållanden, nu alla, grupperade. Den orange SMHI-varningen i panelen: 62 enskilda rader → 1 grupp med 62 fastigheter. Ingen horisontell rullning vid 375 px. | Liveflöde i webbläsaren och rendering i produktionsbygge |
 | Fas 4 steg 5 | 2026-11-23 | `claude/skalning-fas0` / `c49426d`, driftsatt 2026-11-23 16:01 UTC | Sparat fastighetsurval → grupp med aktuellt medlemskap. PostgreSQL 48/48: berörda fastigheter 1 → 2 → 1 efter medlemsbyten. Demo med 500 fastigheter: Innerstad 9, Förort & Kust 491. Gruppborttagning nekades i dator- och mobilvyn. | Riktiga SMS och driftsatt kundmiljö |
-| Fas 7 steg 1 | 2026-11-23 | `claude/skalning-fas0` (ocommittat) | 500/1 000 fastigheter, stubbad SMHI-hämtning: 500/1 000 anrop → 49 punktanrop + 1 kataloganrop, 13/26 → 2 körningar, 187/304 → 47/55 ms. `/v1/portfolio` med delade punkter: 370 → 327 ms vid 500 och 681 → 606 ms vid 1 000. | Genomloppets verkliga nät- och väntetider i produktion |
+| Fas 7 steg 1 | 2026-11-23 | `claude/skalning-fas0` / `8e2552f`, driftsatt 2026-11-23 16:41 UTC | 500/1 000 fastigheter, stubbad SMHI-hämtning: 500/1 000 anrop → 49 punktanrop + 1 kataloganrop, 13/26 → 2 körningar, 187/304 → 47/55 ms. `/v1/portfolio` med delade punkter: 370 → 327 ms vid 500 och 681 → 606 ms vid 1 000. I drift: första varvet 12 punkter för 13 fastigheter, 4,1 s inklusive katalogen, API 145 MB. | Genomloppets verkliga nät- och väntetider i produktion |
+| Fas 7 steg 2 | 2026-11-23 | `claude/skalning-fas0` (ocommittat) | Stubbad MET-hämtning, 1 000/2 000 punkter: 480 avklarade efter två körningar med timeout → alla på 3/5 körningar. Längsta körning 180 → 74 s. Äldsta punkt minst 25 min → 9 min 4,5 s respektive 13 min 10 s. | Radarålder och väntan i bakgrundskön i produktion |
 

@@ -55,6 +55,7 @@ import {
 import { buildApp } from '../../apps/api/src/app';
 import type { AuthVerifier, VerifiedIdentity } from '../../apps/api/src/auth';
 import { MonitoringBus } from '../../apps/api/src/monitoring/bus';
+import { runNowcast, type JobContext } from '../../apps/api/src/monitoring/jobs';
 import { MonitoringService } from '../../apps/api/src/monitoring/service';
 import { parseSmhiForecast, type GeocodingProvider } from '../../packages/integrations/src';
 import type { PositionReviewItem, Portfolio, PropertyGroup, PropertyImportResult, PropertyRecord } from '../../packages/domain/src';
@@ -974,7 +975,7 @@ describe('real PostgreSQL / PostGIS', () => {
     await pool.query(`INSERT INTO observation_history(source_id,station_id,parameter,observed_at,value) VALUES
       ('smhi_observations','expired','precipitation_15min',now()-interval '36 days',1),
       ('smhi_observations','retained','precipitation_15min',now()-interval '34 days',1)`);
-    await pool.query(`UPDATE nowcast_points SET fetched_at=now()-interval '2 days'`);
+    await pool.query(`UPDATE nowcast_points SET fetched_at=now()-interval '2 days', expires_at=now()-interval '1 day'`);
     // Retention removes ended events after the window (cascade removes their matches).
     await pool.query(`UPDATE source_events SET ended_at = now() - interval '8 days' WHERE status <> 'active'`);
     const del = await applyRetention(pool);
@@ -986,6 +987,80 @@ describe('real PostgreSQL / PostGIS', () => {
     const { rows: left } = await pool.query(`SELECT count(*)::int AS n FROM property_event_matches`);
     assert.equal(left[0].n, 0, 'matches cascade with the property');
   });
+  it('drains the oldest active nowcast points first and fans out refreshed points across tenants', async () => {
+    const db = await pool.connect();
+    try {
+      await db.query('BEGIN');
+      await db.query("UPDATE properties SET status = 'paused' WHERE status <> 'paused'");
+      const now = (await db.query<{ now: Date }>('SELECT now()')).rows[0]!.now;
+      const a = { organizationId: await ensureOrganization(db, 'org_nowcasttestA'), userId: 'user_nowcast' };
+      const b = { organizationId: await ensureOrganization(db, 'org_nowcasttestB'), userId: 'user_nowcast' };
+      const pin = (org: typeof a, lon: number) => createProperty(db, org, { ...sveavagen, location: { lat: 59.335, lon } });
+      const oldest = await pin(a, 18.06);
+      const shared = await pin(b, 18.061);
+      const pausedOnSharedPoint = await pin(b, 18.062);
+      const newer = await pin(a, 18.07);
+      const fresh = await pin(a, 18.08);
+      const paused = await pin(a, 18.09);
+      const missing = await pin(b, 18.11);
+      await db.query("UPDATE properties SET status = 'paused' WHERE id = ANY($1::uuid[])", [[paused.id, pausedOnSharedPoint.id]]);
+      const date = (delta: number) => new Date(+now + delta);
+      const modified = date(-420_000).toUTCString();
+      const savedPoint = { coverage: 'ok', updatedAt: date(-420_000).toISOString(), temperature: 2, points: [] };
+      const seed = (lon: number, fetched: number, expires: number) => saveNowcastPoint(db, `59.34,${lon.toFixed(2)}`, 59.34, lon, savedPoint, date(fetched).toISOString(), date(expires).toISOString(), modified);
+      await seed(18.06, -400_000, -10_000);
+      await seed(18.07, -330_000, -20_000);
+      await seed(18.08, -10_000, 250_000);
+      await seed(18.09, -600_000, -300_000);
+      await seed(18.10, -10_000, -1); // No property points here.
+
+      const requested: Array<{ key: string; conditional: string | null }> = [];
+      const ctx: JobContext = { db, adapter: {
+        env: loadServerEnv({ NODE_ENV: 'test', MET_NORWAY_CONTACT: 'https://example.test' }),
+        now: () => now,
+        logger: { debug() {}, info() {}, warn() {}, error() {} },
+        fetch: async (input, options) => {
+          const { searchParams } = new URL(String(input));
+          const key = `${Number(searchParams.get('lat')).toFixed(2)},${Number(searchParams.get('lon')).toFixed(2)}`;
+          const conditional = new Headers(options?.headers).get('If-Modified-Since');
+          requested.push({ key, conditional });
+          const headers = { Expires: date(300_000).toUTCString(), 'Last-Modified': modified };
+          if (key === '59.34,18.06') return new Response(null, { status: 304, headers });
+          return Response.json({ properties: { meta: { updated_at: now.toISOString(), radar_coverage: 'ok' }, timeseries: [] } }, { headers });
+        },
+      } };
+
+      const first = await runNowcast(ctx, 2);
+      assert.equal(first.status, 'ok');
+      assert.equal(first.items, 2);
+      assert.equal(first.moreWork, true);
+      assert.deepEqual(requested.splice(0), [{ key: '59.34,18.11', conditional: null }, { key: '59.34,18.06', conditional: modified }]);
+      const expected = new Map([[oldest.id, a.organizationId], [shared.id, b.organizationId], [pausedOnSharedPoint.id, b.organizationId], [missing.id, b.organizationId]]);
+      assert.deepEqual(new Map(first.changed?.properties?.map((p) => [p.propertyId, p.organizationId])), expected);
+      const [revalidated] = (await loadOrgMonitoring(db, b.organizationId, shared.id)).nowcasts!;
+      assert.equal(revalidated?.fetched_at.getTime(), +now);
+      assert.deepEqual(revalidated?.series, { temperature: 2, points: [] });
+
+      const second = await runNowcast(ctx, 2);
+      assert.equal(second.status, 'ok');
+      assert.equal(second.items, 1);
+      assert.equal(second.moreWork, false);
+      assert.deepEqual(requested, [{ key: '59.34,18.07', conditional: modified }]);
+      assert.deepEqual(second.changed?.properties, [{ propertyId: newer.id, organizationId: a.organizationId }]);
+      await deleteProperty(db, a, newer.id);
+      await applyRetention(db);
+      assert.equal((await db.query("SELECT 1 FROM nowcast_points WHERE point_key = '59.34,18.07'")).rowCount, 1, 'preserve Expires if a pin returns');
+      await db.query("UPDATE nowcast_points SET expires_at = now() - interval '1 second' WHERE point_key = '59.34,18.07'");
+      await applyRetention(db);
+      const { rows } = await db.query<{ point_key: string }>("SELECT point_key FROM nowcast_points WHERE point_key LIKE '59.34,18.%' ORDER BY point_key");
+      assert.deepEqual(rows.map((p) => p.point_key), ['59.34,18.06', '59.34,18.08', '59.34,18.11']);
+      assert.equal((await loadOrgMonitoring(db, a.organizationId, fresh.id)).nowcasts?.length, 1);
+    } finally {
+      await db.query('ROLLBACK');
+      db.release();
+    }
+  });
+
   registerNotificationTests(pool);
   registerUtilityOutageTests(pool);
 });

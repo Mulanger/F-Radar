@@ -570,6 +570,9 @@ export const RETENTION = {
   observationHistoryDays: 35,
 } as const;
 
+// Use exactly the same rounding for cache writes, tenant reads, change hints and retention.
+const NOWCAST_POINT_KEY = `round(ST_Y(p.location::geometry)::numeric,2)::text || ',' || round(ST_X(p.location::geometry)::numeric,2)::text`;
+
 export async function applyRetention(db: Queryable): Promise<Record<string, number>> {
   const del = async (sql: string, params: unknown[]) => (await db.query(sql, params)).rowCount ?? 0;
   return {
@@ -579,7 +582,10 @@ export async function applyRetention(db: Queryable): Promise<Record<string, numb
     changes: await del(`DELETE FROM monitoring_changes WHERE created_at < now() - make_interval(days => $1)`, [RETENTION.changesDays]),
     runs: await del(`DELETE FROM integration_runs WHERE started_at < now() - make_interval(days => $1)`, [RETENTION.runsDays]),
     observationHistory: await del(`DELETE FROM observation_history WHERE observed_at < now() - make_interval(days => $1)`, [RETENTION.observationHistoryDays]),
-    nowcast: await del(`DELETE FROM nowcast_points WHERE fetched_at < now() - make_interval(days => $1)`, [RETENTION.nowcastDays]),
+    // Still honour Expires if a pin is reactivated or added again before that time.
+    nowcast: await del(`DELETE FROM nowcast_points n WHERE n.expires_at <= now()
+      AND (n.fetched_at < now() - make_interval(days => $1)
+        OR NOT EXISTS (SELECT 1 FROM properties p WHERE p.status <> 'paused' AND (${NOWCAST_POINT_KEY}) = n.point_key))`, [RETENTION.nowcastDays]),
     forecastGrid: await pruneForecastGridPoints(db),
     stations: await del(`DELETE FROM observation_stations WHERE fetched_at < now() - make_interval(days => $1)`, [RETENTION.stationSilentDays]),
     stationHistory: await del(`DELETE FROM station_observation_history WHERE observed_at < now() - interval '7 days'`, []),
@@ -779,8 +785,7 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
 /** The stored radar nowcast of an organization's properties (all, or the given ones). */
 export async function loadOrgNowcasts(db: Queryable, organizationId: string, propertyIds?: string[]): Promise<Array<NowcastRow & { property_id: string }>> {
   const { rows } = await db.query<NowcastRow & { property_id: string }>(
-    `SELECT p.id AS property_id, n.* FROM properties p JOIN nowcast_points n ON n.point_key =
-      round(ST_Y(p.location::geometry)::numeric,2)::text || ',' || round(ST_X(p.location::geometry)::numeric,2)::text
+    `SELECT p.id AS property_id, n.* FROM properties p JOIN nowcast_points n ON n.point_key = (${NOWCAST_POINT_KEY})
       WHERE p.organization_id = $1 AND ($2::uuid[] IS NULL OR p.id = ANY($2::uuid[]))`, [organizationId, propertyIds ?? null]);
   return rows;
 }
@@ -1240,8 +1245,30 @@ export interface NowcastRow {
   series: { temperature: number | null; points: Array<{ validAt: string; rateMmH: number | null }> };
   source_updated_at: Date | null; fetched_at: Date; expires_at: Date; last_modified: string | null;
 }
-export async function loadNowcastCache(db: Queryable): Promise<NowcastRow[]> {
-  return (await db.query<NowcastRow>('SELECT point_key, radar_coverage, series, source_updated_at, fetched_at, expires_at, last_modified FROM nowcast_points')).rows;
+export type NowcastTarget = Pick<NowcastRow, 'point_key' | 'last_modified'> & { fetched_at: Date | null };
+
+/** Only request points with active pins, and only after their upstream cache expires. */
+export async function nowcastPointsDue(db: Queryable, at: Date, limit: number): Promise<NowcastTarget[]> {
+  const { rows } = await db.query<NowcastTarget>(
+    `WITH active_points AS (
+       SELECT DISTINCT ${NOWCAST_POINT_KEY} AS point_key FROM properties p WHERE p.status <> 'paused'
+     )
+     SELECT p.point_key, n.last_modified, n.fetched_at
+       FROM active_points p LEFT JOIN nowcast_points n ON n.point_key = p.point_key
+      WHERE p.point_key IS NOT NULL AND (n.expires_at IS NULL OR n.expires_at <= $1)
+      ORDER BY n.fetched_at NULLS FIRST, p.point_key LIMIT $2`,
+    [at.toISOString(), limit],
+  );
+  return rows;
+}
+
+/** Find the current consumers of the refreshed points rather than the pins from before fetching. */
+export async function nowcastPropertiesAtPoints(db: Queryable, keys: string[]): Promise<Array<{ organizationId: string; propertyId: string }>> {
+  const { rows } = await db.query<{ organizationId: string; propertyId: string }>(
+    `SELECT p.organization_id AS "organizationId", p.id AS "propertyId" FROM properties p
+      WHERE (${NOWCAST_POINT_KEY}) = ANY($1::text[]) ORDER BY p.id`, [keys],
+  );
+  return rows;
 }
 export async function saveNowcastPoint(db: Queryable, pointKey: string, lat: number, lon: number, data: { coverage: string; updatedAt: string; temperature: number | null; points: unknown[] }, fetchedAt: string, expiresAt: string, lastModified: string | null) {
   await db.query(`INSERT INTO nowcast_points (point_key, location, radar_coverage, series, source_updated_at, fetched_at, expires_at, last_modified)

@@ -25,5 +25,9 @@ export async function fetchMetNowcast(lat:number,lon:number,ctx:AdapterContext,l
   try {
     const data=parseMetNowcast(await r.data.json());
     return data?{ok:true,fetchedAt:r.fetchedAt,data:{data,notModified:false,expiresAt,lastModified:modified}}:{ok:false,error:'invalid_payload',detail:'met_nowcast: schema mismatch'};
-  } catch { return {ok:false,error:'invalid_payload',detail:'met_nowcast: invalid JSON'}; }
+  } catch (err) {
+    if (ctx.signal?.aborted || (err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError')))
+      return { ok: false, error: 'timeout', detail: 'met_nowcast: response body cancelled' };
+    return { ok: false, error: 'invalid_payload', detail: 'met_nowcast: invalid JSON' };
+  }
 }

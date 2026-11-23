@@ -7,7 +7,7 @@ import {
   stationsNeedingBackfill, markBackfillChecked,
   insertObservationHistory,
   applyRetention,
-  loadNowcastCache, saveNowcastPoint, revalidateNowcastPoint,
+  nowcastPointsDue, nowcastPropertiesAtPoints, saveNowcastPoint, revalidateNowcastPoint,
   countCountyAreas,
   endEventsById,
   endMissingEvents,
@@ -497,7 +497,7 @@ export function buildJobs(env: ServerEnv): MonitoringJob[] {
 /** Jobs that compute per-property data and must run soon after a property is created/moved. */
 export const PER_PROPERTY_JOBS = ['met_nowcast', 'smhi_forecast', 'observation_backfill', 'sgu_groundwater', 'sgu_observed_groundwater', 'mcf_flood', 'scb'];
 
-/** Backoff after failures: interval × 2^(n−1), min 60 s, max 6 h; Retry-After wins when longer. */
+/** Backoff scales with consecutive failures, from 60 s to 6 h. A longer Retry-After takes precedence. */
 export function nextRunSeconds(intervalSeconds: number, consecutiveFailures: number, result: JobResult): number {
   if (result.status === 'ok' || result.status === 'partial') return Math.max(result.moreWork ? 30 : intervalSeconds, result.retryAfterSeconds ?? 0);
   if (result.status === 'skipped') return intervalSeconds;
@@ -507,34 +507,83 @@ export function nextRunSeconds(intervalSeconds: number, consecutiveFailures: num
 
 export { countCountyAreas };
 
-/** Leased singleton job; batches of at most four, spaced by one second, no HTTP retries. */
-export async function runNowcast(ctx: JobContext): Promise<JobResult> {
-  if (!ctx.adapter.env.MET_NORWAY_CONTACT) return { status:'skipped', items:0, errorCode:'access_required', errorDetail:'MET_NORWAY_CONTACT saknas – ange publik kontaktwebbadress' };
-  const targets=await listMonitoringTargets(ctx.db), cache=new Map((await loadNowcastCache(ctx.db)).map(x=>[x.point_key,x]));
-  const keys=[...new Set(targets.map(t=>t.lat.toFixed(2)+','+t.lon.toFixed(2)))];
-  const due=keys.filter(k=>!cache.has(k)||cache.get(k)!.expires_at<=ctx.adapter.now());
-  let items=0, failure: JobResult | null=null;
-  const done=new Set<string>();
-  for(let i=0;i<due.length;i+=4) {
-    if(i) await sleep(1000,ctx.adapter.signal);
-    const results=await Promise.all(due.slice(i,i+4).map(async key=>{
-      const [lat,lon]=key.split(',').map(Number), old=cache.get(key);
-      const r=await fetchMetNowcast(lat!,lon!,ctx.adapter,old?.last_modified);
-      if(!r.ok)return fail(r);
-      if(r.data.notModified) {
-        if(!old)return {status:'error' as const,items:0,errorCode:'invalid_payload'};
-        await revalidateNowcastPoint(ctx.db,key,r.fetchedAt,r.data.expiresAt,r.data.lastModified);
-      } else if(r.data.data) await saveNowcastPoint(ctx.db,key,lat!,lon!,r.data.data,r.fetchedAt,r.data.expiresAt,r.data.lastModified);
-      // A revalidated point changes too: the list shows the nowcast only while its fetch time is recent.
-      done.add(key);
-      return {status:'ok' as const,items:1};
-    }));
-    for(const r of results) {items+=r.items;if(r.status==='error')failure=r;}
-    if(results.some(r=>'errorCode' in r && (r.errorCode==='rate_limited'||r.errorCode==='unauthorized')))break;
+const NOWCAST_BATCH = 8;
+const NOWCAST_POINTS_PER_RUN = 400;
+const NOWCAST_WORK_MS = 90_000;
+const NOWCAST_BATCH_GAP_MS = 1_000;
+
+/** Leased singleton. One response batch plus a one-second gap stays below MET's 20 requests/s. */
+export async function runNowcast(ctx: JobContext, pointLimit = NOWCAST_POINTS_PER_RUN): Promise<JobResult> {
+  if (!ctx.adapter.env.MET_NORWAY_CONTACT) {
+    return { status: 'skipped', items: 0, errorCode: 'access_required', errorDetail: 'MET_NORWAY_CONTACT saknas – ange publik kontaktwebbadress' };
   }
-  // Only the properties at the refreshed points (docs/plans/skalning.md, S-12) – not every organization.
-  const changed = { properties: changedOf(targets.filter((t) => done.has(t.lat.toFixed(2)+','+t.lon.toFixed(2)))) };
-  return failure ? {...failure,status:items?'partial':'error',items,...(items?{changed}:{})} : {status:'ok',items,changed};
+
+  // Leave half the scheduler's 180 s limit for finishing storage and publishing. Taking this
+  // planned pause is ordinary progress, even if we have to cancel an outstanding fetch.
+  const budget = new AbortController();
+  const timer = setTimeout(() => budget.abort(), NOWCAST_WORK_MS);
+  const parent = ctx.adapter.signal;
+  const signal = parent ? AbortSignal.any([parent, budget.signal]) : budget.signal;
+  const adapter = { ...ctx.adapter, signal };
+  const done = new Set<string>();
+  let failure: JobResult | undefined;
+  // Rate limit, refused access, a failed write or cancellation: no quick follow-up run.
+  let halted = false;
+
+  try {
+    const limit = Math.min(pointLimit, NOWCAST_POINTS_PER_RUN);
+    const due = await nowcastPointsDue(ctx.db, adapter.now(), limit + 1);
+    const selected = due.slice(0, limit);
+    for (let i = 0; i < selected.length && !signal.aborted; i += NOWCAST_BATCH) {
+      if (i) {
+        try { await sleep(NOWCAST_BATCH_GAP_MS, signal); }
+        catch (err) { if (signal.aborted) break; throw err; }
+      }
+      if (signal.aborted) break;
+
+      const results = await Promise.allSettled(selected.slice(i, i + NOWCAST_BATCH).map(async (point) => {
+        const key = point.point_key;
+        const [lat, lon] = key.split(',').map(Number);
+        const r = await fetchMetNowcast(lat!, lon!, adapter, point.last_modified);
+        if (!r.ok) return signal.aborted && r.error === 'timeout' ? undefined : fail(r);
+        if (r.data.notModified && point.fetched_at) {
+          await revalidateNowcastPoint(ctx.db, key, r.fetchedAt, r.data.expiresAt, r.data.lastModified);
+        } else if (r.data.data) {
+          await saveNowcastPoint(ctx.db, key, lat!, lon!, r.data.data, r.fetchedAt, r.data.expiresAt, r.data.lastModified);
+        } else {
+          return fail({ error: 'invalid_payload', detail: 'met_nowcast: 304 without a stored point' });
+        }
+        // A 304 changes the fetch time too, which controls the nowcast's freshness in the UI.
+        done.add(key);
+      }));
+
+      const failures = results.flatMap((r): JobResult[] => r.status === 'rejected'
+        ? [{ status: 'error', items: 0, errorCode: 'internal_error', errorDetail: 'met_nowcast: point write failed' }]
+        : r.value ? [r.value] : []);
+      const limited = failures.filter((r) => r.errorCode === 'rate_limited');
+      if (limited.length) {
+        failure = { ...limited[0]!, retryAfterSeconds: Math.max(...limited.map((r) => r.retryAfterSeconds ?? 0)) };
+        halted = true;
+        break;
+      }
+      const stop = failures.find((r) => r.errorCode === 'unauthorized' || r.errorCode === 'internal_error');
+      if (stop) { failure = stop; halted = true; break; }
+      failure ??= failures[0];
+    }
+
+    if (parent?.aborted) {
+      failure ??= fail({ error: 'timeout', detail: 'met_nowcast: cancelled' });
+      halted = true;
+    }
+    const items = done.size;
+    if (failure && !items) return failure;
+    const changed = { properties: items ? await nowcastPropertiesAtPoints(ctx.db, [...done]) : [] };
+    // One point that keeps failing (outside the radar, say) must not slow the rest of the round to
+    // one batch per interval: it stays due and is retried, while the others follow in 30 s.
+    return { ...failure, status: failure ? 'partial' : 'ok', items, changed, moreWork: !halted && due.length > items };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function runOceanography(ctx:JobContext):Promise<JobResult> {

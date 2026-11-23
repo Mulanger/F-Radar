@@ -194,4 +194,6 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
 - Fas 7 steg 1: SMHI-prognosen hämtas och sparas per SNOW-rutnätspunkt. Organisationernas
   fastigheter länkas till punkten och läser den tidigare fastighetsprognosen tills en delad prognos
   finns. Liveuppdateringar omfattar alla berörda fastigheter. Oanvända prognospunkter rensas.
+- Fas 7 steg 2: nowcast hämtar förfallna punkter med aktiva fastigheter äldst först i tidsbegränsade
+  delvarv och fortsätter när fler väntar. Förfallna punkter utan aktiva fastigheter rensas.
 
