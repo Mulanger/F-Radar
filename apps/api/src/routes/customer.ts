@@ -8,7 +8,7 @@ import {
   PropertyUpdateSchema,
   type GeocodingSuggestionsResponse,
 } from '@fastighetsradar/domain';
-import { createProperty, deleteProperty, getProperty, listProperties, updateProperty, type Queryable } from '@fastighetsradar/db';
+import { createProperty, deleteProperty, getProperty, getPropertyLimit, listProperties, updateProperty, type Queryable } from '@fastighetsradar/db';
 import { GEOAPIFY_ATTRIBUTION, resolveSourceStatuses, type AdapterContext, type GeocodingProvider } from '@fastighetsradar/integrations';
 import { orgContext } from '../auth';
 import { createRateLimiter } from '../rate-limit';
@@ -38,8 +38,6 @@ export function portfolioTelemetry(properties: number, body: string, startedAt: 
   };
 }
 
-/** Max properties per organization (abuse guard, IMPLEMENTATION.md §16.1). */
-export const MAX_PROPERTIES_PER_ORG = 500;
 
 export function registerCustomerRoutes(app: FastifyInstance, deps: CustomerRouteDeps) {
   const db = () => {
@@ -68,8 +66,12 @@ export function registerCustomerRoutes(app: FastifyInstance, deps: CustomerRoute
   app.post('/v1/properties', { preHandler: deps.requireOrg }, async (req, reply) => {
     const input = PropertyCreateSchema.parse(req.body);
     const ctx = orgContext(req);
-    const { rows } = await db().query<{ n: string }>('SELECT count(*)::text AS n FROM properties WHERE organization_id = $1', [ctx.organizationId]);
-    if (Number(rows[0]?.n ?? 0) >= MAX_PROPERTIES_PER_ORG) throw new HttpProblem(409, 'Property limit reached');
+    // Per organization (abuse guard, IMPLEMENTATION.md §16.1; docs/plans/skalning.md, S-30).
+    const [{ rows }, limit] = await Promise.all([
+      db().query<{ n: string }>('SELECT count(*)::text AS n FROM properties WHERE organization_id = $1', [ctx.organizationId]),
+      getPropertyLimit(db(), ctx.organizationId),
+    ]);
+    if (Number(rows[0]?.n ?? 0) >= limit) throw new HttpProblem(409, 'Property limit reached');
     const property = await createProperty(db(), ctx, input);
     req.log.info({ propertyId: property.id }, 'property created');
     void deps.monitoring?.propertyChanged(ctx.organizationId);

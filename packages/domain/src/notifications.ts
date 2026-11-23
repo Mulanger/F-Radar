@@ -148,7 +148,8 @@ export const NotificationRuleInputSchema = z
     name: z.string().trim().min(1).max(80),
     enabled: z.boolean().default(false),
     scope: z.enum(["selected", "all_current", "all_future"]),
-    propertyIds: z.array(z.string().uuid()).max(500),
+    // As many as an organization may have (DEFAULT_MAX_PROPERTIES); larger selections use the "all" scopes.
+    propertyIds: z.array(z.string().uuid()).max(1000),
     recipientIds: z.array(z.string().uuid()).min(1).max(10),
     condition: NotificationConditionSchema,
     cooldownMinutes: z.number().int().min(5).max(10080).default(360),

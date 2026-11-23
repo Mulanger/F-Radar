@@ -343,10 +343,12 @@ const key = (p: string, e: string) => `${p}|${e}`;
  * Recomputes property ↔ outage matches and writes monitoring_changes rows for feed-visible changes.
  * Feed rows are written only for matches with an effective severity (panel-only matches get none).
  */
-export async function rematchUtilityOutages(db: Queryable): Promise<MatchChange[]> {
+export async function rematchUtilityOutages(db: Queryable, options: { organizationId?: string } = {}): Promise<MatchChange[]> {
+  const org = options.organizationId ?? null;
   const { rows: cand } = await db.query<CandidateRow>(
     `WITH props AS (
-       SELECT p.id, p.organization_id, p.location, p.geocode_precision, p.position_source FROM properties p WHERE p.status <> 'paused'
+       SELECT p.id, p.organization_id, p.location, p.geocode_precision, p.position_source FROM properties p
+        WHERE p.status <> 'paused' AND ($1::uuid IS NULL OR p.organization_id = $1)
      ), ev AS (
        SELECT e.id, e.version, e.geom, e.headline, u.kind, u.state, u.notice_kind, u.precision, u.affected_customers, u.area_customer_total, u.place_label, u.operator_id, u.utility
          FROM source_events e JOIN utility_outages u ON u.event_id = e.id
@@ -366,13 +368,17 @@ export async function rematchUtilityOutages(db: Queryable): Promise<MatchChange[
             (ev.precision = 'polygon' AND ST_DWithin(ev.geom::geography, pr.location, ${OUTAGE_ADJACENT_M}))
          OR (ev.precision = 'point' AND ST_DWithin(ev.geom::geography, pr.location, ${OUTAGE_POINT_RADIUS_M}))
          OR (ev.precision IN ('postal_area','area') AND ST_Intersects(ev.geom, pr.location::geometry)))`,
+    [org],
   );
-  cand.push(...(await addressCandidates(db)));
+  // Scoped to one organization (a property was saved): candidates and existing matches of that
+  // organization only, so other organizations' matches are neither ended nor reported again.
+  cand.push(...(await addressCandidates(db)).filter((c) => !org || c.organization_id === org));
   const { rows: existing } = await db.query<ExistingMatch>(
     `SELECT m.property_id, m.event_id, m.organization_id, m.match_method, m.matched_version, m.effective_severity,
             e.status AS event_status, e.headline, u.utility, e.extra->>'operatorName' AS operator_name
        FROM property_event_matches m JOIN source_events e ON e.id = m.event_id JOIN utility_outages u ON u.event_id = e.id
-      WHERE e.source_id = '${UTILITY_OUTAGE_SOURCE}'`,
+      WHERE e.source_id = '${UTILITY_OUTAGE_SOURCE}' AND ($1::uuid IS NULL OR m.organization_id = $1)`,
+    [org],
   );
   const old = new Map(existing.map((m) => [key(m.property_id, m.event_id), m]));
   const changes: Array<{ organization_id: string; property_id: string; event_id: string; change_type: MatchChange['changeType']; severity: string; headline: string; dedup_key: string }> = [];

@@ -534,12 +534,18 @@ just de händelser tjänsten finns till för.
 - **Vid 200+:** Import av 500 fastigheter = 500 omräkningar av alla matchningar för alla kunder.
 - **Åtgärd:** Matcha om bara den ändrade fastigheten (eller organisationen); debounce så att en import
   gör det en gång i slutet.
+- **Gjort 2026-11-23 (Fas 6 steg 1):** omatchningen gäller organisationen (`rematchEvents`/
+  `rematchUtilityOutages` med `organizationId`; borttagningen av matchningar är avgränsad likadant) och
+  sparningar inom 2 s samlas till en körning.
 
 **S-30 Taket är 500 fastigheter** · P2 · Fas 6
 - **Var:** [`customer.ts:29`](../../apps/api/src/routes/customer.ts), [`notifications.ts:151`](../../packages/domain/src/notifications.ts).
 - **Vid 1000:** Går inte. SMS-regler med "valda fastigheter" kan inte heller omfatta fler än 500.
 - **Åtgärd:** Tak per organisation (kolumn i `organization_settings`, standard enligt prisnivå). Höj
   först efter Fas 3, när en portfölj på 1000 inte längre är ~19 MB per sidladdning.
+- **Gjort 2026-11-23 (Fas 6 steg 1):** `organizations.max_properties` (migrering 0024; tom = standard
+  1000, `DEFAULT_MAX_PROPERTIES`); SMS-regelns fastighetsurval tar upp till 1000. Ingen prisnivå finns i
+  datamodellen, och prissidan är oförändrad.
 
 ### 4.7 Plattform och bakgrundsjobb
 
@@ -1026,6 +1032,17 @@ utlöser en omatchning; DOM-test för granskningslistan.
 **Klart när:** Import av 500 rader i demoläget/testmiljön ger 500 fastigheter med status per rad, och
 omatchning körs en gång.
 
+**Genomfört steg 1 (gren `claude/skalning-fas0`):**
+- **Omatchning per organisation (S-29):** en sparad fastighet matchar om sin organisations fastigheter,
+  inte plattformens; borttagna matchningar avgränsas likadant, så en annan organisations matchningar
+  rörs aldrig (test mot riktig PostgreSQL). Sparningar för samma organisation inom 2 s
+  (`PROPERTY_CHANGE_DEBOUNCE_MS`) blir en körning – en import av 500 fastigheter matchar om en gång.
+- **`ANALYZE`** av fastighets-, matchnings-, prognos- och kontexttabellerna när minst 20 ändringar
+  samlats (`ANALYZE_AFTER_CHANGES`) – efter en import får portföljfrågan rätt planer direkt.
+- **Tak per organisation (S-30):** se S-30. Standard 1000.
+- **Test:** riktig PostgreSQL (avgränsad omatchning lämnar B:s matchning; eget tak 1 → 409, utan eget
+  tak → 201); enhetstest (tre sparningar → en omatchning för rätt organisation; 25 sparningar → `ANALYZE`).
+
 ### Fas 7 – Plattformslast
 
 **Mål:** Många stora kunder samtidigt utan att bakgrundsjobben eller live-strömmen blir flaskhalsen.
@@ -1072,5 +1089,6 @@ fastigheter (siffror i Fasloggen).
 | Fas 2 steg 2 | 2026-11-22 | `claude/skalning-fas0` / `3d22f6f`, driftsatt 2026-11-22 19:32 UTC | Kvittera en varning över 500 fastigheter (demo): 500 klick, spärr efter 60 → 1 klick, ett anrop. Riktig PostgreSQL: 300 rader i en sats, 300 historikrader. | "Ångra" efter "Kvittera alla" finns bara tills sidan lämnas (sedan per rad på kvitteringssidan); kvitteringssidan visar 30 rader åt gången (steg 4) |
 | Fas 2 steg 3 | 2026-11-22 | `claude/skalning-fas0` / `dbf4306`, driftsatt 2026-11-22 19:47 UTC | Händelse över 500 fastigheter (demo): en rad per fastighet i flödet → en egen sida med texten en gång, karta, sök och "Kvittera alla". Grupperat SMS: länk till första fastigheten → till händelsesidan. | SMS skickas fortfarande simulerat, så länken i ett riktigt SMS är bara testad via förhandsvisningen; kartans rubrik säger "Portföljkarta" även på händelsesidan |
 | Fas 2 steg 4 | 2026-11-22 | `claude/skalning-fas0` / `62ab6b9` + `24b2146`, driftsatt 2026-11-23 07:56 UTC | Kvitteringsrapport för 3 000 kvitteringar (10 händelser à 300): fullständig 113 s / 2,1 MB i huvudtråden → 0,9 s / 388 KB i en Web Worker; hämtning 100 anrop à 30 → 1 anrop. CSV och sökbart fastighetsfilter. | Kvitteringssidans lista på skärmen är fortfarande en rad per fastighet; PDF i workern bara provad i Chromium (webbläsarpanelen) |
-| Fas 5 steg 1–4 | 2026-11-23 | `claude/skalning-fas0` | Riktig PostgreSQL, 300 fastigheter: samlat SMS vid full minut och 5 fastigheter vid tak spärrat för alla → köat för 295; VMA efter dagstaken spärrat → köat; VMA skickas före tidigare orange varning. | Tak per prisnivå; riktiga SMS (allt mätt i simulering) |
+| Fas 5 steg 1–4 | 2026-11-23 | `claude/skalning-fas0` / `baabbfe`, driftsatt 2026-11-23 08:20 UTC | Riktig PostgreSQL, 300 fastigheter: samlat SMS vid full minut och 5 fastigheter vid tak spärrat för alla → köat för 295; VMA efter dagstaken spärrat → köat; VMA skickas före tidigare orange varning. | Tak per prisnivå; riktiga SMS (allt mätt i simulering) |
+| Fas 6 steg 1 | 2026-11-23 | `claude/skalning-fas0` | En sparad fastighet: omatchning av hela plattformen → av organisationen, en gång per 2 s. Tak 500 → 1000 per organisation (eget tak möjligt). | Importen (steg 2); omatchningstiden vid 1000 fastigheter ej mätt |
 

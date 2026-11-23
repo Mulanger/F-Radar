@@ -37,3 +37,12 @@ export async function saveTrafficRadius(db: Queryable, organizationId: string, r
   );
   return { removed: Number(rows[0]?.removed ?? 0), added: Number(rows[0]?.added ?? 0) };
 }
+
+/** Properties an organization may have unless it has its own limit (docs/plans/skalning.md, Fas 6 / S-30). */
+export const DEFAULT_MAX_PROPERTIES = 1_000;
+
+/** The organization's property limit: its own (organizations.max_properties) or the default. */
+export async function getPropertyLimit(db: Queryable, organizationId: string): Promise<number> {
+  const { rows } = await db.query<{ max_properties: number | null }>('SELECT max_properties FROM organizations WHERE id = $1', [organizationId]);
+  return rows[0]?.max_properties ?? DEFAULT_MAX_PROPERTIES;
+}

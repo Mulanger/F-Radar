@@ -53,17 +53,26 @@ export interface OrganizationList {
   settings: Portfolio['settings'];
 }
 
+/** Property saves for one organization within this window are matched once (docs/plans/skalning.md, S-29). */
+export const PROPERTY_CHANGE_DEBOUNCE_MS = 2_000;
+/** After this many coalesced property changes (an import), refresh the planner's statistics. */
+export const ANALYZE_AFTER_CHANGES = 20;
+
 export class MonitoringService {
   private statusCache: { at: number; value: DataSourceStatus[] } | null = null;
   private operatorCache: { at: number; value: OperatorStatus[] } | null = null;
   /** Organization lists being built: concurrent requests share one build (docs/plans/skalning.md, S-33). */
   private readonly building = new Map<string, Promise<OrganizationList>>();
 
+  /** Pending re-matches per organization: one run after the last save in the window. */
+  private readonly pendingChanges = new Map<string, { timer: ReturnType<typeof setTimeout>; count: number; done: Array<() => void> }>();
+
   constructor(
     private readonly db: Queryable,
     private readonly env: ServerEnv,
     readonly bus: MonitoringBus,
-    private readonly logger?: { warn(obj: object, message: string): void },
+    private readonly logger?: { warn(obj: object, message: string): void; info?(obj: object, message: string): void },
+    private readonly options: { propertyChangeDebounceMs?: number } = {},
   ) {}
 
   private coverageReports(properties: PropertyRecord[], inputs: UtilityInputs | null) {
@@ -333,8 +342,36 @@ export class MonitoringService {
     return getPropertyEventMapEvent(this.db, t.organizationId, id, eventId);
   }
 
-  /** Property created/moved/deleted: re-match events now, schedule per-property collectors. */
-  async propertyChanged(organizationId: string): Promise<void> {
+  /**
+   * Property created/moved/deleted (docs/plans/skalning.md, Fas 6 / S-29): re-match this
+   * organization's properties – not the whole platform – and schedule the per-property collectors.
+   * Saves within PROPERTY_CHANGE_DEBOUNCE_MS are coalesced, so an import of 500 properties re-matches
+   * once; after a larger batch the planner statistics are refreshed (a fresh import of 1000 made the
+   * portfolio query take 6 s until PostgreSQL had analyzed the tables). Resolves when that run is done.
+   */
+  propertyChanged(organizationId: string): Promise<void> {
+    return new Promise((resolve) => {
+      const pending = this.pendingChanges.get(organizationId);
+      if (pending) clearTimeout(pending.timer);
+      const entry = pending ?? { timer: undefined as unknown as ReturnType<typeof setTimeout>, count: 0, done: [] };
+      entry.count++;
+      entry.done.push(resolve);
+      entry.timer = setTimeout(() => {
+        this.pendingChanges.delete(organizationId);
+        void this.rematchOrganization(organizationId, entry.count).finally(() => entry.done.forEach((d) => d()));
+      }, this.options.propertyChangeDebounceMs ?? PROPERTY_CHANGE_DEBOUNCE_MS);
+      this.pendingChanges.set(organizationId, entry);
+    });
+  }
+
+  private async rematchOrganization(organizationId: string, changes: number): Promise<void> {
+    if (changes >= ANALYZE_AFTER_CHANGES) {
+      try {
+        await this.db.query('ANALYZE properties, property_event_matches, property_forecasts, property_context');
+      } catch {
+        // Statistics refresh is an optimization; autovacuum catches up anyway.
+      }
+    }
     try {
       const report = await this.utilityCoverage(organizationId, new Date(), true);
       await recordUtilityCoverageGaps(this.db, organizationId, report);
@@ -344,11 +381,15 @@ export class MonitoringService {
     }
     try {
       await requestJobRun(this.db, PER_PROPERTY_JOBS);
-      const changes = [...(await rematchEvents(this.db)), ...(await rematchUtilityOutages(this.db).catch(() => []))];
-      const props = changes.filter((c) => c.organizationId === organizationId).map((c) => c.propertyId);
+      const changed = [
+        ...(await rematchEvents(this.db, { organizationId })),
+        ...(await rematchUtilityOutages(this.db, { organizationId }).catch(() => [])),
+      ];
+      const props = changed.filter((c) => c.organizationId === organizationId).map((c) => c.propertyId);
       // No property ids: the property list itself changed (added, moved, removed), so open dashboards
       // reload the portfolio instead of patching rows (docs/plans/skalning.md, S-12).
       this.bus.publish({ at: new Date().toISOString(), sources: ['smhi_warnings'], organizationIds: [organizationId], propertyIds: [], changes: props.length });
+      this.logger?.info?.({ propertyChanges: changes, matchChanges: props.length }, 'organization re-matched');
     } catch {
       /* monitoring tables missing or DB hiccup – the next scheduled run re-matches */
     }

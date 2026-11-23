@@ -95,7 +95,7 @@ describe('a changed property list', () => {
     const db = { async query<R>(sql: string) {
       return { rows: (sql.includes('WITH props AS') ? [{ organization_id: 'org-a', property_id: 'p-moved', source_id: 'smhi_warnings', change_type: 'new' }] : []) as R[], rowCount: 1 };
     } };
-    await new MonitoringService(db, loadServerEnv({ NODE_ENV: 'test' }), bus).propertyChanged('org-a');
+    await new MonitoringService(db, loadServerEnv({ NODE_ENV: 'test' }), bus, undefined, { propertyChangeDebounceMs: 0 }).propertyChanged('org-a');
     expect(got).toEqual([expect.objectContaining({ propertyIds: [], changes: 1 })]);
   });
 });
@@ -142,6 +142,26 @@ describe('the feed counts events, not rows (Fas 2 / S-04)', () => {
     expect(cards.size).toBe(FEED_EVENT_LIMIT);
     expect(Math.max(...cards.values())).toBe(300);
     expect(feed.filter((f) => f.title.includes('Lokal'))).toHaveLength(FEED_EVENT_LIMIT - 1);
+  });
+});
+
+describe('saving properties re-matches one organization, once per burst (Fas 6 / S-29)', () => {
+  it('coalesces saves, scopes the re-match to the organization and analyzes after a large batch', async () => {
+    const calls: Array<{ sql: string; params: unknown[] }> = [];
+    const db = { async query<R>(sql: string, params: unknown[] = []) {
+      calls.push({ sql, params });
+      return { rows: [] as R[], rowCount: 0 };
+    } };
+    const service = new MonitoringService(db, loadServerEnv({ NODE_ENV: 'test' }), new MonitoringBus(), undefined, { propertyChangeDebounceMs: 20 });
+    const rematches = () => calls.filter((c) => c.sql.includes('WITH props AS') && c.sql.includes('INSERT INTO monitoring_changes'));
+    await Promise.all([service.propertyChanged('org-a'), service.propertyChanged('org-a'), service.propertyChanged('org-a')]);
+    expect(rematches()).toHaveLength(1);
+    expect(rematches()[0]!.params).toEqual(['org-a']);
+    expect(calls.some((c) => c.sql.startsWith('ANALYZE'))).toBe(false);
+    calls.length = 0;
+    await Promise.all(Array.from({ length: 25 }, () => service.propertyChanged('org-b')));
+    expect(rematches()).toHaveLength(1);
+    expect(calls.some((c) => c.sql.startsWith('ANALYZE'))).toBe(true);
   });
 });
 

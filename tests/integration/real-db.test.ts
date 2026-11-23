@@ -407,6 +407,46 @@ describe('real PostgreSQL / PostGIS', () => {
     }
   });
 
+  it('a re-match scoped to one organization never touches the matches of another (Fas 6 / S-29)', async () => {
+    const a = { organizationId: await ensureOrganization(pool, ORG_A, 'org-a'), userId: 'user_testA' };
+    const b = { organizationId: await ensureOrganization(pool, ORG_B, 'org-b'), userId: 'user_testB' };
+    const pa = await createProperty(pool, a, { ...sveavagen, name: 'Scope A' });
+    const pb = await createProperty(pool, b, { ...sveavagen, name: 'Scope B' });
+    const warning = ev({ externalId: 'scope-warning', geometry: box(18.06, 59.33, 0.05) });
+    const matches = async (propertyId: string) => (await pool.query('SELECT 1 FROM property_event_matches m JOIN source_events e ON e.id = m.event_id WHERE m.property_id = $1 AND e.external_id = $2', [propertyId, warning.externalId])).rows.length;
+    try {
+      await upsertSourceEvents(pool, 'smhi_warnings', [warning]);
+      await rematchEvents(pool);
+      assert.equal(await matches(pa.id), 1);
+      assert.equal(await matches(pb.id), 1);
+      // A moves out of the warning: re-matching A ends A's match only.
+      await updateProperty(pool, a, pa.id, { location: { lat: 57.7, lon: 11.97 } });
+      const changes = await rematchEvents(pool, { organizationId: a.organizationId });
+      assert.equal(await matches(pa.id), 0);
+      assert.equal(await matches(pb.id), 1, 'B keeps its match');
+      assert.ok(changes.every((c) => c.organizationId === a.organizationId));
+      assert.deepEqual(await rematchEvents(pool, { organizationId: b.organizationId }), [], 'nothing new for B');
+
+      // The property limit is per organization (S-30): its own limit, else the default (1000).
+      const app = await buildApp(loadServerEnv({ NODE_ENV: 'test' }), { logger: false, verifyAuth: verify, db: pool });
+      try {
+        const create = () => app.inject({ method: 'POST', url: '/v1/properties', headers: { authorization: 'Bearer tok-a', 'content-type': 'application/json' }, payload: { ...sveavagen, name: 'Scope A2' } });
+        await pool.query('UPDATE organizations SET max_properties = 1 WHERE id = $1', [a.organizationId]);
+        assert.equal((await create()).statusCode, 409);
+        await pool.query('UPDATE organizations SET max_properties = NULL WHERE id = $1', [a.organizationId]);
+        const created = await create();
+        assert.equal(created.statusCode, 201, created.body);
+        await deleteProperty(pool, a, created.json().property.id);
+      } finally {
+        await app.close();
+      }
+    } finally {
+      await endEventsById(pool, 'smhi_warnings', [warning.externalId], 'test_finished');
+      await deleteProperty(pool, a, pa.id);
+      await deleteProperty(pool, b, pb.id);
+    }
+  });
+
   it('migration 0003 creates monitoring tables and seeds the source catalog', async () => {
     const { rows } = await pool.query<{ t: string }>(`SELECT tablename AS t FROM pg_tables WHERE schemaname = 'public'`);
     const names = rows.map((r) => r.t);

@@ -357,13 +357,14 @@ export interface MatchChange {
  * and writes one monitoring_changes row per new/updated/ended match (dedup_key is unique, so
  * re-running never duplicates). Returns the changes written.
  */
-export async function rematchEvents(db: Queryable): Promise<MatchChange[]> {
+export async function rematchEvents(db: Queryable, options: { organizationId?: string } = {}): Promise<MatchChange[]> {
   const { rows } = await db.query<{ organization_id: string; property_id: string; source_id: string; change_type: MatchChange['changeType'] }>(
     `WITH props AS (
        SELECT p.id, p.organization_id, p.location, lower(regexp_replace(coalesce(p.municipality, ''), '\\s+(kommun|stad)$', '')) AS muni,
               (SELECT a.name FROM admin_areas a WHERE a.kind = 'county' AND ST_Covers(a.geom, p.location::geometry) LIMIT 1) AS county,
               o.traffic_radius_m
-         FROM properties p JOIN organizations o ON o.id = p.organization_id WHERE p.status <> 'paused'
+         FROM properties p JOIN organizations o ON o.id = p.organization_id
+        WHERE p.status <> 'paused' AND ($1::uuid IS NULL OR p.organization_id = $1)
      ), cand AS (
        SELECT pr.id AS property_id, pr.organization_id, e.id AS event_id, e.version,
               CASE WHEN e.source_id = 'smhi_warnings' THEN 'polygon_intersection'
@@ -402,6 +403,8 @@ export async function rematchEvents(db: Queryable): Promise<MatchChange[]> {
      ), gone AS (
        DELETE FROM property_event_matches m
         WHERE NOT EXISTS (SELECT 1 FROM cand c WHERE c.property_id = m.property_id AND c.event_id = m.event_id)
+          -- Scoped to one organization (a property was saved): never touch other organizations' matches.
+          AND ($1::uuid IS NULL OR m.organization_id = $1)
           -- Utility outages are matched by rematchUtilityOutages (per-property precision/severity).
           AND NOT EXISTS (SELECT 1 FROM source_events se WHERE se.id = m.event_id AND se.source_id = 'utility_outages')
        RETURNING m.property_id, m.event_id, m.organization_id, m.matched_version
@@ -425,6 +428,7 @@ export async function rematchEvents(db: Queryable): Promise<MatchChange[]> {
      SELECT organization_id, property_id, source_id, change_type FROM new_changes
      UNION ALL
      SELECT organization_id, property_id, source_id, change_type FROM end_changes`,
+    [options.organizationId ?? null],
   );
   return rows.map((r) => ({ organizationId: r.organization_id, propertyId: r.property_id, sourceId: r.source_id, changeType: r.change_type }));
 }

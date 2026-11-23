@@ -169,3 +169,9 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
   SMS i stället för att spärra det; dagsräknare i en sats och en transaktion per regel. Regelredigeraren
   föreslår samling när en regel utan samling omfattar fler än 10 fastigheter. Migrering 0023.
 
+# Skalning – Fas 6: stora kunder in (2026-11-23)
+
+- Plan: [`plans/skalning.md`](plans/skalning.md), Fas 6 (S-28–S-30). Gren `claude/skalning-fas0`.
+- Steg 1: omatchning per organisation och en gång per 2 s i stället för hela plattformen per sparad
+  fastighet; `ANALYZE` efter större ändringar; tak per organisation (migrering 0024, standard 1000).
+
