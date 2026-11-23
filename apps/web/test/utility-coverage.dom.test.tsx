@@ -2,17 +2,24 @@
 import React from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
-import { buildUtilityCoverageReport, type PropertyUtilityStatus } from '@fastighetsradar/domain';
+import { buildUtilityCoverageReport, UTILITY_KINDS, type PropertyUtilityStatus } from '@fastighetsradar/domain';
 import { UtilityCoverage } from '../components/dashboard/UtilityCoverage';
 
 afterEach(cleanup);
 describe('coverage disclosure', () => {
+  it('renders only electricity and water even if older reports include all utilities', () => {
+    render(<UtilityCoverage reports={UTILITY_KINDS.map((utility) => buildUtilityCoverageReport([], utility))} properties={[]} basePath="" />);
+    expect(screen.getAllByText(/bevakas för/).map((summary) => summary.textContent)).toEqual([
+      'El bevakas för 0 av 0 adresser',
+      'Vatten och avlopp bevakas för 0 av 0 adresser',
+    ]);
+  });
   it('shows water principal caveat and per-utility health including partial responses', () => {
     const report = buildUtilityCoverageReport([], 'water');
-    report.sources = [{ operatorId: 'va', name: 'VA-bolaget', enabled: true, current: false, lastSuccessAt: null, lastStatus: 'partial', attention: 'format_changed' }];
+    report.sources = [{ operatorId: 'va', name: 'VA-bolaget', enabled: true, current: true, lastSuccessAt: null, lastStatus: 'partial', attention: 'format_changed' }];
     render(<UtilityCoverage reports={[report]} properties={[]} basePath="" />);
     expect(screen.getByText(/Fastighetens anslutning.*inte bekräftad/)).toBeTruthy();
-    expect(screen.getByText(/VA-bolaget: ofullständigt svar.*behöver åtgärd/)).toBeTruthy();
+    expect(screen.getByText(/VA-bolaget: aktuell.*behöver åtgärd/)).toBeTruthy();
     expect(screen.queryByText(/Inga registrerade/)).toBeNull();
   });
   it('shows missing suppliers and approximate property links without claiming no outages', () => {

@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import type { OutageKind, OutageState } from '@fastighetsradar/domain';
+import type { OutageKind, OutageState, UtilityKind } from '@fastighetsradar/domain';
 import { iso } from '../../http';
 import { closeRing, polygonsToGeoJson, type LonLat } from '../geometry';
-import type { NormalizedUtilityOutage, OutageFetchResult, UtilityOperator } from '../types';
+import { hasIncompleteUtilityLayer, type NormalizedUtilityOutage, type OutageFetchResult, type UtilityOperator } from '../types';
 
 /**
  * Tekniska verken (Linköping) – https://avbrott.tekniskaverken.se/api/service-information (verified
@@ -14,6 +14,17 @@ import type { NormalizedUtilityOutage, OutageFetchResult, UtilityOperator } from
  */
 export const TvList = z.object({ outages: z.array(z.unknown()) }).passthrough();
 export const TvShapes = z.object({ outages: z.array(z.object({ outageId: z.string(), geoJson: z.unknown() }).passthrough()) }).passthrough();
+const UTILITY: Partial<Record<string, UtilityKind>> = { Electricity: 'electricity', DistrictHeating: 'district_heating', DistrictCooling: 'district_cooling', Water: 'water' };
+const ListEntry = z.object({ utility: z.string(), outageId: z.string().optional() });
+
+export function tekniskaVerkenShapeIds(rows: unknown[], op: UtilityOperator): string[] {
+  return rows.flatMap((r) => {
+    const entry = ListEntry.safeParse(r);
+    if (!entry.success || !entry.data.outageId) return [];
+    const utility = UTILITY[entry.data.utility];
+    return utility && op.utilities.includes(utility) ? [entry.data.outageId] : [];
+  });
+}
 const Outage = z
   .object({
     outageId: z.string().min(1),
@@ -62,26 +73,28 @@ export function parseTekniskaVerken(list: unknown, shapes: unknown, op: UtilityO
   if (!l.success || !s.success) return null;
   const geoms = new Map(s.data.outages.map((x) => [x.outageId, x.geoJson]));
   const outages: NormalizedUtilityOutage[] = [];
-  let skipped = 0;
+  let unknown = 0;
+  const skipped = new Map<UtilityKind, number>();
   let ignored = 0;
   for (const raw of l.data.outages) {
-    const r = Outage.safeParse(raw);
-    if (!r.success) {
-      skipped++;
+    const entry = ListEntry.safeParse(raw);
+    if (!entry.success) {
+      unknown++;
       continue;
     }
-    const o = r.data;
-    const utility = ({ Electricity: 'electricity', DistrictHeating: 'district_heating', DistrictCooling: 'district_cooling', Water: 'water' } as const)[o.utility as 'Electricity'];
+    const utility = UTILITY[entry.data.utility];
     if (!utility || !op.utilities.includes(utility)) {
       ignored++; // Fiber and waste are out of scope; water needs explicit opt-in.
       continue;
     }
-    const polys = polygonsFromGeoJson(geoms.get(o.outageId));
+    const r = Outage.safeParse(raw);
+    const polys = r.success ? polygonsFromGeoJson(geoms.get(r.data.outageId)) : null;
     const geometry = polys ? polygonsToGeoJson(polys) : null;
-    if (!geometry) {
-      skipped++;
+    if (!r.success || !geometry) {
+      skipped.set(utility, (skipped.get(utility) ?? 0) + 1);
       continue;
     }
+    const o = r.data;
     const planned = o.planned === true;
     const kind: OutageKind = o.planned === true ? 'planned' : o.planned === false ? 'unplanned' : 'unknown';
     const plannedStart = iso(o.plannedStartTime);
@@ -131,5 +144,6 @@ export function parseTekniskaVerken(list: unknown, shapes: unknown, op: UtilityO
       upstream: { status: o.status, planned: o.planned ?? null },
     });
   }
-  return { outages, skipped, ignored, sourceUpdatedAt: null };
+  return { outages, skipped: [...skipped.values()].reduce((n, count) => n + count, unknown), ignored, sourceUpdatedAt: null,
+    ...(op.utilities.length > 1 && (unknown || hasIncompleteUtilityLayer(outages, skipped)) ? { incomplete: true } : {}) };
 }

@@ -200,4 +200,4 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
   samtidiga anslutningar och varnar en gång vid 800.
 - Efterarbete: ”Aktiva larm” i översikten och portföljsammanfattningen räknar unika varningar och
   driftavbrott. Översiktens värde följer valt fastighetsurval på dator och mobil.
-
+- Avbrottsbevakningen erbjuder el och vatten/avlopp. En aktuell hämtning med enstaka överhoppade poster räknas som bevakning och markeras med en varning i källhälsan.

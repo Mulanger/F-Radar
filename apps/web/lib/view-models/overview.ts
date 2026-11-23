@@ -1,3 +1,4 @@
+import { SUPPLY_RISK_FACTOR_LABEL } from '@fastighetsradar/domain';
 import { nowcastBadge } from './nowcast';
 import type { FeedItem, OfficialWarning, Portfolio, PropertySnapshot, PropertyStatus } from '@fastighetsradar/domain';
 import { countActiveAlertEvents, formatClock, formatLongDate, formatNumber, formatShortDate, officialWarningEventKey, swedishDateKey, type RiskFactorKey } from '@fastighetsradar/domain';
@@ -186,7 +187,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
     { label: 'Väder', n: list.filter((s) => factorAtLeastWatch(s, 'weather')).length, c: 'oklch(0.6 0.1 240)' },
     { label: 'Vatten', n: list.filter((s) => factorAtLeastWatch(s, 'water')).length, c: 'oklch(0.62 0.08 215)' },
     { label: 'VMA', n: list.filter((s) => factorAtLeastWatch(s, 'vma')).length, c: 'oklch(0.6 0.17 28)' },
-    { label: 'El och värme', n: list.filter((s) => factorAtLeastWatch(s, 'power')).length, c: 'oklch(0.66 0.13 70)' },
+    { label: SUPPLY_RISK_FACTOR_LABEL, n: list.filter((s) => factorAtLeastWatch(s, 'power')).length, c: 'oklch(0.66 0.13 70)' },
   ];
   const catMax = Math.max(1, ...catsRaw.map((c) => c.n));
 

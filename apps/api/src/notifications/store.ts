@@ -1,3 +1,4 @@
+import { isOfferedNotificationCondition, isOfferedUtility, isOutageCondition } from '@fastighetsradar/domain';
 import type { Queryable } from "@fastighetsradar/db";
 import type {
   NotificationRecipient,
@@ -81,9 +82,16 @@ export function publicRecipient(
     verificationExpiresAt: r.verification_expires_at?.toISOString() ?? null,
   };
 }
-export function publicRule(r: RuleRow): NotificationRule {
+export function publicRules(rules: RuleRow[]): NotificationRule[] {
+  return rules.filter((r) => isOfferedNotificationCondition(r.config.condition)).map(publicRule);
+}
+
+function publicRule(r: RuleRow): NotificationRule {
+  const c = r.config.condition;
+  const condition = isOutageCondition(c) ? { ...c, utilities: c.utilities.filter(isOfferedUtility) } as typeof c : c;
   return {
     ...r.config,
+    condition,
     enabled: r.enabled,
     id: r.id,
     name: r.name,

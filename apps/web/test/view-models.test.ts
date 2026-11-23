@@ -133,7 +133,7 @@ describe('overview view-model reproduces the approved design values', () => {
     expect(vm.hero.maxRainAt).toBe('Augustendal Brygga');
     expect(vm.hero.gust).toBe('25');
     // Weather / water / VMA / power at "Bevaka" or higher – regional news, static flood mapping, traffic and air never count.
-    expect(vm.cats.map((c) => [c.label, c.n])).toEqual([['Väder', 1], ['Vatten', 3], ['VMA', 1], ['El och värme', 0]]);
+    expect(vm.cats.map((c) => [c.label, c.n])).toEqual([['Väder', 1], ['Vatten', 3], ['VMA', 1], ['El', 0]]);
   });
 
   it('table sorted by risk and feed formatted in local time', () => {

@@ -1,6 +1,6 @@
 import type { ServerEnv } from '@fastighetsradar/config';
 import type { DataSourceStatus, EventPage, Portfolio, PortfolioNowcastPatch, PortfolioRowsPatch, PropertyRecord, PropertySnapshot, SourceId } from '@fastighetsradar/domain';
-import { buildUtilityCoverageReport, feedNeedsAck, listSnapshot, utilityCoverageLogEntries, UTILITY_KINDS, WarningLevelSchema } from '@fastighetsradar/domain';
+import { buildUtilityCoverageReport, feedNeedsAck, isOfferedUtility, listSnapshot, OFFERED_UTILITIES, utilityCoverageLogEntries, WarningLevelSchema } from '@fastighetsradar/domain';
 import {
   getProperty,
   recordUtilityCoverageGaps,
@@ -78,12 +78,13 @@ export class MonitoringService {
   ) {}
 
   private coverageReports(properties: PropertyRecord[], inputs: UtilityInputs | null) {
-    return UTILITY_KINDS.map((utility) => ({
+    return OFFERED_UTILITIES.map((utility) => ({
       ...buildUtilityCoverageReport(properties.map((p) => ({ id: p.id, geocodePrecision: p.geocode.precision, positionSource: p.positionSource, statuses: inputs ? [propertyUtilityStatus(p.id, inputs, utility)] : [] })), utility),
-      sources: (inputs?.operators ?? []).filter((o) => o.utilities?.includes(utility)).map((o) => ({
-        operatorId: o.operatorId, name: o.name, enabled: o.enabled && (o.enabledUtilities?.includes(utility) ?? false), current: o.current,
-        lastSuccessAt: o.lastSuccessAt, lastStatus: o.lastStatus, attention: o.attention,
-      })),
+      sources: (inputs?.operators ?? []).filter((o) => o.utilities?.includes(utility)).map((o) => {
+        const enabled = o.enabled && (o.enabledUtilities?.includes(utility) ?? false);
+        return { operatorId: o.operatorId, name: o.name, enabled, current: enabled && o.current,
+          lastSuccessAt: o.lastSuccessAt, lastStatus: o.lastStatus, attention: o.attention };
+      }),
     }));
   }
 
@@ -129,7 +130,7 @@ export class MonitoringService {
       ]);
       return { outages: outages.filter((o) => {
         const op = operatorById(o.operator_id);
-        return (o.utility !== 'water' || isWaterOutageEnabled(o.operator_id, this.env)) && (o.utility !== 'gas' || this.env.SOURCE_UTILITY_GAS_ENABLED)
+        return isOfferedUtility(o.utility) && (o.utility !== 'water' || isWaterOutageEnabled(o.operator_id, this.env)) && (o.utility !== 'gas' || this.env.SOURCE_UTILITY_GAS_ENABLED)
           && (!op?.enableFlag || this.env[op.enableFlag] === true) && (!op?.utilityFlags?.[o.utility] || this.env[op.utilityFlags[o.utility]!] === true);
       }), concessions, operators, municipalities: municipalities.rows };
     } catch {

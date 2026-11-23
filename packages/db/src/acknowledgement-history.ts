@@ -1,4 +1,5 @@
 import { ACKNOWLEDGEMENT_PAGE_SIZE, type AcknowledgementHistoryFilters, type AcknowledgementHistoryPage } from '@fastighetsradar/domain';
+import { offeredUtilityEvent, offeredUtilityHeadline } from './utility-visibility';
 import type { Queryable } from './migrations';
 
 interface HistoryRow {
@@ -23,12 +24,17 @@ interface HistoryRow {
 const IN_GROUP = (param: string) =>
   `EXISTS (SELECT 1 FROM property_group_members m WHERE m.organization_id = h.organization_id AND m.group_id = ${param} AND m.property_id = h.property_id)`;
 
+const VISIBLE_HISTORY = `(h.source_id <> 'utility_outages' OR COALESCE((
+    SELECT ${offeredUtilityEvent('e')} FROM monitoring_changes c JOIN source_events e ON e.id = c.event_id
+    WHERE c.id = h.change_id AND c.organization_id = h.organization_id
+  ), ${offeredUtilityHeadline('h.title')}))`;
+
 export async function listAcknowledgementHistory(db: Queryable, organizationId: string, filters: AcknowledgementHistoryFilters) {
   const { rows } = await db.query<HistoryRow>(
     `SELECT h.id, h.property_id, h.property_name, h.property_address, h.source_id, h.operator_name,
             h.title, h.description, h.area, h.severity, h.event_at, h.acknowledged_at, h.undone_at, h.imported, h.is_update
      FROM feed_acknowledgement_history h
-     WHERE h.organization_id = $1
+     WHERE h.organization_id = $1 AND ${VISIBLE_HISTORY}
        AND ($2::date IS NULL OR h.acknowledged_at >= ($2::date::timestamp AT TIME ZONE 'Europe/Stockholm'))
        AND ($3::date IS NULL OR h.acknowledged_at < (($3::date + 1)::timestamp AT TIME ZONE 'Europe/Stockholm'))
        AND ($4::uuid IS NULL OR h.property_id = $4)
@@ -54,7 +60,7 @@ export async function listAcknowledgementExport(db: Queryable, organizationId: s
     `SELECT h.id, h.property_id, h.property_name, h.property_address, h.source_id, h.operator_name,
             h.title, h.description, h.area, h.severity, h.event_at, h.acknowledged_at, h.undone_at, h.imported, h.is_update
      FROM feed_acknowledgement_history h
-     WHERE h.organization_id = $1
+     WHERE h.organization_id = $1 AND ${VISIBLE_HISTORY}
        AND ($2::date IS NULL OR h.acknowledged_at >= ($2::date::timestamp AT TIME ZONE 'Europe/Stockholm'))
        AND ($3::date IS NULL OR h.acknowledged_at < (($3::date + 1)::timestamp AT TIME ZONE 'Europe/Stockholm'))
        AND ($4::uuid IS NULL OR h.property_id = $4)
@@ -69,7 +75,7 @@ export async function listAcknowledgementProperties(db: Queryable, organizationI
   const { rows } = await db.query<AcknowledgementHistoryPage['properties'][number]>(
     `SELECT id, name, address FROM (
        SELECT DISTINCT ON (property_id) property_id AS id, property_name AS name, property_address AS address
-       FROM feed_acknowledgement_history WHERE organization_id = $1
+       FROM feed_acknowledgement_history h WHERE organization_id = $1 AND ${VISIBLE_HISTORY}
        ORDER BY property_id, acknowledged_at DESC, id DESC
      ) latest ORDER BY name, address, id`,
     [organizationId],

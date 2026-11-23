@@ -3,7 +3,7 @@ import type { ServerEnv } from '@fastighetsradar/config';
 import type { DataSourceStatus, Freshness, SourceId } from '@fastighetsradar/domain';
 import type { JobRow } from '@fastighetsradar/db';
 import { SOURCE_MANIFEST, resolveSourceStatuses } from '@fastighetsradar/integrations';
-import { aggregateUtilityJob, failingUtilityOperators } from './utility-outages';
+import { aggregateUtilityJob, resolveOperatorStatuses, UTILITY_JOB_PREFIX } from './utility-outages';
 
 /**
  * Runtime source status = configuration status (env + manifest) merged with collector job health.
@@ -55,6 +55,8 @@ const ERROR_TEXT: Record<string, string> = {
   unauthorized: 'Åtkomst nekad av leverantören',
   upstream_error: 'Fel hos leverantören',
   invalid_payload: 'Oväntat svar från leverantören',
+  incomplete_feed: 'Ofullständigt svar från leverantören',
+  skipped_records: 'För många poster kunde inte läsas',
   access_required: 'Nyckel saknas eller källan är avstängd',
   internal_error: 'Internt fel vid insamling',
 };
@@ -68,8 +70,11 @@ export function freshnessOf(lastSuccess: Date | null, windowS: number | undefine
 export function resolveRuntimeStatuses(env: ServerEnv, jobs: JobRow[], now = new Date()): DataSourceStatus[] {
   const byJob = new Map(jobs.map((j) => [j.job_id, j]));
   // One job per grid operator: the source row summarises the collector (fails only when no operator delivers).
-  const utility = aggregateUtilityJob(jobs);
-  const utilityOps = failingUtilityOperators(jobs);
+  const operators = resolveOperatorStatuses(env, jobs, now).filter((o) => o.enabled);
+  const jobIds = new Set(operators.map((o) => `${UTILITY_JOB_PREFIX}${o.operatorId}`));
+  const utility = aggregateUtilityJob(jobs.filter((j) => jobIds.has(j.job_id)), now);
+  const unavailable = operators.filter((o) => !o.current).length;
+  const partial = operators.filter((o) => o.current && o.lastStatus === 'partial').length;
   if (utility) byJob.set('utility_outages', utility);
   return resolveSourceStatuses(env).map((cfg) => {
     const job = byJob.get(cfg.sourceId);
@@ -101,9 +106,10 @@ export function resolveRuntimeStatuses(env: ServerEnv, jobs: JobRow[], now = new
     if (freshness !== 'fresh') return { ...common, status: 'stale', note: `Inaktuell – senast lyckad hämtning för länge sedan${job.last_error_code ? ` (${ERROR_TEXT[job.last_error_code] ?? job.last_error_code})` : ''}` };
     if (job.last_status === 'error') return { ...common, status: 'degraded', note: `Senaste hämtningen misslyckades (${ERROR_TEXT[job.last_error_code ?? ''] ?? 'fel'}); visar senast hämtade data` };
     if (job.last_status === 'partial') return { ...common, status: 'degraded', note: 'Ofullständig hämtning – vissa poster kunde inte kontrolleras' };
-    const note = cfg.sourceId === 'utility_outages' && utilityOps.failing > 0
-      ? `${utilityOps.failing} av ${utilityOps.total} nätbolag kunde inte kontrolleras – visas per fastighet`
-      : null;
+    const note = cfg.sourceId === 'utility_outages' ? [
+      unavailable ? `${unavailable} av ${operators.length} nätbolag kunde inte kontrolleras – visas per fastighet` : '',
+      partial ? `${partial} av ${operators.length} nätbolag levererade med överhoppade poster` : '',
+    ].filter(Boolean).join(' · ') || null : null;
     return { ...common, status: 'ok', note };
   });
 }

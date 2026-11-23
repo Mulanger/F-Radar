@@ -5,13 +5,13 @@ import { parseConcessionKml, parseDigproKml } from './platforms/digpro';
 import { parseVattenfall } from './platforms/vattenfall';
 import { goteborgKmlUrl } from './platforms/goteborg-url';
 import { EllevioPostalShapes, EllevioTickets, ellevioPostalAreas, parseEllevio } from './platforms/ellevio';
-import { parseTekniskaVerken, TvList } from './platforms/tekniskaverken';
+import { parseTekniskaVerken, tekniskaVerkenShapeIds, TvList } from './platforms/tekniskaverken';
 import { parseTrimble, trimbleDistricts, trimbleStations, trimbleTileRanges, type TrimbleDistrict } from './platforms/trimble';
 import { EI_LOCAL_CONCESSIONS_URL, parseEiConcessionZip, type EiConcessionArea } from './ei-concessions';
 import { decodeEonOutstat, parseEon, parseEonDetailText } from './platforms/eon';
 import { parseServiceAlert } from './platforms/servicealert';
 import { GOTEBORG_ADDRESS_AREA, parseGoteborgUpcoming } from './platforms/goteborg';
-import type { ConcessionArea, OutageFetchResult, UtilityOperator } from './types';
+import { hasFewSkippedOutages, type ConcessionArea, type OutageFetchResult, type UtilityOperator } from './types';
 import { withOperatorTransport } from './transport';
 import { parseUmea, parseSkekraft } from './platforms/published-json';
 import { operatorWithEnabledUtilities } from './operators';
@@ -76,6 +76,8 @@ async function fetchText(url: string, ctx: AdapterContext, label: string, init?:
   } else bodies.delete(url);
   return { ok: true, data: text, fetchedAt: r.fetchedAt };
 }
+
+const TrimbleTile = z.object({ points: z.array(z.unknown()) }).passthrough();
 
 const GbgCurrent = z
   .object({
@@ -162,7 +164,7 @@ async function fetchTekniskaVerken(op: Extract<UtilityOperator, { platform: 'tek
   if (!list.ok) return list;
   const l = TvList.safeParse(json(list.data));
   if (!l.success) return { ok: false, error: 'invalid_payload', detail: `${op.id}: unexpected list shape` };
-  const ids = l.data.outages.map((o) => (o as { outageId?: unknown }).outageId).filter((x): x is string => typeof x === 'string');
+  const ids = tekniskaVerkenShapeIds(l.data.outages, op);
   let shapes: unknown = { outages: [] };
   if (ids.length) {
     const s = await fetchText(`${op.apiBase}/outage/shapes/`, ctx, `${op.id} shapes`, { method: 'POST', body: JSON.stringify({ ids }), accept: 'application/json' });
@@ -179,7 +181,7 @@ async function fetchTrimble(op: Extract<UtilityOperator, { platform: 'trimble' }
   if (!app.ok) return app;
   const appData = json(app.data);
   if (appData === undefined) return { ok: false, error: 'invalid_payload', detail: `${op.id}: application data not JSON` };
-  if (op.utilityScopes && op.utilities.some((u) => u !== 'electricity')) {
+  if (op.utilityScopes) {
     const decoded = typeof appData === 'string' ? json(appData) : appData;
     const scopes = (decoded as { scopes?: Record<string, { areas?: Array<{ id?: unknown }>; outages?: unknown }> } | undefined)?.scopes;
     const selected = op.utilities.map((utility) => ({ utility, scope: op.utilityScopes![utility] }));
@@ -197,7 +199,9 @@ async function fetchTrimble(op: Extract<UtilityOperator, { platform: 'trimble' }
     for (const rows of chunks(ranges, 25)) {
       const r = await fetchText(`${api}/GetObjectsByTiles?zoom=10&tiles=${rows.join(',')}`, ctx, `${op.id} shared tiles`);
       if (!r.ok) return r;
-      tiles.push(json(r.data));
+      const tile = TrimbleTile.safeParse(json(r.data));
+      if (!tile.success) return { ok: false, error: 'invalid_payload', detail: `${op.id}: unexpected tile payload` };
+      tiles.push(tile.data);
     }
     const parts = layers.map((l) => parseTrimble(appData, l.districts!, trimbleStations(tiles, l.scope), { ...op, scope: l.scope, utilities: [l.utility] }, ctx.now()));
     if (parts.some((p) => !p)) return { ok: false, error: 'invalid_payload', detail: `${op.id}: invalid utility layer` };
@@ -221,7 +225,9 @@ async function fetchTrimble(op: Extract<UtilityOperator, { platform: 'trimble' }
     for (const rows of chunks(trimbleTileRanges(cached.districts), 25)) {
       const r = await fetchText(`${api}/GetObjectsByTiles?zoom=10&tiles=${rows.join(',')}`, ctx, `${op.id} tiles`, { accept: 'application/json' });
       if (!r.ok) return r;
-      tiles.push(json(r.data));
+      const tile = TrimbleTile.safeParse(json(r.data));
+      if (!tile.success) return { ok: false, error: 'invalid_payload', detail: `${op.id}: unexpected tile payload` };
+      tiles.push(tile.data);
     }
   }
   const parsed = parseTrimble(appData, cached.districts, trimbleStations(tiles, op.scope), op, ctx.now());
@@ -255,9 +261,12 @@ async function fetchEon(op: Extract<UtilityOperator, { platform: 'eon' }>, ctx: 
   const ids = [...new Set(records.map((r) => r.outageId))];
   if (ids.length > EON_MAX_DETAILS) return { ok: false, error: 'invalid_payload', detail: `${op.id}: ${ids.length} outages exceed the per-run limit` };
   const details = new Map<number, unknown>();
+  let missingDetails = false;
   for (const id of ids) {
     const r = await fetchText(`${op.base}/${p2}/${id}.json`, ctx, `${op.id} detail`, { accept: 'application/json' });
-    if (r.ok) details.set(id, parseEonDetailText(r.data));
+    const detail = r.ok ? parseEonDetailText(r.data) : undefined;
+    if (detail !== undefined) details.set(id, detail);
+    else missingDetails = true;
   }
   const areas = new Map<string, unknown>();
   for (const path of [...new Set(records.map((r) => r.areaPath))]) {
@@ -273,7 +282,8 @@ async function fetchEon(op: Extract<UtilityOperator, { platform: 'eon' }>, ctx: 
     eonAreaCache.set(`${g}/${path}`, { at: ctx.now().getTime(), geom });
     areas.set(path, geom);
   }
-  return { ok: true, data: parseEon(records, details, areas, op, ctx.now()), fetchedAt: bin.fetchedAt };
+  const data = parseEon(records, details, areas, op, ctx.now());
+  return { ok: true, data: missingDetails ? { ...data, incomplete: true } : data, fetchedAt: bin.fetchedAt };
 }
 
 async function fetchServiceAlert(op: Extract<UtilityOperator, { platform: 'servicealert' }>, ctx: AdapterContext): Promise<AdapterResult<OutageFetchResult>> {
@@ -393,11 +403,13 @@ export async function fetchOperatorOutages(op: UtilityOperator, ctx: AdapterCont
 
 function combine(parts: OutageFetchResult[]): OutageFetchResult {
   const codes = parts.flatMap((p) => p.unknownStatusCodes ?? []);
+  const incomplete = parts.some((p) => p.incomplete || p.skipped > 0 && !hasFewSkippedOutages(p.outages.length, p.skipped));
   return {
     outages: parts.flatMap((p) => p.outages),
     skipped: parts.reduce((a, p) => a + p.skipped, 0),
     ignored: parts.reduce((a, p) => a + p.ignored, 0),
     sourceUpdatedAt: parts.find((p) => p.sourceUpdatedAt)?.sourceUpdatedAt ?? null,
+    ...(incomplete ? { incomplete: true } : {}),
     ...(codes.length ? { unknownStatusCodes: [...new Set(codes)] } : {}),
   };
 }
@@ -409,7 +421,7 @@ function parseMerge(active: OutageFetchResult, inactive: OutageFetchResult): Out
     const prev = byId.get(o.externalId);
     if (!prev || o.state === 'restored') byId.set(o.externalId, o);
   }
-  return { outages: [...byId.values()], skipped: active.skipped + inactive.skipped, ignored: active.ignored + inactive.ignored, sourceUpdatedAt: null };
+  return { ...combine([active, inactive]), outages: [...byId.values()] };
 }
 
 /** Concession areas published by the operator itself (Digpro concession.kml). */

@@ -15,6 +15,7 @@ import {
   type UtilityKind,
   type UtilityNoticeKind,
 } from '@fastighetsradar/domain';
+import { OFFERED_UTILITIES_SQL } from './utility-visibility';
 import type { Queryable } from './migrations';
 import type { MatchChange } from './monitoring';
 
@@ -307,7 +308,7 @@ async function addressCandidates(db: Queryable): Promise<CandidateRow[]> {
        JOIN properties p ON p.status <> 'paused' AND p.street IS NOT NULL
         AND ST_DWithin(p.location, ST_SetSRID(ST_MakePoint((e.extra->'addressArea'->>'lon')::float8, (e.extra->'addressArea'->>'lat')::float8), 4326)::geography,
                        (e.extra->'addressArea'->>'radiusM')::float8)
-      WHERE e.source_id = '${UTILITY_OUTAGE_SOURCE}' AND u.precision = 'address_list' AND u.addresses IS NOT NULL
+      WHERE e.source_id = '${UTILITY_OUTAGE_SOURCE}' AND u.utility IN ${OFFERED_UTILITIES_SQL} AND u.precision = 'address_list' AND u.addresses IS NOT NULL
         AND e.extra ? 'addressArea'
         AND (e.status = 'active' OR e.ended_at > now() - make_interval(hours => ${OUTAGE_RECENT_HOURS}))`,
   );
@@ -352,7 +353,7 @@ export async function rematchUtilityOutages(db: Queryable, options: { organizati
      ), ev AS (
        SELECT e.id, e.version, e.geom, e.headline, u.kind, u.state, u.notice_kind, u.precision, u.affected_customers, u.area_customer_total, u.place_label, u.operator_id, u.utility
          FROM source_events e JOIN utility_outages u ON u.event_id = e.id
-        WHERE e.source_id = '${UTILITY_OUTAGE_SOURCE}' AND e.geom IS NOT NULL
+        WHERE e.source_id = '${UTILITY_OUTAGE_SOURCE}' AND u.utility IN ${OFFERED_UTILITIES_SQL} AND e.geom IS NOT NULL
           AND (e.status = 'active' OR e.ended_at > now() - make_interval(hours => ${OUTAGE_RECENT_HOURS}))
      )
      SELECT pr.id AS property_id, pr.organization_id, ev.id AS event_id, ev.version, pr.geocode_precision, pr.position_source,
@@ -377,7 +378,7 @@ export async function rematchUtilityOutages(db: Queryable, options: { organizati
     `SELECT m.property_id, m.event_id, m.organization_id, m.match_method, m.matched_version, m.effective_severity,
             e.status AS event_status, e.headline, u.utility, e.extra->>'operatorName' AS operator_name
        FROM property_event_matches m JOIN source_events e ON e.id = m.event_id JOIN utility_outages u ON u.event_id = e.id
-      WHERE e.source_id = '${UTILITY_OUTAGE_SOURCE}' AND ($1::uuid IS NULL OR m.organization_id = $1)`,
+      WHERE e.source_id = '${UTILITY_OUTAGE_SOURCE}' AND u.utility IN ${OFFERED_UTILITIES_SQL} AND ($1::uuid IS NULL OR m.organization_id = $1)`,
     [org],
   );
   const old = new Map(existing.map((m) => [key(m.property_id, m.event_id), m]));
@@ -578,7 +579,7 @@ export async function listOrgUtilityOutages(db: Queryable, organizationId: strin
        JOIN source_events e ON e.id = m.event_id
        JOIN utility_outages u ON u.event_id = e.id
        JOIN properties p ON p.id = m.property_id
-      WHERE m.organization_id = $1 AND e.source_id = '${UTILITY_OUTAGE_SOURCE}'
+      WHERE m.organization_id = $1 AND e.source_id = '${UTILITY_OUTAGE_SOURCE}' AND u.utility IN ${OFFERED_UTILITIES_SQL}
         AND (e.status = 'active' OR e.ended_at > now() - make_interval(hours => ${OUTAGE_RECENT_HOURS}))
       ORDER BY coalesce(u.actual_start, u.planned_start) NULLS LAST`,
     [organizationId],

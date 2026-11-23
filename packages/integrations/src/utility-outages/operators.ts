@@ -1,3 +1,4 @@
+import { isOfferedUtility } from '@fastighetsradar/domain';
 import type { UtilityOperator } from './types';
 import type { ServerEnv } from '@fastighetsradar/config';
 
@@ -201,7 +202,7 @@ export function isWaterOutageEnabled(operatorId: string, flags?: Partial<ServerE
 
 export function operatorWithEnabledUtilities(op: UtilityOperator, flags?: Partial<ServerEnv>): UtilityOperator {
   return { ...op, utilities: op.utilities.filter((u) =>
-    (u !== 'water' || isWaterOutageEnabled(op.id, flags)) && (!op.utilityFlags?.[u] || flags?.[op.utilityFlags[u]!] === true)) };
+    isOfferedUtility(u) && (u !== 'water' || isWaterOutageEnabled(op.id, flags)) && (!op.utilityFlags?.[u] || flags?.[op.utilityFlags[u]!] === true)) };
 }
 
 /** Operators enabled by UTILITY_OUTAGE_OPERATORS ("" = all, "none" = none, else comma list of ids). */

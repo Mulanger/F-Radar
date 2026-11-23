@@ -82,14 +82,13 @@ describe('outages among the property events', () => {
     expect(rows[0]!.when).toMatch(/^Oplanerat · start /);
   });
 
-  it('orders ongoing, planned, then restored; district heating gets its own label', () => {
+  it('hides archived heating data and keeps the order of visible events', () => {
     const heat: PropertyUtilityStatus = { ...status({ coverage: 'unknown', operator: null }), utility: 'district_heating', upcoming: [view({ id: 'h', utility: 'district_heating', kind: 'planned', state: 'upcoming', severity: 'monitor', plannedStart: '2026-11-15T10:00:00.000Z', plannedEnd: '2026-11-16T01:00:00.000Z' })] };
     const rows = outageEventsFor({
       utilityOutages: [status({ current: [view()], recentlyRestored: [view({ id: 'r', state: 'restored', severity: 'info', restoredAt: '2026-11-14T15:00:00.000Z' })] }), heat],
     } as unknown as PropertySnapshot);
-    expect(rows.map((r) => [r.id, r.kind])).toEqual([['e1', 'Ström'], ['h', 'Fjärrvärme'], ['r', 'Ström']]);
-    expect(rows[1]!.title).toBe('Planerat fjärrvärmeavbrott 15/11 11:00–16/11 02:00 – Vattenfall Eldistribution');
-    expect(rows[2]).toMatchObject({ title: 'Strömmen är tillbaka enligt Vattenfall Eldistribution', c: SEV.normal.c });
+    expect(rows.map((r) => [r.id, r.kind])).toEqual([['e1', 'Ström'], ['r', 'Ström']]);
+    expect(rows[1]).toMatchObject({ title: 'Strömmen är tillbaka enligt Vattenfall Eldistribution', c: SEV.normal.c });
   });
 
   it('a vanished ticket is grey and neutral, and hidden while the same operator still has an outage there', () => {

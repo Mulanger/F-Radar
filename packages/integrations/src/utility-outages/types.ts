@@ -42,11 +42,24 @@ export interface OutageFetchResult {
   outages: NormalizedUtilityOutage[];
   /** Records that could not be validated (bad geometry/time/shape). A non-zero value makes the run partial. */
   skipped: number;
+  /** An upstream part is missing, so row counts alone cannot establish that the feed was covered. */
+  incomplete?: true;
   /** Records deliberately ignored (e.g. planned work without customer impact). */
   ignored: number;
   sourceUpdatedAt: string | null;
   /** Upstream status codes the adapter does not know (logged so the mapping can be extended). */
   unknownStatusCodes?: string[];
+}
+
+/** A small number and share of rejected records can be tolerated after a complete fetch. */
+export function hasFewSkippedOutages(items: number, skipped: number): boolean {
+  return skipped > 0 && skipped <= 2 && skipped * 9 <= items;
+}
+
+/** In a shared payload, a busy utility must not mask an unreadable second one. */
+export function hasIncompleteUtilityLayer(outages: NormalizedUtilityOutage[], skipped: Map<UtilityKind, number>): boolean {
+  return [...skipped].some(([utility, count]) =>
+    !hasFewSkippedOutages(outages.filter((o) => o.utility === utility).length, count));
 }
 
 export interface ConcessionArea {

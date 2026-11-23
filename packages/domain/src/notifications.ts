@@ -1,8 +1,21 @@
 import { z } from "zod";
 import { TRAFFIC_RADIUS } from "./organization-settings";
 import type { PropertyGroup } from "./property-groups";
+import { isOfferedUtility, type UtilityKind } from './utility-outages';
 
-export const NOTIFICATION_CATEGORIES = [
+export const OUTAGE_CATEGORY_UTILITIES = {
+  power_outage: ['electricity', 'district_heating', 'district_cooling'],
+  water_outage: ['water'],
+  heating_outage: ['district_heating', 'district_cooling'],
+  gas_outage: ['gas'],
+} as const satisfies Record<string, readonly UtilityKind[]>;
+type OutageCategory = keyof typeof OUTAGE_CATEGORY_UTILITIES;
+
+export function offeredOutageCategoryUtilities(category: OutageCategory): UtilityKind[] {
+  return OUTAGE_CATEGORY_UTILITIES[category].filter(isOfferedUtility);
+}
+
+const NOTIFICATION_CATEGORY_DEFINITIONS = [
   { id: 'water_outage', source: 'utility_outages', label: 'Vatten och avlopp', explanation: 'Exakt träff på leverantörens område eller adresslista. Kokningsrekommendationer följer kommunens besked.', enabled: true },
   { id: 'heating_outage', source: 'utility_outages', label: 'Fjärrvärme och fjärrkyla', explanation: 'Endast exakt träff på leverantörens publicerade avbrottsområde.', enabled: true },
   { id: 'gas_outage', source: 'utility_outages', label: 'Gasavbrott', explanation: 'Endast exakt träff på leverantörens publicerade avbrottsområde.', enabled: true },
@@ -41,7 +54,7 @@ export const NOTIFICATION_CATEGORIES = [
   {
     id: "power_outage",
     source: "utility_outages",
-    label: "Strömavbrott och fjärrvärmeavbrott",
+    label: offeredOutageCategoryUtilities('power_outage').some((u) => u !== 'electricity') ? 'Strömavbrott och fjärrvärmeavbrott' : 'Strömavbrott',
     explanation:
       "SMS skickas bara när fastighetens adresspunkt ligger inom området nätbolaget publicerat som berört. Postnummer-, område- och närhetsträffar visas bara i dashboarden.",
     enabled: true,
@@ -78,6 +91,9 @@ export const NOTIFICATION_CATEGORIES = [
     enabled: false,
   },
 ] as const;
+
+export const NOTIFICATION_CATEGORIES = NOTIFICATION_CATEGORY_DEFINITIONS.filter((c) =>
+  !(c.id in OUTAGE_CATEGORY_UTILITIES) || offeredOutageCategoryUtilities(c.id as OutageCategory).length > 0);
 
 const supplyCondition = <T extends 'water_outage' | 'heating_outage' | 'gas_outage'>(category: T) => z.object({
   category: z.literal(category),
@@ -212,6 +228,10 @@ export const NotificationRuleInputSchema = z
 export type NotificationRuleInput = z.infer<typeof NotificationRuleInputSchema>;
 export type NotificationCondition = z.infer<typeof NotificationConditionSchema>;
 export type OutageNotificationCondition = Extract<NotificationCondition, { category: 'power_outage' | 'water_outage' | 'heating_outage' | 'gas_outage' }>;
+export function isOfferedNotificationCondition(c: NotificationCondition): boolean {
+  return !isOutageCondition(c) || c.utilities.some(isOfferedUtility);
+}
+
 export function isOutageCondition(c: NotificationCondition): c is OutageNotificationCondition {
   return ['power_outage', 'water_outage', 'heating_outage', 'gas_outage'].includes(c.category);
 }

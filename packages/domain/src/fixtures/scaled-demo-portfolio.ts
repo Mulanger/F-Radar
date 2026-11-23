@@ -1,3 +1,4 @@
+import { demoUtilityCoverage } from './demo-portfolio';
 /**
  * DEMO FIXTURES — NOT REAL DATA. Scale test portfolio (docs/plans/skalning.md, Fas 0).
  *
@@ -153,5 +154,5 @@ export function scaleDemoPortfolio(base: Portfolio, n: number): Portfolio {
     }
   }
 
-  return { ...base, properties, feed, upcoming };
+  return { ...base, properties, feed, upcoming, utilityCoverage: demoUtilityCoverage(properties) };
 }

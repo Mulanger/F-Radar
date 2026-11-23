@@ -9,7 +9,7 @@ import type {
   NotificationRule,
   NotificationRuleInput,
 } from "@fastighetsradar/domain";
-import { isOutageCondition, NOTIFICATION_STATUS_LABELS, TRAFFIC_RADIUS } from "@fastighetsradar/domain";
+import { isOutageCondition, offeredOutageCategoryUtilities, NOTIFICATION_STATUS_LABELS, TRAFFIC_RADIUS } from "@fastighetsradar/domain";
 import { C, card, cardSub, cardTitle } from "@/lib/design/tokens";
 import { Toggle } from "../ui/Toggle";
 import { PropertyNamesSummary, RulePropertySelect } from "./RulePropertySelect";
@@ -952,15 +952,12 @@ export function SmsManagement({
                   ["restored", "När leveransen är tillbaka (bara efter ett tidigare SMS)"],
                   ["changes", "Ändrad tid eller inställt planerat avbrott (bara efter ett tidigare SMS)"],
                 ];
-                const utilityOpts = (pc.category === 'water_outage' ? [['water', 'Vatten och avlopp']] : pc.category === 'gas_outage' ? [['gas', 'Gas']] : pc.category === 'heating_outage' ? [['district_heating', 'Fjärrvärme'], ['district_cooling', 'Fjärrkyla']] : [
-                  ["electricity", "El"],
-                  ["district_heating", "Fjärrvärme"],
-                  ["district_cooling", "Fjärrkyla"],
-                ]) as Array<[string, string]>;
+                const utilityOpts = offeredOutageCategoryUtilities(pc.category);
+                const utilityLabels = { electricity: 'El', water: 'Vatten och avlopp', district_heating: 'Fjärrvärme', district_cooling: 'Fjärrkyla', gas: 'Gas' };
                 return (
                   <>
                     <div style={{ ...row, fontSize: 13, gap: 16 }}>
-                      {utilityOpts.map(([u, label]) => (
+                      {utilityOpts.map((u) => (
                         <label key={u} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <input
                             type="checkbox"
@@ -970,7 +967,7 @@ export function SmsManagement({
                               if (next.length) updateCondition({ utilities: next } as Partial<typeof pc>);
                             }}
                           />
-                          {label}
+                          {utilityLabels[u]}
                         </label>
                       ))}
                     </div>

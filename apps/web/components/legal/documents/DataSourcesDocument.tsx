@@ -21,14 +21,14 @@ export function DataSourcesDocument() {
         <li><strong>MCF / MSB</strong> (översvämningskartering) – statiska karterade översvämningsscenarier (t.ex. 100-årsflöde).</li>
         <li><strong>Naturvårdsverket / SMHI</strong> (luftkvalitet – PM2,5 och NO₂) – preliminära timhalter från närmaste tillgängliga mätstation.</li>
         <li><strong>SCB</strong> (regional statistik) – Statistiska centralbyrån, kommunnivå.</li>
-        <li><strong>Nät- och energibolag</strong> (avbrott i el, fjärrvärme, vatten och gas) – driftstörningar som bolagen själva publicerar för sina områden.</li>
+        <li><strong>Nät- och energibolag</strong> (avbrott i el samt vatten och avlopp) – driftstörningar som bolagen själva publicerar för sina områden.</li>
         <li><strong>Kartor och adressökning:</strong> kartdata © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap-bidragsgivare</a>; kartrutor och geokodning drivs av <strong>Geoapify</strong> och <strong>OpenMapTiles</strong>. Adresspunkter är inte juridiska fastighetsgränser.</li>
       </ul>
 
       <h2 id="riskindex">Om Samlad fastighetsrisk (Riskindex v1)</h2>
       <p>
         <strong>Riskindex</strong> (0–100) är FastighetsRadars egen sammanvägning av väder, vatten, VMA, framkomlighet och utomhusluft – samt el
-        och värme där avbrottsinformation finns – för att hjälpa förvaltare att snabbt prioritera vilka fastigheter som kräver uppmärksamhet
+        där avbrottsinformation finns – för att hjälpa förvaltare att snabbt prioritera vilka fastigheter som kräver uppmärksamhet
         först. Riskindex är <strong>inte</strong> en officiell myndighetsbedömning eller försäkringsklassning. Officiella vädervarningar från
         SMHI och VMA från Krisinformation visas alltid oförändrade bredvid indexet.
       </p>

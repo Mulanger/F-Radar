@@ -118,7 +118,7 @@ describe('Tekniska verken (polygons)', () => {
       return new Response(JSON.stringify(t.shapes));
     }));
     expect(r.ok).toBe(true);
-    expect(JSON.parse(body).ids).toHaveLength(9);
+    expect(JSON.parse(body).ids).toEqual(t.list.outages.filter((o: { utility: string }) => o.utility === 'Electricity').map((o: { outageId: string }) => o.outageId));
   });
 });
 

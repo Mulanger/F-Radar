@@ -1,4 +1,5 @@
 import { ACTIVITY, EventMapGeometrySchema, FEED_ACK_SEVERITY_RANK, WEATHER_WATER, eventPlaceFromHeadline, stationMatchDistance, trafficMapStyle, type ActivityItem, type EventMapItem, type PropertyEventMapEvent } from '@fastighetsradar/domain';
+import { offeredUtilityEvent, offeredUtilityChange } from './utility-visibility';
 import { applyUtilityOutageRetention } from './utility-outages';
 import { createHash } from 'node:crypto';
 import type { Queryable } from './migrations';
@@ -731,6 +732,7 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
          JOIN source_events e ON e.id = m.event_id AND e.status = 'active'
          JOIN properties p ON p.id = m.property_id AND p.organization_id = $1
         WHERE m.organization_id = $1 AND ($2::uuid[] IS NULL OR m.property_id = ANY($2::uuid[]))
+          AND ${offeredUtilityEvent('e')}
         ORDER BY e.severity DESC, m.distance_m NULLS LAST, e.published_at DESC NULLS LAST`,
       [organizationId, pid],
     ),
@@ -811,6 +813,7 @@ export async function listRecentChangesForOrg(db: Queryable, organizationId: str
   const portfolioRows = `WITH latest AS (
     SELECT DISTINCT ON (${changeKey}) c.*
     FROM monitoring_changes c WHERE c.organization_id = $1
+      AND ${offeredUtilityChange('c')}
       AND (c.source_id <> 'trafikverket' OR c.severity IN ('warning', 'critical'))
     ORDER BY ${changeKey}, c.created_at DESC, c.id DESC
   ), events AS (
@@ -854,7 +857,8 @@ export async function listRecentChangesForOrg(db: Queryable, organizationId: str
        FROM ${forPortfolio ? 'feed_changes' : 'monitoring_changes'} c
        LEFT JOIN source_events e ON e.id = c.event_id
        LEFT JOIN feed_acknowledgements ack ON ack.organization_id = c.organization_id AND ack.change_id = c.id
-      WHERE c.organization_id = $1 ORDER BY c.created_at DESC, c.id DESC ${forPortfolio ? '' : 'LIMIT $2'}`,
+      WHERE c.organization_id = $1 ${forPortfolio ? '' : `AND ${offeredUtilityChange('c')}`}
+      ORDER BY c.created_at DESC, c.id DESC ${forPortfolio ? '' : 'LIMIT $2'}`,
     forPortfolio ? [organizationId, limit, viewerId] : [organizationId, limit],
   );
   return rows;
@@ -915,7 +919,7 @@ export async function listActiveAlarmChangesForOrg(db: Queryable, organizationId
          ORDER BY ranked.created_at DESC, ranked.id DESC LIMIT 1
        ) notification ON true
        LEFT JOIN feed_update_reads seen ON seen.organization_id = m.organization_id AND seen.viewer_id = $2 AND seen.change_id = notification.id
-      WHERE m.organization_id = $1 AND (
+      WHERE m.organization_id = $1 AND ${offeredUtilityEvent('e')} AND (
         (e.data_class = 'OFFICIAL_WARNING' AND e.level IS NOT NULL AND e.level <> 'Info')
         OR (e.source_id = 'utility_outages' AND m.effective_severity IN ('warning', 'critical'))
       )
@@ -1021,6 +1025,7 @@ export async function listPropertyActivity(db: Queryable, organizationId: string
       `SELECT c.id::text, c.source_id, c.change_type, c.severity, c.headline, c.created_at, e.level, e.attribution
          FROM monitoring_changes c LEFT JOIN source_events e ON e.id = c.event_id
         WHERE c.organization_id = $1 AND c.property_id = $2 AND c.created_at > now() - make_interval(days => $3)
+          AND ${offeredUtilityChange('c')}
           AND (c.source_id IN ('smhi_warnings', 'utility_outages') OR (c.source_id = 'krisinformation' AND c.severity = 'critical'))
         ORDER BY c.created_at DESC, c.id DESC LIMIT $4`,
       [organizationId, propertyId, days, limit],
@@ -1146,7 +1151,7 @@ export async function getPropertyEventMapEvent(db: Queryable, organizationId: st
        FROM source_events e
        JOIN properties p ON p.id = $2 AND p.organization_id = $1
        LEFT JOIN utility_outages u ON u.event_id = e.id
-      WHERE e.id = $3 AND e.geom IS NOT NULL AND e.source_id IN ${FEED_MAP_SOURCES_SQL}
+      WHERE e.id = $3 AND e.geom IS NOT NULL AND e.source_id IN ${FEED_MAP_SOURCES_SQL} AND ${offeredUtilityEvent('e')}
         AND (EXISTS (SELECT 1 FROM monitoring_changes c WHERE c.organization_id = $1 AND c.property_id = $2 AND c.event_id = e.id)
              OR EXISTS (SELECT 1 FROM property_event_matches m WHERE m.organization_id = $1 AND m.property_id = $2 AND m.event_id = e.id))`,
     [organizationId, propertyId, eventId],
@@ -1190,7 +1195,7 @@ export async function loadOrgEvent(db: Queryable, organizationId: string, eventI
     db.query<EventPageEventRow>(
       `SELECT e.id::text, e.source_id, e.data_class, e.level, e.severity, e.headline, e.description, e.area_label,
               e.published_at, e.valid_from, e.valid_to, e.status, e.source_url, e.extra
-         FROM source_events e WHERE e.id = $2::uuid AND ${ORG_HAS_EVENT}`,
+         FROM source_events e WHERE e.id = $2::uuid AND ${offeredUtilityEvent('e')} AND ${ORG_HAS_EVENT}`,
       [organizationId, eventId],
     ),
     db.query<EventPagePropertyRow>(
@@ -1217,7 +1222,7 @@ export async function loadOrgEvent(db: Queryable, organizationId: string, eventI
 /** TENANT read: the event behind an SMS link key (`eventLinkKey`), only when it reached the organization and the key is unique. */
 export async function findOrgEventByLinkKey(db: Queryable, organizationId: string, key: string): Promise<string | null> {
   const { rows } = await db.query<{ id: string }>(
-    `SELECT e.id::text FROM source_events e WHERE left(replace(e.id::text, '-', ''), 16) = $2 AND ${ORG_HAS_EVENT} LIMIT 2`,
+    `SELECT e.id::text FROM source_events e WHERE left(replace(e.id::text, '-', ''), 16) = $2 AND ${offeredUtilityEvent('e')} AND ${ORG_HAS_EVENT} LIMIT 2`,
     [organizationId, key],
   );
   return rows.length === 1 ? rows[0]!.id : null;

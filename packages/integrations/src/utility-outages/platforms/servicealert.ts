@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { OutageKind, UtilityKind } from '@fastighetsradar/domain';
 import { iso } from '../../http';
 import { circleRing, closeRing, inSweden, polygonsToGeoJson, type LonLat } from '../geometry';
+import { hasIncompleteUtilityLayer } from '../types';
 import type { NormalizedUtilityOutage, OutageFetchResult, UtilityOperator } from '../types';
 import { waterNoticeHeading, boilingEndedHeading } from './water-notices';
 
@@ -96,7 +97,7 @@ export function parseServiceAlert(raw: unknown, op: UtilityOperator, utilities: 
   const p = ServiceAlertPayload.safeParse(raw);
   if (!p.success) return null;
   const outages: NormalizedUtilityOutage[] = [];
-  let skipped = 0;
+  const skipped = new Map<UtilityKind, number>();
   let ignored = 0;
   for (const profile of p.data.profileSettingsAndMessages) {
     const mapped = op.platform === 'servicealert' ? op.profileUtilities?.[profile.profileTitle ?? ''] : undefined;
@@ -109,7 +110,7 @@ export function parseServiceAlert(raw: unknown, op: UtilityOperator, utilities: 
       }
       const m = Message.safeParse(rawMsg);
       if (!m.success) {
-        skipped++;
+        skipped.set(utility, (skipped.get(utility) ?? 0) + 1);
         continue;
       }
       const end = iso(m.data.dateExpireUtc);
@@ -122,7 +123,7 @@ export function parseServiceAlert(raw: unknown, op: UtilityOperator, utilities: 
       if (!geometry) {
         // Recognised notices without a published area cannot mean "no outages". Coordinate-only
         // address dots are not an outage polygon; do not draw an invented hull or radius around them.
-        skipped++;
+        skipped.set(utility, (skipped.get(utility) ?? 0) + 1);
         continue;
       }
       const title = m.data.title?.trim() || null;
@@ -160,5 +161,6 @@ export function parseServiceAlert(raw: unknown, op: UtilityOperator, utilities: 
       });
     }
   }
-  return { outages, skipped, ignored, sourceUpdatedAt: null };
+  return { outages, skipped: [...skipped.values()].reduce((n, count) => n + count, 0), ignored, sourceUpdatedAt: null,
+    ...(utilities.length > 1 && hasIncompleteUtilityLayer(outages, skipped) ? { incomplete: true } : {}) };
 }

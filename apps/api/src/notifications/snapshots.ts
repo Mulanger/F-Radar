@@ -1,5 +1,5 @@
 import type { PropertySnapshot, SourceId } from "@fastighetsradar/domain";
-import { NOTIFICATION_CATEGORIES } from "@fastighetsradar/domain";
+import { isOfferedNotificationCondition, NOTIFICATION_CATEGORIES } from "@fastighetsradar/domain";
 import type { Queryable } from "@fastighetsradar/db";
 import { loadRules, maskPhone, type RecipientRow } from "./store";
 
@@ -9,7 +9,7 @@ export async function notificationSnapshots(
   org: string,
   snapshots: PropertySnapshot[],
 ): Promise<PropertySnapshot[]> {
-  const rules = await loadRules(db, org);
+  const rules = (await loadRules(db, org)).filter((r) => isOfferedNotificationCondition(r.config.condition));
   const recipients = (
     await db.query<RecipientRow>(
       "SELECT * FROM sms_recipients WHERE organization_id=$1",

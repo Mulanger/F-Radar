@@ -19,9 +19,9 @@ export const demoAcknowledgements: AcknowledgementHistoryEntry[] = [
     eventAt: '2026-11-18T13:02:00Z', acknowledgedAt: '2026-11-18T13:12:00Z', undoneAt: null, imported: false,
   },
   {
-    id: '102', ...sjostaden, source: 'Stockholm Exergi', severity: 'warning', area: 'Hammarby Sjöstad',
-    title: 'Avbrott i fjärrvärmeleveransen',
-    description: 'Ett ledningsfel kan ge tillfälligt lägre temperatur på värme och varmvatten. Reparationsarbetet pågår vid Hammarby kaj.',
+    id: '102', ...sjostaden, source: 'Stockholm Vatten och Avfall', severity: 'warning', area: 'Hammarby Sjöstad',
+    title: 'Vattenavbrott vid Hammarby kaj',
+    description: 'En vattenläcka kan göra att vattentrycket sjunker i området. Reparationsarbetet pågår vid Hammarby kaj.',
     eventAt: '2026-11-18T07:55:00Z', acknowledgedAt: '2026-11-18T08:04:00Z',
     undoneAt: '2026-11-18T08:16:00Z', imported: false,
   },

@@ -3,7 +3,10 @@ import { listPropertyGroups, loadPropertyForecasts, type Queryable } from "@fast
 import type { ServerEnv } from "@fastighetsradar/config";
 import {
   formatOutageWindow,
+  isOfferedNotificationCondition,
+  isOfferedUtility,
   isOutageCondition,
+  OFFERED_UTILITIES,
   NOTIFICATION_CATEGORIES,
   utilityNoun,
   type UtilityKind,
@@ -36,7 +39,7 @@ import {
   maskPhone,
   notificationTransaction,
   publicRecipient,
-  publicRule,
+  publicRules,
   type RecipientRow,
   type RuleRow,
 } from "./store";
@@ -132,7 +135,7 @@ export class NotificationService {
       this.usage(org),
     ]);
     return {
-      rules: rules.map(publicRule),
+      rules: publicRules(rules),
       recipients: recipients.rows.map((r) => publicRecipient(r)),
       properties: properties.rows,
       groups,
@@ -398,7 +401,7 @@ export class NotificationService {
     test: boolean,
   ): Promise<Trigger[]> {
     const c = r.config.condition;
-    if (!isOutageCondition(c) || !props.length) return [];
+    if (!isOutageCondition(c) || !props.length || !isOfferedNotificationCondition(c)) return [];
     if (c.category !== 'power_outage' && !this.env.SOURCE_UTILITY_OUTAGES_ENABLED) return [];
     if (c.category === 'water_outage' && (!this.env.SMS_WATER_OUTAGE_ENABLED || !this.env.SOURCE_UTILITY_WATER_ENABLED) || c.category === 'heating_outage' && !this.env.SMS_HEATING_OUTAGE_ENABLED || c.category === 'gas_outage' && (!this.env.SMS_GAS_OUTAGE_ENABLED || !this.env.SOURCE_UTILITY_GAS_ENABLED)) return [];
     type Row = {
@@ -436,8 +439,8 @@ export class NotificationService {
       JOIN properties p ON p.id=c.property_id AND p.organization_id=c.organization_id
       LEFT JOIN property_event_matches m ON m.event_id=c.event_id AND m.property_id=c.property_id AND m.organization_id=c.organization_id
       WHERE c.organization_id=$1 AND c.property_id=ANY($2::uuid[]) AND c.source_id='utility_outages'
-      AND ($3 OR c.id > $4::bigint) AND c.created_at > now()-interval '30 days' ORDER BY c.id ${test ? "DESC LIMIT 500" : "LIMIT 5000"}`,
-      [r.organization_id, props.map((p) => p.id), test, r.last_change_id],
+      AND u.utility=ANY($5::text[]) AND ($3 OR c.id > $4::bigint) AND c.created_at > now()-interval '30 days' ORDER BY c.id ${test ? "DESC LIMIT 500" : "LIMIT 5000"}`,
+      [r.organization_id, props.map((p) => p.id), test, r.last_change_id, OFFERED_UTILITIES],
     );
     if (!test && rows.length)
       await tx.query(
@@ -520,9 +523,9 @@ export class NotificationService {
         FROM property_event_matches m JOIN source_events e ON e.id=m.event_id JOIN utility_outages u ON u.event_id=e.id
         JOIN properties p ON p.id=m.property_id AND p.organization_id=m.organization_id
         WHERE m.organization_id=$1 AND m.property_id=ANY($2::uuid[]) AND e.source_id='utility_outages' AND e.status='active'
-          AND u.state='upcoming' AND u.kind='planned' AND u.planned_start > now() AND u.planned_start < now()+interval '30 hours'
+          AND u.utility=ANY($3::text[]) AND u.state='upcoming' AND u.kind='planned' AND u.planned_start > now() AND u.planned_start < now()+interval '30 hours'
           AND e.first_seen_at <= u.planned_start - interval '24 hours' AND e.last_seen_at > now()-interval '20 minutes'`,
-        [r.organization_id, props.map((p) => p.id)],
+        [r.organization_id, props.map((p) => p.id), OFFERED_UTILITIES],
       );
       for (const x of due.rows) {
         if (['stockholm_exergi', 'vattenfall_heat', 'solor', 'umea', 'trimble:malarenergi'].includes(x.operator_id) && ['district_heating', 'district_cooling'].includes(x.utility) && (c.category !== 'heating_outage' || !this.env.SMS_HEATING_OUTAGE_ENABLED)) continue;
@@ -960,6 +963,7 @@ export class NotificationService {
     if (
       !recipient?.consent_at ||
       !rule ||
+      !isOfferedNotificationCondition(rule.config.condition) ||
       (!rule.enabled && !row.is_test) ||
       !row.message
     )
@@ -992,12 +996,13 @@ export class NotificationService {
           level: string | null;
           source_id: string;
           severity: string;
+          utility: string | null;
         }>(
-          "SELECT version,status,valid_to,last_seen_at,level,source_id,severity FROM source_events WHERE id=$1",
+          "SELECT version,status,valid_to,last_seen_at,level,source_id,severity,extra->>'utility' AS utility FROM source_events WHERE id=$1",
           [row.trigger_evidence.eventId],
         )
       ).rows[0];
-      if (!e || e.version !== row.trigger_evidence.version)
+      if (!e || e.version !== row.trigger_evidence.version || e.source_id === 'utility_outages' && (!e.utility || !isOfferedUtility(e.utility)))
         return "source_not_current";
       if (
         row.trigger_evidence.ended

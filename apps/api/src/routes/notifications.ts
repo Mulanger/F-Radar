@@ -9,6 +9,9 @@ import type { Queryable } from "@fastighetsradar/db";
 import type { ServerEnv } from "@fastighetsradar/config";
 import {
   NOTIFICATION_CATEGORIES,
+  isOfferedNotificationCondition,
+  isOfferedUtility,
+  isOutageCondition,
   NotificationRuleInputSchema,
   RecipientInputSchema,
 } from "@fastighetsradar/domain";
@@ -20,7 +23,7 @@ import {
   loadRules,
   notificationTransaction,
   publicRecipient,
-  publicRule,
+  publicRules,
   saveRule,
   type RecipientRow,
 } from "../notifications/store";
@@ -44,6 +47,8 @@ interface Deps {
   verification?: PhoneVerificationProvider;
 }
 const Id = z.object({ id: z.string().uuid() });
+const OfferedRuleInput = NotificationRuleInputSchema.refine(({ condition }) =>
+  !isOutageCondition(condition) || condition.utilities.every(isOfferedUtility), { message: 'Nyttigheten erbjuds inte i appen.' });
 export function registerNotificationRoutes(app: FastifyInstance, deps: Deps) {
   const service = deps.db ? new NotificationService(deps.db, deps.env) : null;
   const requireService = () => {
@@ -81,15 +86,13 @@ export function registerNotificationRoutes(app: FastifyInstance, deps: Deps) {
     categories: NOTIFICATION_CATEGORIES,
   }));
   app.get("/v1/notifications/rules", read, async (req) => ({
-    rules: (await loadRules(db(), orgContext(req).organizationId)).map(
-      publicRule,
-    ),
+    rules: publicRules(await loadRules(db(), orgContext(req).organizationId)),
   }));
   app.post("/v1/notifications/rules", write, async (req, reply) => {
     const id = await saveRule(
       db(),
       orgContext(req).organizationId,
-      NotificationRuleInputSchema.parse(req.body),
+      OfferedRuleInput.parse(req.body),
     );
     reply.code(201);
     return { id };
@@ -105,12 +108,12 @@ export function registerNotificationRoutes(app: FastifyInstance, deps: Deps) {
     let input;
     if (toggle.success) {
       const rule = (await loadRules(db(), org)).find((r) => r.id === id);
-      if (!rule) throw new HttpProblem(404, "Rule not found");
+      if (!rule || !isOfferedNotificationCondition(rule.config.condition)) throw new HttpProblem(404, "Rule not found");
       input = NotificationRuleInputSchema.parse({
         ...rule.config,
         enabled: toggle.data.enabled,
       });
-    } else input = NotificationRuleInputSchema.parse(req.body);
+    } else input = OfferedRuleInput.parse(req.body);
     return { id: await saveRule(db(), org, input, id) };
   });
   app.delete("/v1/notifications/rules/:id", write, async (req, reply) => {

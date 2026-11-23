@@ -8,6 +8,11 @@ import {
   ensureOrganization,
   listOrgPropertyConcessions,
   listOrgUtilityOutages,
+  listActiveAlarmChangesForOrg,
+  listRecentChangesForOrg,
+  listPropertyActivity,
+  getPropertyEventMapEvent,
+  loadOrgEvent,
   rematchUtilityOutages,
   replaceConcessionAreas,
   replaceNationalConcessions,
@@ -290,7 +295,7 @@ export function registerUtilityOutageTests(pool: pg.Pool) {
       assert.deepEqual(refs.rows.map((r) => r.external_ref), ['T3']);
     });
 
-    it('address-list heating outages match by street + number within the address area; old history is not "recent"', async () => {
+    it('address-list water outages match by street + number within the address area; old history is not "recent"', async () => {
       const f = await fixture();
       const ctx = { organizationId: f.org, userId: 'user_outageTest' };
       const geo = (street: string, housenumber: string) => ({ provider: 'geoapify' as const, precision: 'building' as const, label: `${street} ${housenumber}, 411 01 Göteborg, Sverige`, street, housenumber, geocodedPoint: { lat: LAT, lon: LON } });
@@ -299,7 +304,7 @@ export function registerUtilityOutageTests(pool: pg.Pool) {
       const street = await createProperty(pool, ctx, { name: 'Gatan', address: 'Richtersgatan 12', location: { lat: LAT, lon: LON }, geocode: geo('Richtersgatan', '12') });
       const start = new Date(Math.ceil((Date.now() + 2 * 86_400_000) / 3_600_000) * 3_600_000);
       const o = outage({
-        utility: 'district_heating', kind: 'planned', state: 'upcoming', precision: 'address_list', geometry: null,
+        utility: 'water', kind: 'planned', state: 'upcoming', precision: 'address_list', geometry: null,
         addresses: [{ street: 'stora nygatan', numbers: ['1', '3'] }, { street: 'richtersgatan', numbers: null }],
         plannedStart: start.toISOString(), plannedEnd: new Date(start.getTime() + 8 * 3600_000).toISOString(), actualStart: null, estimatedRestore: null,
         addressArea: { lat: LAT, lon: LON, radiusM: 5_000 },
@@ -311,7 +316,7 @@ export function registerUtilityOutageTests(pool: pg.Pool) {
       assert.equal(m.find((x) => x.property_id === street.id)?.match_method, 'outage_street');
       assert.equal(m.find((x) => x.property_id === other.id), undefined);
       const c = await changesFor(o.externalId);
-      assert.ok(c.some((x) => x.property_id === listed.id && /^Planerat fjärrvärmeavbrott/.test(x.headline)));
+      assert.ok(c.some((x) => x.property_id === listed.id && /^Planerad vattenavstängning/.test(x.headline)));
       const stored = await pool.query(`SELECT street, housenumber FROM properties WHERE id = $1`, [listed.id]);
       assert.deepEqual(stored.rows[0], { street: 'Stora Nygatan', housenumber: '3' });
       // An outage restored years ago (feed history) is not stored at all.
@@ -332,17 +337,26 @@ export function registerUtilityOutageTests(pool: pg.Pool) {
       assert.deepEqual(r.rows[0], { street: 'Sveavägen', housenumber: '42B' });
     });
 
-    it('gas shares exact PostGIS matching and never infers restoration from a missing notice', async () => {
+    it('historic gas events are hidden and the stored lifecycle still supports explicit withdrawal', async () => {
       const f = await fixture();
       const gas = outage({ utility: 'gas' });
       await storeUtilityOutages(pool, OP.id, [gas], true, new Date(), { utilities: ['gas'], reportsRestored: true });
       await rematchUtilityOutages(pool);
-      const rows = await listOrgUtilityOutages(pool, f.org);
-      const exact = rows.filter((r) => r.match_method === 'outage_polygon');
-      assert.ok(exact.some((r) => r.property_id === f.inside.id && r.utility === 'gas'));
-      assert.ok(!exact.some((r) => r.property_id === f.outside.id));
-      const event = await pool.query('SELECT e.category FROM source_events e WHERE external_id=$1', [gas.externalId]);
-      assert.equal(event.rows[0].category, 'Heating');
+      assert.deepEqual(await matchesFor(gas.externalId), []);
+      const event = (await pool.query('SELECT id, category FROM source_events WHERE external_id=$1', [gas.externalId])).rows[0];
+      assert.equal(event.category, 'Heating');
+      // Simulate the match and feed item saved before gas was switched off.
+      await pool.query(`INSERT INTO property_event_matches (property_id, event_id, organization_id, match_method, matched_version, effective_severity)
+        VALUES ($1, $2, $3, 'outage_polygon', 1, 'warning')`, [f.inside.id, event.id, f.org]);
+      await pool.query(`INSERT INTO monitoring_changes (property_id, event_id, organization_id, source_id, data_class, change_type, severity, headline, dedup_key)
+        VALUES ($1, $2, $3, 'utility_outages', 'UTILITY_OUTAGE', 'new', 'warning', 'Oplanerat gasavbrott', $2::uuid::text)`, [f.inside.id, event.id, f.org]);
+      assert.deepEqual(await listOrgUtilityOutages(pool, f.org), []);
+      assert.deepEqual(await listRecentChangesForOrg(pool, f.org, 50, 'user'), []);
+      assert.deepEqual(await listRecentChangesForOrg(pool, f.org), []);
+      assert.deepEqual(await listActiveAlarmChangesForOrg(pool, f.org, 'user'), []);
+      assert.deepEqual(await listPropertyActivity(pool, f.org, f.inside.id), []);
+      assert.equal(await loadOrgEvent(pool, f.org, event.id), null);
+      assert.equal(await getPropertyEventMapEvent(pool, f.org, f.inside.id, event.id), null);
       for (let i = 0; i < 3; i++) await storeUtilityOutages(pool, OP.id, [], true, new Date(), { utilities: ['gas'], reportsRestored: true });
       const ended = await pool.query('SELECT state, restored_inferred FROM utility_outages u JOIN source_events e ON e.id=u.event_id WHERE e.external_id=$1', [gas.externalId]);
       assert.deepEqual(ended.rows[0], { state: 'withdrawn', restored_inferred: false });

@@ -119,26 +119,26 @@ describe('collector jobs and health', () => {
   it('poll interval cannot go below 120 s', () => {
     expect(() => loadServerEnv({ UTILITY_OUTAGE_POLL_SECONDS: '60' })).toThrow();
   });
-  it('source health = oldest operator success, error if any operator fails', () => {
+  it('source health follows the newest usable operator run', () => {
     const agg = aggregateUtilityJob([
       job('utility_outages:vattenfall'),
       job('utility_outages:digpro:fev', { last_success_at: new Date(NOW.getTime() - 3600_000), last_status: 'error', last_error_code: 'timeout' }),
       job('utility_outages:digpro:vax', { enabled: false, last_success_at: null }),
-    ])!;
+    ], NOW)!;
     expect(agg.job_id).toBe('utility_outages');
     // One failing operator does not fail the source: it is reported per operator and per property.
     expect(agg.last_success_at!.getTime()).toBe(job('x').last_success_at!.getTime());
     expect(agg.last_status).toBe('ok');
     expect(agg.last_error_code).toBeNull();
     // An operator that never succeeded (blocked host) does not make the source "never succeeded".
-    const blocked = aggregateUtilityJob([job('utility_outages:vattenfall'), job('utility_outages:digpro:hem', { last_success_at: null, last_status: 'error', last_error_code: 'network' })])!;
+    const blocked = aggregateUtilityJob([job('utility_outages:vattenfall'), job('utility_outages:digpro:hem', { last_success_at: null, last_status: 'error', last_error_code: 'network' })], NOW)!;
     expect(blocked.last_status).toBe('ok');
     expect(blocked.last_success_at).not.toBeNull();
     // Nothing delivering → the source fails.
     const down = aggregateUtilityJob([
       job('utility_outages:vattenfall', { last_status: 'error', last_error_code: 'timeout' }),
       job('utility_outages:digpro:hem', { last_success_at: null, last_status: 'error', last_error_code: 'network' }),
-    ])!;
+    ], NOW)!;
     expect(down.last_status).toBe('error');
     expect(down.last_error_code).toBe('timeout');
     expect(aggregateUtilityJob([job('smhi_warnings')])).toBeNull();
@@ -163,6 +163,24 @@ describe('collector jobs and health', () => {
     expect(st.find((o) => o.operatorId === 'vattenfall')!.attention).toBe('format_changed');
     expect(st.find((o) => o.operatorId === 'digpro:fev')!.attention).toBe('unreachable');
     expect(st.find((o) => o.operatorId === 'digpro:vax')!.attention).toBeNull();
+  });
+
+  it.each([
+    { id: 'ellevio', items: 164, skipped: 1, errorCode: null, current: true },
+    { id: 'svoa', items: 19, skipped: 1, errorCode: null, current: true },
+    { id: 'ellevio', items: 18, skipped: 2, errorCode: 'skipped_records', current: true },
+    { id: 'ellevio', items: 8, skipped: 1, errorCode: 'skipped_records', current: false },
+    { id: 'ellevio', items: 164, skipped: 3, errorCode: 'skipped_records', current: false },
+    { id: 'svoa', items: 0, skipped: 1, errorCode: 'skipped_records', current: false },
+    { id: 'ellevio', items: 164, skipped: 1, errorCode: 'incomplete_feed', current: false },
+  ])('checks partial: $id / $items accepted / $skipped skipped / $errorCode', ({ id, items, skipped, errorCode, current }) => {
+    const env = loadServerEnv({ SOURCE_UTILITY_OUTAGES_ENABLED: 'true', SOURCE_UTILITY_WATER_ENABLED: 'true', SOURCE_UTILITY_SVOA_ENABLED: 'true' });
+    const j = job(`utility_outages:${id}`, { last_status: 'partial', last_items: items, last_error_code: errorCode,
+      last_error_detail: `inserted 0, updated 0, restored 0, ended missing 0, skipped ${skipped}, ignored 0` });
+    expect(resolveOperatorStatuses(env, [j], NOW).find((o) => o.operatorId === id)).toMatchObject({ enabled: true, current, attention: 'format_changed' });
+    expect(aggregateUtilityJob([j], NOW)?.last_status).toBe(current ? 'ok' : 'error');
+    const old = { ...j, last_success_at: new Date(NOW.getTime() - 21 * 60_000) };
+    expect(resolveOperatorStatuses(env, [old], NOW).find((o) => o.operatorId === id)?.current).toBe(false);
   });
 
   it('operator is current only with a recent success and no failing last run', () => {
@@ -283,15 +301,15 @@ describe('property outage section and status', () => {
     expect(near.utilityOutages![0]!.current).toHaveLength(0);
   });
 
-  it('district heating outages get their own section and wording; electricity section is always there', () => {
+  it('hides existing heating outages without changing property status', () => {
     const s = withUtilityOutages(snap(), { outages: [row({ utility: 'district_heating', match_method: 'outage_address', geocode_precision: 'street' })], concessions: [], operators: [op()] });
-    expect(s.utilityOutages!.map((u) => u.utility)).toEqual(['electricity', 'district_heating']);
-    expect(s.utilityOutages![1]!.current[0]).toMatchObject({ precisionLevel: 'high', severity: 'critical' });
-    expect(s.property.statusReason).toBe('Oplanerat fjärrvärmeavbrott registrerat av Vattenfall Eldistribution');
+    expect(s.utilityOutages!.map((u) => u.utility)).toEqual(['electricity']);
+    expect(s.property.status).toBe('normal');
+    expect(s.activeAlertCount).toBe(snap().activeAlertCount);
     expect(withUtilityOutages(snap(), { outages: [], concessions: [], operators: [op()] }).utilityOutages!.map((u) => u.utility)).toEqual(['electricity']);
   });
 
-  it('riskindex gets "El och värme": unplanned outage at the address → Förhöjd, never Hög', () => {
+  it('riskindex gets "El": unplanned outage at the address → Förhöjd, never Hög', () => {
     const risk = { method: 'fr_risk_index_v1' as const, score: 0, level: 'low' as const, summary: '', assessedFactors: 5, factors: [] };
     const s = withUtilityOutages({ ...snap(), riskIndex: risk } as PropertySnapshot, { outages: [row()], concessions: [{ property_id: PID, operator_id: 'vattenfall' }], operators: [op()] });
     const f = s.riskIndex!.factors.find((x) => x.key === 'power')!;

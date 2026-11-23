@@ -5,12 +5,23 @@ import {
   formatOutageWindow,
   isPositionConfirmed,
   NotificationRuleInputSchema,
+  NOTIFICATION_CATEGORIES,
+  OFFERED_UTILITIES,
+  offeredOutageCategoryUtilities,
+  UtilityKindSchema,
   outageEffectiveSeverity,
   outageFeedTitle,
   outageHeadline,
   outageMatchLevel,
   outagePrecisionLabel,
 } from '../src';
+
+it('offers only electricity and water, while still accepting stored utility kinds', () => {
+  expect(OFFERED_UTILITIES).toEqual(['electricity', 'water']);
+  expect(NOTIFICATION_CATEGORIES.filter((c) => c.source === 'utility_outages').map((c) => c.id)).toEqual(['water_outage', 'power_outage']);
+  expect(offeredOutageCategoryUtilities('power_outage')).toEqual(['electricity']);
+  for (const kind of ['district_heating', 'district_cooling', 'gas']) expect(UtilityKindSchema.parse(kind)).toBe(kind);
+});
 
 describe('outage precision → severity (docs/plans/stromavbrott.md §5.3)', () => {
   it('confirmed position inside the polygon is high; unconfirmed is medium', () => {

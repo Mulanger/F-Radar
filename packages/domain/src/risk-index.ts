@@ -1,3 +1,4 @@
+import { isOfferedUtility } from './utility-outages';
 import { z } from 'zod';
 import { isDisplayableValue, type SourceId } from './common';
 import type { GeographicEvent, OfficialWarning, PropertySnapshot } from './entities';
@@ -308,13 +309,13 @@ function scored(factors: RiskFactor[]): RiskIndex {
 }
 
 /* ------------------------------------------------------------------ */
-/* El och värme (grid operators' outages, ADR 0006 Fas 5)              */
+/* Power supply (grid operators' outages, ADR 0006 Fas 5)              */
 /* ------------------------------------------------------------------ */
 
 const UTILITY_SV: Record<string, string> = { electricity: 'strömavbrott', district_heating: 'fjärrvärmeavbrott', district_cooling: 'fjärrkyleavbrott', gas: 'gasavbrott' };
 
 /**
- * Factor "El och värme" from the snapshot's matched outages (current only – planned work ahead is
+ * Supply factor from the snapshot's matched outages (current only – planned work ahead is
  * not a present impact). Never above "Förhöjd": an outage is the operator's registration, not an
  * official warning.
  *   unplanned, address inside the area (high)   55  Förhöjd
@@ -324,7 +325,7 @@ const UTILITY_SV: Record<string, string> = { electricity: 'strömavbrott', distr
  * Assessed when the power grid is monitored and current, or when an outage is matched.
  */
 export function powerFactor(s: PropertySnapshot): RiskFactor {
-  const sections = (s.utilityOutages ?? []).filter((u) => u.utility !== 'water');
+  const sections = (s.utilityOutages ?? []).filter((u) => u.utility !== 'water' && isOfferedUtility(u.utility));
   const el = sections.find((u) => u.utility === 'electricity');
   const current = sections.flatMap((u) => u.current).filter((v) => v.state === 'ongoing');
   const cs: Contribution[] = current.map((v) => {
@@ -339,10 +340,9 @@ export function powerFactor(s: PropertySnapshot): RiskFactor {
   return factor('power', SUPPLY_RISK_FACTOR_LABEL, 60, c, assessed, 'Fastighetens elnät bevakas inte eller kunde inte kontrolleras.');
 }
 
-/** Product-owner decision 2026-11-19: keep this name and scope until a later supply-factor decision. */
-export const SUPPLY_RISK_FACTOR_LABEL = 'El och värme';
+export const SUPPLY_RISK_FACTOR_LABEL = isOfferedUtility('district_heating') || isOfferedUtility('district_cooling') ? 'El och värme' : isOfferedUtility('gas') ? 'El och gas' : 'El';
 
-/** Adds the "El och värme" factor and re-scores (an "Ej bedömd" index stays unassessed). */
+/** Adds the supply factor and re-scores (an "Ej bedömd" index stays unassessed). */
 export function withPowerFactor(risk: RiskIndex, s: PropertySnapshot): RiskIndex {
   const factors = [...risk.factors.filter((f) => f.key !== 'power'), powerFactor(s)];
   if (risk.score === null) return { ...risk, factors, assessedFactors: factors.filter((f) => f.assessed).length };

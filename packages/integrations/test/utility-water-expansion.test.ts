@@ -16,8 +16,8 @@ describe('verified national water feeds', () => {
     const allowed = jobs();
     expect(allowed.get('svoa')).toEqual(['water']);
     expect(allowed.get('servicealert:ljusdal')).toContain('water');
-    expect(allowed.get('servicealert:eem')).toEqual(['electricity', 'district_heating', 'district_cooling']);
-    expect(allowed.get('tekniskaverken')).toEqual(['electricity', 'district_heating', 'district_cooling']);
+    expect(allowed.get('servicealert:eem')).toEqual(['electricity']);
+    expect(allowed.get('tekniskaverken')).toEqual(['electricity']);
     expect(jobs({ ...flags, SOURCE_UTILITY_SVOA_ENABLED: false }).has('svoa')).toBe(false);
     expect(jobs({ ...flags, SOURCE_UTILITY_WATER_ENABLED: false }).has('svoa')).toBe(false);
     expect(jobs({ ...flags, UTILITY_OUTAGE_WATER_OPERATORS: 'none' }).get('servicealert:ljusdal')).not.toContain('water');

@@ -14,6 +14,13 @@ import { IsoDateTimeSchema, SeveritySchema } from './common';
 export const UTILITY_KINDS = ['electricity', 'district_heating', 'district_cooling', 'gas', 'water'] as const;
 export const UtilityKindSchema = z.enum(UTILITY_KINDS);
 export type UtilityKind = z.infer<typeof UtilityKindSchema>;
+/** Product availability. Keep all kinds in the schema for stored data and dormant adapters. */
+export const OFFERED_UTILITIES: readonly UtilityKind[] = ['electricity', 'water'];
+
+export function isOfferedUtility(utility: string): boolean {
+  return OFFERED_UTILITIES.some((kind) => kind === utility);
+}
+
 export const UtilityNoticeKindSchema = z.enum(['outage', 'information', 'boil_water', 'water_restriction']);
 export type UtilityNoticeKind = z.infer<typeof UtilityNoticeKindSchema>;
 

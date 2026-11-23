@@ -97,13 +97,17 @@ export function parseEon(
   }
   const outages: NormalizedUtilityOutage[] = [];
   let skipped = 0;
+  let incomplete = false;
   for (const [id, recs] of byOutage) {
     const det = EonDetail.safeParse(details.get(id));
     const polys: LonLat[][][] = [];
     const labels: string[] = [];
     for (const r of recs) {
       const g = EonAreaGeom.safeParse(areas.get(r.areaPath));
-      if (!g.success || !g.data.sub_areas) continue;
+      if (!g.success || !g.data.sub_areas) {
+        incomplete = true;
+        continue;
+      }
       const keys = r.stationAreas.length ? r.stationAreas : Object.keys(g.data.sub_areas);
       for (const k of keys) {
         const sa = g.data.sub_areas[k];
@@ -111,7 +115,7 @@ export function parseEon(
         if (p) {
           polys.push(...p);
           if (sa?.display_name) labels.push(sa.display_name);
-        }
+        } else incomplete = true;
       }
     }
     const geometry = polygonsToGeoJson(polys);
@@ -151,5 +155,5 @@ export function parseEon(
       upstream: { t: d.t, records: recs.length },
     });
   }
-  return { outages, skipped, ignored: 0, sourceUpdatedAt: null };
+  return { outages, skipped, ignored: 0, sourceUpdatedAt: null, ...(incomplete ? { incomplete: true } : {}) };
 }

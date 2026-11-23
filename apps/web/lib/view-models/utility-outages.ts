@@ -1,5 +1,6 @@
 import {
   formatWeekdayClock,
+  isOfferedUtility,
   outageFeedTitle,
   outageHeadline,
   outageVanished,
@@ -14,7 +15,7 @@ import { SEV, type SeverityStyle } from '../design/tokens';
  * property's events when the property itself is shown to be affected (precision high/medium), and –
  * with a caveat – ongoing unplanned outages in its postal or operating area (precision 'area', which
  * the operator publishes instead of outage geometry, e.g. Ellevio). Near matches are not listed. Grid
- * coverage ("bevakas / kunde inte kontrolleras") is shown by the risk factor "El och värme".
+ * coverage ("bevakas / kunde inte kontrolleras") is shown by the supply risk factor.
  */
 
 export interface OutageEventVM {
@@ -82,7 +83,7 @@ function whenOf(v: UtilityOutageView): string {
 export function outageEventsFor(s: Pick<PropertySnapshot, 'utilityOutages'>): OutageEventVM[] {
   const sections = s.utilityOutages ?? [];
   const byStart = (a: UtilityOutageView, b: UtilityOutageView) => Date.parse(a.plannedStart ?? a.actualStart ?? '') - Date.parse(b.plannedStart ?? b.actualStart ?? '');
-  const pick = (k: 'current' | 'upcoming' | 'recentlyRestored') => sections.flatMap((u) => u[k]).filter(listedForProperty).sort(byStart);
+  const pick = (k: 'current' | 'upcoming' | 'recentlyRestored') => sections.flatMap((u) => u[k]).filter((v) => isOfferedUtility(v.utility) && listedForProperty(v)).sort(byStart);
   const current = pick('current');
   // A ticket that vanished while another from the same operator still covers the property was replaced.
   const replaced = (v: UtilityOutageView) => outageVanished(v) && current.some((c) => c.operatorId === v.operatorId && c.utility === v.utility);
@@ -112,7 +113,7 @@ export function outageEventsFor(s: Pick<PropertySnapshot, 'utilityOutages'>): Ou
 export function outageShapes(s: Pick<PropertySnapshot, 'utilityOutages'>): Array<{ id: string; geometry: unknown; color: string; label: string; dashed: boolean }> {
   return (s.utilityOutages ?? [])
     .flatMap((u) => [...u.current, ...u.upcoming])
-    .filter((v) => v.geometry && affectsProperty(v))
+    .filter((v) => isOfferedUtility(v.utility) && v.geometry && affectsProperty(v))
     .map((v) => ({
       id: v.id,
       geometry: v.geometry,

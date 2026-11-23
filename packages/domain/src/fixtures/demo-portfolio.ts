@@ -1,3 +1,5 @@
+import { OFFERED_UTILITIES } from '../utility-outages';
+import { buildUtilityCoverageReport } from '../utility-coverage';
 import { measuredPrecipitation } from '../water-information';
 import { summarizeNowcast } from '../nowcast';
 import { swedishDayWindows } from '../format';
@@ -472,6 +474,18 @@ const feed: FeedItem[] = RAW_FEED.map((f, i) => ({
   origin: 'demo_fixture',
 }));
 
+/** Synthetic coverage for the same panels as the live portfolio. */
+export function demoUtilityCoverage(properties: PropertySnapshot[]) {
+  return OFFERED_UTILITIES.map((utility) => buildUtilityCoverageReport(properties.map(({ property: p }) => ({
+    id: p.id, geocodePrecision: p.geocode.precision, positionSource: null,
+    statuses: [{
+      utility, updatedAt: DEMO_REFERENCE_TIME, operator: null,
+      coverage: utility === 'electricity' || utility === 'water' && p.groupIds.includes('inner') ? 'monitored' : 'unknown',
+      current: [], upcoming: [], nearby: [], recentlyRestored: [],
+    }],
+  })), utility));
+}
+
 export const demoPortfolio: Portfolio = {
   organizationId: DEMO_ORGANIZATION_ID,
   organizationName: 'Demoportfölj',
@@ -483,6 +497,7 @@ export const demoPortfolio: Portfolio = {
     { id: 'outer', label: 'Förort & Kust' },
   ],
   properties: snapshots,
+  utilityCoverage: demoUtilityCoverage(snapshots),
   feed,
   // Same shape as the live builder (apps/api buildUpcoming): ids `<kind>-<propertyId>`, one property each.
   upcoming: [

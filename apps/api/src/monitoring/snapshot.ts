@@ -1,3 +1,4 @@
+import { isOfferedUtility } from '@fastighetsradar/domain';
 import type {
   DataSourceStatus,
   Nowcast,
@@ -746,7 +747,7 @@ export function buildUpcoming(snapshots: PropertySnapshot[], forecasts: OrgForec
   const forecastById = firstBy(forecasts, (f) => f.property_id);
   for (const s of snapshots) {
     if (outagesEnabled) for (const section of s.utilityOutages ?? []) for (const o of section.upcoming) {
-      if (o.kind !== 'planned' || o.state !== 'upcoming' || o.noticeKind && o.noticeKind !== 'outage' || !['water', 'district_heating', 'district_cooling'].includes(o.utility) || !['high', 'medium'].includes(o.precisionLevel)) continue;
+      if (o.kind !== 'planned' || o.state !== 'upcoming' || o.noticeKind && o.noticeKind !== 'outage' || !isOfferedUtility(o.utility) || !['water', 'district_heating', 'district_cooling'].includes(o.utility) || !['high', 'medium'].includes(o.precisionLevel)) continue;
       const start = Date.parse(o.plannedStart ?? ''), end = Date.parse(o.plannedEnd ?? '');
       const seen = Date.parse(o.lastSeenAt ?? '');
       if (!Number.isFinite(seen) || seen > now.getTime() || now.getTime() - seen > 20 * 60000) continue;

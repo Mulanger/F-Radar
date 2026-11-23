@@ -161,7 +161,7 @@ describe('Digpro outagemap2 KML', () => {
 describe('operators', () => {
   it('lists unique ids and honours UTILITY_OUTAGE_OPERATORS', () => {
     expect(new Set(UTILITY_OPERATORS.map((o) => o.id)).size).toBe(UTILITY_OPERATORS.length);
-    expect(enabledOperators('')).toHaveLength(UTILITY_OPERATORS.filter((o) => !o.enableFlag).length);
+    expect(enabledOperators('')).toHaveLength(UTILITY_OPERATORS.filter((o) => !o.enableFlag && o.utilities.includes('electricity')).length);
     expect(enabledOperators('none')).toEqual([]);
     expect(enabledOperators('vattenfall, digpro:fev').map((o) => o.id)).toEqual(['vattenfall', 'digpro:fev']);
   });
@@ -190,10 +190,9 @@ describe('fetchOperatorOutages', () => {
     const el = r.data.outages.filter((o) => o.utility === 'electricity');
     expect(el).toHaveLength(3);
     expect(el.every((o) => o.externalId.startsWith('goteborg_energi:') && o.state === 'restored')).toBe(true);
-    // Fas 4: planned heating/cooling work by address, tied to the Göteborg address area.
-    const addr = r.data.outages.filter((o) => o.precision === 'address_list');
-    expect(addr).toHaveLength(21);
-    expect(addr.every((o) => o.addressArea?.radiusM === 25_000)).toBe(true);
+    expect(r.data.outages).toEqual(el);
+    expect(calls).toHaveLength(3);
+    expect(calls.slice(1).every((x) => x.url.includes('type=36857905'))).toBe(true);
     expect(calls[0]).toMatchObject({ method: 'POST' });
     expect(calls.every((x) => x.url.startsWith('https://www.goteborgenergi.se/'))).toBe(true);
   });

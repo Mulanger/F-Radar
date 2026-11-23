@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { DashboardLink } from '../shell/DashboardLink';
 import { propertyHref } from '@/lib/navigation/dashboard';
-import type { UtilityCoverageReport } from '@fastighetsradar/domain';
+import { isOfferedUtility, type UtilityCoverageReport } from '@fastighetsradar/domain';
 import { C } from '@/lib/design/tokens';
 
 const LABEL = { electricity: 'El', district_heating: 'Fjärrvärme', district_cooling: 'Fjärrkyla', gas: 'Gas', water: 'Vatten och avlopp' };
@@ -33,10 +33,11 @@ export function UtilityCoverage({ reports, properties, basePath }: {
   properties: Array<{ id: string; name: string }>;
   basePath: string;
 }) {
-  if (!reports?.length) return null;
+  const offeredReports = reports?.filter((r) => isOfferedUtility(r.utility));
+  if (!offeredReports?.length) return null;
   const names = new Map(properties.map((p) => [p.id, p.name]));
   return <div aria-label="Täckning per nyttighet" style={{ fontSize: 12, color: C.text2, padding: '10px 0' }}>
-    {reports.map((r) => <details key={r.utility} style={{ padding: '6px 0' }}>
+    {offeredReports.map((r) => <details key={r.utility} style={{ padding: '6px 0' }}>
       <summary style={{ cursor: 'pointer' }}>{LABEL[r.utility]} bevakas för {r.monitored} av {r.total} adresser</summary>
       <p>{r.notMonitored} hos leverantör som inte bevakas · {r.unavailable} med otillgänglig källa · {r.unknown} ej bedömda</p>
       {r.utility === 'water' && <p>Avser kommunens VA-information. Fastighetens anslutning till kommunalt VA är inte bekräftad.</p>}

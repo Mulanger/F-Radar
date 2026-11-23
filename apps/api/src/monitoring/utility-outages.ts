@@ -7,6 +7,8 @@ import {
   outageHeadline,
   outageMatchLevel,
   outagePrecisionLabel,
+  OFFERED_UTILITIES,
+  isOfferedUtility,
   utilityNoun,
   withPowerFactor,
   type UtilityKind,
@@ -29,6 +31,7 @@ import {
   fetchEiConcessions,
   fetchOperatorConcessions,
   fetchOperatorOutages,
+  hasFewSkippedOutages,
   operatorIdForEiName,
   UTILITY_OPERATORS,
   type UtilityOperator,
@@ -55,18 +58,20 @@ async function runOperator(op: UtilityOperator, ctx: JobContext): Promise<JobRes
     return { status: 'error', items: 0, errorCode: r.error, errorDetail: r.detail, retryAfterSeconds: r.retryAfterSeconds };
   }
   const d = r.data;
+  const partial = d.skipped > 0 || d.incomplete;
   if (d.unknownStatusCodes?.length) ctx.adapter.logger.warn({ operator: op.id, codes: d.unknownStatusCodes }, 'utility outages: unknown upstream status codes');
   const stored = await storeUtilityOutages(
     ctx.db,
     op.id,
     d.outages.map((o) => ({ ...o, operatorName: op.name, attribution: attribution(op) })),
-    d.skipped === 0,
+    !partial,
     new Date(),
     { reportsRestored: op.reportsRestored ?? PLATFORMS_REPORTING_RESTORED.includes(op.platform), utilities: op.utilities },
   );
   const changes = await rematchUtilityOutages(ctx.db);
   return {
-    status: d.skipped > 0 ? 'partial' : 'ok',
+    status: partial ? 'partial' : 'ok',
+    errorCode: d.incomplete ? 'incomplete_feed' : partial ? 'skipped_records' : undefined,
     items: d.outages.length,
     errorDetail: `inserted ${stored.inserted}, updated ${stored.updated}, restored ${stored.restored}, ended missing ${stored.endedMissing}, skipped ${d.skipped}, ignored ${d.ignored}`,
     sourceUpdatedAt: d.sourceUpdatedAt ?? r.fetchedAt,
@@ -101,10 +106,10 @@ export function buildUtilityOutageJobs(env: ServerEnv): MonitoringJob[] {
     const active = on && enabled.has(op.id);
     jobs.push({ jobId: `${UTILITY_JOB_PREFIX}${op.id}`, sourceId: 'utility_outages', intervalSeconds: op.pollSeconds ?? env.UTILITY_OUTAGE_POLL_SECONDS, enabled: active, timeoutMs: 90_000, run: (ctx) => runOperator(enabled.get(op.id) ?? op, ctx) });
     if (op.platform === 'digpro' && op.concessionUrl) {
-      jobs.push({ jobId: `${CONCESSION_JOB_PREFIX}${op.id}`, sourceId: 'utility_outages', intervalSeconds: 7 * 86_400, enabled: active, timeoutMs: 120_000, run: (ctx) => runConcessions(op, ctx) });
+      jobs.push({ jobId: `${CONCESSION_JOB_PREFIX}${op.id}`, sourceId: 'utility_outages', intervalSeconds: 7 * 86_400, enabled: active && (enabled.get(op.id)?.utilities.includes('electricity') ?? false), timeoutMs: 120_000, run: (ctx) => runConcessions(op, ctx) });
     }
   }
-  jobs.push({ jobId: `${CONCESSION_JOB_PREFIX}ei`, sourceId: 'utility_outages', intervalSeconds: 7 * 86_400, enabled: on, timeoutMs: 300_000, run: runEiConcessions });
+  jobs.push({ jobId: `${CONCESSION_JOB_PREFIX}ei`, sourceId: 'utility_outages', intervalSeconds: 7 * 86_400, enabled: on && isOfferedUtility('electricity'), timeoutMs: 300_000, run: runEiConcessions });
   return jobs;
 }
 
@@ -119,7 +124,7 @@ export interface OperatorStatus {
   name: string;
   mapUrl: string;
   enabled: boolean;
-  /** fresh = last success within OPERATOR_FRESHNESS_S. */
+  /** The latest run was usable and is within OPERATOR_FRESHNESS_S. */
   current: boolean;
   lastSuccessAt: string | null;
   lastStatus: string | null;
@@ -133,20 +138,39 @@ export interface OperatorStatus {
 
 export const ATTENTION_FAILURES = 3;
 
+function isUsableUtilityRun(j: JobRow): boolean {
+  if (j.last_status === 'ok') return true;
+  if (j.last_status !== 'partial' || j.last_items === null) return false;
+  // Older rows only have counters. Accept them for feeds with mandatory requests that already
+  // failed the whole run, and a single utility so skipped records cannot hide a missing layer.
+  const legacyRow = !j.last_error_code && /^utility_outages:(ellevio|svoa|vattenfall)$/.test(j.job_id);
+  if (j.last_error_code !== 'skipped_records' && !legacyRow) return false;
+  const skipped = /, skipped (\d+), ignored \d+$/.exec(j.last_error_detail ?? '');
+  return skipped !== null && hasFewSkippedOutages(j.last_items, Number(skipped[1]));
+}
+
+function isCurrentUtilityRun(j: JobRow, now: Date): boolean {
+  if (!j.last_success_at || !isUsableUtilityRun(j)) return false;
+  const age = now.getTime() - j.last_success_at.getTime();
+  return age >= 0 && age <= OPERATOR_FRESHNESS_S * 1000;
+}
+
 export function resolveOperatorStatuses(env: ServerEnv, jobs: JobRow[], now: Date): OperatorStatus[] {
   const byJob = new Map(jobs.map((j) => [j.job_id, j]));
-  const enabled = new Set(env.SOURCE_UTILITY_OUTAGES_ENABLED ? enabledOperators(env.UTILITY_OUTAGE_OPERATORS, UTILITY_OPERATORS, env).map((o) => o.id) : []);
-  return UTILITY_OPERATORS.map((op) => {
+  const configured = new Map(enabledOperators(env.UTILITY_OUTAGE_OPERATORS, UTILITY_OPERATORS, env).map((o) => [o.id, o.utilities]));
+  return UTILITY_OPERATORS.filter((op) => op.utilities.some(isOfferedUtility)).map((op) => {
     const j = byJob.get(`${UTILITY_JOB_PREFIX}${op.id}`);
     const last = j?.last_success_at ?? null;
+    const enabledUtilities = configured.get(op.id) ?? [];
+    const enabled = env.SOURCE_UTILITY_OUTAGES_ENABLED && enabledUtilities.length > 0 && !!j?.enabled;
     return {
-      utilities: op.utilities,
-      enabledUtilities: enabledOperators(env.UTILITY_OUTAGE_OPERATORS, [op], env)[0]?.utilities ?? [],
+      utilities: op.utilities.filter(isOfferedUtility),
+      enabledUtilities,
       operatorId: op.id,
       name: op.name,
       mapUrl: op.mapUrl,
-      enabled: enabled.has(op.id) && !!j?.enabled,
-      current: !!last && last.getTime() <= now.getTime() && (now.getTime() - last.getTime()) / 1000 <= OPERATOR_FRESHNESS_S && j?.last_status === 'ok',
+      enabled,
+      current: enabled && !!j && isCurrentUtilityRun(j, now),
       lastSuccessAt: last?.toISOString() ?? null,
       lastStatus: j?.last_status ?? null,
       errorCode: j?.last_status === 'error' ? (j.last_error_code ?? null) : null,
@@ -163,37 +187,29 @@ export function resolveOperatorStatuses(env: ServerEnv, jobs: JobRow[], now: Dat
 }
 
 /**
- * Source-level health for 'utility_outages' summarises the enabled operator jobs: the OLDEST last
- * success (so one stale operator makes the source stale) and 'error' when any operator's last run failed.
- */
-/**
  * Source-level health of the outage collector as a whole. One operator failing (e.g. a grid company
  * that blocks the server's network) must not mark the source "ej aktuell" for every customer: that is
  * reported per operator (`attention`) and per property ("kunde inte kontrolleras – <bolag>").
  * The source fails only when NO operator is delivering; freshness follows the newest success.
  */
-export function aggregateUtilityJob(jobs: JobRow[]): JobRow | null {
+export function aggregateUtilityJob(jobs: JobRow[], now = new Date()): JobRow | null {
   const ops = jobs.filter((j) => j.job_id.startsWith(UTILITY_JOB_PREFIX) && j.enabled);
   if (!ops.length) return null;
-  const successes = ops.map((j) => j.last_success_at).filter((d): d is Date => !!d);
+  const current = ops.filter((j) => isCurrentUtilityRun(j, now));
+  const usable = ops.filter(isUsableUtilityRun);
+  const deliveries = current.length ? current : usable.length ? usable : ops.filter((j) => j.last_status === 'error');
+  const successes = deliveries.map((j) => j.last_success_at).filter((d): d is Date => !!d && d.getTime() <= now.getTime());
   const newest = successes.length ? successes.reduce((a, b) => (a.getTime() > b.getTime() ? a : b)) : null;
-  const delivering = ops.filter((j) => j.last_status === 'ok' || j.last_status === 'partial');
-  const failing = ops.find((j) => j.last_status === 'error');
+  const failing = ops.find((j) => j.last_status === 'error' || j.last_status === 'partial' && !isUsableUtilityRun(j));
   const ran = ops.some((j) => j.last_status);
   return {
     ...ops[0]!,
     job_id: 'utility_outages',
     last_success_at: newest,
-    last_status: !ran ? null : delivering.length ? 'ok' : 'error',
-    last_error_code: delivering.length ? null : (failing?.last_error_code ?? null),
+    last_status: !ran ? null : current.length || !failing && usable.length ? 'ok' : 'error',
+    last_error_code: current.length ? null : failing?.last_error_code ?? (failing?.last_status === 'partial' ? 'invalid_payload' : null),
     interval_seconds: Math.min(...ops.map((j) => j.interval_seconds)),
   };
-}
-
-/** Enabled operators whose latest fetch failed (shown as a note on an otherwise healthy source). */
-export function failingUtilityOperators(jobs: JobRow[]): { failing: number; total: number } {
-  const ops = jobs.filter((j) => j.job_id.startsWith(UTILITY_JOB_PREFIX) && j.enabled);
-  return { failing: ops.filter((j) => j.last_status === 'error' || j.last_status === 'partial').length, total: ops.length };
 }
 
 /* ------------------------------------------------------------------ */
@@ -301,11 +317,8 @@ function split(views: UtilityOutageView[]) {
  * health never makes the status 'unknown'.
  */
 export function withUtilityOutages(s: PropertySnapshot, inputs: UtilityInputs): PropertySnapshot {
-  const sections = [propertyUtilityStatus(s.property.id, inputs, 'electricity')];
-  for (const utility of ['district_heating', 'district_cooling', 'gas', 'water'] as const) {
-    const status = propertyUtilityStatus(s.property.id, inputs, utility);
-    if (status.coverage !== 'unknown' || inputs.outages.some((o) => o.property_id === s.property.id && o.utility === utility)) sections.push(status);
-  }
+  const sections = OFFERED_UTILITIES.map((utility) => propertyUtilityStatus(s.property.id, inputs, utility))
+    .filter((u) => u.utility === 'electricity' || u.coverage !== 'unknown' || u.current.length || u.upcoming.length || u.recentlyRestored.length || u.nearby.length);
   let status = s.property.status;
   let reason = s.property.statusReason ?? null;
   let raised = false;
@@ -332,6 +345,6 @@ export function withUtilityOutages(s: PropertySnapshot, inputs: UtilityInputs): 
     utilityOutages: sections,
     ...(s.monitoring ? { monitoring: { ...s.monitoring, statusMethod: 'highest_official_warning_or_outage' as const } } : {}),
   };
-  // Riskindex: factor "El och värme" (ADR 0006 Fas 5).
+  // Risk index: power supply factor (ADR 0006 Fas 5).
   return next.riskIndex ? { ...next, riskIndex: withPowerFactor(next.riskIndex, next) } : next;
 }

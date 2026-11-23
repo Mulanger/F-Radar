@@ -85,7 +85,8 @@ export function parseSkekraft(raw: unknown, op: UtilityOperator): OutageFetchRes
   const payload = SkekraftPayload.safeParse(raw);
   if (!payload.success || payload.data.count < payload.data.results.length) return null;
   // total is the whole historical archive (18k+), count is the current returned scope.
-  const result: OutageFetchResult = { outages: [], skipped: Math.max(0, payload.data.count - payload.data.results.length), ignored: 0, sourceUpdatedAt: null };
+  const missing = payload.data.count - payload.data.results.length;
+  const result: OutageFetchResult = { outages: [], skipped: missing, ignored: 0, sourceUpdatedAt: null, ...(missing ? { incomplete: true } : {}) };
   for (const item of payload.data.results) {
     const parsed = SkekraftRow.safeParse(item);
     if (!parsed.success) { result.skipped++; continue; }
