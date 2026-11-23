@@ -145,8 +145,10 @@ function isUsableUtilityRun(j: JobRow): boolean {
   // failed the whole run, and a single utility so skipped records cannot hide a missing layer.
   const legacyRow = !j.last_error_code && /^utility_outages:(ellevio|svoa|vattenfall)$/.test(j.job_id);
   if (j.last_error_code !== 'skipped_records' && !legacyRow) return false;
-  const skipped = /, skipped (\d+), ignored \d+$/.exec(j.last_error_detail ?? '');
-  return skipped !== null && hasFewSkippedOutages(j.last_items, Number(skipped[1]));
+  // Ignored records were read fine (another type, a watering ban): they count as read, as in the fetch.
+  // Stockholm Vatten och Avfall: 4 outages + 18 ignored read, 1 skipped – a working feed.
+  const counts = /, skipped (\d+), ignored (\d+)$/.exec(j.last_error_detail ?? '');
+  return counts !== null && hasFewSkippedOutages(j.last_items + Number(counts[2]), Number(counts[1]));
 }
 
 function isCurrentUtilityRun(j: JobRow, now: Date): boolean {

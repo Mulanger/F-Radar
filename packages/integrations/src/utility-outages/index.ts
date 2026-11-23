@@ -403,7 +403,8 @@ export async function fetchOperatorOutages(op: UtilityOperator, ctx: AdapterCont
 
 function combine(parts: OutageFetchResult[]): OutageFetchResult {
   const codes = parts.flatMap((p) => p.unknownStatusCodes ?? []);
-  const incomplete = parts.some((p) => p.incomplete || p.skipped > 0 && !hasFewSkippedOutages(p.outages.length, p.skipped));
+  // Records read but ignored (another type, a watering ban) prove the feed parses: count them as read.
+  const incomplete = parts.some((p) => p.incomplete || p.skipped > 0 && !hasFewSkippedOutages(p.outages.length + p.ignored, p.skipped));
   return {
     outages: parts.flatMap((p) => p.outages),
     skipped: parts.reduce((a, p) => a + p.skipped, 0),

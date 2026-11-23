@@ -172,11 +172,15 @@ describe('collector jobs and health', () => {
     { id: 'ellevio', items: 8, skipped: 1, errorCode: 'skipped_records', current: false },
     { id: 'ellevio', items: 164, skipped: 3, errorCode: 'skipped_records', current: false },
     { id: 'svoa', items: 0, skipped: 1, errorCode: 'skipped_records', current: false },
+    // Production 2026-11-23: 4 outages and 18 other notices read, 1 record unreadable.
+    { id: 'svoa', items: 4, ignored: 18, skipped: 1, errorCode: 'skipped_records', current: true },
+    { id: 'svoa', items: 4, ignored: 18, skipped: 1, errorCode: null, current: true },
+    { id: 'svoa', items: 4, ignored: 0, skipped: 1, errorCode: 'skipped_records', current: false },
     { id: 'ellevio', items: 164, skipped: 1, errorCode: 'incomplete_feed', current: false },
-  ])('checks partial: $id / $items accepted / $skipped skipped / $errorCode', ({ id, items, skipped, errorCode, current }) => {
+  ] as Array<{ id: string; items: number; ignored?: number; skipped: number; errorCode: string | null; current: boolean }>)('checks partial: $id / $items accepted / $skipped skipped / $errorCode', ({ id, items, ignored = 0, skipped, errorCode, current }) => {
     const env = loadServerEnv({ SOURCE_UTILITY_OUTAGES_ENABLED: 'true', SOURCE_UTILITY_WATER_ENABLED: 'true', SOURCE_UTILITY_SVOA_ENABLED: 'true' });
     const j = job(`utility_outages:${id}`, { last_status: 'partial', last_items: items, last_error_code: errorCode,
-      last_error_detail: `inserted 0, updated 0, restored 0, ended missing 0, skipped ${skipped}, ignored 0` });
+      last_error_detail: `inserted 0, updated 0, restored 0, ended missing 0, skipped ${skipped}, ignored ${ignored}` });
     expect(resolveOperatorStatuses(env, [j], NOW).find((o) => o.operatorId === id)).toMatchObject({ enabled: true, current, attention: 'format_changed' });
     expect(aggregateUtilityJob([j], NOW)?.last_status).toBe(current ? 'ok' : 'error');
     const old = { ...j, last_success_at: new Date(NOW.getTime() - 21 * 60_000) };
