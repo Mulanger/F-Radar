@@ -124,3 +124,14 @@ it('exports one CSV row per property, readable by Excel with Swedish settings', 
   expect(lines[2]).toContain('"Strandhuset"');
 });
 
+it('keeps the PDF worker from importing the module that starts it (the production build looped on that)', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { resolve } = await import('node:path');
+  const file = (name: string) => readFileSync(resolve(process.cwd(), 'apps/web/lib/acknowledgements', name), 'utf8');
+  const worker = file('pdf.worker.ts');
+  expect(worker).toContain("from './report'");
+  expect(worker).not.toMatch(/from '\.\/pdf'/);
+  const report = file('report.ts');
+  expect(report).not.toContain('new Worker(');
+});
+
