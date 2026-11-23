@@ -269,7 +269,8 @@ export function PropertyImportDialog({
               <div className={styles.progress} role="status" aria-live="polite">
                 <div>
                   {progress.state === 'running' && `Importerar… ${progress.done} av ${progress.total}`}
-                  {progress.state === 'done' && `Klart – ${counts.created} ${counts.created === 1 ? 'fastighet skapad' : 'fastigheter skapade'}${counts.review ? `, varav ${counts.review} med position att kontrollera` : ''}.`}
+                  {progress.state === 'done' && `Klart – ${counts.created} ${counts.created === 1 ? 'fastighet skapad' : 'fastigheter skapade'}.`}
+                  {progress.state === 'done' && ` ${counts.review} väntar på positionskontroll.`}
                   {progress.state === 'stopped' && `Stoppad efter ${progress.done} av ${progress.total}.`}
                   {progress.state === 'paused' && progress.message}
                 </div>
@@ -325,7 +326,7 @@ export function PropertyImportDialog({
               </>
             )}
             {started && counts.review > 0 && progress.state !== 'running' &&
-              `${counts.review} positioner träffade gatan men inte byggnaden. De finns i listan "Kontrollera position" på sidan Fastigheter.`}
+              'På sidan Fastigheter, öppna ”Kontrollera position” och bekräfta varje nål på kartan.'}
           </p>
           <div className={styles.actions}>
             {!started && (

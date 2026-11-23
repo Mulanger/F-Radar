@@ -56,12 +56,12 @@ const status = (o: Partial<PropertyUtilityStatus> = {}): PropertyUtilityStatus =
 const snap = (u?: PropertyUtilityStatus) => ({ utilityOutages: u ? [u] : undefined }) as unknown as PropertySnapshot;
 
 describe('outages among the property events', () => {
-  it('lists nothing without matched outages – coverage lives in the risk factor', () => {
+  it('lists nothing without confirmed outage matches', () => {
     expect(outageEventsFor(snap())).toEqual([]);
     expect(outageEventsFor(snap(status()))).toEqual([]);
   });
 
-  it('lists outages that cover the property and, with a caveat, ongoing ones in its postal area – never near matches', () => {
+  it('lists direct matches and skips postcode and nearby outages', () => {
     const rows = outageEventsFor(
       snap(
         status({
@@ -75,10 +75,8 @@ describe('outages among the property events', () => {
         }),
       ),
     );
-    expect(rows.map((r) => r.id)).toEqual(['e1', 'area']);
+    expect(rows.map((r) => r.id)).toEqual(['e1']);
     expect(rows[0]).toMatchObject({ kind: 'Ström', title: 'Oplanerat strömavbrott – Vattenfall Eldistribution', c: SEV.critical.c, operatorText: 'Felsökning pågår', scope: 'Berör fastigheten', areaOnly: false });
-    expect(rows[1]).toMatchObject({ title: 'Oplanerat strömavbrott – Ellevio – i fastighetens postnummerområde', c: SEV.monitor.c, scope: 'I fastighetens postnummerområde – inte säkert att fastigheten berörs', areaOnly: true });
-    expect(rows[1]!.when).toMatch(/· 223 kunder berörda$/);
     expect(rows[0]!.when).toMatch(/^Oplanerat · start /);
   });
 
@@ -92,7 +90,7 @@ describe('outages among the property events', () => {
   });
 
   it('a vanished ticket is grey and neutral, and hidden while the same operator still has an outage there', () => {
-    const area = { matchMethod: 'outage_postal_area' as const, precisionLevel: 'area' as const, operatorId: 'ellevio', operatorName: 'Ellevio' };
+    const area = { operatorId: 'ellevio', operatorName: 'Ellevio' };
     const vanished = view({ ...area, id: 'old', state: 'withdrawn', severity: 'info', operatorText: 'Vi undersöker omfattningen av avbrottet.' });
     // Alone: listed, but never as "Strömmen är tillbaka".
     const alone = outageEventsFor(snap(status({ recentlyRestored: [vanished] })));
@@ -133,22 +131,17 @@ describe('<LocalEventsPanel /> with outages', () => {
     expect(document.body.textContent).not.toMatch(/kris|fara|akut/i);
   });
 
-  it('never says "Berör fastigheten" for an outage known only by postal area', () => {
+  it('hides outages known only by postal area', () => {
     const area = view({ id: 'a', operatorName: 'Ellevio', matchMethod: 'outage_postal_area', precisionLevel: 'area', severity: 'monitor', precisionLabel: 'I fastighetens postnummerområde – inte säkert att fastigheten berörs' });
     render(<LocalEventsPanel d={d(outageEventsFor(snap(status({ current: [area] }))))} />);
-    const row = screen.getByTestId('outage-event').textContent!;
-    expect(row).toContain('inte säkert att fastigheten berörs');
-    expect(row).not.toContain('Berör fastigheten');
+    expect(screen.queryByTestId('outage-event')).toBeNull();
   });
 
-  it('shows water point notices as nearby with a source and no claim of impact', () => {
+  it('hides water point notices near the property', () => {
     const point = view({ utility: 'water', operatorName: 'VA-bolaget', matchMethod: 'outage_point', precisionLevel: 'low', severity: null });
     const water = { ...status({ nearby: [point] }), utility: 'water' as const };
     render(<LocalEventsPanel d={d(outageEventsFor(snap(water)))} />);
-    const row = screen.getByTestId('outage-event').textContent!;
-    expect(row).toContain('Det är oklart om fastigheten berörs');
-    expect(row).not.toContain('Berör fastigheten');
-    expect(screen.getByRole('link', { name: /VA-bolaget · avbrottskarta/ })).toBeTruthy();
+    expect(screen.queryByTestId('outage-event')).toBeNull();
   });
 
   it('opens an outage with an area on the map – also when it is over – and not one known only by addresses', async () => {
@@ -168,6 +161,6 @@ describe('<LocalEventsPanel /> with outages', () => {
   it('keeps the empty state when nothing affects the property', () => {
     render(<LocalEventsPanel d={d([])} />);
     expect(screen.queryByTestId('outage-event')).toBeNull();
-    expect(screen.getByText(/Inga rapporterade/)).toBeTruthy();
+    expect(screen.getByText('Inga händelser att visa.')).toBeTruthy();
   });
 });

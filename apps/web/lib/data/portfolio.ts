@@ -1,7 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import { cookies } from 'next/headers';
-import { EventPageSchema, PortfolioSchema, PropertySnapshotSchema, listPortfolio, type EventPage, type Portfolio, type PropertySnapshot } from '@fastighetsradar/domain';
+import { customerPropertySnapshot, EventPageSchema, PortfolioSchema, PropertySnapshotSchema, listPortfolio, type EventPage, type Portfolio, type PropertySnapshot } from '@fastighetsradar/domain';
 import { demoPortfolio, demoScaleSize, scaleDemoPortfolio } from '@fastighetsradar/domain/fixtures';
 import { DEMO_SIZE_COOKIE } from '../demo/size';
 import { demoEventPage } from '../demo/event-page';
@@ -69,7 +69,7 @@ export async function loadDemoPropertySnapshot(size: number | null, id: string):
   if (!demoEnabled()) return { status: 'not_found' };
   const full = demoPortfolios(demoScaleSize(size, demoPortfolio.properties.length)).full;
   const snapshot = full.properties.find((s) => s.property.id === id);
-  return snapshot ? { status: 'ok', snapshot } : { status: 'not_found' };
+  return snapshot ? { status: 'ok', snapshot: customerPropertySnapshot(snapshot) } : { status: 'not_found' };
 }
 
 /** The page of a demo event (Fas 2 / S-09), like `/v1/events/:id` live. */
@@ -101,7 +101,7 @@ export const loadLivePropertySnapshot = cache(async (id: string): Promise<Proper
   try {
     const body = await internalApiJson<{ snapshot?: unknown }>(`/v1/properties/${encodeURIComponent(id)}/snapshot`);
     const parsed = PropertySnapshotSchema.safeParse(body?.snapshot);
-    return parsed.success ? { status: 'ok', snapshot: parsed.data } : { status: 'unavailable', reason: 'Fastighetstjänsten returnerade ett oväntat svar.' };
+    return parsed.success ? { status: 'ok', snapshot: customerPropertySnapshot(parsed.data) } : { status: 'unavailable', reason: 'Fastighetstjänsten returnerade ett oväntat svar.' };
   } catch (err) {
     if (err instanceof InternalApiError && (err.status === 404 || err.status === 400)) return { status: 'not_found' };
     return { status: 'unavailable', reason: err instanceof InternalApiError ? `Fel i fastighetstjänsten (${err.status}).` : 'Fastighetstjänsten går inte att nå.' };
@@ -118,7 +118,7 @@ export const loadLivePortfolio = cache(async (): Promise<PortfolioLoadResult> =>
     const body = await internalApiJson<unknown>('/v1/portfolio');
     const parsed = PortfolioSchema.safeParse(body);
     if (!parsed.success) return { status: 'unavailable', mode: 'live', reason: 'Portföljtjänsten returnerade ett oväntat svar.', code: 'api_error' };
-    return { status: 'ok', mode: 'live', portfolio: parsed.data };
+    return { status: 'ok', mode: 'live', portfolio: listPortfolio(parsed.data) };
   } catch (err) {
     if (err instanceof InternalApiError) {
       if (err.status === 401) return { status: 'unavailable', mode: 'live', reason: 'Din inloggning kunde inte verifieras.', code: 'unauthenticated' };

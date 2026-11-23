@@ -8,10 +8,10 @@ import { municipalWaterProvider } from '../src/monitoring/water-operators';
 import { operatorById } from '@fastighetsradar/integrations';
 import { buildUtilityCoverageReport } from '@fastighetsradar/domain';
 const now = new Date('2026-11-19T10:00:00Z');
-const view: UtilityOutageView = { id: 'u', operatorId: 'va', operatorName: 'VA', utility: 'water', kind: 'planned', state: 'upcoming', noticeKind: 'outage', lastSeenAt: now.toISOString(), matchMethod: 'outage_polygon', precisionLevel: 'medium', precisionLabel: 'Ungefärligt läge', severity: 'monitor', distanceMeters: null, affectedCustomers: null, areaCustomerTotal: null, reportedAt: null, plannedStart: '2026-11-20T08:00:00Z', plannedEnd: '2026-11-20T10:00:00Z', actualStart: null, estimatedRestore: null, restoredAt: null, restoredInferred: false, operatorText: 'Leverantörens text', cause: null, placeLabel: null, sourceUrl: 'https://example.test/drift', geometry: null };
+const view: UtilityOutageView = { id: 'u', operatorId: 'va', operatorName: 'VA', utility: 'water', kind: 'planned', state: 'upcoming', noticeKind: 'outage', lastSeenAt: now.toISOString(), matchMethod: 'outage_polygon', precisionLevel: 'high', precisionLabel: 'Inom avbrottsområdet', severity: 'monitor', distanceMeters: null, affectedCustomers: null, areaCustomerTotal: null, reportedAt: null, plannedStart: '2026-11-20T08:00:00Z', plannedEnd: '2026-11-20T10:00:00Z', actualStart: null, estimatedRestore: null, restoredAt: null, restoredInferred: false, operatorText: 'Leverantörens text', cause: null, placeLabel: null, sourceUrl: 'https://example.test/drift', geometry: null };
 const snapshot = (v: Partial<UtilityOutageView> = {}): PropertySnapshot => ({ ...demoPortfolio.properties[0]!, warnings: [], utilityOutages: [{ utility: 'water', operator: null, coverage: 'unknown', updatedAt: null, current: [], upcoming: [{ ...view, ...v }], nearby: [], recentlyRestored: [] }] });
 describe('supply completeness and conservative upcoming conditions', () => {
-  it('shows planned water only with explicit opt-in, exact or medium match, fresh data and known interval', () => {
+  it('shows planned water only with explicit opt-in, exact match, fresh data and known interval', () => {
     expect(loadServerEnv({}).UTILITY_OUTAGE_UPCOMING_ENABLED).toBe(false);
     expect(buildUpcoming([snapshot()], [], now)).toEqual([]);
     const r = buildUpcoming([snapshot()], [], now, true);

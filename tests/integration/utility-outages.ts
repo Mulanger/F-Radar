@@ -186,6 +186,11 @@ export function registerUtilityOutageTests(pool: pg.Pool) {
         property_id: f.inside.id, match_method: 'outage_area', effective_severity: 'info',
       });
       assert.ok(!areaMatches.some((m) => m.property_id === f.adjacent.id));
+      const customerFeed = await listRecentChangesForOrg(pool, f.org, 50, 'user_outageTest');
+      const internalChanges = await listRecentChangesForOrg(pool, f.org);
+      assert.ok(internalChanges.some((c) => c.source_id === 'utility_outages'));
+      assert.ok(customerFeed.every((c) => c.source_id !== 'utility_outages'));
+      assert.deepEqual(await listPropertyActivity(pool, f.org, f.inside.id), []);
     });
 
     it('precision per property: inside red, approximate orange, edge panel-only, 200 m nothing', async () => {

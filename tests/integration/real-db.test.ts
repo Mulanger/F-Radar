@@ -352,9 +352,17 @@ describe('real PostgreSQL / PostGIS', () => {
       assert.equal(pj.properties[0].property.name, 'Kontoret');
       assert.equal(pj.properties[0].demoRisk, null);
       assert.deepEqual(pj.properties[0].metrics, []);
+      assert.equal('utilityCoverage' in pj, false);
 
       assert.equal((await app.inject({ method: 'DELETE', url: `/v1/properties/${id}`, headers: A })).statusCode, 204);
       assert.equal((await app.inject({ method: 'GET', url: `/v1/properties/${id}`, headers: A })).statusCode, 404);
+
+      const coarse = { ...sveavagen, geocode: { ...sveavagen.geocode, precision: 'street' } };
+      assert.equal((await app.inject({ method: 'POST', url: '/v1/properties', headers: A, payload: coarse })).statusCode, 400);
+      const confirmed = await app.inject({ method: 'POST', url: '/v1/properties', headers: A, payload: { ...coarse, positionConfirmed: true } });
+      assert.equal(confirmed.statusCode, 201, confirmed.body);
+      assert.equal(confirmed.json().property.positionSource, 'manual_adjusted');
+      assert.equal((await app.inject({ method: 'DELETE', url: `/v1/properties/${confirmed.json().property.id}`, headers: A })).statusCode, 204);
     } finally {
       await app.close();
     }
@@ -600,8 +608,9 @@ describe('real PostgreSQL / PostGIS', () => {
       const listed = await review();
       assert.equal(listed.length, 40);
       assert.ok(listed.every((p) => p.precision === 'street' && p.label?.startsWith('Gata ')));
-      const patched = await app.inject({ method: 'PATCH', url: `/v1/properties/${listed[0]!.id}`, headers: A, payload: { location: listed[0]!.location } });
+      const patched = await app.inject({ method: 'PATCH', url: `/v1/properties/${listed[0]!.id}`, headers: A, payload: { location: listed[0]!.location, positionConfirmed: true } });
       assert.equal(patched.statusCode, 200, patched.body);
+      assert.equal(patched.json().property.positionSource, 'manual_adjusted');
       assert.equal((await review()).length, 39);
       assert.equal((await review('tok-b')).length, 0, 'B sees none of them');
 
@@ -673,7 +682,7 @@ describe('real PostgreSQL / PostGIS', () => {
       // The property dialog: groups on create, replaced on edit (unknown ids skipped).
       res = await call('tok-a', 'POST', '/v1/property-groups', { name: 'Förort' });
       const outer = (res.json() as { group: PropertyGroup }).group;
-      res = await call('tok-a', 'POST', '/v1/properties', { name: 'Grupp 4', address: 'Gruppvägen 4, Stockholm', ...pin(4), groupIds: [outer.id, '00000000-0000-4000-8000-000000000000'] });
+      res = await call('tok-a', 'POST', '/v1/properties', { name: 'Grupp 4', address: 'Gruppvägen 4, Stockholm', ...pin(4), positionConfirmed: true, groupIds: [outer.id, '00000000-0000-4000-8000-000000000000'] });
       assert.equal(res.statusCode, 201, res.body);
       const p4 = (res.json() as { property: PropertyRecord }).property;
       assert.deepEqual(p4.groupIds, [outer.id]);

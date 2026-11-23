@@ -1,4 +1,5 @@
-import type { MetricKey, Portfolio, PropertySnapshot } from './entities';
+import type { DataSourceStatus, MetricKey, Portfolio, PropertySnapshot } from './entities';
+import { isCustomerOutageMatch, isPositionConfirmed } from './utility-outages';
 
 /**
  * Portfolio LIST vs property DETAIL (docs/plans/skalning.md, Fas 3 / S-10).
@@ -25,10 +26,33 @@ export const LIST_METRIC_KEYS: readonly MetricKey[] = [
 ];
 const LIST_METRICS = new Set<string>(LIST_METRIC_KEYS);
 
+export const customerSourceStatuses = (sources: DataSourceStatus[]) => sources.filter((s) => s.sourceId !== 'utility_outages');
+
+export function customerPropertySnapshot(s: PropertySnapshot): PropertySnapshot {
+  const { utilityOutages, riskIndex, ...snapshot } = s;
+  const { property: p } = s;
+  const confirmed = isPositionConfirmed(p.geocode.precision, p.positionSource ?? (p.geocode.provider === 'manual_pin' ? 'manual_pin' : undefined));
+  const matches = (items: NonNullable<typeof utilityOutages>[number]['current']) => items.filter((o) => isCustomerOutageMatch(o, confirmed));
+  const outages = utilityOutages?.flatMap((u) => {
+    const current = matches(u.current);
+    const upcoming = matches(u.upcoming);
+    const recentlyRestored = matches(u.recentlyRestored);
+    return current.length || upcoming.length || recentlyRestored.length
+      ? [{ utility: u.utility, current, upcoming, recentlyRestored, nearby: [] }]
+      : [];
+  });
+  const factors = riskIndex?.factors.filter((f) => f.key !== 'power' || (f.points ?? 0) > 0);
+  return {
+    ...snapshot,
+    ...(outages?.length ? { utilityOutages: outages } : {}),
+    ...(riskIndex && factors ? { riskIndex: { ...riskIndex, factors, assessedFactors: factors.filter((f) => f.assessed).length } } : {}),
+  };
+}
+
 /** The snapshot as list views need it: detail-only parts emptied, shape unchanged. */
 export function listSnapshot(s: PropertySnapshot): PropertySnapshot {
   const out: PropertySnapshot = {
-    ...s,
+    ...customerPropertySnapshot(s),
     metrics: s.metrics.filter((m) => LIST_METRICS.has(m.metricKey)),
     forecast: s.forecast ? { ...s.forecast, series: [], days: [] } : s.forecast,
   };
@@ -38,5 +62,6 @@ export function listSnapshot(s: PropertySnapshot): PropertySnapshot {
 }
 
 export function listPortfolio(p: Portfolio): Portfolio {
-  return { ...p, properties: p.properties.map(listSnapshot) };
+  const { utilityCoverage: _utilityCoverage, ...portfolio } = p;
+  return { ...portfolio, properties: p.properties.map(listSnapshot), sources: customerSourceStatuses(p.sources) };
 }

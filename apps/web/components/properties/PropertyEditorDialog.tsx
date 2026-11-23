@@ -6,6 +6,7 @@ import {
   PropertyCreateSchema,
   configureSwedishValidation,
   fieldLabelSv,
+  isPositionConfirmed,
   PropertyUpdateSchema,
   SWEDEN_BOUNDS,
   type AddressSuggestionDto,
@@ -55,9 +56,9 @@ const STATUS_SV: Record<number, string> = {
 
 function precisionNote(meta: GeocodeMetadata | null): string | null {
   if (!meta) return null;
-  if (meta.provider === 'manual_pin') return 'Manuell position – dra nålen till byggnaden.';
-  if (meta.precision === 'building') return 'Adressen matchade en byggnad. Kontrollera nålen och justera vid behov.';
-  return 'Ungefärlig träff (ingen exakt byggnad). Dra nålen till byggnaden innan du sparar.';
+  if (meta.provider === 'manual_pin') return 'Placera nålen på byggnaden och bekräfta positionen.';
+  if (meta.precision === 'building') return 'Adressen matchade en byggnad. Du kan justera nålen på kartan.';
+  return 'Adressökningen hittade bara gatan eller området. Placera nålen på rätt byggnad och bekräfta.';
 }
 
 async function problemMessage(res: Response): Promise<string> {
@@ -80,6 +81,8 @@ export function PropertyEditorDialog({
   onDeleted,
   groups = [],
   onCreateGroup,
+  demo = false,
+  onDemoConfirmed,
 }: {
   mode: Mode;
   onClose: () => void;
@@ -88,6 +91,8 @@ export function PropertyEditorDialog({
   /** The organization's property groups (Fas 4 / S-20). */
   groups?: { id: string; label: string }[];
   onCreateGroup?: (name: string) => Promise<string>;
+  demo?: boolean;
+  onDemoConfirmed?: () => void;
 }) {
   const editing = mode.kind === 'edit' ? mode.snapshot.property : null;
   const [groupIds, setGroupIds] = useState<string[]>(editing?.groupIds ?? []);
@@ -101,6 +106,8 @@ export function PropertyEditorDialog({
   const [geocode, setGeocode] = useState<GeocodeMetadata | null>(null);
   const [point, setPoint] = useState<{ lat: number; lon: number } | null>(editing ? editing.location : null);
   const [pointTouched, setPointTouched] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -127,13 +134,24 @@ export function PropertyEditorDialog({
     const t = setTimeout(async () => {
       setSearchState('loading');
       try {
+        if (demo) {
+          const { demoAddressSuggestions } = await import('@/lib/demo/address-suggestions');
+          if (ctrl.signal.aborted) return;
+          const found = demoAddressSuggestions(q);
+          setAttribution('Exempeladresser i demon');
+          setSuggestions(found);
+          setSearchState(found.length ? 'idle' : 'empty');
+          return;
+        }
         const res = await fetch(`/api/app/geocoding/suggestions?q=${encodeURIComponent(q)}`, { signal: ctrl.signal, headers: { accept: 'application/json' } });
+        if (ctrl.signal.aborted) return;
         if (!res.ok) {
           setSearchState(res.status === 429 ? 'rate_limited' : 'error');
           setSuggestions([]);
           return;
         }
         const body = (await res.json()) as GeocodingSuggestionsResponse;
+        if (ctrl.signal.aborted) return;
         setAttribution(body.attribution);
         setSuggestions(body.suggestions);
         setSearchState(body.status === 'geocoding_unavailable' ? 'unavailable' : body.status === 'rate_limited' ? 'rate_limited' : body.suggestions.length ? 'idle' : 'empty');
@@ -145,7 +163,7 @@ export function PropertyEditorDialog({
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [query]);
+  }, [query, demo]);
 
   const pick = (s: AddressSuggestionDto) => {
     skipSearchFor.current = s.label;
@@ -169,6 +187,7 @@ export function PropertyEditorDialog({
     });
     setPoint({ lat: s.lat, lon: s.lon });
     setPointTouched(false);
+    setConfirmed(false);
     if (!name.trim()) setName([s.street, s.housenumber].filter(Boolean).join(' ') || s.label.split(',')[0] || '');
   };
 
@@ -177,9 +196,14 @@ export function PropertyEditorDialog({
     setAddress(query.trim());
     setSuggestions([]);
     setPoint((p) => p ?? DEFAULT_POINT);
+    setConfirmed(false);
   };
 
-  const addressChanged = editing ? address.trim() !== editing.address || geocode !== null : true;
+  const usedSavedPosition = !!editing && !geocode && isPositionConfirmed(
+    editing.geocode.precision, editing.positionSource ?? (editing.geocode.provider === 'manual_pin' ? 'manual_pin' : undefined),
+  );
+  const needsConfirmation = !!point && !confirmed && (pointTouched || (!usedSavedPosition && (geocode?.provider !== 'geoapify' || geocode.precision !== 'building')));
+  const askForNumber = !!query.trim() && (geocode?.provider === 'geoapify' ? !geocode.housenumber : !/\d/.test(query.split(',')[0] ?? ''));
   const outsideSweden =
     !!point && (point.lat < SWEDEN_BOUNDS.minLat || point.lat > SWEDEN_BOUNDS.maxLat || point.lon < SWEDEN_BOUNDS.minLon || point.lon > SWEDEN_BOUNDS.maxLon);
 
@@ -187,30 +211,34 @@ export function PropertyEditorDialog({
     if (!point) return null;
     if (!editing) {
       if (!geocode) return null;
-      return { name: name.trim(), address: (geocode.provider === 'manual_pin' ? query : address).trim(), location: point, geocode, ...(groupIds.length ? { groupIds } : {}) };
+      return { name: name.trim(), address: address.trim(), location: point, geocode, ...(confirmed ? { positionConfirmed: true } : {}), ...(groupIds.length ? { groupIds } : {}) };
     }
     const patch: Record<string, unknown> = {};
     if (groupsChanged) patch.groupIds = groupIds;
     if (name.trim() !== editing.name) patch.name = name.trim();
     if (geocode) {
-      patch.address = (geocode.provider === 'manual_pin' ? query : address).trim();
+      patch.address = address.trim();
       patch.geocode = geocode;
       patch.location = point;
-    } else if (pointTouched) {
+    } else if (confirmed) {
       patch.location = point;
     }
+    if (confirmed) patch.positionConfirmed = true;
     return patch;
-  }, [point, editing, geocode, name, query, address, pointTouched, groupIds, groupsChanged]);
+  }, [point, editing, geocode, name, address, confirmed, groupIds, groupsChanged]);
+  const canSave = !saving && !outsideSweden && !needsConfirmation && !!name.trim() && query.trim() === address.trim()
+    && !!payload && Object.keys(payload).length > 0;
 
   const save = async () => {
+    if (!canSave || !payload) return;
     setError(null);
-    if (!payload) {
-      setError(editing ? 'Inget att spara.' : 'Välj ett adressförslag eller placera nålen manuellt.');
-      return;
-    }
     const parsed = editing ? PropertyUpdateSchema.safeParse(payload) : PropertyCreateSchema.safeParse(payload);
     if (!parsed.success) {
       setError(parsed.error.issues.map((i) => `${fieldLabelSv(i.path.join('.') || 'input')}: ${i.message}`).join(' · '));
+      return;
+    }
+    if (demo) {
+      onDemoConfirmed?.();
       return;
     }
     setSaving(true);
@@ -251,7 +279,10 @@ export function PropertyEditorDialog({
     }
   };
 
-  const note = precisionNote(geocode);
+  const note = confirmed ? 'Positionen är bekräftad.'
+    : needsConfirmation && pointTouched ? 'Kontrollera att nålen står på rätt byggnad och bekräfta positionen.'
+    : needsConfirmation && !geocode ? 'Kontrollera byggnaden på kartan. Justera nålen vid behov och bekräfta positionen.'
+    : precisionNote(geocode);
 
   return (
     <div
@@ -295,8 +326,19 @@ export function PropertyEditorDialog({
                 aria-controls="pe-suggestions"
                 onChange={(e) => {
                   skipSearchFor.current = null;
-                  setQuery(e.target.value);
-                  if (geocode?.provider === 'geoapify') setGeocode(null);
+                  const value = e.target.value;
+                  setQuery(value);
+                  setSuggestions([]);
+                  setGeocode(null);
+                  setConfirmed(false);
+                  setPointTouched(false);
+                  if (editing && value.trim() === editing.address) {
+                    setAddress(editing.address);
+                    setPoint(editing.location);
+                  } else {
+                    setMapReady(false);
+                    setPoint(null);
+                  }
                 }}
                 placeholder="Gata och nummer, ort"
                 style={input}
@@ -335,6 +377,7 @@ export function PropertyEditorDialog({
                 {searchState === 'rate_limited' && 'För många sökningar – vänta en stund eller placera nålen manuellt.'}
                 {searchState === 'error' && 'Adressökningen misslyckades – försök igen eller placera nålen manuellt.'}
               </div>
+              {askForNumber && <div style={{ fontSize: 12, color: C.text2, marginTop: 4 }}>Lägg gärna till gata och husnummer för att hitta rätt byggnad.</div>}
               {geocode?.provider !== 'manual_pin' && (
                 <button type="button" onClick={useManualPin} style={{ marginTop: 4, padding: 0, border: 'none', background: 'none', color: C.text2, fontSize: 12.5, textDecoration: 'underline', cursor: 'pointer' }}>
                   Hittar du inte adressen? Placera nålen manuellt
@@ -369,9 +412,11 @@ export function PropertyEditorDialog({
             {point ? (
               <LocationPickerMap
                 point={point}
+                onReady={() => setMapReady(true)}
                 onChange={(p) => {
                   setPoint(p);
                   setPointTouched(true);
+                  setConfirmed(false);
                 }}
               />
             ) : (
@@ -407,15 +452,18 @@ export function PropertyEditorDialog({
                 </button>
               ))}
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {needsConfirmation && <button type="button" style={secondaryBtn} onClick={() => setConfirmed(true)} disabled={!mapReady || outsideSweden || saving}>Bekräfta position</button>}
             <button onClick={onClose} disabled={saving} style={secondaryBtn}>
               Avbryt
             </button>
             <button
               className="fr-hover-dark"
               onClick={save}
-              disabled={saving || outsideSweden || (!editing && (!geocode || !point || !name.trim())) || (!!editing && !addressChanged && !pointTouched && name.trim() === editing.name)}
-              style={{ ...primaryBtn, opacity: saving ? 0.6 : 1 }}
+              disabled={!canSave}
+              title={needsConfirmation ? 'Bekräfta positionen först' : undefined}
+              // A blocked button must look blocked – not an active black button that does nothing.
+              style={{ ...primaryBtn, opacity: saving ? 0.6 : canSave ? 1 : 0.4, cursor: canSave ? 'pointer' : 'not-allowed' }}
             >
               {saving ? 'Sparar…' : editing ? 'Spara ändringar' : 'Spara fastighet'}
             </button>

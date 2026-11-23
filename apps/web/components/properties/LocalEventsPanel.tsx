@@ -37,7 +37,7 @@ export function LocalEventsPanel({ d, map }: { d: DetailVM; map?: EventMapState 
           {d.live ? 'Händelsekällorna (Krisinformation, Trafikverket) kunde inte hämtas – händelser i närheten kan inte visas.' : 'Händelsekällorna (Krisinformation, Trafikverket) är inte anslutna – händelser i närheten kan inte visas.'}
         </div>
       )}
-      {d.avail.events && d.noEvents && !d.outageEvents.length && <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: C.text3, borderRadius: 14, background: '#F8F9F8' }}>{d.live ? 'Inga rapporterade händelser i närheten' : 'Inga rapporterade störningar i närheten'}</div>}
+      {d.avail.events && d.noEvents && !d.outageEvents.length && <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: C.text3, borderRadius: 14, background: '#F8F9F8' }}>Inga händelser att visa.</div>}
       {/* Outages come first: those that cover the property, then (with a caveat) ongoing ones in its postal/operating area. */}
       {d.outageEvents.map((o) => (
         <div key={o.id} data-testid="outage-event" style={{ display: 'flex', gap: 12, padding: '12px 0', borderTop: '1px solid rgba(20,23,26,0.05)' }}>

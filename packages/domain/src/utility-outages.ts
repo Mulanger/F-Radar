@@ -140,6 +140,11 @@ export const UtilityOutageViewSchema = z.object({
 });
 export type UtilityOutageView = z.infer<typeof UtilityOutageViewSchema>;
 
+/** A direct match, or a public boiling recommendation for the property's confirmed location. */
+export function isCustomerOutageMatch(outage: UtilityOutageView, positionConfirmed: boolean): boolean {
+  return outage.precisionLevel === 'high' || (positionConfirmed && outage.matchMethod === 'outage_area' && outage.noticeKind === 'boil_water');
+}
+
 export const OutageCoverageSchema = z.enum(['monitored', 'stale', 'not_monitored', 'no_readable_source', 'unknown']);
 export type OutageCoverage = z.infer<typeof OutageCoverageSchema>;
 

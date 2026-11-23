@@ -1,5 +1,5 @@
 import { ACTIVITY, EventMapGeometrySchema, FEED_ACK_SEVERITY_RANK, WEATHER_WATER, eventPlaceFromHeadline, stationMatchDistance, trafficMapStyle, type ActivityItem, type EventMapItem, type PropertyEventMapEvent } from '@fastighetsradar/domain';
-import { offeredUtilityEvent, offeredUtilityChange } from './utility-visibility';
+import { customerUtilityChange, customerUtilityMatch, offeredUtilityEvent, offeredUtilityChange } from './utility-visibility';
 import { applyUtilityOutageRetention } from './utility-outages';
 import { createHash } from 'node:crypto';
 import type { Queryable } from './migrations';
@@ -814,6 +814,7 @@ export async function listRecentChangesForOrg(db: Queryable, organizationId: str
     SELECT DISTINCT ON (${changeKey}) c.*
     FROM monitoring_changes c WHERE c.organization_id = $1
       AND ${offeredUtilityChange('c')}
+      AND ${customerUtilityChange('c')}
       AND (c.source_id <> 'trafikverket' OR c.severity IN ('warning', 'critical'))
     ORDER BY ${changeKey}, c.created_at DESC, c.id DESC
   ), events AS (
@@ -919,7 +920,7 @@ export async function listActiveAlarmChangesForOrg(db: Queryable, organizationId
          ORDER BY ranked.created_at DESC, ranked.id DESC LIMIT 1
        ) notification ON true
        LEFT JOIN feed_update_reads seen ON seen.organization_id = m.organization_id AND seen.viewer_id = $2 AND seen.change_id = notification.id
-      WHERE m.organization_id = $1 AND ${offeredUtilityEvent('e')} AND (
+      WHERE m.organization_id = $1 AND ${offeredUtilityEvent('e')} AND ${customerUtilityMatch('e', 'm', 'p')} AND (
         (e.data_class = 'OFFICIAL_WARNING' AND e.level IS NOT NULL AND e.level <> 'Info')
         OR (e.source_id = 'utility_outages' AND m.effective_severity IN ('warning', 'critical'))
       )
@@ -1026,6 +1027,7 @@ export async function listPropertyActivity(db: Queryable, organizationId: string
          FROM monitoring_changes c LEFT JOIN source_events e ON e.id = c.event_id
         WHERE c.organization_id = $1 AND c.property_id = $2 AND c.created_at > now() - make_interval(days => $3)
           AND ${offeredUtilityChange('c')}
+          AND ${customerUtilityChange('c')}
           AND (c.source_id IN ('smhi_warnings', 'utility_outages') OR (c.source_id = 'krisinformation' AND c.severity = 'critical'))
         ORDER BY c.created_at DESC, c.id DESC LIMIT $4`,
       [organizationId, propertyId, days, limit],
@@ -1152,8 +1154,8 @@ export async function getPropertyEventMapEvent(db: Queryable, organizationId: st
        JOIN properties p ON p.id = $2 AND p.organization_id = $1
        LEFT JOIN utility_outages u ON u.event_id = e.id
       WHERE e.id = $3 AND e.geom IS NOT NULL AND e.source_id IN ${FEED_MAP_SOURCES_SQL} AND ${offeredUtilityEvent('e')}
-        AND (EXISTS (SELECT 1 FROM monitoring_changes c WHERE c.organization_id = $1 AND c.property_id = $2 AND c.event_id = e.id)
-             OR EXISTS (SELECT 1 FROM property_event_matches m WHERE m.organization_id = $1 AND m.property_id = $2 AND m.event_id = e.id))`,
+        AND (EXISTS (SELECT 1 FROM monitoring_changes c WHERE c.organization_id = $1 AND c.property_id = $2 AND c.event_id = e.id AND ${customerUtilityChange('c')})
+             OR EXISTS (SELECT 1 FROM property_event_matches m WHERE m.organization_id = $1 AND m.property_id = $2 AND m.event_id = e.id AND ${customerUtilityMatch('e', 'm', 'p')}))`,
     [organizationId, propertyId, eventId],
   );
   const r = rows[0];
@@ -1183,8 +1185,9 @@ export interface EventPagePropertyRow {
   change_id: string | null; change_type: string | null; change_severity: string | null; superseded: boolean; acknowledged_at: Date | null;
 }
 
-const ORG_HAS_EVENT = `(EXISTS (SELECT 1 FROM property_event_matches m WHERE m.organization_id = $1 AND m.event_id = e.id)
-  OR EXISTS (SELECT 1 FROM monitoring_changes c WHERE c.organization_id = $1 AND c.event_id = e.id))`;
+const ORG_HAS_EVENT = `(EXISTS (SELECT 1 FROM property_event_matches m JOIN properties p ON p.id = m.property_id AND p.organization_id = m.organization_id
+    WHERE m.organization_id = $1 AND m.event_id = e.id AND ${customerUtilityMatch('e', 'm', 'p')})
+  OR EXISTS (SELECT 1 FROM monitoring_changes c WHERE c.organization_id = $1 AND c.event_id = e.id AND ${customerUtilityChange('c')}))`;
 
 /**
  * TENANT read: an event and every property of the organization it reaches – null when the event never
@@ -1203,10 +1206,11 @@ export async function loadOrgEvent(db: Queryable, organizationId: string, eventI
               m.event_id IS NOT NULL AS matched, latest.id::text AS change_id, latest.change_type, latest.severity AS change_severity,
               false AS superseded, ack.acknowledged_at
          FROM properties p
-         LEFT JOIN property_event_matches m ON m.organization_id = $1 AND m.property_id = p.id AND m.event_id = $2::uuid
+         JOIN source_events e ON e.id = $2::uuid
+         LEFT JOIN property_event_matches m ON m.organization_id = $1 AND m.property_id = p.id AND m.event_id = e.id AND ${customerUtilityMatch('e', 'm', 'p')}
          LEFT JOIN LATERAL (
            SELECT c.id, c.change_type, c.severity FROM monitoring_changes c
-            WHERE c.organization_id = $1 AND c.property_id = p.id AND c.event_id = $2::uuid
+            WHERE c.organization_id = $1 AND c.property_id = p.id AND c.event_id = e.id AND ${customerUtilityChange('c')}
             ORDER BY c.created_at DESC, c.id DESC LIMIT 1
          ) latest ON true
          LEFT JOIN feed_acknowledgements ack ON ack.organization_id = $1 AND ack.change_id = latest.id

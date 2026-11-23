@@ -1,8 +1,8 @@
 import type { ServerEnv } from '@fastighetsradar/config';
 import {
   isPositionConfirmed,
+  isCustomerOutageMatch,
   outageEffectiveSeverity,
-  outageFeedTitle,
   PLATFORMS_REPORTING_RESTORED,
   outageHeadline,
   outageMatchLevel,
@@ -327,22 +327,23 @@ export function withUtilityOutages(s: PropertySnapshot, inputs: UtilityInputs): 
   let status = s.property.status;
   let reason = s.property.statusReason ?? null;
   let raised = false;
-  for (const v of sections.flatMap((u) => [...u.current, ...u.upcoming])) {
+  const p = s.property;
+  const confirmed = isPositionConfirmed(p.geocode.precision, p.positionSource ?? (p.geocode.provider === 'manual_pin' ? 'manual_pin' : undefined));
+  const coveredSections = sections.map((u) => ({ ...u, current: u.current.filter((v) => isCustomerOutageMatch(v, confirmed)) }));
+  for (const v of coveredSections.flatMap((u) => u.current)) {
     const st = v.severity ? SEVERITY_STATUS[v.severity] : undefined;
     // Upcoming planned work is announced in the feed but does not change today's status.
-    if (!st || v.state === 'upcoming') continue;
+    if (!st) continue;
     if (STATUS_RANK[st] > STATUS_RANK[status]) {
       status = st;
       raised = true;
       const headline = outageHeadline({ utility: v.utility, noticeKind: v.noticeKind, kind: v.kind, state: v.state, plannedStart: v.plannedStart, plannedEnd: v.plannedEnd }, v.operatorName);
-      reason = v.noticeKind === 'boil_water' ? headline : v.kind === 'unplanned' && v.precisionLevel === 'high'
+      reason = v.noticeKind !== 'boil_water' && v.kind === 'unplanned'
         ? `Oplanerat ${utilityNoun(v.utility)} registrerat av ${v.operatorName}`
-        : v.precisionLevel === 'area'
-          ? outageFeedTitle(headline, v.precisionLevel, v.matchMethod, v.placeLabel)
-          : headline;
+        : headline;
     }
   }
-  const counted = sections.flatMap((u) => u.current).filter((v) => v.severity === 'critical' || v.severity === 'warning').length;
+  const counted = coveredSections.flatMap((u) => u.current).filter((v) => v.severity === 'critical' || v.severity === 'warning').length;
   const next: PropertySnapshot = {
     ...s,
     property: raised ? { ...s.property, status, statusReason: reason } : s.property,
@@ -351,5 +352,5 @@ export function withUtilityOutages(s: PropertySnapshot, inputs: UtilityInputs): 
     ...(s.monitoring ? { monitoring: { ...s.monitoring, statusMethod: 'highest_official_warning_or_outage' as const } } : {}),
   };
   // Risk index: power supply factor (ADR 0006 Fas 5).
-  return next.riskIndex ? { ...next, riskIndex: withPowerFactor(next.riskIndex, next) } : next;
+  return next.riskIndex ? { ...next, riskIndex: withPowerFactor(next.riskIndex, { ...next, utilityOutages: coveredSections }) } : next;
 }

@@ -1,6 +1,6 @@
 import type { ServerEnv } from '@fastighetsradar/config';
 import type { DataSourceStatus, EventPage, Portfolio, PortfolioNowcastPatch, PortfolioRowsPatch, PropertyRecord, PropertySnapshot, SourceId } from '@fastighetsradar/domain';
-import { buildUtilityCoverageReport, feedNeedsAck, isOfferedUtility, listSnapshot, OFFERED_UTILITIES, utilityCoverageLogEntries, WarningLevelSchema } from '@fastighetsradar/domain';
+import { buildUtilityCoverageReport, customerPropertySnapshot, customerSourceStatuses, feedNeedsAck, isOfferedUtility, listSnapshot, OFFERED_UTILITIES, utilityCoverageLogEntries, WarningLevelSchema } from '@fastighetsradar/domain';
 import {
   getProperty,
   recordUtilityCoverageGaps,
@@ -49,7 +49,6 @@ export interface OrganizationList {
   propertyIds: Set<string>;
   /** List rows (`listSnapshot`). */
   properties: PropertySnapshot[];
-  utilityCoverage: Portfolio['utilityCoverage'];
   upcoming: Portfolio['upcoming'];
   settings: Portfolio['settings'];
 }
@@ -154,7 +153,6 @@ export class MonitoringService {
       ...org.base,
       regionLabel: 'Sverige',
       properties: org.properties,
-      utilityCoverage: org.utilityCoverage,
       feed: buildFeed(changes, org.propertyIds),
       activeAlarms: buildActiveAlarmFeed(alarmChanges, org.properties),
       upcoming: org.upcoming,
@@ -186,10 +184,9 @@ export class MonitoringService {
       return utility ? withUtilityOutages(s, utility) : s;
     }));
     return {
-      base: buildLivePortfolio({ clerkOrgId: t.clerkOrgId, orgSlug: t.orgSlug, properties, groups, sources: statuses, now }),
+      base: buildLivePortfolio({ clerkOrgId: t.clerkOrgId, orgSlug: t.orgSlug, properties, groups, sources: customerSourceStatuses(statuses), now }),
       propertyIds: new Set(properties.map((p) => p.id)),
       properties: snapshots.map(listSnapshot),
-      utilityCoverage: this.coverageReports(properties, utility),
       upcoming: buildUpcoming(snapshots, data.forecasts, now, this.env.UTILITY_OUTAGE_UPCOMING_ENABLED),
       settings: { trafficRadiusM: settings.trafficRadiusM },
     };
@@ -255,7 +252,7 @@ export class MonitoringService {
       feed: buildFeed(changes, new Set(properties.map((p) => p.id))),
       alarmCandidates: alarmFeedItems(alarmChanges),
       upcoming: buildUpcoming(snapshots, data.forecasts, now, this.env.UTILITY_OUTAGE_UPCOMING_ENABLED),
-      sources: statuses,
+      sources: customerSourceStatuses(statuses),
     };
   }
 
@@ -265,7 +262,7 @@ export class MonitoringService {
     return {
       generatedAt: now.toISOString(),
       nowcasts: rows.map((r) => ({ propertyId: r.property_id, nowcast: buildNowcast(r, now) })),
-      sources: statuses,
+      sources: customerSourceStatuses(statuses),
     };
   }
 
@@ -274,7 +271,8 @@ export class MonitoringService {
     if (!record) return null;
     const [data, statuses, utility] = await Promise.all([loadOrgMonitoring(this.db, t.organizationId, id), this.statuses(now), this.utilityInputs(t.organizationId, now)]);
     const base = buildPropertySnapshot(record, t.clerkOrgId, data, statuses, now);
-    return { record, snapshot: (await notificationSnapshots(this.db, t.organizationId, [utility ? withUtilityOutages(base, utility) : base]))[0]!, statuses };
+    const [snapshot] = await notificationSnapshots(this.db, t.organizationId, [utility ? withUtilityOutages(base, utility) : base]);
+    return { record, snapshot: customerPropertySnapshot(snapshot!), statuses: customerSourceStatuses(statuses) };
   }
 
   /**

@@ -5,6 +5,7 @@ import { demoPortfolio } from '../src/fixtures';
 describe('portfolio list (skalning Fas 3 / S-10)', () => {
   it('empties only the detail parts and keeps a valid portfolio', () => {
     const list = PortfolioSchema.parse(listPortfolio(demoPortfolio));
+    expect(list).not.toHaveProperty('utilityCoverage');
     list.properties.forEach((s, i) => {
       const full = demoPortfolio.properties[i]!;
       expect(s.property).toEqual(full.property);

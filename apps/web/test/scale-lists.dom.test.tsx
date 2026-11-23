@@ -1,18 +1,16 @@
 // @vitest-environment jsdom
 /**
  * Fas 1 (docs/plans/skalning.md): lists that must stay usable with hundreds of properties –
- * the property list search (S-03), the utility coverage list (S-22) and the SMS rule's property
+ * the property list search (S-03) and the SMS rule's property
  * selection and activity log (S-27).
  */
 import type { AnchorHTMLAttributes } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { buildUtilityCoverageReport, type PropertyUtilityStatus } from '@fastighetsradar/domain';
 import { demoPortfolio, scaleDemoPortfolio } from '@fastighetsradar/domain/fixtures';
 import { DashboardStateProvider } from '@/lib/state/dashboard-state';
 import { buildOverviewVM } from '@/lib/view-models/overview';
 import { PropertyIndex } from '@/components/properties/PropertyIndex';
-import { COVERAGE_LIST_MAX, UtilityCoverage } from '@/components/dashboard/UtilityCoverage';
 import { PropertyNamesSummary, RulePropertySelect } from '@/components/notifications/RulePropertySelect';
 
 vi.mock('next/navigation', () => ({ usePathname: () => '/demo/properties', useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }), useSearchParams: () => new URLSearchParams() }));
@@ -40,20 +38,6 @@ describe('property list search (S-03)', () => {
     const matches = portfolio.properties.filter((s) => s.property.name.toLocaleLowerCase('sv-SE').includes('götgården 1')).length;
     expect(await screen.findByText(`${matches} ${matches === 1 ? 'fastighet' : 'fastigheter'}`, { selector: '[role=status]' })).toBeTruthy();
     expect(vi.mocked(buildOverviewVM).mock.calls.length).toBe(builds);
-  });
-});
-
-describe('utility coverage list (S-22)', () => {
-  it('lists the first ten properties with a gap and expands to all of them', () => {
-    const status: PropertyUtilityStatus = { utility: 'electricity', coverage: 'stale', operator: { id: 'net', name: 'Testnät', mapUrl: null }, updatedAt: null, current: [], upcoming: [], nearby: [], recentlyRestored: [] };
-    const ids = Array.from({ length: 25 }, (_, i) => `p${i}`);
-    const report = buildUtilityCoverageReport(ids.map((id) => ({ id, geocodePrecision: 'exact', positionSource: 'geocoded', statuses: [status] })), 'electricity');
-    render(<UtilityCoverage reports={[report]} properties={ids.map((id, i) => ({ id, name: `Fastighet ${i}` }))} basePath="" />);
-    expect(screen.getAllByRole('link', { hidden: true })).toHaveLength(COVERAGE_LIST_MAX);
-    fireEvent.click(screen.getByRole('button', { name: 'Visa alla 25', hidden: true }));
-    expect(screen.getAllByRole('link', { hidden: true })).toHaveLength(25);
-    fireEvent.click(screen.getByRole('button', { name: 'Visa färre', hidden: true }));
-    expect(screen.getAllByRole('link', { hidden: true })).toHaveLength(COVERAGE_LIST_MAX);
   });
 });
 

@@ -11,16 +11,20 @@ import { loadLeaflet, newMap, pinIcon } from './leaflet-utils';
 export function LocationPickerMap({
   point,
   onChange,
+  onReady,
   zoom = 16,
 }: {
   point: { lat: number; lon: number };
   onChange: (p: { lat: number; lon: number }) => void;
+  onReady?: () => void;
   zoom?: number;
 }) {
   const elRef = useRef<HTMLDivElement>(null);
   const ctx = useRef<{ map: Leaflet.Map; marker: Leaflet.Marker } | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
   const pointRef = useRef(point);
   pointRef.current = point;
 
@@ -41,6 +45,7 @@ export function LocationPickerMap({
         report(e.latlng);
       });
       ctx.current = { map, marker };
+      onReadyRef.current?.();
     });
     return () => {
       cancelled = true;

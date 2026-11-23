@@ -19,7 +19,7 @@ function fakeDb(existing: Array<{ id: string; address: string; geocode_label: st
       if (sql.includes('p.organization_id = $1 AND p.id = $2')) {
         const p = inserted.find((_, i) => uuid(101 + i) === params[1])!;
         const row = {
-          id: params[1], name: p[1], address: p[2], status: 'profiling', position_source: 'geocoded', lat: p[4], lon: p[3],
+          id: params[1], name: p[1], address: p[2], status: 'profiling', position_source: p[16], lat: p[4], lon: p[3],
           geocode_provider: p[5], geocode_precision: p[6], geocode_confidence: null, geocode_label: p[9], geocode_place_id: p[8],
           geocode_result_type: null, postcode: null, city: null, municipality: null, geocoded_at: null, created_at: new Date(), updated_at: new Date(),
         };

@@ -18,3 +18,26 @@ export const offeredUtilityChange = (change: string) =>
   `(${change}.source_id <> 'utility_outages' OR COALESCE((
     SELECT ${offeredUtilityEvent('utility_event')} FROM source_events utility_event WHERE utility_event.id = ${change}.event_id
   ), ${offeredUtilityHeadline(`${change}.headline`)}))`;
+
+const positionConfirmed = (p: string) => `(${p}.geocode_precision = 'building' OR ${p}.position_source IN ('manual_pin', 'manual_adjusted'))`;
+
+export const customerUtilityMatch = (event: string, match: string, property: string) =>
+  `(${event}.source_id <> 'utility_outages' OR ${match}.match_method = 'outage_address'
+    OR (${positionConfirmed(property)} AND (${match}.match_method = 'outage_polygon'
+      OR (${match}.match_method = 'outage_area' AND ${event}.extra->>'noticeKind' = 'boil_water'))))`;
+
+const customerUtilityRevision = (c: string) =>
+  `(${c}.dedup_key LIKE '%:high'
+    OR (${c}.dedup_key LIKE '%:area' AND ${c}.severity IN ('critical', 'info') AND EXISTS (
+      SELECT 1 FROM source_events e JOIN properties p ON p.id = ${c}.property_id AND p.organization_id = ${c}.organization_id
+      WHERE e.id = ${c}.event_id AND e.extra->>'noticeKind' = 'boil_water' AND ${positionConfirmed('p')}
+    )))`;
+
+/** Change keys retain the precision. A lost match is relevant only if previously shown. */
+export const customerUtilityChange = (c: string) =>
+  `(${c}.source_id <> 'utility_outages' OR ${customerUtilityRevision(c)}
+    OR (${c}.dedup_key LIKE '%:gone' AND EXISTS (
+      SELECT 1 FROM monitoring_changes reached WHERE reached.organization_id = ${c}.organization_id
+        AND reached.event_id = ${c}.event_id AND reached.property_id = ${c}.property_id
+        AND reached.id < ${c}.id AND ${customerUtilityRevision('reached')}
+    )))`;

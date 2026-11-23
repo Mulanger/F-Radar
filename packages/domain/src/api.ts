@@ -71,6 +71,8 @@ export const PropertyCreateSchema = z.object({
   /** User-confirmed point (may differ from the geocoded point after manual adjustment). */
   location: SwedishPointSchema,
   geocode: GeocodeMetadataSchema,
+  /** The user explicitly checked this point on the map. */
+  positionConfirmed: z.literal(true).optional(),
   /** The organization's groups to put the property in (S-20); unknown ids are skipped. */
   groupIds: z.array(z.string().uuid()).max(100).optional(),
 });
@@ -83,10 +85,12 @@ export const PropertyUpdateSchema = z
     location: SwedishPointSchema.optional(),
     /** Required when the address changed via a new geocoding selection. */
     geocode: GeocodeMetadataSchema.optional(),
+    positionConfirmed: z.literal(true).optional(),
     /** Replaces the property's groups (S-20). */
     groupIds: z.array(z.string().uuid()).max(100).optional(),
   })
-  .refine((v) => Object.keys(v).length > 0, { message: 'Inget att uppdatera' });
+  .refine((v) => Object.keys(v).length > 0, { message: 'Inget att uppdatera' })
+  .refine((v) => !v.positionConfirmed || v.location !== undefined, { path: ['location'], message: 'Ange vilken position som har bekräftats.' });
 export type PropertyUpdateInput = z.infer<typeof PropertyUpdateSchema>;
 
 export const PositionSourceSchema = z.enum(['geocoded', 'manual_adjusted', 'manual_pin']);

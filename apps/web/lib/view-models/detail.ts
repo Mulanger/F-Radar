@@ -1,7 +1,7 @@
 import { nowcastVM } from './nowcast';
 import { forecastDaysVM, precipitationIntervalsVM } from './weather-information';
 import type { Portfolio, PropertySnapshot, PropertyStatus } from '@fastighetsradar/domain';
-import { formatClock, formatDistance, formatNumber, formatWeekdayClock } from '@fastighetsradar/domain';
+import { formatClock, formatDistance, formatNumber, formatWeekdayClock, isPositionConfirmed } from '@fastighetsradar/domain';
 import { riskLevelOf, type GeographicEvent } from '@fastighetsradar/domain';
 import { CATEGORY_SV, EXPOSURE_SV, SEV, WL, exposureStyle, riskStyle, type SeverityStyle } from '../design/tokens';
 import type { ChartMetric } from '../state/dashboard-state';
@@ -146,7 +146,9 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
     buildingLine,
     lat: p.location.lat,
     lon: p.location.lon,
-    positionNote: p.geocode.provider === 'manual_pin' ? 'Manuell nål' : p.geocode.precision === 'building' ? 'Adresspunkt (Geoapify)' : 'Ungefärlig adresspunkt',
+    positionNote: p.positionSource === 'manual_adjusted' ? 'Bekräftad position'
+      : p.positionSource === 'manual_pin' || p.geocode.provider === 'manual_pin' ? 'Manuell nål'
+        : isPositionConfirmed(p.geocode.precision, p.positionSource) ? 'Adresspunkt' : 'Position att kontrollera',
     name: p.name,
     address: p.address,
     area: p.area,

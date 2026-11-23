@@ -94,9 +94,8 @@ export function Header() {
         <button
           className="fr-hover-dark"
           onClick={editor.openCreate}
-          disabled={!editor.enabled}
-          title={editor.enabled ? 'Lägg till en fastighet' : 'Demodata kan inte redigeras'}
-          style={{ opacity: editor.enabled ? 1 : 0.85, height: 44, display: 'flex', alignItems: 'center', gap: 8, padding: '0 18px', borderRadius: 22, background: C.ink, color: '#fff', border: 'none', fontSize: 13.5, fontWeight: 500, cursor: 'pointer' }}
+          title={isDemo ? 'Prova att lägga till en fastighet' : 'Lägg till en fastighet'}
+          style={{ height: 44, display: 'flex', alignItems: 'center', gap: 8, padding: '0 18px', borderRadius: 22, background: C.ink, color: '#fff', border: 'none', fontSize: 13.5, fontWeight: 500, cursor: 'pointer' }}
         >
           <IconPlus />
           Lägg till fastighet

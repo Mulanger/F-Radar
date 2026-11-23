@@ -140,7 +140,8 @@ export async function importPropertyBatch(
       for (const k of keys) byKey.set(k, property.id);
       if (place) byPlace.set(place, property.id);
       created++;
-      results.set(row.row, { row: row.row, status: 'created', propertyId: property.id, ...extra, ...(row.group && !groupId ? { groupNotSet: true } : {}) });
+      const needsReview = extra.match ? { needsReview: !isPositionConfirmed(property.geocode.precision, property.positionSource) } : {};
+      results.set(row.row, { row: row.row, status: 'created', propertyId: property.id, ...extra, ...needsReview, ...(row.group && !groupId ? { groupNotSet: true } : {}) });
     } catch (err) {
       count--;
       for (const k of keys) byKey.delete(k);
@@ -213,7 +214,7 @@ export async function importPropertyBatch(
         results.set(row.row, { row: row.row, status: 'duplicate', match, ...(duplicate !== 'reserved' && { propertyId: duplicate }) });
         continue;
       }
-      await create(row, input, key, { match, needsReview: !isPositionConfirmed(found.data.precision, 'geocoded') });
+      await create(row, input, key, { match });
     }
   };
   try {

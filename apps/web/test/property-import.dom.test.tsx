@@ -5,7 +5,7 @@
  * that only hit the street.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import type { PositionReviewItem, PropertyImportResponse, PropertyImportRow } from '@fastighetsradar/domain';
 import { buildPreview, detectColumns, importRows, parseImportText } from '@/lib/import/parse';
 import { ImportRequestError, runImport, type SubmitBatch } from '@/lib/import/run';
@@ -122,6 +122,7 @@ describe('import dialog (S-28)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Importera 41 fastigheter' }));
     await screen.findByText(/^Klart – \d+ fastigheter skapade/, {}, { timeout: 3000 });
+    expect(screen.getByText(/\d+ väntar på positionskontroll/)).toBeTruthy();
     const table = screen.getByRole('table');
     // Created – with a building hit, or a street hit to check (the simulation decides by the address).
     expect(within(table).getByText('Kontoret').closest('tr')!.textContent).toMatch(/Skapad|Kontrollera positionSveavägen 42, Stockholm, Sverige · gata/);
@@ -153,10 +154,9 @@ const items: PositionReviewItem[] = Array.from({ length: 12 }, (_, i) => ({
 }));
 
 describe('review list for uncertain positions (S-28)', () => {
-  it('lists the first ten, opens the editor and confirms a pin where it is', async () => {
+  it('lists the first ten and opens the map editor to confirm the pin', () => {
     const onAdjust = vi.fn();
-    const onConfirm = vi.fn(async () => {});
-    render(<PositionReviewList items={items} editable onAdjust={onAdjust} onConfirm={onConfirm} />);
+    render(<PositionReviewList items={items} editable onAdjust={onAdjust} />);
     expect(screen.getByText('Kontrollera position (12)')).toBeTruthy();
     expect(screen.getAllByRole('listitem')).toHaveLength(10);
     fireEvent.click(screen.getByRole('button', { name: 'Visa alla 12' }));
@@ -164,28 +164,24 @@ describe('review list for uncertain positions (S-28)', () => {
     expect(screen.getAllByText(/Gatan 1, Uppsala → Gatan, 753 20 Uppsala, Sverige · träffade gatan/)).toHaveLength(1);
     // A label that only adds postcode and country is not repeated.
     cleanup();
-    render(<PositionReviewList items={[{ ...items[0]!, label: 'Gatan 1, 753 20 Uppsala, Sverige' }]} editable onAdjust={() => {}} onConfirm={async () => {}} />);
+    render(<PositionReviewList items={[{ ...items[0]!, label: 'Gatan 1, 753 20 Uppsala, Sverige' }]} editable onAdjust={() => {}} />);
     expect(screen.getByText(/Gatan 1, Uppsala · träffade gatan/)).toBeTruthy();
     cleanup();
-    render(<PositionReviewList items={items} editable onAdjust={onAdjust} onConfirm={onConfirm} />);
+    render(<PositionReviewList items={items} editable onAdjust={onAdjust} />);
     fireEvent.click(screen.getByRole('button', { name: 'Visa alla 12' }));
 
-    fireEvent.click(within(screen.getAllByRole('listitem')[0]!).getByRole('button', { name: 'Justera nålen' }));
+    fireEvent.click(within(screen.getAllByRole('listitem')[0]!).getByRole('button', { name: 'Kontrollera på kartan' }));
     expect(onAdjust).toHaveBeenCalledWith(items[0]!.id);
-    fireEvent.click(screen.getByRole('button', { name: 'Positionen för Gatan 2 stämmer' }));
-    await waitFor(() => expect(onConfirm).toHaveBeenCalledWith(items[1]));
+    expect(screen.queryByRole('button', { name: /^Stämmer$/ })).toBeNull();
   });
 
-  it('says so when a confirmation fails, and cannot be changed in demo mode', async () => {
-    const { rerender } = render(<PositionReviewList items={items.slice(0, 2)} editable onAdjust={() => {}} onConfirm={async () => { throw new Error('500'); }} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Positionen för Gatan 1 stämmer' }));
-    expect((await screen.findByRole('alert')).textContent).toBe('Positionen för Gatan 1 sparades inte – försök igen.');
-    rerender(<PositionReviewList items={items.slice(0, 2)} editable={false} onAdjust={() => {}} onConfirm={async () => {}} />);
-    expect(screen.getAllByRole('button', { name: 'Justera nålen' }).every((b) => (b as HTMLButtonElement).disabled)).toBe(true);
+  it('does not let demo imports edit a saved position', () => {
+    render(<PositionReviewList items={items.slice(0, 2)} editable={false} onAdjust={() => {}} />);
+    expect(screen.getAllByRole('button', { name: 'Kontrollera på kartan' }).every((b) => (b as HTMLButtonElement).disabled)).toBe(true);
   });
 
   it('renders nothing when every position is confirmed', () => {
-    const { container } = render(<PositionReviewList items={[]} editable onAdjust={() => {}} onConfirm={async () => {}} />);
+    const { container } = render(<PositionReviewList items={[]} editable onAdjust={() => {}} />);
     expect(container.innerHTML).toBe('');
   });
 });

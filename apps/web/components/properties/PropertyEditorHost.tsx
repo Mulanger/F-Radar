@@ -55,7 +55,11 @@ export function PropertyEditorHost({ children }: { children: React.ReactNode }) 
   );
   const openGroups = useCallback(() => setGrouping(true), []);
   const [demoReview, setDemoReview] = useState<PositionReviewItem[]>([]);
-  const openCreate = useCallback(() => ds.canEdit && setMode({ kind: 'create' }), [ds.canEdit]);
+  const [demoConfirmed, setDemoConfirmed] = useState(false);
+  const openCreate = useCallback(() => {
+    setDemoConfirmed(false);
+    setMode({ kind: 'create' });
+  }, []);
   const openEdit = useCallback((s: PropertySnapshot) => ds.canEdit && setMode({ kind: 'edit', snapshot: s }), [ds.canEdit]);
   // The import also opens in demo mode, against a simulation that saves nothing.
   const openImport = useCallback(() => setImporting(true), []);
@@ -74,13 +78,19 @@ export function PropertyEditorHost({ children }: { children: React.ReactNode }) 
   return (
     <EditorCtx.Provider value={{ openCreate, openEdit, openImport, openGroups, changeGroups, enabled: ds.canEdit, demoReview }}>
       {children}
+      {demoConfirmed && <div role="status" style={{ position: 'fixed', zIndex: 1200, bottom: 90, right: 16, maxWidth: 'calc(100vw - 32px)', padding: '12px 16px', borderRadius: 12, background: '#14171a', color: '#fff', fontSize: 13 }}>Positionen är bekräftad. Demoläget sparar inga fastigheter.</div>}
       {grouping && <PropertyGroupsDialog portfolio={ds.portfolio} demo={demo} change={changeGroups} onClose={() => setGrouping(false)} />}
       {importing && <PropertyImportDialog submit={submit} existingAddresses={existingAddresses} demo={demo} onClose={closeImport} />}
       {mode && (
         <PropertyEditorDialog
           mode={mode}
-          groups={ds.portfolio.groups}
-          onCreateGroup={(name) => changeGroups({ kind: 'create', name, propertyIds: [] })}
+          demo={demo}
+          groups={demo ? [] : ds.portfolio.groups}
+          onCreateGroup={demo ? undefined : (name) => changeGroups({ kind: 'create', name, propertyIds: [] })}
+          onDemoConfirmed={() => {
+            setMode(null);
+            setDemoConfirmed(true);
+          }}
           onClose={() => setMode(null)}
           onSaved={(id) => {
             setMode(null);

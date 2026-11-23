@@ -33,7 +33,6 @@ const ROUTES: Array<{ pattern: RegExp; methods: string[]; maxBody?: number }> = 
   { pattern: new RegExp(`^properties/${UUID}/(snapshot|forecast|warnings|events|environment|flood|activity|event-map)$`), methods: ['GET'] },
   { pattern: new RegExp(`^properties/${UUID}/event-map/${UUID}$`), methods: ['GET'] },
   { pattern: /^sources\/status$/, methods: ['GET'] },
-  { pattern: /^utility-coverage$/, methods: ['GET'] },
   { pattern: /^changes$/, methods: ['GET'] },
   { pattern: /^stream$/, methods: ['GET'] },
   { pattern: /^properties$/, methods: ['GET', 'POST'] },

@@ -1,4 +1,5 @@
 import type { DataSourceStatus, Portfolio, PropertyRecord, PropertySnapshot } from '@fastighetsradar/domain';
+import { isPositionConfirmed } from '@fastighetsradar/domain';
 
 /**
  * Builds the dashboard `Portfolio` contract from REAL customer records.
@@ -22,10 +23,11 @@ export function propertyToSnapshot(p: PropertyRecord, clerkOrgId: string): Prope
       countyCode: null,
       groupIds: p.groupIds ?? [],
       location: p.location,
+      positionSource: p.positionSource,
       geocode: {
         provider: p.geocode.provider === 'geoapify' ? 'geoapify' : 'manual_pin',
         precision,
-        confirmedAt: p.updatedAt,
+        confirmedAt: isPositionConfirmed(precision, p.positionSource) ? p.updatedAt : null,
       },
       building: null,
       status: 'unknown',

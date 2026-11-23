@@ -1,6 +1,8 @@
 import {
   formatWeekdayClock,
   isOfferedUtility,
+  isCustomerOutageMatch,
+  isPositionConfirmed,
   outageFeedTitle,
   outageHeadline,
   outageVanished,
@@ -11,11 +13,7 @@ import {
 import { SEV, type SeverityStyle } from '../design/tokens';
 
 /**
- * Grid operators' outages on the property page (docs/plans/stromavbrott.md). Listed among the
- * property's events when the property itself is shown to be affected (precision high/medium), and –
- * with a caveat – ongoing unplanned outages in its postal or operating area (precision 'area', which
- * the operator publishes instead of outage geometry, e.g. Ellevio). Water point notices are listed
- * as nearby information. Adjacent polygon and electrical point matches stay off this list.
+ * The property page shows direct matches and explicitly scoped boiling recommendations.
  */
 
 export interface OutageEventVM {
@@ -59,10 +57,7 @@ const tone = (v: UtilityOutageView): SeverityStyle =>
           : SEV.unknown;
 
 /** True when the outage is shown to cover the property itself (not only its postal area or vicinity). */
-export const affectsProperty = (v: UtilityOutageView) => v.precisionLevel === 'high' || v.precisionLevel === 'medium';
-
-/** Listed on the property page: affects the property, or an area-level outage that reaches the feed (has a severity). */
-export const listedForProperty = (v: UtilityOutageView) => affectsProperty(v) || (v.precisionLevel === 'area' && v.severity !== null);
+export const affectsProperty = (v: UtilityOutageView) => v.precisionLevel === 'high';
 
 const customers = (v: UtilityOutageView) =>
   v.affectedCustomers === null ? null : `${v.affectedCustomers.toLocaleString('sv-SE')} ${v.affectedCustomers === 1 ? 'kund' : 'kunder'} berörda`;
@@ -80,34 +75,32 @@ function whenOf(v: UtilityOutageView): string {
   return `${v.kind === 'unplanned' ? 'Oplanerat' : 'Avbrott'} · ${start} · beräknat klart ${at(v.estimatedRestore)}`;
 }
 
-export function outageEventsFor(s: Pick<PropertySnapshot, 'utilityOutages'>): OutageEventVM[] {
+export function outageEventsFor(s: Pick<PropertySnapshot, 'utilityOutages'> & Partial<Pick<PropertySnapshot, 'property'>>): OutageEventVM[] {
   const sections = s.utilityOutages ?? [];
+  const p = s.property;
+  const confirmed = !!p && isPositionConfirmed(p.geocode.precision, p.positionSource ?? (p.geocode.provider === 'manual_pin' ? 'manual_pin' : undefined));
   const byStart = (a: UtilityOutageView, b: UtilityOutageView) => Date.parse(a.plannedStart ?? a.actualStart ?? '') - Date.parse(b.plannedStart ?? b.actualStart ?? '');
-  const pick = (k: 'current' | 'upcoming' | 'recentlyRestored') => sections.flatMap((u) => u[k]).filter((v) => isOfferedUtility(v.utility) && listedForProperty(v)).sort(byStart);
+  const pick = (k: 'current' | 'upcoming' | 'recentlyRestored') => sections.flatMap((u) => u[k]).filter((v) => isOfferedUtility(v.utility) && isCustomerOutageMatch(v, confirmed)).sort(byStart);
   const current = pick('current');
-  const waterPoints = sections.flatMap((u) => u.nearby).filter((v) => v.utility === 'water' && v.matchMethod === 'outage_point');
   // A ticket that vanished while another from the same operator still covers the property was replaced.
   const replaced = (v: UtilityOutageView) => outageVanished(v) && current.some((c) => c.operatorId === v.operatorId && c.utility === v.utility);
-  return [...current, ...pick('upcoming'), ...pick('recentlyRestored').filter((v) => !replaced(v)), ...waterPoints].map((v) => {
+  return [...current, ...pick('upcoming'), ...pick('recentlyRestored').filter((v) => !replaced(v))].map((v) => {
     const t = tone(v);
-    const near = v.matchMethod === 'outage_point';
-    const areaOnly = v.precisionLevel === 'area' || near;
+    const areaOnly = v.precisionLevel === 'area';
     const headline = outageHeadline({ utility: v.utility, noticeKind: v.noticeKind, kind: v.kind, state: v.state, plannedStart: v.plannedStart, plannedEnd: v.plannedEnd, restoredInferred: v.restoredInferred }, v.operatorName);
     return {
       id: v.id,
       kind: KIND_SV[v.utility] ?? 'Avbrott',
-      title: near ? `Vatten- och avloppsmeddelande i närheten – ${v.operatorName}`
-        : areaOnly && v.state !== 'restored' && v.state !== 'withdrawn' ? outageFeedTitle(headline, v.precisionLevel, v.matchMethod, v.placeLabel, v.noticeKind) : headline,
+      title: areaOnly && v.state !== 'restored' && v.state !== 'withdrawn' ? outageFeedTitle(headline, v.precisionLevel, v.matchMethod, v.placeLabel, v.noticeKind) : headline,
       when: [whenOf(v), areaOnly ? customers(v) : null].filter(Boolean).join(' · '),
-      scope: near ? 'Leverantören har markerat en plats i närheten. Det är oklart om fastigheten berörs.'
-        : areaOnly ? v.precisionLabel : 'Berör fastigheten',
+      scope: areaOnly ? v.precisionLabel : 'Berör fastigheten',
       areaOnly,
       operatorText: v.operatorText,
       source: `${v.operatorName} · avbrottskarta`,
       sourceUrl: v.sourceUrl,
       c: t.c,
       bg: t.bg,
-      mapEventId: v.geometry && !near ? v.id : null,
+      mapEventId: v.geometry ? v.id : null,
       mapEnded: v.state === 'restored' || v.state === 'withdrawn',
     };
   });

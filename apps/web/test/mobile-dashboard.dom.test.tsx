@@ -12,6 +12,7 @@ import { MobileWeatherChart } from '@/components/mobile/MobileWeatherChart';
 import { MobileNavigation } from '@/components/mobile/MobileNavigation';
 import { MobileKPIs } from '@/components/mobile/MobileKPIs';
 import { PortfolioKPIs } from '@/components/dashboard/PortfolioKPIs';
+import { MonitoringStatus } from '@/components/dashboard/MonitoringStatus';
 
 const mocks = vi.hoisted(() => ({ setGroup: vi.fn(), search: "", matchMobile: true, path: '/demo/overview' }));
 vi.mock('next/navigation', () => ({ usePathname: () => mocks.path, useSearchParams: () => new URLSearchParams(mocks.search) }));
@@ -36,6 +37,15 @@ beforeEach(() => {
   vi.stubGlobal('matchMedia', () => ({ matches: mocks.matchMobile, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+
+it.each(['desktop', 'mobile'])('shows properties without coverage diagnostics in the %s overview', (layout) => {
+  expect(demoPortfolio.utilityCoverage?.length).toBeGreaterThan(0);
+  render(layout === 'desktop'
+    ? <MonitoringStatus vm={vm} onOpen={() => {}} expanded={false} onToggleFull={() => {}} />
+    : <MobilePortfolioOverview vm={vm} />);
+  expect(screen.getAllByRole('link').some((el) => el.textContent?.includes(demoPortfolio.properties[0]!.property.name))).toBe(true);
+  expect(document.body.innerHTML).not.toMatch(/bevakas för \d+ av|källhälsa|kommunalt VA|publicerar inget/i);
+});
 
 it.each(['desktop', 'mobile'])('shows distinct alert events for the chosen group in the %s KPI', (layout) => {
   const sample = demoPortfolio.properties[0]!;

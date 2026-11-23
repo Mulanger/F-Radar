@@ -246,7 +246,7 @@ const op = (o: Partial<OperatorStatus> = {}): OperatorStatus => ({
 });
 const snap = (status: PropertySnapshot['property']['status'] = 'normal') =>
   ({
-    property: { id: PID, status, statusReason: 'Inga aktiva officiella varningar för fastighetens läge' },
+    property: { id: PID, status, statusReason: 'Inga aktiva officiella varningar för fastighetens läge', geocode: { provider: 'geoapify', precision: 'building' } },
     activeAlertCount: 0,
     monitoring: { statusMethod: 'highest_official_warning' },
   }) as unknown as PropertySnapshot;
@@ -286,10 +286,9 @@ describe('property outage section and status', () => {
     expect(s.utilityOutages![0]!.upcoming[0]!.severity).toBe('monitor');
   });
 
-  it('an unplanned outage in the postal area gives Info with a caveat; small area and near matches never raise status', () => {
+  it('retains internal postal area and nearby matches without raising the customer status', () => {
     const area = withUtilityOutages(snap(), { outages: [row({ match_method: 'outage_postal_area', affected_customers: 60 })], concessions: [], operators: [op()] });
-    expect(area.property.status).toBe('monitor');
-    expect(area.property.statusReason).toBe('Oplanerat strömavbrott – Vattenfall Eldistribution – i fastighetens postnummerområde');
+    expect(area.property.status).toBe('normal');
     expect(area.activeAlertCount).toBe(0);
     expect(area.utilityOutages![0]!.current[0]!.severity).toBe('monitor');
     expect(area.utilityOutages![0]!.current[0]!.precisionLabel).toBe('I fastighetens postnummerområde – inte säkert att fastigheten berörs');

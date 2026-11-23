@@ -150,7 +150,7 @@ export async function createProperty(db: Queryable, ctx: OrgContext, input: Prop
       g.postcode ?? null,
       g.city ?? null,
       g.municipality ?? null,
-      positionSourceFor(input.location, g),
+      input.positionConfirmed ? 'manual_adjusted' : positionSourceFor(input.location, g),
       ctx.userId,
       g.street ?? null,
       g.housenumber?.replace(/\s+/g, '').toUpperCase() ?? null,
@@ -201,7 +201,7 @@ export async function updateProperty(db: Queryable, ctx: OrgContext, id: string,
     );
   }
   if (patch.location) {
-    const source = g
+    const source = patch.positionConfirmed ? 'manual_adjusted' : g
       ? positionSourceFor(patch.location, g)
       : current.positionSource === 'manual_pin'
         ? 'manual_pin'

@@ -21,6 +21,7 @@ import {
   listPositionReview,
   listProperties,
   listPropertyGroups,
+  positionSourceFor,
   updateProperty,
   type Queryable,
 } from '@fastighetsradar/db';
@@ -85,6 +86,9 @@ export function registerCustomerRoutes(app: FastifyInstance, deps: CustomerRoute
 
   app.post('/v1/properties', { preHandler: deps.requireOrg }, async (req, reply) => {
     const input = PropertyCreateSchema.parse(req.body);
+    if (!input.positionConfirmed && (input.geocode.precision !== 'building' || positionSourceFor(input.location, input.geocode) !== 'geocoded')) {
+      throw new HttpProblem(400, 'Position confirmation required');
+    }
     const ctx = orgContext(req);
     // Per organization (abuse guard, IMPLEMENTATION.md §16.1; docs/plans/skalning.md, S-30).
     const [{ rows }, limit] = await Promise.all([
@@ -157,6 +161,9 @@ export function registerCustomerRoutes(app: FastifyInstance, deps: CustomerRoute
   app.patch('/v1/properties/:id', { preHandler: deps.requireOrg }, async (req) => {
     const { id } = PropertyIdParamSchema.parse(req.params);
     const patch = PropertyUpdateSchema.parse(req.body);
+    if (patch.geocode && (!patch.location || (!patch.positionConfirmed && (patch.geocode.precision !== 'building' || positionSourceFor(patch.location, patch.geocode) !== 'geocoded')))) {
+      throw new HttpProblem(400, 'Position confirmation required');
+    }
     const ctx = orgContext(req);
     const property = await updateProperty(db(), ctx, id, patch);
     if (!property) throw new HttpProblem(404, 'Property not found');

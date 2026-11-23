@@ -16,6 +16,7 @@ import {
 import { PropertyMonitoringContextSchema } from './monitoring';
 import { RiskIndexSchema } from './risk-index';
 import { PropertyUtilityStatusSchema } from './utility-outages';
+import { PositionSourceSchema } from './api';
 
 /* ------------------------------------------------------------------ */
 /* Property & portfolio                                                */
@@ -41,6 +42,7 @@ export const PropertySchema = z.object({
   groupIds: z.array(z.string()),
   /** User-confirmed WGS84 point (EPSG:4326). An address point is not a property boundary. */
   location: LatLonSchema,
+  positionSource: PositionSourceSchema.optional(),
   geocode: z.object({
     provider: z.enum(['geoapify', 'manual_pin', 'demo_fixture']),
     precision: z.enum(['building', 'street', 'approximate', 'unknown']),
@@ -353,7 +355,7 @@ export const PropertySnapshotSchema = z.object({
     totals:z.array(z.object({hours:z.number(),from:IsoDateTimeSchema,to:IsoDateTimeSchema,coverage:z.number(),totalMm:z.number().nullable(),complete:z.boolean()})),
   }).nullable().optional(),
   /** Grid operator outages for this property (docs/plans/stromavbrott.md). Absent in demo/old payloads. */
-  utilityOutages: z.array(PropertyUtilityStatusSchema).optional(),
+  utilityOutages: z.array(PropertyUtilityStatusSchema.partial({ operator: true, coverage: true, updatedAt: true })).optional(),
 });
 export type PropertySnapshot = z.infer<typeof PropertySnapshotSchema>;
 

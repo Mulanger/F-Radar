@@ -12,44 +12,27 @@ const PRECISION_SV: Record<string, string> = { street: 'träffade gatan', approx
 
 /**
  * The positions nobody has checked (docs/plans/skalning.md, Fas 6 / S-28): street or approximate hits,
- * mostly from an import. "Justera nålen" opens the property editor; "Stämmer" saves the pin where it
- * is, which marks it as checked – either takes the property off the list.
+ * mostly from an import. The editor shows the map before the user can confirm the pin.
  */
 export function PositionReviewList({
   items,
   editable,
   onAdjust,
-  onConfirm,
 }: {
   items: PositionReviewItem[];
   editable: boolean;
   onAdjust: (id: string) => void;
-  onConfirm: (item: PositionReviewItem) => Promise<void>;
 }) {
   const [showAll, setShowAll] = useState(false);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   if (!items.length) return null;
   const shown = showAll ? items : items.slice(0, FIRST_ROWS);
-  const confirm = async (item: PositionReviewItem) => {
-    setBusy(item.id);
-    setError(null);
-    try {
-      await onConfirm(item);
-    } catch {
-      setError(`Positionen för ${item.name} sparades inte – försök igen.`);
-    } finally {
-      setBusy(null);
-    }
-  };
   const disabledTitle = editable ? undefined : 'Demodata kan inte redigeras';
   return (
     <details className={styles.review} open={items.length <= FIRST_ROWS ? true : undefined}>
       <summary>Kontrollera position ({items.length})</summary>
       <p className={styles.reviewLead}>
-        Adressökningen hittade gatan men inte byggnaden. Kontrollera nålen, så att varningar och avbrott matchas mot rätt plats.
+        Öppna kartan för varje fastighet och bekräfta att nålen står på rätt byggnad. Flytta den vid behov.
       </p>
-      {error && <p className={styles.error} role="alert">{error}</p>}
       <ul className={styles.reviewList}>
         {shown.map((item) => (
           <li key={item.id} className={styles.reviewItem}>
@@ -62,11 +45,8 @@ export function PositionReviewList({
               </div>
             </div>
             <div className={styles.reviewActions}>
-              <button className={`${styles.button} ${styles.small}`} disabled={!editable || busy !== null} title={disabledTitle} onClick={() => onAdjust(item.id)}>
-                Justera nålen
-              </button>
-              <button className={`${styles.button} ${styles.small}`} disabled={!editable || busy !== null} title={disabledTitle} onClick={() => void confirm(item)} aria-label={`Positionen för ${item.name} stämmer`}>
-                {busy === item.id ? 'Sparar…' : 'Stämmer'}
+              <button className={`${styles.button} ${styles.small}`} disabled={!editable} title={disabledTitle} onClick={() => onAdjust(item.id)}>
+                Kontrollera på kartan
               </button>
             </div>
           </li>
@@ -105,17 +85,6 @@ export function PositionReview() {
     },
     [ds.portfolio.properties, editor],
   );
-  const onConfirm = useCallback(async (item: PositionReviewItem) => {
-    // Saving the pin where it is counts as checked (position_source manual_adjusted).
-    const res = await fetch(`/api/app/properties/${item.id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json', accept: 'application/json' },
-      body: JSON.stringify({ location: item.location }),
-    });
-    if (!res.ok) throw new Error(String(res.status));
-    setItems((list) => list.filter((i) => i.id !== item.id));
-  }, []);
-
   // Demo: the fixtures' positions are illustrative, so only rows from a simulated import are listed.
-  return <PositionReviewList items={live ? items : (editor.demoReview ?? [])} editable={live && editor.enabled} onAdjust={onAdjust} onConfirm={onConfirm} />;
+  return <PositionReviewList items={live ? items : (editor.demoReview ?? [])} editable={live && editor.enabled} onAdjust={onAdjust} />;
 }
