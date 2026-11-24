@@ -241,77 +241,11 @@ function sentence(kind: UpcomingKind, list: UpcomingEvent[]): string {
 
 export type UpcomingFilter = UpcomingKind | 'all';
 
-const TONE_ORDER: Record<UpcomingEvent['tone'], number> = { critical: 0, warning: 1, monitor: 2, cold: 3 };
-const compareTone = (a: UpcomingEvent, b: UpcomingEvent) => TONE_ORDER[a.tone] - TONE_ORDER[b.tone] || a.rank - b.rank;
 const byRank = (a: UpcomingEvent, b: UpcomingEvent) => a.rank - b.rank || a.start - b.start;
-const byName = new Intl.Collator(DISPLAY_LOCALE, { numeric: true });
-
-type PropertyEvent = UpcomingEvent & { propertyId: string };
-
-function compareValue(a: UpcomingEvent, b: UpcomingEvent): number {
-  if (a.kind === 'frost') return (a.tmin ?? Infinity) - (b.tmin ?? Infinity);
-  if (a.official || a.kind === 'outage') return 0;
-  return Number(num(b.value).replace(',', '.')) - Number(num(a.value).replace(',', '.'));
-}
-
-/**
- * When a condition counts as "the same" for grouping. An official warning or an outage is one event with
- * one span. A forecast threshold is computed per property from its own point forecast, so frost over
- * a city starts 02:00 here and 03:00 there: those are grouped per six-hour window of the start
- * (night, morning, afternoon, evening – Stockholm time), and the group spans the earliest start to the
- * latest end. Exact spans left 500 properties in many small groups shown as single rows again.
- */
-function groupTime(e: UpcomingEvent): string | number {
-  if (e.official || e.kind === 'outage') return `${e.start}-${e.end}`;
-  return `${dayKey(e.start)}/${Math.floor(hourOf(e.start) / 6)}`;
-}
-
-/** Group shared conditions with the same source and time (`groupTime`), once per affected property. */
-export function groupUpcomingEvents(events: readonly UpcomingEvent[]) {
-  const individual: UpcomingEvent[] = [];
-  const candidates = new Map<string, PropertyEvent[]>();
-  for (const event of events) {
-    if (!event.propertyId) {
-      individual.push(event);
-      continue;
-    }
-    const key = JSON.stringify([event.kind, event.condition, event.official, event.src, event.sourceUrl, groupTime(event)]);
-    const propertyEvent = { ...event, propertyId: event.propertyId };
-    const bucket = candidates.get(key);
-    if (bucket) bucket.push(propertyEvent);
-    else candidates.set(key, [propertyEvent]);
-  }
-
-  const groups = [];
-  for (const [key, bucket] of candidates) {
-    const properties = new Map<string, PropertyEvent>();
-    const strongest = bucket.reduce((a, b) => compareTone(a, b) <= 0 ? a : b);
-    for (const event of bucket) {
-      const previous = properties.get(event.propertyId);
-      if (!previous || (compareTone(event, previous) || compareValue(event, previous)) < 0) properties.set(event.propertyId, event);
-    }
-    if (properties.size <= 10) {
-      individual.push(...bucket);
-      continue;
-    }
-    const bar = strongest.tone === 'critical' ? SEV.critical.c
-      : strongest.tone === 'warning' && !strongest.official ? SEV.warning.c : strongest.bar;
-    const start = Math.min(...bucket.map((e) => e.start));
-    const end = Math.max(...bucket.map((e) => e.end));
-    const { value, unit } = bucket.reduce((a, b) => compareValue(b, a) < 0 ? b : a, strongest);
-    groups.push({
-      key,
-      event: { ...strongest, value, unit, bar, start, end, from: formatWeekdayClock(new Date(start).toISOString()), to: formatWeekdayClock(new Date(end).toISOString()) },
-      properties: [...properties.values()].sort((a, b) => byName.compare(a.name, b.name) || byName.compare(a.address, b.address)),
-    });
-  }
-  return { groups, individual };
-}
 
 export type UpcomingBar = UpcomingEvent & { left: number; width: number; right: number; cross: boolean };
 export type UpcomingPlaceRow = { type: 'place'; key: string; name: string; address: string; propertyId: string | null; events: UpcomingBar[]; countText: string };
-export type UpcomingGroupRow = { type: 'group'; key: string; name: string; events: [UpcomingBar]; properties: PropertyEvent[]; countText: string };
-export type UpcomingRow = UpcomingPlaceRow | UpcomingGroupRow;
+export type UpcomingRow = UpcomingPlaceRow;
 
 export function upcomingView(events: UpcomingEvent[], referenceIso: string, opts: { filter?: UpcomingFilter; center?: { lat: number; lon: number } | null } = {}) {
   const ref = Date.parse(referenceIso);
@@ -342,10 +276,10 @@ export function upcomingView(events: UpcomingEvent[], referenceIso: string, opts
   ];
 
   const shown = events.filter((e) => filter === 'all' || e.kind === filter);
-  const { groups, individual } = groupUpcomingEvents(shown);
+  // One row per property (or named place), never grouped: the list scrolls and can be searched.
   const places = new Map<string, { key: string; name: string; address: string; propertyId: string | null; events: UpcomingEvent[] }>();
   const placeKey = (e: UpcomingEvent) => e.propertyId ? `property:${e.propertyId}` : `place:${e.name}`;
-  for (const e of individual) {
+  for (const e of shown) {
     const key = placeKey(e);
     if (!places.has(key)) places.set(key, { key, name: e.name, address: e.address, propertyId: e.propertyId, events: [] });
     places.get(key)!.events.push(e);
@@ -353,7 +287,6 @@ export function upcomingView(events: UpcomingEvent[], referenceIso: string, opts
   const rows: UpcomingRow[] = [...places.values()].map((p) => ({
     ...p, type: 'place', events: p.events.sort(byRank).map(toBar), countText: p.events.length > 1 ? `${p.events.length} händelser` : '',
   }));
-  for (const g of groups) rows.push({ type: 'group', key: `group:${g.key}`, name: g.event.label, events: [toBar(g.event)], properties: g.properties, countText: `${g.properties.length} fastigheter` });
   rows.sort((a, b) => byRank(a.events[0]!, b.events[0]!));
 
   // Axis: midnights (day starts) and every six clock hours, in Stockholm time.
@@ -403,4 +336,11 @@ export function upcomingCenter(portfolio: Portfolio, propertyIds: Set<string>): 
   const pts = portfolio.properties.filter((s) => propertyIds.has(s.property.id)).map((s) => s.property.location);
   if (!pts.length) return null;
   return { lat: pts.reduce((a, p) => a + p.lat, 0) / pts.length, lon: pts.reduce((a, p) => a + p.lon, 0) / pts.length };
+}
+
+/** Rows whose name or address contains the search text (case-insensitive); all rows for an empty search. */
+export function searchUpcomingRows(rows: readonly UpcomingRow[], query: string): UpcomingRow[] {
+  const q = query.trim().toLocaleLowerCase(DISPLAY_LOCALE);
+  if (!q) return [...rows];
+  return rows.filter((r) => [r.name, r.address].some((text) => text.toLocaleLowerCase(DISPLAY_LOCALE).includes(q)));
 }

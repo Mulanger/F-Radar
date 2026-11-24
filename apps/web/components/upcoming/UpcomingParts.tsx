@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { DISPLAY_LOCALE } from '@fastighetsradar/domain';
-import type { UpcomingBar, UpcomingGroupRow, UpcomingPlaceRow } from '@/lib/view-models/upcoming';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import type { UpcomingBar, UpcomingPlaceRow } from '@/lib/view-models/upcoming';
 import type { UpcomingState } from './use-upcoming';
 import s from './Upcoming.module.css';
 
@@ -26,9 +25,39 @@ export function UpcomingHeader({ st, variant }: { st: UpcomingState; variant: Va
     <div className={s.head}>
       <div className={s.headTop}>
         <h2 className={s.title}>Kommande förhållanden</h2>
+        {variant === 'desktop' && <UpcomingSearch st={st} />}
         {badge}
       </div>
       <div className={s.sub}>{st.hasOutages ? 'Prognos, officiella varningar och planerade avstängningar' : 'Prognos och officiella varningar'} · nästa 48 h</div>
+      {variant === 'mobile' && <UpcomingSearch st={st} />}
+    </div>
+  );
+}
+
+/** Finds a property in the list by name or address. */
+function UpcomingSearch({ st }: { st: UpcomingState }) {
+  if (st.view.empty) return null;
+  return (
+    <input
+      type="search"
+      className={s.search}
+      value={st.query}
+      onChange={(e) => st.setQuery(e.target.value)}
+      placeholder="Sök fastighet eller adress"
+      aria-label="Sök fastighet eller adress i kommande förhållanden"
+    />
+  );
+}
+
+/** Under the rows: "no match", or a button for the next rows of a long list. */
+function ListFooter({ st }: { st: UpcomingState }) {
+  if (st.matchCount === 0) return <div className={s.listNote} role="status">Ingen fastighet matchar ”{st.query.trim()}”.</div>;
+  const rest = st.matchCount - st.rows.length;
+  if (rest <= 0) return null;
+  return (
+    <div className={s.listNote}>
+      <span>Visar {st.rows.length} av {st.matchCount}</span>
+      <button type="button" className={s.chip} onClick={st.showMore}>Visa {Math.min(rest, 100)} till</button>
     </div>
   );
 }
@@ -138,72 +167,6 @@ function PlaceName({ r, st }: { r: UpcomingPlaceRow; st: UpcomingState }) {
   );
 }
 
-const PAGE_SIZE = 100;
-
-function GroupProperties({ r, st, id }: { r: UpcomingGroupRow; st: UpcomingState; id: string }) {
-  const [query, setQuery] = useState('');
-  const [pageIndex, setPage] = useState(0);
-  const q = query.trim().toLocaleLowerCase(DISPLAY_LOCALE);
-  const matches = r.properties.filter((p) => !q || [p.name, p.address].some((text) => text.toLocaleLowerCase(DISPLAY_LOCALE).includes(q)));
-  const page = Math.min(pageIndex, Math.max(0, Math.ceil(matches.length / PAGE_SIZE) - 1));
-  const start = page * PAGE_SIZE;
-  const visible = matches.slice(start, start + PAGE_SIZE);
-  const e = r.events[0];
-  return (
-    <div id={id} className={s.groupDetails}>
-      {e.sourceUrl && <a href={e.sourceUrl} target="_blank" rel="noopener noreferrer">{e.src}</a>}
-      <label className={s.groupSearch}>
-        Sök på namn eller adress
-        <input type="search" value={query} onChange={(event) => { setQuery(event.target.value); setPage(0); }} />
-      </label>
-      <div className={s.groupRange} role="status">
-        {visible.length ? `Visar ${start + 1}–${start + visible.length} av ${matches.length} fastigheter` : 'Inga fastigheter matchar sökningen.'}
-      </div>
-      {visible.length > 0 && (
-        <ul key={page} className={s.groupProperties} aria-label="Berörda fastigheter">
-          {visible.map((p) => (
-            <li key={p.propertyId}>
-              <button type="button" className={s.groupProperty} onClick={() => st.openProperty(p.propertyId)}>
-                <span><strong>{p.name}</strong>{' '}<span className={s.groupAddress}>{p.address}</span></span>{' '}
-                <span className={s.groupRange}>{p.value} {p.unit}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      {(page > 0 || start + visible.length < matches.length) && (
-        <div className={s.groupPages}>
-          {page > 0 && <button type="button" className={s.chip} onClick={() => setPage(page - 1)}>Visa föregående</button>}
-          {start + visible.length < matches.length && <button type="button" className={s.chip} onClick={() => setPage(page + 1)}>Visa fler</button>}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function GroupRow({ r, st, variant }: { r: UpcomingGroupRow; st: UpcomingState; variant: Variant }) {
-  const id = useId();
-  const e = r.events[0];
-  const open = st.openId === r.key;
-  return (
-    <div className={variant === 'desktop' ? s.group : s.mPlaceCard}>
-      <div data-testid="upcoming-row" className={variant === 'desktop' ? `${s.lineGrid} ${s.groupLine}` : s.mGroupLine}>
-        <div className={s.groupHeading}>
-          <div className={s.label}><span aria-hidden="true" className={s.swatch} style={{ background: e.bar }} /><strong id={`${id}-label`}>{r.name}</strong></div>
-          <div className={s.groupMeta}>{e.from}–{e.to} · {e.src}</div>
-          <button type="button" className={s.groupToggle} aria-expanded={open} aria-controls={open ? id : undefined} aria-describedby={`${id}-label`} onClick={() => st.toggle(r.key)}>
-            {r.countText} · {open ? 'Dölj fastigheter' : 'Visa fastigheter'}
-            <span className={`${s.chev} ${open ? s.up : ''}`} aria-hidden="true" />
-          </button>
-        </div>
-        <Track e={e} st={st} variant={variant} />
-        <Value e={e} />
-      </div>
-      {open && <GroupProperties key={st.group} r={r} st={st} id={id} />}
-    </div>
-  );
-}
-
 function Axis({ axis, variant }: { axis: UpcomingState['view']['axis']; variant: Variant }) {
   const ref = useRef<HTMLDivElement>(null);
   const now = useRef<HTMLSpanElement>(null);
@@ -281,7 +244,7 @@ export function UpcomingTimeline({ st }: { st: UpcomingState }) {
           <div />
         </div>
       </div>
-      {view.rows.map((r) => r.type === 'group' ? <GroupRow key={r.key} r={r} st={st} variant="desktop" /> : (
+      {st.rows.map((r) => (
         <div key={r.key} className={s.place}>
           <div className={s.placeHead}>
             <PlaceName r={r} st={st} />
@@ -308,6 +271,7 @@ export function UpcomingTimeline({ st }: { st: UpcomingState }) {
           </div>
         </div>
       ))}
+      <ListFooter st={st} />
     </UpcomingScroll>
   );
 }
@@ -328,10 +292,10 @@ export function UpcomingMobileAxis({ st }: { st: UpcomingState }) {
 }
 
 /**
- * Mobile: a card per group or address, with the timeline under the condition label.
+ * Mobile: a card per property or place, with the timeline under the condition label.
  */
 export function UpcomingMobilePlaces({ st }: { st: UpcomingState }) {
-  return st.view.rows.map((r) => r.type === 'group' ? <GroupRow key={r.key} r={r} st={st} variant="mobile" /> : (
+  return <>{st.rows.map((r) => (
     <section key={r.key} className={s.mPlaceCard} aria-label={r.name}>
       <div className={s.mPlaceHead}>
         <PlaceName r={r} st={st} />
@@ -354,5 +318,5 @@ export function UpcomingMobilePlaces({ st }: { st: UpcomingState }) {
         );
       })}
     </section>
-  ));
+  ))}<ListFooter st={st} /></>;
 }
