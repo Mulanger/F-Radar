@@ -1,36 +1,10 @@
-import { formatClock } from '@fastighetsradar/domain';
 import type * as Leaflet from 'leaflet';
 import { RADAR_BOUNDS, RADAR_MAX_AGE_MS } from '@/lib/maps/portfolio-radar';
 
 const SMHI_RADAR_LINK = 'https://www.smhi.se/data/nederbord-och-fuktighet/nederbord/radarbilder-aktuella-och-historiska';
-const MCF_FLOOD_LINK = 'https://www.mcf.se/sv/verktyg--tjanster/oversvamningskartering---visningstjanst-fran-och-med-2013/';
 
-export function addPortfolioFlood(L: typeof Leaflet, map: Leaflet.Map) {
-  const pane = 'portfolio-flood';
-  const element = map.getPane(pane) ?? map.createPane(pane);
-  element.style.zIndex = '350';
-  element.style.pointerEvents = 'none';
-  const layer = L.tileLayer.wms('https://inspire.mcf.se/oversvamning/wms', {
-    version: '1.1.1',
-    layers: 'NZ_Oversvamning_BHF,NZ_Oversvamning_200,NZ_Oversvamning_100',
-    format: 'image/png',
-    transparent: true,
-    attribution: `<a href="${MCF_FLOOD_LINK}">Översvämningsscenarier · MCF</a>`,
-    uppercase: true,
-    noWrap: true,
-    bounds: L.latLngBounds([55, 10], [70, 25]),
-    maxNativeZoom: 14,
-    keepBuffer: 1,
-    updateWhenZooming: false,
-    updateWhenIdle: true,
-    referrerPolicy: 'no-referrer',
-    opacity: 0.6,
-    pane,
-  }).addTo(map);
-  return () => { layer.remove(); };
-}
-
-export function watchPortfolioRadar(L: typeof Leaflet, map: Leaflet.Map) {
+/** Shows SMHI's latest radar frame on the map and reports its time (null while none is shown). */
+export function watchPortfolioRadar(L: typeof Leaflet, map: Leaflet.Map, onFrame: (measuredAt: string | null) => void = () => {}) {
   const controller = new AbortController();
   const unavailable = 'Radar tillfälligt otillgänglig';
   let displayed: { measuredAt: string; overlay: Leaflet.ImageOverlay; url: string } | undefined;
@@ -50,6 +24,7 @@ export function watchPortfolioRadar(L: typeof Leaflet, map: Leaflet.Map) {
     displayed.overlay.remove();
     URL.revokeObjectURL(displayed.url);
     displayed = undefined;
+    onFrame(null);
   }
 
   async function refresh() {
@@ -72,9 +47,10 @@ export function watchPortfolioRadar(L: typeof Leaflet, map: Leaflet.Map) {
       showUnavailable(false);
       const overlay = L.imageOverlay(pendingUrl, RADAR_BOUNDS, {
         alt: 'Nederbörd från SMHI:s radar',
-        attribution: `<a href="${SMHI_RADAR_LINK}">Radar ${formatClock(measuredAt)} · SMHI</a>`,
+        attribution: `<a href="${SMHI_RADAR_LINK}">Radar · SMHI</a>`,
       }).addTo(map);
       displayed = { measuredAt, overlay, url: pendingUrl };
+      onFrame(measuredAt);
       pendingUrl = undefined;
       expiry = setTimeout(() => {
         clearFrame();

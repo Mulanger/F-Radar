@@ -17,7 +17,6 @@ vi.mock('next/link', () => ({ default: ({ href, ...props }: AnchorHTMLAttributes
 vi.mock('@/components/maps/PortfolioMap', () => ({ PortfolioMap: ({ list }: { list: unknown[] }) => <div data-testid="map">{list.length} på kartan</div> }));
 vi.mock('@/lib/state/dashboard-state', () => ({ useDashboard: () => ({
   portfolio: scaled, mode: 'live', basePath: '', refresh: mocks.refresh, openProperty: mocks.openProperty,
-  layers: { weather: false, flood: true }, toggleLayer: () => undefined,
   property: (id: string) => scaled.properties.find((s: PropertySnapshot) => s.property.id === id),
 }) }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals(); });

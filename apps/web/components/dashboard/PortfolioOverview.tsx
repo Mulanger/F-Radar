@@ -58,7 +58,7 @@ export function PortfolioOverview() {
       </div>
 
       <div className={styles.mapRow}>
-        <PortfolioMap list={mapList} legend={vm.legend} layers={ds.layers} onToggleLayer={ds.toggleLayer} onOpen={(id) => ds.openProperty(id)} />
+        <PortfolioMap list={mapList} legend={vm.legend} onOpen={(id) => ds.openProperty(id)} />
         <MonitoringStatus vm={vm} onOpen={ds.openProperty} expanded={statusFull} onToggleFull={() => setStatusFull(!statusFull)} />
       </div>
 

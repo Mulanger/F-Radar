@@ -42,8 +42,6 @@ interface DashboardState {
    */
   group: string;
   setGroup: (g: string) => void;
-  layers: { weather: boolean; flood: boolean };
-  toggleLayer: (k: 'weather' | 'flood') => void;
   metric: ChartMetric;
   setMetric: (m: ChartMetric) => void;
   isSmsOn: (s: PropertySnapshot) => boolean;
@@ -93,7 +91,6 @@ export function DashboardStateProvider({
     writeView(groupKey, g);
   }, [groupKey]);
   const group = chosenGroup !== 'all' && !portfolio.groups.some((g) => g.id === chosenGroup) ? 'all' : chosenGroup;
-  const [layers, setLayers] = useState({ weather: false, flood: true });
   const [metric, setMetric] = useState<ChartMetric>('temp');
   const [smsOff, setSmsOff] = useState<Record<string, boolean>>({});
   const [rules, setRules] = useState<Record<string, boolean>>({});
@@ -171,7 +168,6 @@ export function DashboardStateProvider({
   // Stable callbacks and a memoized value (docs/plans/skalning.md, S-03): view models built with
   // `isSmsOn`/`isRuleOn` as memo dependencies are only rebuilt when the data or an override changes.
   const refresh = useCallback(() => router.refresh(), [router]);
-  const toggleLayer = useCallback((k: 'weather' | 'flood') => setLayers((l) => ({ ...l, [k]: !l[k] })), []);
   const isSmsOn = useCallback((s: PropertySnapshot) => (s.property.id in smsOff ? !smsOff[s.property.id] : s.sms.enabled), [smsOff]);
   const toggleSms = useCallback((s: PropertySnapshot) => {
     if (!smsInteractive) return;
@@ -206,8 +202,6 @@ export function DashboardStateProvider({
     ready,
     group,
     setGroup,
-    layers,
-    toggleLayer,
     metric,
     setMetric,
     isSmsOn,
@@ -217,7 +211,7 @@ export function DashboardStateProvider({
     openProperty,
     goProperties,
     property,
-  }), [mode, basePath, smsInteractive, refresh, portfolio, patchPortfolio, unseenAlarmCount, ready, group, setGroup, layers, toggleLayer, metric, isSmsOn, toggleSms, isRuleOn, toggleRule, openProperty, goProperties, property]);
+  }), [mode, basePath, smsInteractive, refresh, portfolio, patchPortfolio, unseenAlarmCount, ready, group, setGroup, metric, isSmsOn, toggleSms, isRuleOn, toggleRule, openProperty, goProperties, property]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

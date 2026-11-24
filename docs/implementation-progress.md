@@ -207,3 +207,7 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
   sammanhängande dygnet. Upp till tio berörda fastigheter visas var för sig. Större grupper har en
   egen knapp och visar gruppens värde. Listan rullar med fast tidsrubrik på dator och mobil, och
   temperaturer och adresser visas i ett mer lättläst format.
+- Portföljkartan visar alltid regn, utan knappar: SMHI:s radarbild för riktiga portföljer och
+  illustrerade cirklar i demot. Förklaringen visar ”Regn just nu” med radarbildens klockslag.
+  Översvämningslagret är borttaget från kartan; karterad översvämningsrisk ingår fortfarande i
+  fastighetens riskbedömning.

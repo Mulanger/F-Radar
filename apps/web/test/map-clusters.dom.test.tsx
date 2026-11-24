@@ -68,7 +68,7 @@ describe('clustering', () => {
 });
 
 describe('PortfolioMap with clusters', () => {
-  const props = { legend: [], layers: { weather: false, flood: true }, onToggleLayer: () => {} };
+  const props = { legend: [] };
   // 40 properties in one block (a few metres apart) and one far away: one cluster and one pin.
   const block = Array.from({ length: 40 }, (_, i) => at(i, 59.33 + (i % 8) * 0.00002, 18.06 + Math.floor(i / 8) * 0.00002, i === 7 ? 'critical' : i % 3 ? 'normal' : 'monitor'));
   const far = at(99, 59.6, 18.5, 'normal', 'Långt bort');

@@ -22,7 +22,7 @@ vi.mock('@/components/maps/PortfolioMap', () => ({ PortfolioMap: () => <div data
 vi.mock('@/components/properties/PropertyEditorHost', () => ({ usePropertyEditor: () => ({ enabled: false, openCreate: vi.fn() }) }));
 vi.mock('@/lib/state/dashboard-state', () => ({ useDashboard: () => ({
   portfolio: demoPortfolio, mode: 'demo', ready: true, basePath: '/demo',
-  group: 'all', setGroup: mocks.setGroup, layers: { weather: false, flood: true }, toggleLayer: vi.fn(), openProperty: vi.fn(),
+  group: 'all', setGroup: mocks.setGroup, openProperty: vi.fn(),
   isSmsOn: (s: PropertySnapshot) => s.sms.enabled, isRuleOn: (_id: string, fallback: boolean) => fallback,
 }) }));
 

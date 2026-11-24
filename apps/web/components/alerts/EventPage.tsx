@@ -88,7 +88,7 @@ export function EventPageView({ page, reason }: { page: EventPage | null; reason
 
       {mapList.length > 0 && (
         <section className={styles.map} aria-label="Berörda fastigheter på kartan">
-          <PortfolioMap list={mapList} legend={legend} layers={ds.layers} onToggleLayer={ds.toggleLayer} onOpen={(id) => ds.openProperty(id)} />
+          <PortfolioMap list={mapList} legend={legend} onOpen={(id) => ds.openProperty(id)} />
         </section>
       )}
 

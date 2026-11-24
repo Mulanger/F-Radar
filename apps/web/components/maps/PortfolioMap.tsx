@@ -2,24 +2,22 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type * as Leaflet from 'leaflet';
-import type { PropertySnapshot } from '@fastighetsradar/domain';
+import { formatClock, type PropertySnapshot } from '@fastighetsradar/domain';
 import { C, SEV, card, glass, type SeverityStyle } from '@/lib/design/tokens';
 import { metricValue, riskScore, show } from '@/lib/view-models/snapshot';
 import { buildMapMarkers, type MapMarker } from '@/lib/maps/cluster';
 import { clusterIcon, esc, loadLeaflet, newMap, pinIcon } from './leaflet-utils';
-import { addPortfolioFlood, watchPortfolioRadar } from './portfolio-live-layers';
+import { watchPortfolioRadar } from './portfolio-live-layers';
 
 interface Props {
   compact?: boolean;
   mobileControls?: boolean;
   list: PropertySnapshot[];
   legend: Array<{ key: string; label: string; c: string; n: number }>;
-  layers: { weather: boolean; flood: boolean };
-  onToggleLayer: (k: 'weather' | 'flood') => void;
   onOpen: (id: string) => void;
 }
 
-type Groups = { markers: Leaflet.LayerGroup; flood: Leaflet.LayerGroup; weather: Leaflet.LayerGroup };
+type Groups = { markers: Leaflet.LayerGroup; weather: Leaflet.LayerGroup };
 type Ctx = { L: typeof Leaflet; map: Leaflet.Map; groups: Groups };
 type Shown = { marker: Leaflet.Marker; sig: string };
 type Cluster = Extract<MapMarker, { kind: 'cluster' }>;
@@ -29,6 +27,9 @@ type Cluster = Extract<MapMarker, { kind: 'cluster' }>;
  * gap, so only pins that crowd each other merge – the eight demo properties stay eight pins.
  */
 const CLUSTER_RADIUS_PX = 24;
+
+/** The blue of the radar image (lib/server/portfolio-radar.ts), for the legend swatch. */
+const RAIN_SWATCH = 'rgba(48, 112, 198, 0.53)';
 
 function tooltipHtml(s: PropertySnapshot, st: SeverityStyle) {
   const p = s.property;
@@ -134,13 +135,14 @@ function syncMarkers(ctx: Ctx, list: PropertySnapshot[], markers: Map<string, Sh
   }
 }
 
-export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen, compact = false, mobileControls = false }: Props) {
+export function PortfolioMap({ list, legend, onOpen, compact = false, mobileControls = false }: Props) {
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Ctx | null>(null);
   const [loaded, setLoaded] = useState(false);
+  // Rain is part of the map, always on: SMHI's radar for live portfolios, illustrative circles in the demo.
   const live = list.some((s) => s.property.origin === 'live');
-  const radarVisible = live && !compact && layers.weather;
-  const floodVisible = live && !compact && layers.flood;
+  const [radarAt, setRadarAt] = useState<string | null>(null);
+  const demoRain = list.some((s) => s.property.origin === 'demo_fixture' && (metricValue(s, 'weather.precipitation_24h') ?? 0) > 9);
   const onOpenRef = useRef(onOpen);
   onOpenRef.current = onOpen;
   const listRef = useRef(list);
@@ -157,7 +159,7 @@ export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen, comp
     loadLeaflet().then((L) => {
       if (cancelled || !el || !el.isConnected || mapRef.current) return;
       const map = newMap(L, el, [59.338, 18.055], 11);
-      const groups: Groups = { markers: L.layerGroup().addTo(map), flood: L.layerGroup(), weather: L.layerGroup() };
+      const groups: Groups = { markers: L.layerGroup().addTo(map), weather: L.layerGroup() };
       mapRef.current = { L, map, groups };
       // Clusters depend on the zoom: re-draw when it changes (S-18).
       map.on('zoomend', () => {
@@ -181,19 +183,14 @@ export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen, comp
     const ctx = mapRef.current;
     if (!ctx) return;
     const { L, map, groups } = ctx;
-    // Use the illustrative circles only for demo properties.
-    groups.flood.clearLayers();
+    // Illustrative rain circles only for demo properties; a live map shows the radar instead.
     groups.weather.clearLayers();
     list.forEach((s) => {
       const p = s.property;
       if (p.origin !== 'demo_fixture') return;
-      const { lat, lon } = p.location;
-      const exposure = s.flood.mapped.exposureClass;
       const rain = metricValue(s, 'weather.precipitation_24h');
-      if (exposure === 'High' || exposure === 'Medium')
-        groups.flood.addLayer(L.circle([lat + 0.0012, lon + 0.002], { radius: exposure === 'High' ? 650 : 380, stroke: false, fillColor: '#5494B0', fillOpacity: 0.22 }));
       if (rain !== null && rain > 9)
-        groups.weather.addLayer(L.circle([lat, lon], { radius: rain * 150, stroke: false, fillColor: '#4A7FD0', fillOpacity: 0.08 + rain / 300 }));
+        groups.weather.addLayer(L.circle([p.location.lat, p.location.lon], { radius: rain * 150, stroke: false, fillColor: '#4A7FD0', fillOpacity: 0.08 + rain / 300 }));
     });
     const fitKey = list.map((s) => s.property.id).sort().join('|');
     if (list.length && fittedRef.current !== fitKey) {
@@ -206,30 +203,17 @@ export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen, comp
   useEffect(() => {
     const ctx = mapRef.current;
     if (!ctx) return;
-    (['flood', 'weather'] as const).forEach((k) => {
-      const g = ctx.groups[k];
-      if (!live && layers[k]) g.addTo(ctx.map);
-      else ctx.map.removeLayer(g);
-    });
-  }, [layers, live, loaded]);
+    if (live) ctx.map.removeLayer(ctx.groups.weather);
+    else ctx.groups.weather.addTo(ctx.map);
+  }, [live, loaded]);
 
   useEffect(() => {
     const ctx = mapRef.current;
-    if (loaded && radarVisible && ctx) return watchPortfolioRadar(ctx.L, ctx.map);
-  }, [loaded, radarVisible]);
-
-  useEffect(() => {
-    const ctx = mapRef.current;
-    if (loaded && floodVisible && ctx) return addPortfolioFlood(ctx.L, ctx.map);
-  }, [loaded, floodVisible]);
+    if (loaded && live && ctx) return watchPortfolioRadar(ctx.L, ctx.map, setRadarAt);
+  }, [loaded, live]);
 
   const overlay = glass(0.82, 16);
   const footerLegend = compact || mobileControls;
-  const layerBtn = (active: boolean): React.CSSProperties => ({
-    height: mobileControls ? 44 : 32, padding: mobileControls ? '0 6px' : '0 12px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: mobileControls ? 12 : 12.5,
-    ...(mobileControls ? { flex: 1, minWidth: 0 } : {}),
-    background: active ? C.ink : 'transparent', color: active ? '#fff' : C.text2,
-  });
   const zoomBtn: React.CSSProperties = { width: footerLegend ? 44 : 36, height: footerLegend ? 44 : 36, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 18, color: C.ink };
 
   return (
@@ -239,10 +223,6 @@ export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen, comp
         <div style={{ fontSize: 15, fontWeight: 600 }}>Portföljkarta</div>
         <div style={{ fontSize: 12, color: C.text3 }}>Klicka på en nål för att öppna fastigheten</div>
       </div>}
-      {!compact && <div className={mobileControls ? undefined : 'fr-map-layers'} style={{ position: 'absolute', top: 16, right: 16, ...(mobileControls ? { left: 16 } : {}), zIndex: 500, display: 'flex', gap: 4, padding: 4, borderRadius: 16, ...overlay }}>
-        <button onClick={() => onToggleLayer('weather')} aria-label="Nederbördslager" aria-pressed={layers.weather} style={layerBtn(layers.weather)}>{mobileControls ? 'Regn' : 'Nederbördslager'}</button>
-        <button onClick={() => onToggleLayer('flood')} aria-label="Översvämningszoner" aria-pressed={layers.flood} style={layerBtn(layers.flood)}>{mobileControls ? 'Översvämning' : 'Översvämningszoner'}</button>
-      </div>}
       <div className={footerLegend ? undefined : 'fr-map-legend'} style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 500, display: 'flex', gap: 14, padding: '10px 14px', borderRadius: 14, ...overlay, ...(footerLegend ? { right: 14, left: 14, bottom: 14, padding: 0, flexWrap: 'wrap', gap: '6px 14px', border: 'none', background: 'transparent' } : {}) }}>
         {legend.map((l) => (
           <div key={l.key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.text2 }}>
@@ -251,6 +231,13 @@ export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen, comp
             <b style={{ fontWeight: 600, color: C.ink }}>{l.n}</b>
           </div>
         ))}
+        {(live ? radarAt : demoRain) && (
+          <div data-testid="rain-legend" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.text2 }}>
+            <span style={{ width: 12, height: 8, borderRadius: 3, background: RAIN_SWATCH }} />
+            {live ? 'Regn just nu' : 'Regn'}
+            {live && radarAt && <span style={{ color: C.text3 }}>{formatClock(radarAt)}</span>}
+          </div>
+        )}
       </div>
       <div className={footerLegend ? undefined : 'fr-map-zoom'} style={{ position: 'absolute', bottom: footerLegend ? 100 : 16, right: 16, zIndex: 500, display: 'flex', flexDirection: 'column', borderRadius: 14, overflow: 'hidden', background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(255,255,255,0.9)' }}>
         <button onClick={() => mapRef.current?.map.zoomIn()} aria-label="Zooma in" style={zoomBtn}>+</button>

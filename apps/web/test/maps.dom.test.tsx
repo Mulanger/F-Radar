@@ -8,6 +8,7 @@ import { StrictMode } from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { demoPortfolio } from '@fastighetsradar/domain/fixtures';
+import { formatClock } from '@fastighetsradar/domain';
 import { resolveTileConfig, TILE_ERROR_THRESHOLD } from '@/lib/maps/tile-config';
 import { addTileLayer, loadLeaflet } from '@/components/maps/leaflet-utils';
 import { PortfolioMap } from '@/components/maps/PortfolioMap';
@@ -78,7 +79,7 @@ describe('PortfolioMap', () => {
     const onOpen = vi.fn();
     const { container: root, unmount } = render(
       <StrictMode>
-        <PortfolioMap list={list} legend={legend} layers={{ weather: false, flood: true }} onToggleLayer={() => {}} onOpen={onOpen} />
+        <PortfolioMap list={list} legend={legend} onOpen={onOpen} />
       </StrictMode>,
     );
     await waitFor(() => expect(root.querySelectorAll('.leaflet-marker-icon')).toHaveLength(list.length));
@@ -97,7 +98,7 @@ describe('PortfolioMap', () => {
   });
 
   it('re-renders markers when the property list changes without creating a second map', async () => {
-    const props = { legend, layers: { weather: false, flood: true }, onToggleLayer: () => {}, onOpen: () => {} };
+    const props = { legend, onOpen: () => {} };
     const { container: root, rerender } = render(<PortfolioMap list={list} {...props} />);
     await waitFor(() => expect(root.querySelectorAll('.leaflet-marker-icon')).toHaveLength(list.length));
     rerender(<PortfolioMap list={list.slice(0, 2)} {...props} />);
@@ -105,7 +106,7 @@ describe('PortfolioMap', () => {
     expect(root.querySelectorAll('.leaflet-map-pane')).toHaveLength(1);
   });
 
-  it('toggles the real radar and flood overlays independently and keeps live property markers visible', async () => {
+  it('shows the radar on a live map without layer buttons and names its time in the legend', async () => {
     const live = [{ ...list[0]!, property: { ...list[0]!.property, origin: 'live' as const } }];
     const measuredAt = new Date().toISOString();
     const radar = vi.fn(async () => new Response(new Blob(), { headers: { 'x-radar-measured-at': measuredAt } }));
@@ -116,27 +117,16 @@ describe('PortfolioMap', () => {
     vi.stubGlobal('Image', function () { return Object.assign(document.createElement('img'), { decode }); });
 
     try {
-      const props = { list: live, legend, onToggleLayer: () => {}, onOpen: () => {} };
-      const { container: root, rerender, unmount } = render(<PortfolioMap {...props} layers={{ weather: false, flood: false }} />);
-      await waitFor(() => expect(root.querySelectorAll('.leaflet-marker-icon')).toHaveLength(1));
-      expect(radar).not.toHaveBeenCalled();
-
-      rerender(<PortfolioMap {...props} layers={{ weather: true, flood: true }} />);
+      const { container: root, unmount } = render(<PortfolioMap list={live} legend={legend} onOpen={() => {}} />);
       await waitFor(() => expect(root.querySelector('.leaflet-image-layer')?.getAttribute('src')).toBe('blob:portfolio-radar'));
       expect(radar).toHaveBeenCalledWith('/api/map/radar', expect.objectContaining({ signal: expect.any(AbortSignal) }));
-      const tile = new URL(root.querySelector<HTMLImageElement>('.leaflet-portfolio-flood-pane img')!.src);
-      expect(tile.pathname).toBe('/oversvamning/wms');
-      expect(tile.searchParams.get('LAYERS')).toBe('NZ_Oversvamning_BHF,NZ_Oversvamning_200,NZ_Oversvamning_100');
-      expect(tile.searchParams.get('SRS')).toBe('EPSG:3857');
-
-      rerender(<PortfolioMap {...props} layers={{ weather: false, flood: true }} />);
-      expect(root.querySelector('.leaflet-image-layer')).toBeNull();
-      expect(revoke).toHaveBeenCalledWith('blob:portfolio-radar');
-      expect(root.querySelector('.leaflet-portfolio-flood-pane img')).not.toBeNull();
       expect(root.querySelector('.leaflet-marker-icon')).not.toBeNull();
-      rerender(<PortfolioMap {...props} layers={{ weather: false, flood: false }} />);
-      expect(root.querySelector('.leaflet-portfolio-flood-pane img')).toBeNull();
+      expect(root.querySelector('[data-testid="rain-legend"]')?.textContent).toBe(`Regn just nu${formatClock(measuredAt)}`);
+      expect(root.querySelector('button[aria-label="Nederbördslager"], button[aria-label="Översvämningszoner"]')).toBeNull();
+      expect(root.querySelector('.leaflet-portfolio-flood-pane')).toBeNull();
+
       unmount();
+      expect(revoke).toHaveBeenCalledWith('blob:portfolio-radar');
     } finally {
       cleanup();
       vi.unstubAllGlobals();
@@ -148,7 +138,7 @@ describe('PortfolioMap', () => {
   it('keeps the zoom on a live refresh of the same properties and refits only when the set changes (S-13)', async () => {
     const L = await loadLeaflet();
     const fit = vi.spyOn(L.Map.prototype, 'fitBounds');
-    const props = { legend, layers: { weather: false, flood: true }, onToggleLayer: () => {}, onOpen: () => {} };
+    const props = { legend, onOpen: () => {} };
     const { container: root, rerender } = render(<PortfolioMap list={list} {...props} />);
     await waitFor(() => expect(root.querySelectorAll('.leaflet-marker-icon')).toHaveLength(list.length));
     expect(fit).toHaveBeenCalledTimes(1);

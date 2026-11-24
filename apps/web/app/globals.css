@@ -110,9 +110,8 @@ button { font-family: inherit; }
   .fr-hero > .fr-hero-bottom { order: 4; }
   .fr-hero-strip { flex: 1 1 100%; flex-wrap: wrap; gap: 12px 20px !important; }
 
-  /* Portfolio map: title full width, layer switch beneath it, legend wraps clear of the zoom buttons. */
+  /* Portfolio map: title full width, legend wraps clear of the zoom buttons. */
   .fr-map-title { right: 16px; }
-  .fr-map-layers { top: 92px !important; right: auto !important; left: 16px; }
   .fr-map-legend { right: 68px; flex-wrap: wrap; gap: 4px 12px !important; }
   /* Keep the (wrapping) Leaflet attribution visible below the overlays. */
   .fr-map-legend, .fr-map-zoom { bottom: 40px !important; }
