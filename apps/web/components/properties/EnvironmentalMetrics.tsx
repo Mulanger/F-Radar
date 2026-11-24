@@ -14,7 +14,7 @@ const foot: React.CSSProperties = { fontSize: 11.5, color: C.text4 };
 export function EnvironmentalMetrics({ d, isDemo }: { d: DetailVM; isDemo: boolean }) {
   const src = (s: string) => (isDemo ? `${s} · demodata` : s);
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14 }}>
+    <div className="fr-property-metrics">
       <div style={instrument} title={src('SMHI punktprognos')}>
         <div style={head}><IconThermometer />Temperatur nu</div>
         <div style={value}>{d.temp}°</div>

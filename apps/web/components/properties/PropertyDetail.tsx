@@ -117,15 +117,16 @@ export function PropertyDetail() {
 
       {missingNote}
 
-      <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-        <PropertyHero3D d={d} isDemo={isDemo} />
-        <div style={{ flex: '1 1 340px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <PropertyRiskPanel d={d} isDemo={isDemo} />
-          <OfficialWarnings d={d} />
+      <div className="fr-property-summary">
+        <div className="fr-property-summary-grid">
+          <PropertyHero3D d={d} isDemo={isDemo} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <PropertyRiskPanel d={d} isDemo={isDemo} />
+            <OfficialWarnings d={d} />
+          </div>
+          <EnvironmentalMetrics d={d} isDemo={isDemo} />
         </div>
       </div>
-
-      <EnvironmentalMetrics d={d} isDemo={isDemo} />
 
       <div className="fr-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         <WeatherCharts d={d} isDemo={isDemo} onMetric={ds.setMetric} />

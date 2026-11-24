@@ -92,6 +92,16 @@ button { font-family: inherit; }
   .fr-tabs > * { flex-shrink: 0; white-space: nowrap; }
 }
 
+.fr-property-summary { container-type: inline-size; }
+.fr-property-summary-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.fr-property-metrics { display: grid; grid-column: 1; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@container (min-width: 1000px) {
+  .fr-property-summary-grid { grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr); }
+}
+@container (max-width: 699px) {
+  .fr-property-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 /* Phones: one card per row, hero/map overlays stacked instead of overlapping. */
 @media (max-width: 599.98px) {
   .fr-main .fr-desktop-dashboard-view h1 { font-size: 32px !important; }
