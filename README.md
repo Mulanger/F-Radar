@@ -1,6 +1,9 @@
 # FastighetsRadar
 
 Adressbaserad bevakning av svensk offentlig data för fastighetsportföljer.
+
+**AI-agenter:** läs [`AGENTS.md`](AGENTS.md) först – regler, kontroller och hur man lägger ut.
+
 Plan: [`IMPLEMENTATION.md`](IMPLEMENTATION.md) · Progress: [`IMPLEMENTATION_PROGRESS.md`](IMPLEMENTATION_PROGRESS.md) ·
 Architecture: [`0001`](docs/decisions/0001-architecture.md), [`0002 auth/tenancy/deployment`](docs/decisions/0002-auth-tenancy-deployment.md)
 
