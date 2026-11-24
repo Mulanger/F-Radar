@@ -2,7 +2,7 @@
 
 import type { DetailVM } from '@/lib/view-models/detail';
 import { C, smallCard } from '@/lib/design/tokens';
-import { IconDrop, IconLeaf, IconRain, IconThermometer, IconWind } from '../ui/icons';
+import { IconLeaf, IconRain, IconThermometer, IconWind } from '../ui/icons';
 
 const instrument: React.CSSProperties = { ...smallCard, display: 'flex', flexDirection: 'column', gap: 6 };
 const head: React.CSSProperties = { fontSize: 12.5, color: C.text3, display: 'flex', alignItems: 'center', gap: 6 };
@@ -10,7 +10,7 @@ const value: React.CSSProperties = { fontSize: 32, fontWeight: 500, letterSpacin
 const unit: React.CSSProperties = { fontSize: 15, color: C.text4 };
 const foot: React.CSSProperties = { fontSize: 11.5, color: C.text4 };
 
-/** Five instrument cards: temperature, rain 24 h, wind, humidity, air quality. */
+/** Weather and air quality instrument cards. */
 export function EnvironmentalMetrics({ d, isDemo }: { d: DetailVM; isDemo: boolean }) {
   const src = (s: string) => (isDemo ? `${s} · demodata` : s);
   return (
@@ -53,18 +53,6 @@ export function EnvironmentalMetrics({ d, isDemo }: { d: DetailVM; isDemo: boole
         <div style={foot}>Byar {d.gust} m/s · från {d.windDir}</div>
       </div>
 
-      <div style={instrument} title={src('SMHI punktprognos')}>
-        <div style={head}><IconDrop />Luftfuktighet</div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
-          <div style={value}>{d.hum}<span style={unit}>%</span></div>
-          <svg width="64" height="64" viewBox="0 0 64 64" style={{ transform: 'rotate(-90deg)' }} aria-hidden="true">
-            <circle cx="32" cy="32" r="26" fill="none" stroke={C.chip} strokeWidth="7" />
-            <circle cx="32" cy="32" r="26" fill="none" stroke="oklch(0.6 0.1 265)" strokeWidth="7" strokeLinecap="round" strokeDasharray={d.humDash} style={{ transition: 'stroke-dasharray 1.2s' }} />
-          </svg>
-        </div>
-        <div style={foot}>{d.live ? 'Utomhusprognos · byggnadens kondensrisk ej bedömd' : <>Daggpunkt {d.dew}° · kondensrisk {d.condens}</>}</div>
-      </div>
-
       <div style={instrument} title={src('Närmaste luftmätstation (inte ett värde för byggnaden)')}>
         <div style={head}><IconLeaf />{d.live ? 'Luftkvalitet vid station' : 'Luftkvalitet'}</div>
         {d.live
@@ -77,7 +65,7 @@ export function EnvironmentalMetrics({ d, isDemo }: { d: DetailVM; isDemo: boole
         {d.live?.airNote && <div style={{ fontSize: 12.5, color: C.text2 }}>{d.live.airNote}</div>}
         {d.live && <div style={foot}>{d.live.airLine}</div>}
       </div>
-      {d.live && <div style={{ gridColumn: '1 / -1', fontSize: 11, color: C.text4 }}>{d.live.forecastLine}. Temperatur, nederbörd, vind och fuktighet ovan är prognosvärden för aktuell timme – inte mätningar.</div>}
+      {d.live && <div style={{ gridColumn: '1 / -1', fontSize: 11, color: C.text4 }}>{d.live.forecastLine}. Temperatur, nederbörd och vind ovan är prognosvärden för aktuell timme – inte mätningar.</div>}
     </div>
   );
 }

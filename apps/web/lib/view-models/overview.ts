@@ -101,6 +101,7 @@ function buildWarningPreview(properties: PropertySnapshot[]) {
     title: warning.level === 'VMA' ? warning.type.replace('Viktigt meddelande till allmänheten — ', 'VMA — ') : warning.type,
     region: regions.size === 1 ? [...regions][0] : undefined,
     affected: properties.size,
+    propertyIds: [...properties],
     publishedAt,
   })).sort((a, b) => (WARN_RANK[b.level] ?? 0) - (WARN_RANK[a.level] ?? 0) || b.publishedAt - a.publishedAt || a.id.localeCompare(b.id));
 }
@@ -117,8 +118,28 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
 
   const warningPreview = buildWarningPreview(list);
   const warnAff = list.filter((snap) => snap.warnings.some((warning) => isOfficialLevel(warning.level))).length;
-  const wc: Partial<Record<keyof typeof WL, number>> = {};
-  warningPreview.forEach(({ level }) => (wc[level] = (wc[level] ?? 0) + 1));
+  const propertyNames = new Map(list.map(({ property }) => [property.id, property.name]));
+  const warningLevels = new Map<OfficialWarning['level'], { count: number; titles: Map<string, Set<string>> }>();
+  for (const { level, title, propertyIds } of warningPreview) {
+    const group = warningLevels.get(level) ?? { count: 0, titles: new Map<string, Set<string>>() };
+    group.count++;
+    for (const id of propertyIds) {
+      const titles = group.titles.get(id) ?? new Set<string>();
+      titles.add(title);
+      group.titles.set(id, titles);
+    }
+    warningLevels.set(level, group);
+  }
+  const warnChips = Array.from(warningLevels, ([level, { count, titles }]) => ({
+    label: WL[level].label,
+    n: count,
+    title: level === 'VMA' ? 'VMA' : WL[level].label + ' varning',
+    rule: '',
+    warningLevel: level,
+    items: Array.from(titles, ([propertyId, names]) => ({
+      propertyId, name: propertyNames.get(propertyId)!, text: [...names].join(' · '),
+    })).sort((a, b) => a.name.localeCompare(b.name, 'sv')),
+  }));
 
   const rain = (s: PropertySnapshot) => metricValue(s, 'weather.precipitation_24h');
   const gust = (s: PropertySnapshot) => metricValue(s, 'weather.wind_gust');
@@ -316,7 +337,7 @@ export function buildOverviewVM(portfolio: Portfolio, ui: OverviewUi) {
       alertsSince: portfolio.demoTrends?.alertsSince ?? '',
       warnings: warningPreview.length,
       warnAffected: warnAff,
-      warnChips: (Object.keys(wc) as Array<keyof typeof WL>).map((k) => ({ key: k, label: WL[k].label + ' ×' + wc[k], bg: WL[k].bg, fg: WL[k].fg })),
+      warnChips,
       wx: wxR + wxW + wxF,
       wxSplit: [
         { label: 'Regn', n: wxR, title: 'Kraftigt regn', rule: 'Minst 15 mm nederbörd kommande 24 h (SMHI-prognos)', items: wxRain },

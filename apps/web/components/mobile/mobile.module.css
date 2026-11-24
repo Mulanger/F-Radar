@@ -220,16 +220,16 @@ button.feedRow { width: 100%; border: 0; background: none; text-align: left; fon
 
 .overviewStats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
 .overviewStat { display: grid; grid-template-rows: 24px 24px; align-items: center; text-align: center; gap: 2px; min-width: 0; padding: 7px; background: #ffffffe0; border: 1px solid #14171a0d; border-radius: 14px; }
-.overviewWeather { grid-column: 1 / -1; grid-template-columns: auto 1fr; grid-template-rows: minmax(24px, auto); gap: 6px; }
+.overviewWeather { padding-inline: clamp(14px, 4vw, 22px); grid-column: 1 / -1; grid-template-columns: auto 1fr; grid-template-rows: minmax(24px, auto); gap: 6px; }
 .statContent { display: flex; align-items: center; justify-content: center; gap: 5px; min-width: 0; }
 .statContent .kpiIcon { width: 22px; height: 22px; border-radius: 7px; }
 .statContent strong { font-size: 20px; font-weight: 550; letter-spacing: -.035em; line-height: 1; }
 .statWeatherHeading { white-space: nowrap; }
 .smsStatus { display: grid; }
-.statWeatherPills { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 3px; }
+.statWeatherPills { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: clamp(6px, 2vw, 12px); }
 .statWeatherPills .chip { flex: none; min-height: 24px; gap: 2px; padding: 2px 4px; font-size: 10px; white-space: nowrap; }
 .warningWrap { position: relative; margin-top: 8px; }
-.warningSummary { display: flex; align-items: center; gap: 9px; width: 100%; min-height: 56px; padding: 8px 10px; border: 1px solid #14171a0d; border-radius: 16px; background: #ffffffe0; color: inherit; text-align: left; font: inherit; cursor: pointer; }
+.warningSummary { box-sizing: border-box; display: flex; align-items: center; gap: 9px; width: 100%; min-height: 56px; padding: 8px 10px; border: 1px solid #14171a0d; border-radius: 16px; background: #ffffffe0; color: inherit; text-align: left; font: inherit; cursor: pointer; }
 .warningSummary[data-level='Yellow'], .warningSquare[data-level='Yellow'] { --warning-color: oklch(.79 .145 88); }
 .warningSummary[data-level='Orange'], .warningSquare[data-level='Orange'] { --warning-color: oklch(.70 .17 53); }
 .warningSummary[data-level='Red'], .warningSquare[data-level='Red'] { --warning-color: oklch(.61 .21 27); }
@@ -260,6 +260,6 @@ button.feedRow { width: 100%; border: 0; background: none; text-align: left; fon
   .overviewStat .weatherLabel { font-size: 10.5px; }
   .statContent { gap: 4px; }
   .statContent .kpiIcon { width: 20px; height: 20px; }
-  .statWeatherPills { gap: 2px; }
+  .overviewWeather { padding-inline: 12px; }
   .statWeatherPills .chip { padding-inline: 2px; }
 }

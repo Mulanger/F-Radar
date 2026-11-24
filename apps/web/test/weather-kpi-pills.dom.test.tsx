@@ -15,12 +15,23 @@ const split: WxSplit[] = [
 ];
 
 describe('weather KPI pills', () => {
-  it('lists the first five properties in a card and all of them in a modal', () => {
+  it('opens affected properties when one warning covers several addresses', () => {
+    render(<WeatherKpiPills available split={[{ label: 'Gul', title: 'Gul varning', warningLevel: 'Yellow', n: 1, rule: '', items }]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Gul: 1 varning. Visa vilka' }));
+    const card = screen.getByRole('dialog', { name: 'Gul varning: fastigheter' });
+    expect(within(card).getByText('7 fastigheter')).toBeTruthy();
+    fireEvent.click(within(card).getByRole('button', { name: /Fastighet 1/ }));
+    expect(openProperty).toHaveBeenCalledWith('p0');
+  });
+
+  it('keeps the card open while scrolling its properties and can open the larger list', () => {
     render(<WeatherKpiPills split={split} available />);
     expect((screen.getByRole('button', { name: /^Vind: 0/ }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Regn: 7 fastigheter. Visa vilka' }));
     const card = screen.getByRole('dialog', { name: 'Kraftigt regn: fastigheter' });
-    expect(within(card).getAllByRole('button', { name: /^Fastighet/ })).toHaveLength(5);
+    expect(within(card).getAllByRole('button', { name: /^Fastighet/ })).toHaveLength(7);
+    fireEvent.scroll(within(card).getByRole('list').parentElement!);
+    expect(screen.getByRole('dialog')).toBe(card);
     fireEvent.click(within(card).getByRole('button', { name: 'Visa alla 7' }));
     const modal = screen.getByRole('dialog', { name: /Kraftigt regn · 7 fastigheter/ });
     expect(within(modal).getAllByRole('button', { name: /^Fastighet/ })).toHaveLength(7);

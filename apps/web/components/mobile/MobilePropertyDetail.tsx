@@ -9,7 +9,7 @@ import { C } from '@/lib/design/tokens';
 import { RISK_INDEX_DISCLAIMER } from '@/lib/legal/copy';
 import { usePropertyEditor } from '../properties/PropertyEditorHost';
 import { detailSceneConfig } from '../three/property-scene';
-import { IconChevronLeft, IconChevronRight, IconRain, IconThermometer, IconWind, IconDrop, IconMessage } from '../ui/icons';
+import { IconChevronLeft, IconChevronRight, IconRain, IconThermometer, IconWind, IconMessage } from '../ui/icons';
 import { MobileRiskGauge } from './MobileRiskGauge';
 import { MobileSection, MobileStatusBadge, MobileWeatherCard } from './MobilePrimitives';
 import { MobileWeatherChart } from './MobileWeatherChart';
@@ -37,7 +37,6 @@ export function MobilePropertyDetail({ d, onSwitch, target, smsHref, notice }: {
         <MobileWeatherCard icon={<IconThermometer size={16} />} label="Temperatur" value={`${d.temp}°`} sub={`Känns som ${d.feels}°`} />
         <MobileWeatherCard icon={<IconRain size={16} />} label="Nederbörd 24 h" value={`${d.rain} mm`} sub={d.rainPeak} />
         <MobileWeatherCard icon={<IconWind size={16} />} label="Vind" value={`${d.wind} m/s`} sub={`Byvind ${d.gust} m/s · ${d.windDir}`} />
-        <MobileWeatherCard icon={<IconDrop size={16} />} label="Luftfuktighet" value={`${d.hum}%`} sub={`Daggpunkt ${d.dew}°`} />
       </div>
     </section>
     <>

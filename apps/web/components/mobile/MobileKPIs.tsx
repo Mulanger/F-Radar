@@ -9,7 +9,6 @@ import styles from './mobile.module.css';
 export function MobileKPIs({ vm, alertsHref }: { vm: OverviewVM; alertsHref: string }) {
   const k = vm.kpi;
   const a = vm.avail;
-  const weather = k.wxSplit.filter((item) => item.n > 0);
 
   return (
     <>
@@ -42,7 +41,7 @@ export function MobileKPIs({ vm, alertsHref }: { vm: OverviewVM; alertsHref: str
             <strong>{a.weather ? k.wx : '—'}</strong>
             <span className={styles.weatherLabel}>Väderhändelser</span>
           </div>
-          {a.weather && weather.length > 0 && <div className={styles.statWeatherPills}><WeatherKpiPills split={weather} available={a.weather} pillClassName={styles.chip} /></div>}
+          <div className={styles.statWeatherPills}><WeatherKpiPills split={k.wxSplit} available={a.weather} pillClassName={styles.chip} /></div>
         </div>
       </div>
       <MobileWarningSummary vm={vm} alertsHref={alertsHref} />

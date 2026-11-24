@@ -73,9 +73,7 @@ export function PortfolioKPIs({ vm }: { vm: OverviewVM }) {
         <KpiHead icon={<IconAlert size={11} sw={1.8} />} bg="oklch(0.95 0.06 95)" fg="oklch(0.5 0.1 85)" label="Officiella varningar" />
         <div style={big}>{v(a.warnings, k.warnings)}</div>
         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 'auto' }}>
-          {k.warnChips.map((w) => (
-            <span key={w.key} style={{ fontSize: 10, fontWeight: 500, padding: '2px 6px', borderRadius: 6, background: w.bg, color: w.fg }}>{w.label}</span>
-          ))}
+          <WeatherKpiPills split={k.warnChips} available={a.warnings} pillStyle={{ fontSize: 10, fontWeight: 500, padding: '2px 6px', borderRadius: 6 }} />
         </div>
         {!a.warnings && <div style={foot}>Källor ej anslutna</div>}
       </div>

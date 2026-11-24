@@ -53,6 +53,9 @@ describe('overview view-model reproduces the approved design values', () => {
     const result = buildOverviewVM(data, ui);
     expect(result.kpi.warnings).toBe(21);
     expect(result.kpi.warnAffected).toBe(100);
+    const red = result.kpi.warnChips.find((chip) => chip.warningLevel === 'Red');
+    expect(red?.n).toBe(1);
+    expect(red?.items.map((item) => item.propertyId)).toEqual(Array.from({ length: 80 }, (_, i) => `property-${i}`));
     expect(result.warningPreview[0]).toMatchObject({ id: 'smhi_warnings:100', level: 'Red', affected: 80 });
     expect(result.warningPreview.slice(1).map(({ id }) => id)).toEqual(
       Array.from({ length: 20 }, (_, i) => `smhi_warnings:${299 - i}`),

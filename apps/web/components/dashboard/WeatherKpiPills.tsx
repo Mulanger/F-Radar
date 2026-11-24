@@ -4,9 +4,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDashboard } from '@/lib/state/dashboard-state';
 import type { WxItem, WxSplit } from '@/lib/view-models/overview';
+import { WL } from '@/lib/design/tokens';
 import s from './WeatherKpiPills.module.css';
 
-/** Properties listed in the info card before "Visa alla" opens the full list. */
+/** Offer the larger list for groups with more than five properties. */
 export const WX_CARD_MAX = 5;
 
 const Chevron = () => (
@@ -37,7 +38,7 @@ function Rows({ items, onOpen }: { items: WxItem[]; onOpen: (id: string) => void
  * The Regn/Vind/Frost pills of "Väderhändelser idag". A pill with properties opens a small card
  * naming them (worst first); more than WX_CARD_MAX opens a scrollable modal from "Visa alla".
  */
-export function WeatherKpiPills({ split, available, pillClassName, pillStyle }: { split: WxSplit[]; available: boolean; pillClassName?: string; pillStyle?: React.CSSProperties }) {
+export function WeatherKpiPills({ split, available, pillClassName, pillStyle }: { split: (WxSplit & { warningLevel?: keyof typeof WL })[]; available: boolean; pillClassName?: string; pillStyle?: React.CSSProperties }) {
   const ds = useDashboard();
   const [open, setOpen] = useState<string | null>(null);
   const [modal, setModal] = useState<string | null>(null);
@@ -57,12 +58,20 @@ export function WeatherKpiPills({ split, available, pillClassName, pillStyle }: 
     const width = Math.min(290, window.innerWidth - 24);
     const left = Math.max(12, Math.min(r.left, window.innerWidth - width - 12));
     const h = popRef.current?.offsetHeight ?? 220;
-    setPos(r.bottom + 6 + h > window.innerHeight - 8 && r.top - 6 - h > 8 ? { left, top: r.top - 6 - h } : { left, top: r.bottom + 6 });
+    const below = window.innerHeight - r.bottom - 14;
+    const above = r.top - 14;
+    setPos(h > below && above > below
+      ? { left, bottom: window.innerHeight - r.top + 6, maxHeight: above }
+      : { left, top: r.bottom + 6, maxHeight: below });
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
     const close = () => setOpen(null);
+    const onScroll = (e: Event) => {
+      if (e.target instanceof Node && popRef.current?.contains(e.target)) return;
+      close();
+    };
     const onDown = (e: PointerEvent) => {
       const t = e.target as Node;
       if (popRef.current?.contains(t) || btns.current[open]?.contains(t)) return;
@@ -76,12 +85,12 @@ export function WeatherKpiPills({ split, available, pillClassName, pillStyle }: 
     };
     document.addEventListener('pointerdown', onDown);
     window.addEventListener('keydown', onKey);
-    window.addEventListener('scroll', close, true);
+    window.addEventListener('scroll', onScroll, true);
     window.addEventListener('resize', close);
     return () => {
       document.removeEventListener('pointerdown', onDown);
       window.removeEventListener('keydown', onKey);
-      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('scroll', onScroll, true);
       window.removeEventListener('resize', close);
     };
   }, [open]);
@@ -113,6 +122,8 @@ export function WeatherKpiPills({ split, available, pillClassName, pillStyle }: 
     <>
       {split.map((x) => {
         const clickable = available && x.items.length > 0;
+        const colors = x.warningLevel && WL[x.warningLevel];
+        const countLabel = colors ? (x.n === 1 ? 'varning' : 'varningar') : (x.n === 1 ? 'fastighet' : 'fastigheter');
         return (
           <button
             key={x.label}
@@ -121,17 +132,17 @@ export function WeatherKpiPills({ split, available, pillClassName, pillStyle }: 
             }}
             type="button"
             className={`${s.pill} ${pillClassName ?? ''}`}
-            style={pillStyle}
+            style={colors ? { ...pillStyle, color: colors.fg, background: colors.bg } : pillStyle}
             disabled={!clickable}
             aria-haspopup={clickable ? 'dialog' : undefined}
             aria-expanded={clickable ? open === x.label : undefined}
-            aria-label={available ? `${x.label}: ${x.n} ${x.n === 1 ? 'fastighet' : 'fastigheter'}${clickable ? '. Visa vilka' : ''}` : `${x.label}: prognos saknas`}
+            aria-label={available ? `${x.label}: ${x.n} ${countLabel}${clickable ? '. Visa vilka' : ''}` : `${x.label}: prognos saknas`}
             onClick={() => {
               setPos(null);
               setOpen((o) => (o === x.label ? null : x.label));
             }}
           >
-            {x.label} <b style={{ fontWeight: 600, color: '#14171A' }}>{available ? x.n : '—'}</b>
+            {x.label} <b style={{ fontWeight: 600, color: colors ? 'inherit' : '#14171A' }}>{colors && '×'}{available ? x.n : '—'}</b>
           </button>
         );
       })}
@@ -142,10 +153,12 @@ export function WeatherKpiPills({ split, available, pillClassName, pillStyle }: 
           <div ref={popRef} className={s.pop} role="dialog" aria-label={`${current.title}: fastigheter`} style={pos ?? { left: -9999, top: 0 }}>
             <div className={s.popHead}>
               <span className={s.popTitle}>{current.title}</span>
-              <span className={s.popCount}>{current.n} {current.n === 1 ? 'fastighet' : 'fastigheter'}</span>
+              <span className={s.popCount}>{current.items.length} {current.items.length === 1 ? 'fastighet' : 'fastigheter'}</span>
             </div>
-            <div className={s.rule}>{current.rule}</div>
-            <Rows items={current.items.slice(0, WX_CARD_MAX)} onOpen={openProperty} />
+            {current.rule && <div className={s.rule}>{current.rule}</div>}
+            <div className={s.previewScroll}>
+              <Rows items={current.items} onOpen={openProperty} />
+            </div>
             {current.items.length > WX_CARD_MAX && (
               <button
                 type="button"
@@ -170,8 +183,8 @@ export function WeatherKpiPills({ split, available, pillClassName, pillStyle }: 
             <div className={s.dialog}>
               <div className={s.dHead}>
                 <div style={{ minWidth: 0 }}>
-                  <h2 id="wx-modal-title" className={s.dTitle}>{full.title} · {full.n} {full.n === 1 ? 'fastighet' : 'fastigheter'}</h2>
-                  <div className={s.dSub}>{full.rule}</div>
+                  <h2 id="wx-modal-title" className={s.dTitle}>{full.title} · {full.items.length} {full.items.length === 1 ? 'fastighet' : 'fastigheter'}</h2>
+                  {full.rule && <div className={s.dSub}>{full.rule}</div>}
                 </div>
                 <button ref={closeRef} type="button" className={s.close} onClick={() => setModal(null)} aria-label="Stäng">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
