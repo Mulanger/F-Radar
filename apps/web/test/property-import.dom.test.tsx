@@ -136,6 +136,20 @@ describe('import dialog (S-28)', () => {
     expect(outcome.review.every((r) => r.precision === 'street')).toBe(true);
   });
 
+  it('keeps showing the created rows as created when the portfolio refreshes with them', async () => {
+    const lines = ['Namn\tAdress', ...Array.from({ length: 5 }, (_, i) => `Hus ${i}\tStorgatan ${i + 1}, Umeå`)];
+    const dialog = (existing: string[]) => <PropertyImportDialog submit={createDemoImport({ msPerSearch: 0 })} existingAddresses={existing} demo onClose={() => {}} />;
+    const { rerender } = render(dialog([]));
+    fireEvent.change(screen.getByLabelText('Rader att importera'), { target: { value: lines.join('\n') } });
+    fireEvent.click(await screen.findByRole('button', { name: 'Importera 5 fastigheter' }));
+    await screen.findByText(/^Klart – 5 fastigheter skapade/, {}, { timeout: 3000 });
+
+    // The live portfolio now holds the five addresses: the dialog still reports what the import did.
+    rerender(dialog(lines.slice(1).map((l) => l.split('\t')[1]!)));
+    expect(screen.getByText(/^Klart – 5 fastigheter skapade/)).toBeTruthy();
+    expect(within(screen.getByRole('table')).queryByText('Finns redan')).toBeNull();
+  });
+
   it('asks for a CSV file instead of an Excel workbook', async () => {
     render(<PropertyImportDialog submit={createDemoImport()} existingAddresses={[]} demo={false} onClose={() => {}} />);
     const file = new File(['x'], 'fastigheter.xlsx');

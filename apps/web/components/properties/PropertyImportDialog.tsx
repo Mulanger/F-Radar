@@ -135,7 +135,11 @@ export function PropertyImportDialog({
   }, [text]);
   const table = parsed.table;
   const roles = useMemo(() => (table ? (roleOverride?.table === table ? roleOverride.roles : detectColumns(table)) : []), [table, roleOverride]);
-  const preview = useMemo(() => (table ? buildPreview(table, roles, existingAddresses) : []), [table, roles, existingAddresses]);
+  // The portfolio refreshes as rows are created. Judge the rows against the addresses from before the
+  // import started – otherwise every property it just created reads "Finns redan" and "0 skapade".
+  const [knownAtStart, setKnownAtStart] = useState<string[] | null>(null);
+  const known = knownAtStart ?? existingAddresses;
+  const preview = useMemo(() => (table ? buildPreview(table, roles, known) : []), [table, roles, known]);
   const withGroups = useMemo(() => preview.some((p) => p.group), [preview]);
   const rows = useMemo(() => importRows(preview), [preview]);
   const missingAddress = table !== null && !roles.includes('address');
@@ -180,13 +184,14 @@ export function PropertyImportDialog({
   const start = useCallback(async () => {
     const ctrl = new AbortController();
     abort.current = ctrl;
+    setKnownAtStart(existingAddresses);
     setTab('all');
     try {
       await runImport(rows, submit, { signal: ctrl.signal, results: results.current, onProgress: (p) => setProgress({ ...p }) });
     } finally {
       abort.current = null;
     }
-  }, [rows, submit]);
+  }, [rows, submit, existingAddresses]);
 
   const close = () => {
     const review: PositionReviewItem[] = [];
