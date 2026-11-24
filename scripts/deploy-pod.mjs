@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /** Full f-radar release: preserve live configuration, migrate, swap, verify and roll back on failure. */
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join, resolve, sep } from 'node:path';
 import { ALLOWED_POD, api } from './instapods.mjs';
@@ -27,6 +27,26 @@ function removeLocal(target) {
   if (!absolute.startsWith(root + sep) || absolute === root) throw new Error('Refusing removal outside this checkout.');
   rmSync(absolute, { recursive: true, force: true });
 }
+
+/**
+ * Turbopack links server externals (e.g. sharp) as `.next/node_modules/<pkg>-<hash>` pointing at the
+ * build machine's absolute path – from Windows a junction to D:\…, which does not exist on the pod.
+ * Ship a real copy of each linked package instead; it resolves its own dependencies from web/node_modules.
+ */
+function inlineServerExternals(web) {
+  const externals = join(web, 'apps/web/.next/node_modules');
+  if (!existsSync(externals)) return;
+  for (const name of readdirSync(externals)) {
+    const link = join(externals, name);
+    if (!lstatSync(link).isSymbolicLink()) continue;
+    const pkg = readlinkSync(link).replaceAll('\\', '/').replace(/\/+$/, '').split('/node_modules/').pop();
+    const source = join(web, 'node_modules', pkg);
+    if (!pkg || !existsSync(source)) throw new Error(`Server external ${name} has no package in the release.`);
+    unlinkSync(link);
+    cpSync(source, link, { recursive: true, dereference: true });
+  }
+}
+
 function removeTracedEnv(dir) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
@@ -108,6 +128,7 @@ if (!args.has('--env-only')) {
   cpSync(join(root, 'apps/web/.next/standalone'), join(rel, 'web'), { recursive: true });
   cpSync(join(root, 'apps/web/.next/static'), join(rel, 'web/apps/web/.next/static'), { recursive: true });
   if (existsSync(join(root, 'apps/web/public'))) cpSync(join(root, 'apps/web/public'), join(rel, 'web/apps/web/public'), { recursive: true });
+  inlineServerExternals(join(rel, 'web'));
   removeTracedEnv(join(rel, 'web'));
   writeFileSync(join(rel, 'RELEASE'), `${new Date().toISOString()}\n${commit}\n`);
   runNode(['scripts/check-no-secrets.mjs', '.deploy/release']);
