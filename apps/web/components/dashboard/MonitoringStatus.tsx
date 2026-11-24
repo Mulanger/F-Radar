@@ -46,7 +46,7 @@ export function MonitoringStatus({ vm, onOpen, expanded, onToggleFull }: {
                     <span className={styles.weatherValues}>{r.temp}° · {r.rain} mm · {r.wind} m/s</span>
                     {vm.avail.warnings && r.warn !== 'Ingen' && <span className={styles.warning} style={{ background: r.wBg, color: r.wFg }} title={r.warn}>{r.warn}</span>}
                   </div>
-                  {r.nowcast.badge && <span style={{ fontSize: 11, color: '#4A86C5' }} title={r.nowcast.source}>{r.nowcast.badge} · MET Norway</span>}
+                  {r.nowcast.badge && <span style={{ fontSize: 11, color: '#4A86C5' }} title={r.nowcast.source}>{r.nowcast.badge}</span>}
                 </Link>
               </div>
               <div role="cell" title={r.riskTitle} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

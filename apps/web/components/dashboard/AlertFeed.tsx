@@ -1,6 +1,7 @@
 'use client';
 
 import styles from './PortfolioOverview.module.css';
+import rowStyles from './FeedRows.module.css';
 import type { OverviewVM } from '@/lib/view-models/overview';
 import { C, FONT_MONO, card, cardSub, cardTitle } from '@/lib/design/tokens';
 import { FeedMapButton, FeedUpdatedBadge, useFeedEventMap } from './FeedEventMap';
@@ -33,7 +34,7 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
         </span>
         </div>
       </div>
-      <div style={{ overflowY: 'auto', overflowX: 'hidden', flex: 1, paddingRight: 12, paddingLeft: 10, marginLeft: -10, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ overflowY: 'auto', overflowX: 'hidden', flex: 1, paddingRight: 2, marginLeft: -10, display: 'flex', flexDirection: 'column' }}>
         {vm.feed.length === 0 && (
           <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: C.text3 }}>
             {vm.avail.warnings || vm.avail.events ? 'Inga händelser för valda fastigheter' : 'Händelsekällorna är inte anslutna. Händelser visas här när SMHI, Krisinformation och Trafikverket levererar data.'}
@@ -46,7 +47,7 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
             key={f.rowKey}
             role="button"
             tabIndex={0}
-            className="fr-hover-row"
+            className={`fr-hover-row ${rowStyles.row}`}
             data-ack={waiting ? 'waiting' : undefined}
             onClick={() => open(f)}
             onKeyDown={(e) => {
@@ -54,7 +55,7 @@ export function AlertFeed({ vm, isDemo, onOpen }: { vm: OverviewVM; isDemo: bool
               e.preventDefault();
               open(f);
             }}
-            style={{ display: 'flex', gap: 12, padding: '12px 10px', margin: '0 -10px', borderRadius: 14, cursor: 'pointer', transition: 'background .2s', background: waiting ? `color-mix(in oklch, ${f.bg} 70%, transparent)` : undefined }}
+            style={{ borderRadius: 14, cursor: 'pointer', transition: 'background .2s', background: waiting ? `color-mix(in oklch, ${f.bg} 70%, transparent)` : undefined }}
           >
             <div style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 11, background: f.bg, display: 'grid', placeItems: 'center', position: 'relative' }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: f.c }} />

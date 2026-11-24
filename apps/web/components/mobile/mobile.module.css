@@ -206,6 +206,18 @@ button.feedRow { width: 100%; border: 0; background: none; text-align: left; fon
 .scrollFade::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 28px; pointer-events: none; background: linear-gradient(rgba(255,255,255,0), #fff); }
 .alertHistory { display: inline-block; margin-top: 9px; padding: 4px 0; font-size: 13px; font-weight: 570; text-decoration: underline; text-underline-offset: 3px; }
 
+/* The shell's bottom padding leaves room below the feed, including the mobile navigation. */
+:global(.fr-shell):has(> :global(.fr-main) > .alertsPage) {
+  height: 100dvh;
+  min-height: 0 !important;
+}
+:global(.fr-main):has(> .alertsPage) { display: flex; flex-direction: column; min-height: 0; }
+:global(.fr-main):has(> .alertsPage) > :global(.fr-header) { flex-shrink: 0; }
+.alertsPage { flex: 1; min-height: 0; }
+.alertsPage > .heading, .alertsPage > .groupNotice, .alertsPage .sectionHeader { flex-shrink: 0; }
+.alertsPage > .section { display: flex; flex-direction: column; min-height: min(9rem, 36dvh); }
+.alertsFeed { min-height: 0; overflow: hidden auto; }
+
 .overviewStats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
 .overviewStat { display: grid; grid-template-rows: 24px 24px; align-items: center; text-align: center; gap: 2px; min-width: 0; padding: 7px; background: #ffffffe0; border: 1px solid #14171a0d; border-radius: 14px; }
 .overviewWeather { grid-column: 1 / -1; grid-template-columns: auto 1fr; grid-template-rows: minmax(24px, auto); gap: 6px; }

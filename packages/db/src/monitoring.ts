@@ -664,6 +664,11 @@ export interface OrgMonitoringData {
   counties: Array<{ property_id: string; code: string; name: string }>;
 }
 
+// Krisinformation publishes warning-system test announcements as ordinary news.
+const withoutCrisisSystemTests = (row: string) =>
+  `NOT (${row}.source_id = 'krisinformation' AND ${row}.data_class = 'PUBLIC_EVENT'
+    AND ${row}.headline ~* '^test av (nytt varningssystem|se[-– ]alert)([[:space:][:punct:]]|$)')`;
+
 /** Parameters looked up per property: [source, parameter, max age (h)]. */
 export const NEAREST_PARAMETERS: Array<[string, string, number]> = [
   ['smhi_hydrology', 'water_flow', 3],
@@ -732,7 +737,7 @@ export async function loadOrgMonitoring(db: Queryable, organizationId: string, p
          JOIN source_events e ON e.id = m.event_id AND e.status = 'active'
          JOIN properties p ON p.id = m.property_id AND p.organization_id = $1
         WHERE m.organization_id = $1 AND ($2::uuid[] IS NULL OR m.property_id = ANY($2::uuid[]))
-          AND ${offeredUtilityEvent('e')}
+          AND ${offeredUtilityEvent('e')} AND ${withoutCrisisSystemTests('e')}
         ORDER BY e.severity DESC, m.distance_m NULLS LAST, e.published_at DESC NULLS LAST`,
       [organizationId, pid],
     ),
@@ -813,7 +818,7 @@ export async function listRecentChangesForOrg(db: Queryable, organizationId: str
   const portfolioRows = `WITH latest AS (
     SELECT DISTINCT ON (${changeKey}) c.*
     FROM monitoring_changes c WHERE c.organization_id = $1
-      AND ${offeredUtilityChange('c')}
+      AND ${offeredUtilityChange('c')} AND ${withoutCrisisSystemTests('c')}
       AND ${customerUtilityChange('c')}
       AND (c.source_id <> 'trafikverket' OR c.severity IN ('warning', 'critical'))
     ORDER BY ${changeKey}, c.created_at DESC, c.id DESC
@@ -858,7 +863,7 @@ export async function listRecentChangesForOrg(db: Queryable, organizationId: str
        FROM ${forPortfolio ? 'feed_changes' : 'monitoring_changes'} c
        LEFT JOIN source_events e ON e.id = c.event_id
        LEFT JOIN feed_acknowledgements ack ON ack.organization_id = c.organization_id AND ack.change_id = c.id
-      WHERE c.organization_id = $1 ${forPortfolio ? '' : `AND ${offeredUtilityChange('c')}`}
+      WHERE c.organization_id = $1 ${forPortfolio ? '' : `AND ${offeredUtilityChange('c')} AND ${withoutCrisisSystemTests('c')}`}
       ORDER BY c.created_at DESC, c.id DESC ${forPortfolio ? '' : 'LIMIT $2'}`,
     forPortfolio ? [organizationId, limit, viewerId] : [organizationId, limit],
   );
@@ -1017,7 +1022,7 @@ export async function unacknowledgeFeedChanges(db: Queryable, organizationId: st
 
 /**
  * TENANT read: a property's short activity log ("Tidslinje") – stored monitoring changes plus SMS
- * alerts that named the property, newest first. Traffic (several changes a day, already listed under
+ * delivery activity for the property, newest first. Traffic (several changes a day, already listed under
  * local events) and regional news are left out so warnings stay visible: Krisinformation only as VMA.
  */
 export async function listPropertyActivity(db: Queryable, organizationId: string, propertyId: string, days: number = ACTIVITY.days, limit: number = ACTIVITY.limit): Promise<ActivityItem[]> {
@@ -1037,6 +1042,7 @@ export async function listPropertyActivity(db: Queryable, organizationId: string
          FROM notification_outbox n
          JOIN notification_properties np ON np.organization_id = n.organization_id AND np.notification_id = n.id
         WHERE n.organization_id = $1 AND np.property_id = $2 AND n.created_at > now() - make_interval(days => $3)
+          AND NOT n.is_test AND n.provider <> 'simulated'
           AND n.status NOT IN ('queued', 'processing', 'retry')
         GROUP BY n.rule_name, n.status, n.is_test, date_trunc('minute', n.created_at)
         ORDER BY at DESC LIMIT $4`,
@@ -1198,7 +1204,8 @@ export async function loadOrgEvent(db: Queryable, organizationId: string, eventI
     db.query<EventPageEventRow>(
       `SELECT e.id::text, e.source_id, e.data_class, e.level, e.severity, e.headline, e.description, e.area_label,
               e.published_at, e.valid_from, e.valid_to, e.status, e.source_url, e.extra
-         FROM source_events e WHERE e.id = $2::uuid AND ${offeredUtilityEvent('e')} AND ${ORG_HAS_EVENT}`,
+         FROM source_events e WHERE e.id = $2::uuid AND ${offeredUtilityEvent('e')}
+          AND ${withoutCrisisSystemTests('e')} AND ${ORG_HAS_EVENT}`,
       [organizationId, eventId],
     ),
     db.query<EventPagePropertyRow>(

@@ -69,6 +69,22 @@ it.each(['desktop', 'mobile'])('shows distinct alert events for the chosen group
   expect(screen.getByText('Aktiva larm').parentElement?.textContent).toBe('1Aktiva larm');
 });
 
+it.each(['desktop overview', 'mobile overview', 'desktop property list', 'mobile property list'])(
+  'shows the rain time with one shared radar credit in the %s',
+  (surface) => {
+    mocks.matchMobile = surface.startsWith('mobile');
+    const overview = mocks.matchMobile
+      ? <MobilePortfolioOverview vm={vm} />
+      : <MonitoringStatus vm={vm} onOpen={vi.fn()} expanded={false} onToggleFull={vi.fn()} />;
+    render(surface.endsWith('overview') ? overview : <PropertyIndex />);
+    expect(screen.getByText(/^(Regn|Nederbörd) om ~25 min$/)).toBeTruthy();
+    expect(screen.queryByText(/om ~25 min · MET Norway/)).toBeNull();
+    const credit = screen.getByRole('link', { name: 'CC BY 4.0' });
+    expect(credit.getAttribute('href')).toBe('https://creativecommons.org/licenses/by/4.0/');
+    expect(credit.parentElement?.textContent).toContain('MET Norway · bearbetad av FastighetsRadar');
+  },
+);
+
 describe('mobile portfolio overview', () => {
   it('scrolls long event and property lists inside their cards instead of expanding them, without SMS controls', () => {
     render(<MobilePortfolioOverview vm={vm} />);
@@ -140,14 +156,15 @@ describe('mobile property list', () => {
     const search = screen.getByRole('searchbox', { name: 'Sök fastighet, adress eller område' });
     fireEvent.change(search, { target: { value: 'bromma' } });
     expect(screen.getByRole('status').textContent).toBe('1 fastighet');
-    expect(screen.getAllByRole('link')).toHaveLength(1);
-    expect(screen.getByRole('link').textContent).toContain('Ulvsunda Lager');
+    const propertyLinks = () => screen.getAllByRole('link', { name: /Risk|Temp/ });
+    expect(propertyLinks()).toHaveLength(1);
+    expect(propertyLinks()[0]!.textContent).toContain('Ulvsunda Lager');
     fireEvent.click(screen.getByRole('button', { name: 'Kritisk 1' }));
     expect(screen.getByText('Inga fastigheter matchar')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Rensa filter' }));
-    expect(screen.getAllByRole('link')).toHaveLength(8);
+    expect(propertyLinks()).toHaveLength(8);
     fireEvent.change(screen.getByRole('combobox', { name: /Sortera/ }), { target: { value: 'name' } });
-    expect(screen.getAllByRole('link')[0]!.textContent).toContain('Arenastaden Hus C');
+    expect(propertyLinks()[0]!.textContent).toContain('Arenastaden Hus C');
   });
 
   it('shows the desktop list and restores its filters after leaving the route', () => {

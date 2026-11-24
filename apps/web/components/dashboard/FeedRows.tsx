@@ -8,13 +8,14 @@ import { FeedMapButton, FeedUpdatedBadge } from './FeedEventMap';
 import { NightMoon } from './NightMoon';
 import styles from './FeedRows.module.css';
 
-export function FeedRows({ feed, acks, onMap, isUnread, property, children }: {
+export function FeedRows({ feed, acks, onMap, isUnread, property, children, mobile = false }: {
   feed: OverviewFeedRow[];
   acks?: FeedAcks;
   onMap?: (row: OverviewFeedRow) => void;
   isUnread?: (row: OverviewFeedRow) => boolean;
   property: (row: OverviewFeedRow) => ReactNode;
   children: (row: OverviewFeedRow) => ReactNode;
+  mobile?: boolean;
 }) {
   const { basePath } = useDashboard();
   return groupFeedRows(feed).map((rows) => {
@@ -25,28 +26,30 @@ export function FeedRows({ feed, acks, onMap, isUnread, property, children }: {
     const updated = rows.some((row) => row.acknowledgementUpdate || (isUnread?.(row) ?? !!row.unreadUpdateId));
 
     return (
-      <FeedGroup key={first.eventGroupKey} className={styles.group} style={pending ? { background: `color-mix(in oklch, ${first.bg} 75%, white)` } : undefined} rows={() => rows.map((row) => <li key={row.rowKey}>
+      <FeedGroup key={first.eventGroupKey} className={mobile ? `${styles.group} ${styles.mobileGroup}` : styles.group} style={pending ? { background: `color-mix(in oklch, ${first.bg} 75%, white)` } : undefined} rows={() => rows.map((row) => <li key={row.rowKey}>
         <span className={styles.property}>{property(row)}</span>
         <span className={styles.actions}>
           {acks && <FeedAckButton f={{ ...row, title: `${row.title} · ${row.prop}` }} acks={acks} />}
           {onMap && row.mapEventId && <FeedMapButton title={`${row.title} · ${row.prop}`} ended={row.mapEnded} onClick={() => onMap(row)} />}
         </span>
       </li>)}>
-        <summary className={styles.summary}>
+        <summary className={`${styles.row} ${styles.summary}`}>
           <span className={styles.icon} style={{ background: first.bg }}><span style={{ background: first.c }} /></span>
           <span className={styles.main}>
             <span className={styles.title}>{first.title}</span>
             <span className={styles.meta}><span className={styles.source}>{first.src}</span> {rows.length} berörda fastigheter</span>
-            <span className={styles.toggle}>
-              <span className={styles.show}>Visa fastigheter</span>
-              <span className={styles.hide}>Dölj fastigheter</span>
-              <IconChevronDown size={13} aria-hidden="true" />
+            <span className={styles.links}>
+              <span className={styles.toggle}>
+                <span className={styles.show}>Visa fastigheter</span>
+                <span className={styles.hide}>Dölj fastigheter</span>
+                <IconChevronDown size={13} aria-hidden="true" />
+              </span>
+              {first.eventId && (
+                <DashboardLink className={styles.open} href={`${basePath}/alerts/${encodeURIComponent(first.eventId)}`} onClick={(e) => e.stopPropagation()}>
+                  Öppna händelsen
+                </DashboardLink>
+              )}
             </span>
-            {first.eventId && (
-              <DashboardLink className={styles.open} href={`${basePath}/alerts/${encodeURIComponent(first.eventId)}`} onClick={(e) => e.stopPropagation()}>
-                Öppna händelsen
-              </DashboardLink>
-            )}
           </span>
           <span className={styles.side}>
             {updated && <FeedUpdatedBadge />}
@@ -70,7 +73,7 @@ function FeedGroup({ rows, children, ...props }: { rows: () => ReactNode[]; chil
   return (
     <details {...props} onToggle={(e) => setOpen(e.currentTarget.open)}>
       {children}
-      {open && <ul className={styles.properties}>{rows()}</ul>}
+      {open && <ul className={styles.properties} aria-label="Berörda fastigheter" tabIndex={0}>{rows()}</ul>}
     </details>
   );
 }

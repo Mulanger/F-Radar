@@ -7,7 +7,7 @@ const PID = '11111111-1111-4111-8111-111111111111';
 const at = (h: number) => new Date(Date.UTC(2026, 10, 17, h));
 
 describe('property activity log', () => {
-  it('scopes both reads to organization and property, merges newest first and caps the list', async () => {
+  it('merges real SMS delivery activity and monitoring changes for one property, newest first', async () => {
     const calls: Array<{ sql: string; params: unknown[] }> = [];
     const db: Queryable = {
       async query<R>(sql: string, params: unknown[] = []) {
@@ -18,7 +18,8 @@ describe('property activity log', () => {
             { id: '3', source_id: 'utility_outages', change_type: 'ended', severity: 'info', headline: 'Strömmen är tillbaka enligt Ellevio', created_at: at(9), level: null, attribution: 'Ellevio' },
           ] as R[] };
         }
-        return { rows: [{ id: 'a1', rule_name: 'Varningar', status: 'simulated', is_test: false, at: at(12), recipients: 2 }] as R[] };
+        expect(sql).toMatch(/AND NOT n\.is_test AND n\.provider <> 'simulated'[\s\S]* LIMIT \$4/);
+        return { rows: [{ id: 'a1', rule_name: 'Varningar', status: 'delivered', is_test: false, at: at(12), recipients: 2 }] as R[] };
       },
     };
     const items = await listPropertyActivity(db, ORG, PID, 7, 2);
@@ -28,7 +29,7 @@ describe('property activity log', () => {
       expect(c.params.slice(0, 3)).toEqual([ORG, PID, 7]);
     }
     expect(items.map((i) => i.id)).toEqual(['c7', 'sa1']);
-    expect(PropertyActivitySchema.parse({ propertyId: PID, since: at(0).toISOString(), items }).items[1]).toMatchObject({ kind: 'sms', recipients: 2 });
+    expect(PropertyActivitySchema.parse({ propertyId: PID, since: at(0).toISOString(), items }).items[1]).toMatchObject({ kind: 'sms', status: 'delivered', recipients: 2 });
   });
 
   it('leaves regional news and traffic out of the timeline', async () => {

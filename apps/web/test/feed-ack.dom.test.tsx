@@ -6,6 +6,7 @@ import { demoPortfolio } from '@fastighetsradar/domain/fixtures';
 import type { Portfolio, PropertySnapshot } from '@fastighetsradar/domain';
 import { buildOverviewVM } from '@/lib/view-models/overview';
 import { AlertFeed } from '@/components/dashboard/AlertFeed';
+import feedStyles from '@/components/dashboard/FeedRows.module.css';
 import { UpcomingPanel } from '@/components/upcoming/UpcomingPanel';
 import { MobileAlerts } from '@/components/mobile/MobileAlerts';
 import { DemoAcknowledgementHistory, DemoAcknowledgementProvider } from '@/components/acknowledgements/DemoAcknowledgements';
@@ -76,11 +77,20 @@ describe('kvittering i händelseflödet', () => {
     expect(screen.getAllByText('Strömavbrott')).toHaveLength(2);
     expect(screen.queryByText('Uppdaterad')).toBeNull();
     const group = container.querySelector('details')!;
-    expect(group.querySelector('summary')?.textContent).toContain('2 berörda fastigheter');
+    const summary = group.querySelector('summary')!;
+    expect(summary.textContent).toContain('2 berörda fastigheter');
+    if (device === 'desktop') {
+      expect(summary.classList.contains(feedStyles.row)).toBe(true);
+      expect(group.parentElement?.querySelector('[role="button"]')?.classList.contains(feedStyles.row)).toBe(true);
+    } else {
+      expect(group.classList.contains(feedStyles.mobileGroup)).toBe(true);
+    }
     // The property rows are rendered when the card is opened (a county warning names hundreds: Fas 2).
     expect(group.querySelectorAll('li')).toHaveLength(0);
-    fireEvent.click(group.querySelector('summary')!);
-    await vi.waitFor(() => expect(group.querySelectorAll('li')).toHaveLength(2));
+    fireEvent.click(summary);
+    const list = await within(group).findByRole('list', { name: 'Berörda fastigheter' });
+    expect(list.tabIndex).toBe(0);
+    expect(within(list).getAllByRole('listitem')).toHaveLength(2);
   });
 
   it.each(['desktop', 'mobile'])('acknowledges every property of an event in one call and can undo it on %s (Fas 2 / S-05)', async (device) => {
@@ -218,6 +228,23 @@ describe('kvittering i händelseflödet', () => {
     const night = { ...vm, feed: vm.feed.map((f, i) => (i === 1 ? { ...f, nightWork: 'Nattarbete 22–05' } : f)) };
     render(<AlertFeed vm={night} isDemo onOpen={mocks.openProperty} />);
     expect(screen.getAllByRole('img', { name: /^Nattarbete 22–05 – påverkar troligen inte dagtid$/ })).toHaveLength(1);
+  });
+
+  it('keeps all Larm items in a keyboard-scrollable region independently of the event count', () => {
+    const item = demoPortfolio.feed[0]!;
+    const events = Array.from({ length: 10 }, (_, i) => ({
+      ...item, id: `feed-${i}`, eventId: undefined, eventGroupId: undefined, title: `Händelse ${i + 1}`, ackRequired: false,
+    }));
+    activePortfolio = { ...demoPortfolio, activeAlarms: [], feed: events };
+    const view = render(<MobileAlerts />);
+    const feed = within(screen.getByRole('region', { name: 'Händelseflöde' }));
+    const scroll = feed.getByRole('region', { name: 'Händelser, 10 st' });
+    expect(scroll.tabIndex).toBe(0);
+    expect(within(scroll).getAllByRole('link')).toHaveLength(10);
+
+    activePortfolio = { ...activePortfolio, feed: events.slice(0, 6) };
+    view.rerender(<MobileAlerts />);
+    expect(within(feed.getByRole('region', { name: 'Händelser, 6 st' })).getAllByRole('link')).toHaveLength(6);
   });
 
   it('keeps the event time separate on mobile and restores the Larm row when undone from history', async () => {

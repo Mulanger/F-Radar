@@ -43,6 +43,20 @@ function picker(props: Partial<React.ComponentProps<typeof PropertyPicker>> = {}
 }
 
 describe('PropertyPicker', () => {
+  it('shows the rain time in the option and the radar credit below the list', () => {
+    render(
+      <DashboardStateProvider mode="demo" basePath="/demo" portfolio={demoPortfolio}>
+        <PropertyPicker variant="status" onSelect={vi.fn()} />
+      </DashboardStateProvider>,
+    );
+    const options = screen.getByRole('listbox');
+    expect(within(options).getByText(/^(Regn|Nederbörd) om ~25 min$/)).toBeTruthy();
+    expect(options.textContent).not.toContain('MET Norway');
+    const credit = screen.getByRole('link', { name: 'CC BY 4.0' });
+    expect(options.contains(credit)).toBe(false);
+    expect(credit.parentElement?.textContent).toContain('MET Norway · bearbetad av FastighetsRadar');
+  });
+
   it('renders at most 100 rows of 500, worst status first, and says how to find the rest', () => {
     const { input } = picker();
     expect(document.activeElement).toBe(input);

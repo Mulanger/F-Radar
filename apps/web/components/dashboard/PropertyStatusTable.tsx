@@ -91,7 +91,7 @@ export function PropertyStatusTable({
               }}
             >
               <div role="cell" style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 500 }}>{r.name}</div>{r.nowcast.badge && <div title={r.nowcast.source} style={{ fontSize:11, color:'#4A86C5', marginTop:3 }}>{r.nowcast.badge} · MET Norway</div>}
+                <div style={{ fontSize: 14, fontWeight: 500 }}>{r.name}</div>{r.nowcast.badge && <div title={r.nowcast.source} style={{ fontSize:11, color:'#4A86C5', marginTop:3 }}>{r.nowcast.badge}</div>}
                 <div style={{ fontSize: 12, color: C.text4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.address}</div>
               </div>
               <div role="cell" style={{ fontSize: 12.5, color: C.text2, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{propertyArea(r.snapshot) || '—'}</div>

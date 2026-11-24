@@ -211,3 +211,7 @@ Oxelös ofullständiga El-profil korrigerar potentiell eltäckning till 74,6308 
   illustrerade cirklar i demot. Förklaringen visar ”Regn just nu” med radarbildens klockslag.
   Översvämningslagret är borttaget från kartan; karterad översvämningsrisk ingår fortfarande i
   fastighetens riskbedömning.
+- Larmlistan visar högst fyra berörda fastigheter åt gången med egen rullning, och mobilens händelseflöde
+  rullar i sin ruta. Händelsesidan visar karta och fastighetslista sida vid sida inom fönstret.
+  Krisinformations testmeddelanden för varningssystemet och simulerade test-SMS visas inte för kunden.
+  MET Norway anges en gång per lista i stället för på varje rad.

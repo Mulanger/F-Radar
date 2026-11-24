@@ -12,6 +12,8 @@ import { watchPortfolioRadar } from './portfolio-live-layers';
 interface Props {
   compact?: boolean;
   mobileControls?: boolean;
+  height?: React.CSSProperties['height'];
+  title?: string;
   list: PropertySnapshot[];
   legend: Array<{ key: string; label: string; c: string; n: number }>;
   onOpen: (id: string) => void;
@@ -135,7 +137,7 @@ function syncMarkers(ctx: Ctx, list: PropertySnapshot[], markers: Map<string, Sh
   }
 }
 
-export function PortfolioMap({ list, legend, onOpen, compact = false, mobileControls = false }: Props) {
+export function PortfolioMap({ list, legend, onOpen, compact = false, mobileControls = false, height, title = 'Portföljkarta' }: Props) {
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Ctx | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -151,14 +153,20 @@ export function PortfolioMap({ list, legend, onOpen, compact = false, mobileCont
   const markersRef = useRef(new Map<string, Shown>());
   /** Property set the view was last fitted to; a refresh with the same set keeps the user's zoom. */
   const fittedRef = useRef<string | null>(null);
+  const fillsAvailableHeight = height !== undefined;
 
   useEffect(() => {
     let cancelled = false;
+    let resize: ResizeObserver | undefined;
     const el = elRef.current;
     const markers = markersRef.current;
     loadLeaflet().then((L) => {
       if (cancelled || !el || !el.isConnected || mapRef.current) return;
       const map = newMap(L, el, [59.338, 18.055], 11);
+      if (fillsAvailableHeight && typeof ResizeObserver !== 'undefined') {
+        resize = new ResizeObserver(() => map.invalidateSize({ debounceMoveend: true }));
+        resize.observe(el);
+      }
       const groups: Groups = { markers: L.layerGroup().addTo(map), weather: L.layerGroup() };
       mapRef.current = { L, map, groups };
       // Clusters depend on the zoom: re-draw when it changes (S-18).
@@ -169,12 +177,13 @@ export function PortfolioMap({ list, legend, onOpen, compact = false, mobileCont
     });
     return () => {
       cancelled = true;
+      resize?.disconnect();
       mapRef.current?.map.remove();
       mapRef.current = null;
       markers.clear();
       fittedRef.current = null;
     };
-  }, []);
+  }, [fillsAvailableHeight]);
 
   // Sync markers with the list (docs/plans/skalning.md, S-13 and S-18): pins and clusters at the
   // current zoom, re-drawn on zoom; unchanged ones stay. Fit the view only on first draw and when the
@@ -217,10 +226,10 @@ export function PortfolioMap({ list, legend, onOpen, compact = false, mobileCont
   const zoomBtn: React.CSSProperties = { width: footerLegend ? 44 : 36, height: footerLegend ? 44 : 36, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 18, color: C.ink };
 
   return (
-    <div style={{ ...card, flex: '1.5 1 620px', height: compact ? 300 : 460, position: 'relative', overflow: 'hidden', background: footerLegend ? C.white : C.mapBg }}>
-      <div ref={elRef} style={{ position: 'absolute', inset: 0, bottom: footerLegend ? 80 : 0, zIndex: 0 }} role="region" aria-label="Portföljkarta" />
+    <div style={{ ...card, flex: '1.5 1 620px', height: height ?? (compact ? 300 : 460), ...(height !== undefined && { boxSizing: 'border-box' }), position: 'relative', overflow: 'hidden', background: footerLegend ? C.white : C.mapBg }}>
+      <div ref={elRef} style={{ position: 'absolute', inset: 0, bottom: footerLegend ? 80 : 0, zIndex: 0 }} role="region" aria-label={title} />
       {!compact && !mobileControls && <div className="fr-map-title" style={{ position: 'absolute', top: 16, left: 16, zIndex: 500, padding: '12px 16px', borderRadius: 16, ...overlay }}>
-        <div style={{ fontSize: 15, fontWeight: 600 }}>Portföljkarta</div>
+        <div style={{ fontSize: 15, fontWeight: 600 }}>{title}</div>
         <div style={{ fontSize: 12, color: C.text3 }}>Klicka på en nål för att öppna fastigheten</div>
       </div>}
       <div className={footerLegend ? undefined : 'fr-map-legend'} style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 500, display: 'flex', gap: 14, padding: '10px 14px', borderRadius: 14, ...overlay, ...(footerLegend ? { right: 14, left: 14, bottom: 14, padding: 0, flexWrap: 'wrap', gap: '6px 14px', border: 'none', background: 'transparent' } : {}) }}>

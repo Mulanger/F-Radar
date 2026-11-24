@@ -210,7 +210,7 @@ export function PropertyPicker({
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: st.c, flex: 'none' }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13.5, fontWeight: current ? 600 : 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-                    {nowcast.badge && <div title={nowcast.source} style={{ fontSize: 11, color: '#4A86C5', marginTop: 3 }}>{nowcast.badge} · MET Norway</div>}
+                    {nowcast.badge && <div title={nowcast.source} style={{ fontSize: 11, color: '#4A86C5', marginTop: 3 }}>{nowcast.badge}</div>}
                     <div style={{ fontSize: 12, color: C.text4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{current ? 'Visas nu · ' : ''}{p.area || p.address}</div>
                   </div>
                   {variant === 'status' ? (
@@ -225,6 +225,11 @@ export function PropertyPicker({
         ))}
         {!shown && <div role="status" style={{ padding: '14px 12px', fontSize: 13, color: C.text3 }}>Inga fastigheter matchar ”{query.trim()}”.</div>}
       </div>
+      {options.some((s) => radarOf(s).badge) && (
+        <div style={{ flex: 'none', padding: '6px 12px 0', fontSize: 11, color: C.text3 }}>
+          MET Norway · bearbetad av FastighetsRadar · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>
+        </div>
+      )}
       {total > shown && (
         <div role="status" style={{ flex: 'none', padding: '8px 12px 4px', fontSize: 12, color: C.text4, borderTop: '1px solid rgba(20,23,26,0.06)', marginTop: 4 }}>
           Visar {shown} av {total} – {query.trim() ? 'skriv mer för att begränsa' : 'skriv för att söka'}

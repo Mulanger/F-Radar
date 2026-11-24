@@ -98,9 +98,10 @@ export function PropertyIndex() {
           <div className={styles.propertyCardTop}><div className={styles.miniGauge}><svg width="48" height="48" viewBox="0 0 48 48" style={{ transform: 'rotate(-90deg)' }} aria-hidden="true"><circle cx="24" cy="24" r="20" fill="none" stroke={C.chip} strokeWidth="5" /><circle cx="24" cy="24" r="20" fill="none" stroke={r.riskC} strokeWidth="5" strokeLinecap="round" strokeDasharray={`${dash} ${Math.PI * 40}`} style={{ transition: 'stroke-dasharray 1.2s' }} /></svg><span>{r.risk}</span></div><div style={{ flex: 1, minWidth: 0 }}><div className={styles.propertyTitle}>{r.name}</div><div className={styles.propertyArea}>{[p.area, p.building?.type].filter(Boolean).join(' · ')}</div></div><MobileStatusBadge label={r.status} color={r.c} background={r.bg} /></div>
           <div className={styles.propertyWeather}><div><span className={styles.small}>Temp</span><strong>{r.temp}°</strong></div><div><span className={styles.small}>Regn 24 h</span><strong>{r.rain} mm</strong></div><div><span className={styles.small}>Byvind</span><strong>{show(metricValue(r.snapshot, 'weather.wind_gust'))} m/s</strong></div></div>
           {r.warn !== 'Ingen' && <div><span className={styles.chip} style={{ color: r.wFg, background: r.wBg }}>{r.warn}</span></div>}
-          {r.nowcast.badge && <div className={styles.small} style={{ color: '#4A86C5' }} title={r.nowcast.source}>{r.nowcast.badge} · MET Norway · <span style={{ color: C.text4 }}>CC BY 4.0</span></div>}
+          {r.nowcast.badge && <div className={styles.small} style={{ color: '#4A86C5' }} title={r.nowcast.source}>{r.nowcast.badge}</div>}
         </DashboardLink>;
       })}
+      {mobile && visible.some((r) => r.nowcast.badge) && <div className={styles.small} style={{ color: C.text3 }}>MET Norway · bearbetad av FastighetsRadar · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></div>}
       {rows.length > limit && <div className={styles.pageMore} role="group" aria-label="Fler fastigheter">
         <span>Visar {limit} av {rows.length}</span>
         <button className={styles.more} onClick={() => setPage({ selection, count: limit + PAGE })}>Visa {Math.min(PAGE, rows.length - limit)} till</button>

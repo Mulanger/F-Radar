@@ -33,7 +33,7 @@ export function MobileWeatherCard({ icon, label, value, sub }: { icon: React.Rea
  * button; with `acks`, a row that must be acknowledged gets "Kvittera" beside it, in the lower right corner.
  */
 export function MobileFeedRows({ feed, basePath, from = 'overview', onMap, isUnread, acks }: { feed: OverviewVM['feed']; basePath: string; from?: DashboardSection; onMap?: (row: FeedMapTarget) => void; isUnread?: (row: FeedMapTarget) => boolean; acks?: FeedAcks }) {
-  return <FeedRows feed={feed} acks={acks} onMap={onMap} isUnread={isUnread} property={(row) => (
+  return <FeedRows mobile feed={feed} acks={acks} onMap={onMap} isUnread={isUnread} property={(row) => (
     onMap && row.opensTrafficDetails
       ? <button type="button" onClick={() => onMap(row)}>{row.prop}</button>
       : <DashboardLink href={propertyHref(basePath, row.propertyId, from)}>{row.prop}</DashboardLink>
@@ -67,7 +67,7 @@ export function MobileStatusRows({ rows, basePath }: { rows: OverviewVM['rows'];
     <div style={{ minWidth: 0 }}>
       <div className={styles.statusName}><span className={styles.name}>{r.name}</span><MobileStatusBadge label={r.status} color={r.c} background={r.bg} /></div>
       <div className={styles.statusWeather}><span>{r.temp}° · {r.rain} mm · {r.wind} m/s</span>{r.warn !== 'Ingen' && <span className={styles.warning} style={{ color: r.wFg, background: r.wBg }} title={r.warn}>{r.warn}</span>}</div>
-      {r.nowcast.badge && <div className={styles.small} style={{ color: '#4A86C5', marginTop: 4 }} title={r.nowcast.source}>{r.nowcast.badge} · MET Norway</div>}
+      {r.nowcast.badge && <div className={styles.small} style={{ color: '#4A86C5', marginTop: 4 }} title={r.nowcast.source}>{r.nowcast.badge}</div>}
     </div>
     <div className={styles.statusRisk} title={r.riskTitle}><span>{r.risk}</span><div className={styles.riskTrack}><div style={{ background: r.riskC, width: r.riskW }} /></div></div>
     <IconChevronRight size={16} stroke={C.sep} />

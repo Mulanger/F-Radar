@@ -40,18 +40,26 @@ describe('demo event page', () => {
 describe('event page', () => {
   const page: EventPage = { ...demoEventPage(scaled, DEMO_COUNTY_WARNING_EVENT_ID)!, event: { ...demoEventPage(scaled, DEMO_COUNTY_WARNING_EVENT_ID)!.event, origin: 'live' } };
 
-  it('shows the text once, the first rows, search and "Visa alla", and the map of all properties', () => {
+  it('keeps search and "Visa alla" outside the scrolling property rows and shows the official text once', () => {
     render(<EventPageView page={page} />);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(page.event.title);
     expect(screen.getAllByText(page.event.description!)).toHaveLength(1);
     expect(screen.getByTestId('map').textContent).toBe('500 på kartan');
     const list = screen.getByRole('region', { name: 'Berörda fastigheter' });
-    expect(within(list).getAllByRole('listitem')).toHaveLength(EVENT_LIST_MAX);
-    fireEvent.click(within(list).getByRole('button', { name: 'Visa alla 500' }));
-    expect(within(list).getAllByRole('listitem')).toHaveLength(500);
+    const scrolling = within(list).getByRole('region', { name: 'Fastighetslista' });
+    const more = within(list).getByRole('button', { name: 'Visa alla 500' });
+    const search = within(list).getByRole('searchbox');
+    expect(scrolling.tabIndex).toBe(0);
+    expect(scrolling.contains(more)).toBe(false);
+    expect(scrolling.contains(search)).toBe(false);
+    expect(within(scrolling).getAllByRole('listitem')).toHaveLength(EVENT_LIST_MAX);
+    fireEvent.click(more);
+    expect(within(scrolling).getAllByRole('listitem')).toHaveLength(500);
     const target = page.properties[123]!;
-    fireEvent.change(within(list).getByRole('searchbox'), { target: { value: target.name.toLowerCase() } });
-    return vi.waitFor(() => expect(within(list).getAllByRole('listitem').map((li) => li.textContent)).toContainEqual(expect.stringContaining(target.name)));
+    scrolling.scrollTop = 250;
+    fireEvent.change(search, { target: { value: target.name.toLowerCase() } });
+    expect(scrolling.scrollTop).toBe(0);
+    return vi.waitFor(() => expect(within(scrolling).getAllByRole('listitem').map((li) => li.textContent)).toContainEqual(expect.stringContaining(target.name)));
   });
 
   it('acknowledges every property in one call', async () => {
@@ -61,7 +69,6 @@ describe('event page', () => {
     });
     vi.stubGlobal('fetch', save);
     render(<EventPageView page={page} />);
-    expect(screen.getByText('500 att kvittera')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: `Kvittera alla 500: ${page.event.title}` }));
     await vi.waitFor(() => expect(screen.getByText('Alla kvitterade')).toBeTruthy());
     expect(save).toHaveBeenCalledTimes(1);
