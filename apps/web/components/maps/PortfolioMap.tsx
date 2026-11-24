@@ -7,6 +7,7 @@ import { C, SEV, card, glass, type SeverityStyle } from '@/lib/design/tokens';
 import { metricValue, riskScore, show } from '@/lib/view-models/snapshot';
 import { buildMapMarkers, type MapMarker } from '@/lib/maps/cluster';
 import { clusterIcon, esc, loadLeaflet, newMap, pinIcon } from './leaflet-utils';
+import { addPortfolioFlood, watchPortfolioRadar } from './portfolio-live-layers';
 
 interface Props {
   compact?: boolean;
@@ -137,6 +138,9 @@ export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen, comp
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Ctx | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const live = list.some((s) => s.property.origin === 'live');
+  const radarVisible = live && !compact && layers.weather;
+  const floodVisible = live && !compact && layers.flood;
   const onOpenRef = useRef(onOpen);
   onOpenRef.current = onOpen;
   const listRef = useRef(list);
@@ -177,7 +181,7 @@ export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen, comp
     const ctx = mapRef.current;
     if (!ctx) return;
     const { L, map, groups } = ctx;
-    // Decorative indications only – not a mapped flood polygon (MCF layers are not imported yet).
+    // Use the illustrative circles only for demo properties.
     groups.flood.clearLayers();
     groups.weather.clearLayers();
     list.forEach((s) => {
@@ -204,10 +208,20 @@ export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen, comp
     if (!ctx) return;
     (['flood', 'weather'] as const).forEach((k) => {
       const g = ctx.groups[k];
-      if (layers[k]) g.addTo(ctx.map);
+      if (!live && layers[k]) g.addTo(ctx.map);
       else ctx.map.removeLayer(g);
     });
-  }, [layers, loaded]);
+  }, [layers, live, loaded]);
+
+  useEffect(() => {
+    const ctx = mapRef.current;
+    if (loaded && radarVisible && ctx) return watchPortfolioRadar(ctx.L, ctx.map);
+  }, [loaded, radarVisible]);
+
+  useEffect(() => {
+    const ctx = mapRef.current;
+    if (loaded && floodVisible && ctx) return addPortfolioFlood(ctx.L, ctx.map);
+  }, [loaded, floodVisible]);
 
   const overlay = glass(0.82, 16);
   const footerLegend = compact || mobileControls;
@@ -223,7 +237,7 @@ export function PortfolioMap({ list, legend, layers, onToggleLayer, onOpen, comp
       <div ref={elRef} style={{ position: 'absolute', inset: 0, bottom: footerLegend ? 80 : 0, zIndex: 0 }} role="region" aria-label="Portföljkarta" />
       {!compact && !mobileControls && <div className="fr-map-title" style={{ position: 'absolute', top: 16, left: 16, zIndex: 500, padding: '12px 16px', borderRadius: 16, ...overlay }}>
         <div style={{ fontSize: 15, fontWeight: 600 }}>Portföljkarta</div>
-        <div style={{ fontSize: 12, color: C.text3 }}>{list.some(s => s.property.origin === 'live') ? 'Adresspunkter · inga riskzoner eller regnområden visas' : 'Klicka på en nål för att öppna fastigheten'}</div>
+        <div style={{ fontSize: 12, color: C.text3 }}>Klicka på en nål för att öppna fastigheten</div>
       </div>}
       {!compact && <div className={mobileControls ? undefined : 'fr-map-layers'} style={{ position: 'absolute', top: 16, right: 16, ...(mobileControls ? { left: 16 } : {}), zIndex: 500, display: 'flex', gap: 4, padding: 4, borderRadius: 16, ...overlay }}>
         <button onClick={() => onToggleLayer('weather')} aria-label="Nederbördslager" aria-pressed={layers.weather} style={layerBtn(layers.weather)}>{mobileControls ? 'Regn' : 'Nederbördslager'}</button>
