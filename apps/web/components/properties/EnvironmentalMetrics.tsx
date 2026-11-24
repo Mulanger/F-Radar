@@ -67,12 +67,15 @@ export function EnvironmentalMetrics({ d, isDemo }: { d: DetailVM; isDemo: boole
 
       <div style={instrument} title={src('Närmaste luftmätstation (inte ett värde för byggnaden)')}>
         <div style={head}><IconLeaf />{d.live ? 'Luftkvalitet vid station' : 'Luftkvalitet'}</div>
-        <div style={value}>{d.aqi}<span style={{ fontSize: 15, color: d.aqC }}> {d.aq}</span></div>
+        {d.live
+          ? <div style={{ ...value, fontSize: 26, color: d.live.monitoring?.airIndex ? d.aqC : C.text3 }}>{d.aq || '—'}</div>
+          : <div style={value}>{d.aqi}<span style={{ fontSize: 15, color: d.aqC }}> {d.aq}</span></div>}
         {(!d.live || d.live.monitoring?.airIndex) && <div style={{ position: 'relative', height: 8, borderRadius: 4, background: 'linear-gradient(90deg,oklch(0.75 0.13 155),oklch(0.85 0.13 100),oklch(0.75 0.15 60),oklch(0.62 0.18 28))', marginTop: 'auto' }}>
           <div style={{ position: 'absolute', top: -4, left: d.aqLeft, width: 4, height: 16, marginLeft: -2, borderRadius: 2, background: C.ink, border: '2px solid #fff', transition: 'left 1s' }} />
         </div>}
         {!d.live && <div style={foot}>PM2,5 {d.pm} µg/m³ · NO₂ {d.no2} µg/m³</div>}
-        {d.live && <div style={{ ...foot, fontSize: 10.5 }}>{d.live.airLine}</div>}
+        {d.live?.airNote && <div style={{ fontSize: 12.5, color: C.text2 }}>{d.live.airNote}</div>}
+        {d.live && <div style={foot}>{d.live.airLine}</div>}
       </div>
       {d.live && <div style={{ gridColumn: '1 / -1', fontSize: 11, color: C.text4 }}>{d.live.forecastLine}. Temperatur, nederbörd, vind och fuktighet ovan är prognosvärden för aktuell timme – inte mätningar.</div>}
     </div>

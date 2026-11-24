@@ -214,6 +214,22 @@ describe('missing data is never rendered as a normal value', () => {
   missing.riskIndex = assessPropertyRisk(missing, () => false);
   const portfolio: Portfolio = { ...demoPortfolio, origin: 'live', properties: [missing], feed: [], demoTrends: null };
 
+  it('shows the air level in plain words with one short station line', () => {
+    const airIndex = { stationId: 'x', stationName: 'Göteborg Gårda', distanceMeters: 3500, observedAt: '2026-11-24T18:00:00Z', classification: 'urban', band: 3, label: 'Måttlig', pollutants: ['pm25', 'pm10', 'no2'], missingPollutants: ['o3', 'so2'], method: 'eea_hourly_2024_v1' as const };
+    const liveProperty = { ...missing, property: { ...missing.property, origin: 'live' as const } };
+    const withAir = { ...liveProperty, monitoring: { ...(missing.monitoring ?? {}), airIndex } } as PropertySnapshot;
+    const d = buildDetailVM(portfolio, withAir, { ready: true, metric: 'temp', smsOn: false, isRuleOn: (_i, f) => f });
+    expect(d.aq).toBe('Måttlig');
+    expect(d.live!.airNote).toBe('Något förhöjda halter vid mätstationen.');
+    expect(d.live!.airLine).toMatch(/^Mätstation Göteborg Gårda · 3,5 km · /);
+    // Method details and missing pollutants stay out of the customer view.
+    expect(d.live!.airLine).not.toMatch(/EEA|Saknas|pm25|preliminärt/);
+
+    const none = buildDetailVM(portfolio, liveProperty, { ready: true, metric: 'temp', smsOn: false, isRuleOn: (_i, f) => f });
+    expect(none.live!.airNote).toBeNull();
+    expect(none.live!.airLine).toBe('Inget aktuellt mätvärde i närheten');
+  });
+
   it('shows em dashes and "Not assessed" instead of zeros or "Normal"', () => {
     const d = buildDetailVM(portfolio, missing, { ready: true, metric: 'temp', smsOn: false, isRuleOn: (_i, f) => f });
     expect(d.temp).toBe('—');

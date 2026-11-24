@@ -6,6 +6,19 @@ import { riskLevelOf, type GeographicEvent } from '@fastighetsradar/domain';
 import { CATEGORY_SV, EXPOSURE_SV, SEV, WL, exposureStyle, riskStyle, type SeverityStyle } from '../design/tokens';
 import type { ChartMetric } from '../state/dashboard-state';
 import { chartOf } from './chart';
+
+/**
+ * One calm sentence per EEA band (ADR 0007). It describes the measured levels only – no health
+ * advice, and nothing that sounds worse than the level is.
+ */
+const AIR_NOTE: Record<number, string> = {
+  1: 'Låga halter vid mätstationen.',
+  2: 'Låga till normala halter vid mätstationen.',
+  3: 'Något förhöjda halter vid mätstationen.',
+  4: 'Förhöjda halter vid mätstationen.',
+  5: 'Höga halter vid mätstationen.',
+  6: 'Mycket höga halter vid mätstationen.',
+};
 import { eventCounts, rulesFor, type RuleView } from './rules';
 import { availability, forecastValues, mappedExposure, metricValue, show, sourceLine } from './snapshot';
 import { outageEventsFor, outageShapes } from './utility-outages';
@@ -325,7 +338,12 @@ export function buildDetailVM(portfolio: Portfolio, s: PropertySnapshot, ui: Det
           forecastLine: s.forecast
             ? `SMHI-prognos, modellkörning ${formatClock(s.forecast.issuedAt ?? s.forecast.fetchedAt ?? portfolio.generatedAt)}, modellpunkt ${fmtDist(s.forecast.geo.distanceMeters)} bort`
             : 'Prognos har inte hämtats ännu',
-          airLine: mon?.airIndex ? `Härlett EEA-baserat stationsindex 1–6 · ${mon.airIndex.stationName} · ${fmtDist(mon.airIndex.distanceMeters)} · ${formatWeekdayClock(mon.airIndex.observedAt)} · preliminärt. Ämnen: ${mon.airIndex.pollutants.join(', ')}. Saknas: ${mon.airIndex.missingPollutants.join(', ') || 'inga'}. Källa: SMHI / Naturvårdsverket; metod: EEA.` : 'Index ej bedömt. Stationsvärden, avstånd och mättider visas under Mätningar och sammanhang.',
+          // Customer view: what the level means in plain words, then where and when it was measured.
+          // Method and pollutants are documented in docs/decisions/0007-luftkvalitetsindex.md.
+          airNote: mon?.airIndex ? AIR_NOTE[mon.airIndex.band] ?? null : null,
+          airLine: mon?.airIndex
+            ? `Mätstation ${mon.airIndex.stationName} · ${fmtDist(mon.airIndex.distanceMeters)} · ${formatWeekdayClock(mon.airIndex.observedAt)}`
+            : 'Inget aktuellt mätvärde i närheten',
           statusReason: p.statusReason ?? null,
           monitoring: mon,
           fmtDist,
