@@ -54,7 +54,7 @@ export function EnvironmentalMetrics({ d, isDemo }: { d: DetailVM; isDemo: boole
       </div>
 
       <div style={instrument} title={src('Närmaste luftmätstation (inte ett värde för byggnaden)')}>
-        <div style={head}><IconLeaf />{d.live ? 'Luftkvalitet vid station' : 'Luftkvalitet'}</div>
+        <div style={head}><IconLeaf />Luftkvalitet</div>
         {d.live
           ? <div style={{ ...value, fontSize: 26, color: d.live.monitoring?.airIndex ? d.aqC : C.text3 }}>{d.aq || '—'}</div>
           : <div style={value}>{d.aqi}<span style={{ fontSize: 15, color: d.aqC }}> {d.aq}</span></div>}
