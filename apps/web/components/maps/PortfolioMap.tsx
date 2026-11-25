@@ -243,7 +243,7 @@ export function PortfolioMap({ list, legend, onOpen, compact = false, mobileCont
         {(live ? radarAt : demoRain) && (
           <div data-testid="rain-legend" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.text2 }}>
             <span style={{ width: 12, height: 8, borderRadius: 3, background: RAIN_SWATCH }} />
-            {live ? 'Regn just nu' : 'Regn'}
+            {live ? 'Nederbörd just nu' : 'Nederbörd'}
             {live && radarAt && <span style={{ color: C.text3 }}>{formatClock(radarAt)}</span>}
           </div>
         )}

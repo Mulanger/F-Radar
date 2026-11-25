@@ -121,7 +121,7 @@ describe('PortfolioMap', () => {
       await waitFor(() => expect(root.querySelector('.leaflet-image-layer')?.getAttribute('src')).toBe('blob:portfolio-radar'));
       expect(radar).toHaveBeenCalledWith('/api/map/radar', expect.objectContaining({ signal: expect.any(AbortSignal) }));
       expect(root.querySelector('.leaflet-marker-icon')).not.toBeNull();
-      expect(root.querySelector('[data-testid="rain-legend"]')?.textContent).toBe(`Regn just nu${formatClock(measuredAt)}`);
+      expect(root.querySelector('[data-testid="rain-legend"]')?.textContent).toBe(`Nederbörd just nu${formatClock(measuredAt)}`);
       expect(root.querySelector('button[aria-label="Nederbördslager"], button[aria-label="Översvämningszoner"]')).toBeNull();
       expect(root.querySelector('.leaflet-portfolio-flood-pane')).toBeNull();
 
