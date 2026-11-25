@@ -36,6 +36,14 @@ const nextConfig: NextConfig = {
   // Self-contained server bundle for the f-radar pod (`node apps/web/server.js`).
   output: 'standalone',
   outputFileTracingRoot: repoRoot,
+  async redirects() {
+    return ['www.fastradar.se', 'f-radar.fr-2.instapods.app'].map(host => ({
+      source: '/:path*',
+      has: [{ type: 'host' as const, value: host.replaceAll('.', '\\.') }],
+      destination: 'https://fastradar.se/:path*',
+      permanent: false,
+    }));
+  },
   async headers() {
     return [
       {

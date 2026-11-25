@@ -78,12 +78,23 @@ if (git('status', '--porcelain', '--untracked-files=no')) throw new Error('Commi
 const podResponse = await api('GET', `/pods/${ALLOWED_POD}`);
 const pod = podResponse.data;
 if (podResponse.status !== 200 || pod.name !== ALLOWED_POD || pod.plan_slug !== 'build') throw new Error('Unexpected pod state.');
-const appUrl = `https://${pod.domain}`;
+const podUrl = `https://${pod.domain}`;
+const primaryUrl = 'https://fastradar.se';
 const envResponse = await api('GET', `/pods/${ALLOWED_POD}/env`, undefined, { raw: true });
 if (envResponse.status !== 200) throw new Error('Cannot snapshot the running environment.');
 const beforeEnv = envResponse.data.vars;
 const vars = deploymentEnvironment(beforeEnv, local);
-if (beforeEnv.APP_URL !== appUrl) throw new Error('Running APP_URL differs from the pod domain.');
+if (![podUrl, primaryUrl].includes(beforeEnv.APP_URL)) throw new Error('Unexpected running APP_URL.');
+if (args.has('--set-public-domain')) {
+  if (!args.has('--env-only')) throw new Error('Change the public domain separately from an application release.');
+  const domains = await api('GET', `/pods/${ALLOWED_POD}/domains`);
+  if (domains.status !== 200 || !domains.data.some(d => d.domain === 'fastradar.se' && d.status === 'active' && d.ssl_status === 'active')) {
+    throw new Error('Public domain must be active with HTTPS before switching.');
+  }
+  vars.APP_URL = primaryUrl;
+  vars.CLERK_AUTHORIZED_PARTIES = Array.from(new Set([...beforeEnv.CLERK_AUTHORIZED_PARTIES.split(',').map(s => s.trim()).filter(Boolean), primaryUrl])).join(',');
+}
+const appUrl = vars.APP_URL;
 const pk = beforeEnv.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 const sk = beforeEnv.CLERK_SECRET_KEY;
 if (!pk?.startsWith('pk_') || !sk?.startsWith('sk_')) throw new Error('Cannot preserve running Clerk credentials.');
